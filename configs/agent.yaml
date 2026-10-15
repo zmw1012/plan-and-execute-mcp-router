@@ -1,0 +1,24 @@
+# Agent / router configuration (mock only; no real LLM calls)
+
+experiment_mode: flat  # flat | routed | routed_structured
+
+llm:
+  provider: mock
+  model: mock-model
+
+servers:
+  financial:
+    enabled: true
+    source: mock_financial
+  market:
+    enabled: true
+    source: mock_market
+  news:
+    enabled: true
+    source: mock_news
+
+routing:
+  # Keyword hints for the placeholder routed modes
+  financial_keywords: ["revenue", "profit", "eps", "filing", "financial"]
+  market_keywords: ["price", "return", "volatility", "market"]
+  news_keywords: ["news", "announcement", "headline"]

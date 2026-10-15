@@ -1,0 +1,62 @@
+{
+  "0700.HK": {
+    "currency": "HKD",
+    "series": [
+      {
+        "date": "2024-12-27",
+        "close": 410.0
+      },
+      {
+        "date": "2024-12-30",
+        "close": 415.2
+      },
+      {
+        "date": "2024-12-31",
+        "close": 418.0
+      }
+    ],
+    "evidence": [
+      "Mock HKEX daily close snapshot 2024-12-31"
+    ]
+  },
+  "0005.HK": {
+    "currency": "HKD",
+    "series": [
+      {
+        "date": "2024-12-27",
+        "close": 72.5
+      },
+      {
+        "date": "2024-12-30",
+        "close": 73.1
+      },
+      {
+        "date": "2024-12-31",
+        "close": 73.8
+      }
+    ],
+    "evidence": [
+      "Mock HKEX daily close snapshot 2024-12-31"
+    ]
+  },
+  "9988.HK": {
+    "currency": "HKD",
+    "series": [
+      {
+        "date": "2024-12-27",
+        "close": 82.0
+      },
+      {
+        "date": "2024-12-30",
+        "close": 83.4
+      },
+      {
+        "date": "2024-12-31",
+        "close": 84.1
+      }
+    ],
+    "evidence": [
+      "Mock HKEX daily close snapshot 2024-12-31"
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+# Evaluation runner configuration
+
+questions_path: benchmarks/questions/sample_questions.jsonl
+output_csv: outputs/eval_results.csv
+
+experiment_mode: flat
+
+metrics:
+  - strict_task_success_rate
+  - tool_selection_accuracy
+  - tool_f1
+  - argument_accuracy
+  - execution_success_rate
+  - answer_correctness
+  - evidence_correctness
+  - wrong_or_unnecessary_tool_rate
+  - tool_calls
+  - tokens
+  - latency

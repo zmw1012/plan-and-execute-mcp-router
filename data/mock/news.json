@@ -1,0 +1,49 @@
+{
+  "0700.HK": {
+    "announcements": [
+      {
+        "date": "2024-12-20",
+        "headline": "Tencent announces strategic investment in AI infrastructure",
+        "summary": "Company plans additional cloud GPU capacity for 2025."
+      },
+      {
+        "date": "2024-11-15",
+        "headline": "Interim dividend declaration",
+        "summary": "Board declared an interim dividend for FY2024."
+      }
+    ],
+    "news_summary": "Recent coverage focused on AI infrastructure investment and steady gaming / advertising momentum.",
+    "evidence": [
+      "Mock HKEX announcement 2024-12-20",
+      "Mock news wire digest 2024-12"
+    ]
+  },
+  "0005.HK": {
+    "announcements": [
+      {
+        "date": "2024-12-10",
+        "headline": "HSBC updates capital distribution plan",
+        "summary": "Bank reiterated progressive dividend and buyback capacity."
+      }
+    ],
+    "news_summary": "Market discussion centered on capital returns and Asia lending outlook.",
+    "evidence": [
+      "Mock HKEX announcement 2024-12-10",
+      "Mock news wire digest 2024-12"
+    ]
+  },
+  "9988.HK": {
+    "announcements": [
+      {
+        "date": "2024-12-05",
+        "headline": "Alibaba expands international e-commerce logistics",
+        "summary": "New warehouse capacity planned in Southeast Asia."
+      }
+    ],
+    "news_summary": "Headlines highlighted logistics expansion and cloud growth commentary.",
+    "evidence": [
+      "Mock HKEX announcement 2024-12-05",
+      "Mock news wire digest 2024-12"
+    ]
+  }
+}

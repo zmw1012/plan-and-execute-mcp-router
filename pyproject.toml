@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hk-equity-mcp-agent"
+version = "0.1.0"
+description = "Mock MCP multi-server agent framework for HK equity QA experiments"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{ name = "MSBD5018 Group" }]
+dependencies = [
+  "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.4",
+]
+
+[project.scripts]
+hk-equity-demo = "hk_equity_mcp.agent.router:main"
+hk-equity-eval = "hk_equity_mcp.evaluation.runner:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
