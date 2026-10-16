@@ -1,68 +1,18 @@
-"""Fixed mock Hong Kong equity data used by all mock servers."""
+"""Fixed mock Hong Kong equity data used by market/news servers.
+
+Financial multi-period snapshots live in data/mock/financial.json and are
+loaded by hk_equity_mcp.mcp_servers.financial.data_store.
+"""
 
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Any, Dict
 import json
+import shutil
 
-# Default as-of date for the mock snapshot
+# Default as-of date for market/news mock snapshots
 AS_OF_DATE = "2024-12-31"
-
-# Small fixed universe: Tencent, HSBC, Alibaba
-MOCK_FINANCIALS: Dict[str, Dict[str, Any]] = {
-    "0700.HK": {
-        "name": "Tencent Holdings",
-        "currency": "HKD",
-        "metrics": {
-            "revenue": {"value": 609015_000_000, "unit": "HKD", "period": "FY2024"},
-            "net_profit": {"value": 194073_000_000, "unit": "HKD", "period": "FY2024"},
-            "eps": {"value": 20.45, "unit": "HKD", "period": "FY2024"},
-        },
-        "filing_summary": (
-            "FY2024 results showed continued growth in value-added services and "
-            "online advertising, with improved operating margins."
-        ),
-        "evidence": [
-            "Mock Annual Report FY2024, p.12 — Revenue HKD 609.0bn",
-            "Mock Annual Report FY2024, p.15 — Net profit HKD 194.1bn",
-        ],
-    },
-    "0005.HK": {
-        "name": "HSBC Holdings",
-        "currency": "USD",
-        "metrics": {
-            "revenue": {"value": 65_900_000_000, "unit": "USD", "period": "FY2024"},
-            "net_profit": {"value": 22_900_000_000, "unit": "USD", "period": "FY2024"},
-            "eps": {"value": 1.15, "unit": "USD", "period": "FY2024"},
-        },
-        "filing_summary": (
-            "FY2024 banking results reflected higher net interest income and "
-            "disciplined cost control across major regions."
-        ),
-        "evidence": [
-            "Mock Annual Report FY2024, p.8 — Revenue USD 65.9bn",
-            "Mock Annual Report FY2024, p.10 — Net profit USD 22.9bn",
-        ],
-    },
-    "9988.HK": {
-        "name": "Alibaba Group",
-        "currency": "CNY",
-        "metrics": {
-            "revenue": {"value": 941_168_000_000, "unit": "CNY", "period": "FY2024"},
-            "net_profit": {"value": 71_332_000_000, "unit": "CNY", "period": "FY2024"},
-            "eps": {"value": 3.78, "unit": "CNY", "period": "FY2024"},
-        },
-        "filing_summary": (
-            "FY2024 highlighted cloud and international commerce growth while "
-            "domestic commerce remained the largest revenue contributor."
-        ),
-        "evidence": [
-            "Mock Annual Report FY2024, p.20 — Revenue CNY 941.2bn",
-            "Mock Annual Report FY2024, p.24 — Net profit CNY 71.3bn",
-        ],
-    },
-}
 
 # Daily close prices (mock), newest last
 MOCK_PRICES: Dict[str, Dict[str, Any]] = {
@@ -166,9 +116,10 @@ def normalize_ticker(ticker: str) -> str:
 def dump_mock_json(target_dir: Path) -> None:
     """Write mock tables to data/mock for inspection."""
     target_dir.mkdir(parents=True, exist_ok=True)
-    (target_dir / "financial.json").write_text(
-        json.dumps(MOCK_FINANCIALS, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
+    root = Path(__file__).resolve().parents[3]
+    financial_src = root / "data" / "mock" / "financial.json"
+    if financial_src.exists() and financial_src.resolve() != (target_dir / "financial.json").resolve():
+        shutil.copyfile(financial_src, target_dir / "financial.json")
     (target_dir / "market.json").write_text(
         json.dumps(MOCK_PRICES, indent=2, ensure_ascii=False), encoding="utf-8"
     )

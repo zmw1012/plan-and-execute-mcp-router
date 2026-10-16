@@ -28,7 +28,7 @@ src/hk_equity_mcp/
   agent/                 # router + experiment modes
   common/                # schema + mock data
   mcp_servers/
-    financial/
+    financial/           # multi-period annual/interim snapshots
     market/
     news/
   evaluation/            # JSONL runner + metrics interfaces
@@ -38,6 +38,8 @@ benchmarks/questions/    # JSONL test questions
 tests/
 docs/
 ```
+
+Financial domain details (periods, sources, verification): see [docs/financial_domain.md](docs/financial_domain.md).
 
 ## Local setup
 
@@ -57,12 +59,16 @@ python3 -m hk_equity_mcp.agent.router
 hk-equity-demo
 ```
 
-## Run evaluation (smoke)
+## Run evaluation (gold-path execution smoke)
 
 ```bash
 python3 -m hk_equity_mcp.evaluation.runner
 # writes outputs/eval_results.csv and .summary.json
 ```
+
+Note: the current runner injects `gold_tools` / `gold_arguments`. A 1.0
+`strict_task_success_rate` is a **gold-path execution smoke test**, not proof of
+agent tool-selection accuracy. See `docs/financial_domain.md`.
 
 ## Run tests
 
