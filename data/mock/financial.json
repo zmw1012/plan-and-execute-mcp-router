@@ -1,7 +1,8 @@
 {
   "meta": {
-    "description": "Structured HK equity financial report snapshots. Values are absolute currency units (not millions). Numbers marked verified were taken from company IR / HKEX disclosures. PDFs are not stored in git.",
-    "as_of_snapshot": "2026-06-30"
+    "description": "Structured HK equity financial report snapshots from formal Annual/Interim Reports (IR/HKEX). Values are absolute currency units. PDFs are not stored in git.",
+    "snapshot_created_date": "2026-10-16",
+    "latest_source_publication_date": "2026-08-12"
   },
   "companies": {
     "0700.HK": {
@@ -10,67 +11,94 @@
       "reports": [
         {
           "report_type": "annual",
+          "document_type": "annual_report",
           "fiscal_year_label": "FY2025",
           "period_start": "2025-01-01",
           "period_end": "2025-12-31",
-          "publication_date": "2026-03-18",
+          "publication_date": "2026-04-09",
           "audit_status": "audited",
           "currency": "CNY",
           "unit": "CNY",
           "accounting_standard": "IFRS",
-          "source_document": "Tencent Announces 2025 Annual and Fourth Quarter Results",
-          "source_url": "https://static.www.tencent.com/uploads/2026/03/18/e6a646796d0d869acc76271c9ee1a6a5.pdf",
+          "source_document": "Tencent Holdings Limited 2025 Annual Report",
+          "source_url": "https://static.www.tencent.com/uploads/2026/04/09/62d786fcf3d3c8cb7e54791ee95439ac.pdf",
           "metrics": [
             {
               "metric": "revenue",
+              "canonical_metric": "revenues",
+              "metric_definition": "IFRS consolidated revenues for the year ended 31 December 2025.",
               "metric_type": "reported",
+              "adjustment_basis": null,
+              "eps_basis": null,
               "value": 751766000000,
-              "source_page": null,
-              "evidence_text": "FY2025 total revenues RMB751,766 million (RMB751.8 billion).",
+              "source_page_pdf": 130,
+              "source_page_printed": 129,
+              "evidence_text": "Consolidated income statement: Revenues RMB751,766 million for the year ended 31 December 2025.",
               "verification_status": "verified"
             },
             {
               "metric": "net_profit",
+              "canonical_metric": "profit_attributable_to_equity_holders",
+              "metric_definition": "IFRS profit attributable to equity holders of the Company for the year ended 31 December 2025.",
               "metric_type": "reported",
+              "adjustment_basis": null,
+              "eps_basis": null,
               "value": 224842000000,
-              "source_page": null,
-              "evidence_text": "FY2025 IFRS profit attributable to equity holders RMB224,842 million.",
+              "source_page_pdf": 130,
+              "source_page_printed": 129,
+              "evidence_text": "Consolidated income statement: Profit attributable to equity holders of the Company RMB224,842 million.",
               "verification_status": "verified"
             },
             {
               "metric": "eps",
+              "canonical_metric": "basic_earnings_per_share",
+              "metric_definition": "IFRS basic earnings per share for profit attributable to equity holders of the Company.",
               "metric_type": "reported",
+              "adjustment_basis": null,
+              "eps_basis": "basic",
               "value": 24.749,
-              "source_page": null,
-              "evidence_text": "FY2025 IFRS basic EPS RMB24.749.",
+              "source_page_pdf": 130,
+              "source_page_printed": 129,
+              "evidence_text": "Consolidated income statement: Basic EPS RMB24.749.",
               "verification_status": "verified"
             },
             {
               "metric": "net_profit",
+              "canonical_metric": "non_ifrs_profit_attributable_to_equity_holders",
+              "metric_definition": "Non-IFRS profit attributable to equity holders of the Company for the year ended 31 December 2025.",
               "metric_type": "adjusted",
+              "adjustment_basis": "non-IFRS adjustments as reconciled in the Annual Report (excludes certain one-time and/or non-cash items).",
+              "eps_basis": null,
               "value": 259626000000,
-              "source_page": null,
-              "evidence_text": "FY2025 non-IFRS profit attributable to equity holders RMB259,626 million.",
+              "source_page_pdf": 22,
+              "source_page_printed": 21,
+              "evidence_text": "Non-IFRS reconciliations: Profit attributable to equity holders RMB259,626 million.",
               "verification_status": "verified"
             },
             {
               "metric": "eps",
+              "canonical_metric": "non_ifrs_basic_earnings_per_share",
+              "metric_definition": "Non-IFRS basic earnings per share for the year ended 31 December 2025.",
               "metric_type": "adjusted",
+              "adjustment_basis": "non-IFRS basic EPS corresponding to non-IFRS profit attributable to equity holders.",
+              "eps_basis": "basic",
               "value": 28.577,
-              "source_page": null,
-              "evidence_text": "FY2025 non-IFRS basic EPS RMB28.577.",
+              "source_page_pdf": 22,
+              "source_page_printed": 21,
+              "evidence_text": "Non-IFRS reconciliations: Basic EPS RMB28.577.",
               "verification_status": "verified"
             }
           ],
           "summary_facts": [
-            "Selected report: FY2025 annual results for the year ended 31 December 2025.",
-            "Reported revenue CNY 751766000000; reported net profit attributable CNY 224842000000; reported basic EPS CNY 24.749.",
-            "Currency/unit: CNY absolute units; accounting standard IFRS (non-IFRS metrics stored separately as adjusted).",
-            "Source: Tencent IR earnings release PDF (2026-03-18)."
+            "Selected report: Tencent 2025 Annual Report for the year ended 31 December 2025 (document_type=annual_report; audit_status=audited).",
+            "Reported revenues CNY 751766000000; reported profit attributable to equity holders CNY 224842000000; reported basic EPS CNY 24.749.",
+            "Currency/unit: CNY absolute units; IFRS reported figures (non-IFRS metrics stored separately as adjusted).",
+            "Source: Tencent IR 2025 Annual Report PDF."
           ]
         },
         {
           "report_type": "interim",
+          "document_type": "interim_report",
           "fiscal_year_label": "1H2026",
           "period_start": "2026-01-01",
           "period_end": "2026-06-30",
@@ -79,47 +107,67 @@
           "currency": "CNY",
           "unit": "CNY",
           "accounting_standard": "IFRS",
-          "source_document": "Announcement of the Results for the Three and Six Months Ended 30 June 2026",
-          "source_url": "https://www.tencent.com/wp-content/uploads/2026/08/E700_IRA.pdf",
+          "source_document": "Tencent Holdings Limited 2026 Interim Report",
+          "source_url": "https://www.tencent.com/wp-content/uploads/2026/08/E700_IR.pdf",
           "metrics": [
             {
               "metric": "revenue",
+              "canonical_metric": "revenues",
+              "metric_definition": "IFRS consolidated revenues for the six months ended 30 June 2026.",
               "metric_type": "reported",
+              "adjustment_basis": null,
+              "eps_basis": null,
               "value": 401243000000,
-              "source_page": null,
-              "evidence_text": "1H2026 revenues for the six months ended 30 June 2026: RMB401,243 million.",
+              "source_page_pdf": 25,
+              "source_page_printed": 24,
+              "evidence_text": "Condensed consolidated income statement: Revenues RMB401,243 million for the six months ended 30 June 2026.",
               "verification_status": "verified"
             },
             {
               "metric": "net_profit",
+              "canonical_metric": "profit_attributable_to_equity_holders",
+              "metric_definition": "IFRS profit attributable to equity holders of the Company for the six months ended 30 June 2026.",
               "metric_type": "reported",
+              "adjustment_basis": null,
+              "eps_basis": null,
               "value": 114115000000,
-              "source_page": null,
-              "evidence_text": "1H2026 IFRS profit attributable to equity holders RMB114,115 million.",
+              "source_page_pdf": 25,
+              "source_page_printed": 24,
+              "evidence_text": "Condensed consolidated income statement: Profit attributable to equity holders RMB114,115 million.",
               "verification_status": "verified"
             },
             {
               "metric": "eps",
+              "canonical_metric": "basic_earnings_per_share",
+              "metric_definition": "IFRS basic earnings per share for the six months ended 30 June 2026.",
               "metric_type": "reported",
+              "adjustment_basis": null,
+              "eps_basis": "basic",
               "value": 12.639,
-              "source_page": null,
-              "evidence_text": "1H2026 IFRS basic EPS RMB12.639.",
+              "source_page_pdf": 25,
+              "source_page_printed": 24,
+              "evidence_text": "Condensed consolidated income statement: Basic EPS RMB12.639.",
               "verification_status": "verified"
             },
             {
               "metric": "net_profit",
+              "canonical_metric": "non_ifrs_profit_attributable_to_equity_holders",
+              "metric_definition": "Non-IFRS profit attributable to equity holders for the six months ended 30 June 2026.",
               "metric_type": "adjusted",
+              "adjustment_basis": "non-IFRS adjustments as presented in the Interim Report highlights/reconciliations.",
+              "eps_basis": null,
               "value": 136320000000,
-              "source_page": null,
-              "evidence_text": "1H2026 non-IFRS profit attributable to equity holders RMB136,320 million.",
+              "source_page_pdf": 5,
+              "source_page_printed": 3,
+              "evidence_text": "Financial performance highlights: Non-IFRS profit attributable to equity holders RMB136,320 million.",
               "verification_status": "verified"
             }
           ],
           "summary_facts": [
-            "Selected report: 1H2026 interim results for the six months ended 30 June 2026.",
-            "Reported revenue CNY 401243000000; reported net profit attributable CNY 114115000000; reported basic EPS CNY 12.639.",
-            "Currency/unit: CNY absolute units; interim financial information reviewed.",
-            "Source: Tencent IR / HKEX results announcement PDF."
+            "Selected report: Tencent 2026 Interim Report for the six months ended 30 June 2026 (document_type=interim_report; audit_status=reviewed).",
+            "Reported revenues CNY 401243000000; reported profit attributable to equity holders CNY 114115000000; reported basic EPS CNY 12.639.",
+            "Currency/unit: CNY absolute units.",
+            "Source: Tencent IR 2026 Interim Report PDF."
           ]
         }
       ]
@@ -130,6 +178,7 @@
       "reports": [
         {
           "report_type": "annual",
+          "document_type": "annual_report",
           "fiscal_year_label": "FY2025",
           "period_start": "2025-01-01",
           "period_end": "2025-12-31",
@@ -138,51 +187,72 @@
           "currency": "USD",
           "unit": "USD",
           "accounting_standard": "IFRS",
-          "source_document": "HSBC Holdings plc Annual Results 2025 (HKEX announcement)",
-          "source_url": "https://www.hsbc.com/-/files/hsbc/investors/hsbc-results/2025/annual/pdfs/hsbc-holdings-plc/sea-260225-c-2025-results-announcement-made-to-the-hk-stock-exchange.pdf",
+          "source_document": "HSBC Holdings plc Annual Report and Accounts 2025",
+          "source_url": "https://www.hsbc.com/-/files/hsbc/investors/hsbc-results/2025/annual/pdfs/hsbc-holdings-plc/260225-annual-report-and-accounts-2025.pdf",
           "metrics": [
             {
               "metric": "revenue",
+              "canonical_metric": "net_operating_income_before_ecl_change",
+              "metric_definition": "Reported net operating income before change in expected credit losses and other credit impairment charges (also referred to as revenue).",
               "metric_type": "reported",
+              "adjustment_basis": null,
+              "eps_basis": null,
               "value": 68274000000,
-              "source_page": null,
-              "evidence_text": "FY2025 reported revenue (net operating income before ECL) USD68,274 million.",
+              "source_page_pdf": 15,
+              "source_page_printed": 15,
+              "evidence_text": "Key financial metrics: Revenue USD68,274 million for 2025.",
               "verification_status": "verified"
             },
             {
               "metric": "net_profit",
+              "canonical_metric": "profit_after_tax",
+              "metric_definition": "Reported profit after tax for the year ended 31 December 2025.",
               "metric_type": "reported",
+              "adjustment_basis": null,
+              "eps_basis": null,
               "value": 23131000000,
-              "source_page": null,
-              "evidence_text": "FY2025 reported profit after tax USD23,131 million.",
+              "source_page_pdf": 15,
+              "source_page_printed": 15,
+              "evidence_text": "Key financial metrics: Profit after tax USD23,131 million for 2025.",
               "verification_status": "verified"
             },
             {
               "metric": "eps",
+              "canonical_metric": "basic_earnings_per_share",
+              "metric_definition": "Reported basic earnings per share for 2025.",
               "metric_type": "reported",
+              "adjustment_basis": null,
+              "eps_basis": "basic",
               "value": 1.21,
-              "source_page": null,
-              "evidence_text": "FY2025 reported basic earnings per share USD1.21.",
+              "source_page_pdf": 15,
+              "source_page_printed": 15,
+              "evidence_text": "Key financial metrics: Basic earnings per share USD1.21 for 2025.",
               "verification_status": "verified"
             },
             {
               "metric": "revenue",
+              "canonical_metric": "constant_currency_revenue_excluding_notable_items",
+              "metric_definition": "Constant currency revenue excluding notable items for 2025.",
               "metric_type": "adjusted",
+              "adjustment_basis": "constant-currency revenue excluding notable items (HSBC alternative performance measure).",
+              "eps_basis": null,
               "value": 71020000000,
-              "source_page": null,
-              "evidence_text": "FY2025 constant-currency revenue excluding notable items USD71,020 million.",
+              "source_page_pdf": 15,
+              "source_page_printed": 15,
+              "evidence_text": "Key financial metrics: Constant currency revenue excluding notable items USD71,020 million for 2025.",
               "verification_status": "verified"
             }
           ],
           "summary_facts": [
-            "Selected report: FY2025 annual results for the year ended 31 December 2025.",
+            "Selected report: HSBC Annual Report and Accounts 2025 for the year ended 31 December 2025 (document_type=annual_report; audit_status=audited).",
             "Reported revenue USD 68274000000; reported profit after tax USD 23131000000; reported basic EPS USD 1.21.",
-            "Currency/unit: USD absolute units; IFRS reported figures (adjusted/constant-currency metrics stored separately).",
-            "Source: HSBC IR HKEX results announcement PDF (2026-02-25)."
+            "Currency/unit: USD absolute units; IFRS reported figures (constant-currency excl. notable items stored as adjusted).",
+            "Source: HSBC IR Annual Report and Accounts 2025 PDF."
           ]
         },
         {
           "report_type": "interim",
+          "document_type": "interim_report",
           "fiscal_year_label": "1H2026",
           "period_start": "2026-01-01",
           "period_end": "2026-06-30",
@@ -191,47 +261,67 @@
           "currency": "USD",
           "unit": "USD",
           "accounting_standard": "IFRS",
-          "source_document": "HSBC Holdings plc Interim Results 2026 media release",
-          "source_url": "https://www.hsbc.com/-/files/hsbc/investors/hsbc-results/2026/interim/pdfs/hsbc-holdings-plc/260804-hsbc-holdings-plc-interim-results-2026-media-release.pdf",
+          "source_document": "HSBC Holdings plc Interim Report 2026",
+          "source_url": "https://www.hsbc.com/-/files/hsbc/investors/hsbc-results/2026/interim/pdfs/hsbc-holdings-plc/260804-hsbc-holdings-plc-interim-report-2026.pdf",
           "metrics": [
             {
               "metric": "revenue",
+              "canonical_metric": "net_operating_income_before_ecl_change",
+              "metric_definition": "Reported net operating income before change in expected credit losses and other credit impairment charges for 1H2026.",
               "metric_type": "reported",
+              "adjustment_basis": null,
+              "eps_basis": null,
               "value": 37742000000,
-              "source_page": null,
-              "evidence_text": "1H2026 reported revenue USD37,742 million for the half-year to 30 June 2026.",
+              "source_page_pdf": 8,
+              "source_page_printed": 8,
+              "evidence_text": "Key financial metrics: Revenue USD37,742 million for the half-year to 30 June 2026.",
               "verification_status": "verified"
             },
             {
               "metric": "net_profit",
+              "canonical_metric": "profit_after_tax",
+              "metric_definition": "Reported profit after tax for the half-year to 30 June 2026.",
               "metric_type": "reported",
+              "adjustment_basis": null,
+              "eps_basis": null,
               "value": 15321000000,
-              "source_page": null,
-              "evidence_text": "1H2026 reported profit after tax USD15,321 million.",
+              "source_page_pdf": 8,
+              "source_page_printed": 8,
+              "evidence_text": "Key financial metrics: Profit after tax USD15,321 million for 1H2026.",
               "verification_status": "verified"
             },
             {
               "metric": "eps",
+              "canonical_metric": "basic_earnings_per_share",
+              "metric_definition": "Reported basic earnings per share for 1H2026.",
               "metric_type": "reported",
+              "adjustment_basis": null,
+              "eps_basis": "basic",
               "value": 0.85,
-              "source_page": null,
-              "evidence_text": "1H2026 reported basic earnings per share USD0.85.",
+              "source_page_pdf": 8,
+              "source_page_printed": 8,
+              "evidence_text": "Key financial metrics: Basic earnings per share USD0.85 for 1H2026.",
               "verification_status": "verified"
             },
             {
               "metric": "revenue",
+              "canonical_metric": "constant_currency_revenue_excluding_notable_items",
+              "metric_definition": "Constant currency revenue excluding notable items for 1H2026.",
               "metric_type": "adjusted",
+              "adjustment_basis": "constant-currency revenue excluding notable items (HSBC alternative performance measure).",
+              "eps_basis": null,
               "value": 38168000000,
-              "source_page": null,
-              "evidence_text": "1H2026 constant-currency revenue excluding notable items USD38,168 million.",
+              "source_page_pdf": 8,
+              "source_page_printed": 8,
+              "evidence_text": "Key financial metrics: Constant currency revenue excluding notable items USD38,168 million for 1H2026.",
               "verification_status": "verified"
             }
           ],
           "summary_facts": [
-            "Selected report: 1H2026 interim results for the half-year ended 30 June 2026.",
+            "Selected report: HSBC Interim Report 2026 for the half-year ended 30 June 2026 (document_type=interim_report; audit_status=reviewed).",
             "Reported revenue USD 37742000000; reported profit after tax USD 15321000000; reported basic EPS USD 0.85.",
             "Currency/unit: USD absolute units.",
-            "Source: HSBC IR interim results media release PDF (2026-08-04)."
+            "Source: HSBC IR Interim Report 2026 PDF."
           ]
         }
       ]
@@ -242,63 +332,89 @@
       "reports": [
         {
           "report_type": "annual",
+          "document_type": "annual_report",
           "fiscal_year_label": "FY2026",
           "period_start": "2025-04-01",
           "period_end": "2026-03-31",
-          "publication_date": "2026-05-13",
+          "publication_date": "2026-05-20",
           "audit_status": "audited",
           "currency": "CNY",
           "unit": "CNY",
           "accounting_standard": "US GAAP",
-          "source_document": "Alibaba Group Announces March Quarter 2026 and Fiscal Year 2026 Results",
-          "source_url": "https://data.alibabagroup.com/ecms-files/1532295521/5b1cb883-8d00-4237-a148-6631cc12a5d2/Alibaba%20Group%20Announces%20March%20Quarter%202026%20and%20Fiscal%20Year%202026%20Results.pdf",
+          "source_document": "Alibaba Group Holding Limited Fiscal Year 2026 Annual Report",
+          "source_url": "https://data.alibabagroup.com/ecms-files/1514443390/5b9061ed-71c8-465b-b000-d995d1e77bf4/Alibaba%20Group%20Holding%20Limited%20Fiscal%20Year%202026%20Annual%20Report.pdf",
           "metrics": [
             {
               "metric": "revenue",
+              "canonical_metric": "revenue",
+              "metric_definition": "US GAAP consolidated revenue for the fiscal year ended 31 March 2026.",
               "metric_type": "reported",
+              "adjustment_basis": null,
+              "eps_basis": null,
               "value": 1023670000000,
-              "source_page": null,
-              "evidence_text": "FY2026 revenue RMB1,023,670 million for the year ended March 31, 2026.",
+              "source_page_pdf": 69,
+              "source_page_printed": null,
+              "evidence_text": "Consolidated results table: Revenue RMB1,023,670 million for fiscal year 2026.",
               "verification_status": "verified"
             },
             {
               "metric": "net_profit",
+              "canonical_metric": "net_income_attributable_to_ordinary_shareholders",
+              "metric_definition": "US GAAP net income attributable to ordinary shareholders for fiscal year 2026.",
               "metric_type": "reported",
+              "adjustment_basis": null,
+              "eps_basis": null,
               "value": 105904000000,
-              "source_page": null,
-              "evidence_text": "FY2026 net income attributable to ordinary shareholders RMB105,904 million.",
+              "source_page_pdf": 69,
+              "source_page_printed": null,
+              "evidence_text": "Consolidated results table: Net income attributable to ordinary shareholders RMB105,904 million.",
               "verification_status": "verified"
             },
             {
               "metric": "eps",
+              "canonical_metric": "basic_earnings_per_share",
+              "metric_definition": "US GAAP basic earnings per share attributable to ordinary shareholders for fiscal year 2026.",
               "metric_type": "reported",
+              "adjustment_basis": null,
+              "eps_basis": "basic",
               "value": 5.7,
-              "source_page": null,
-              "evidence_text": "FY2026 basic earnings per share RMB5.70 (diluted RMB5.50).",
+              "source_page_pdf": 69,
+              "source_page_printed": null,
+              "evidence_text": "Consolidated results table: Basic earnings per share RMB5.70 for fiscal year 2026.",
               "verification_status": "verified"
             },
             {
               "metric": "net_profit",
+              "canonical_metric": "non_gaap_net_income",
+              "metric_definition": "Non-GAAP net income for fiscal year 2026.",
               "metric_type": "adjusted",
+              "adjustment_basis": "non-GAAP net income as reconciled from US GAAP net income in the Annual Report (excludes share-based compensation and certain other items per company definition).",
+              "eps_basis": null,
               "value": 60658000000,
-              "source_page": null,
-              "evidence_text": "FY2026 non-GAAP net income RMB60,658 million.",
+              "source_page_pdf": 74,
+              "source_page_printed": null,
+              "evidence_text": "Non-GAAP measures reconciliation: Non-GAAP net income RMB60,658 million for fiscal year 2026.",
               "verification_status": "verified"
             },
             {
               "metric": "eps",
+              "canonical_metric": "non_gaap_diluted_earnings_per_share",
+              "metric_definition": "Non-GAAP diluted earnings per share for fiscal year 2026.",
               "metric_type": "adjusted",
+              "adjustment_basis": "non-GAAP diluted EPS derived from non-GAAP net income attributable to ordinary shareholders on a diluted basis.",
+              "eps_basis": "diluted",
               "value": 3.35,
-              "source_page": null,
-              "evidence_text": "FY2026 non-GAAP diluted earnings per share RMB3.35.",
+              "source_page_pdf": 75,
+              "source_page_printed": null,
+              "evidence_text": "Non-GAAP diluted earnings per share RMB3.35 for fiscal year 2026.",
               "verification_status": "verified"
             }
           ],
           "summary_facts": [
-            "Selected report: FY2026 annual results for the fiscal year ended 31 March 2026 (Alibaba fiscal year, not calendar year 2026).",
-            "Reported revenue CNY 1023670000000; reported net income attributable CNY 105904000000; reported basic EPS CNY 5.7.",
+            "Selected report: Alibaba Fiscal Year 2026 Annual Report for the fiscal year ended 31 March 2026 (document_type=annual_report; audit_status=audited). This is not calendar year 2026.",
+            "Reported revenue CNY 1023670000000; reported net income attributable to ordinary shareholders CNY 105904000000; reported basic EPS CNY 5.7.",
             "Currency/unit: CNY absolute units; US GAAP reported figures (non-GAAP stored as adjusted).",
-            "Source: Alibaba IR FY2026 results announcement PDF (2026-05-13)."
+            "Source: Alibaba IR FY2026 Annual Report PDF (dated May 20, 2026)."
           ]
         }
       ]

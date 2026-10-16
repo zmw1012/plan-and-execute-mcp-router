@@ -17,12 +17,29 @@ Primary tools:
 
 Data file: `data/mock/financial.json` (structured snapshots only; **no PDFs in git**).
 
+## Document types (do not mix names)
+
+| `document_type` | Meaning |
+|-----------------|---------|
+| `annual_report` | Formal Annual Report |
+| `interim_report` | Formal Interim Report |
+| `annual_results_announcement` | Earnings / results announcement (not a formal annual report) |
+| `interim_results_announcement` | Interim/quarterly results announcement |
+
+v1 sources use formal **Annual Report** / **Interim Report** only. Do not label a results announcement as an “annual report”.
+
+`audit_status` must match the cited document:
+
+- Formal annual report with audited statements → `audited`
+- Interim report with review conclusion → `reviewed`
+- Results announcement whose statements are unaudited → `unaudited` (not used in v1 after Alibaba switched to the Annual Report)
+
 ## Annual vs interim
 
 | `report_type` | Meaning |
 |---------------|---------|
-| `annual` | Full-year report / annual results |
-| `interim` | Half-year / interim results |
+| `annual` | Full-year report / annual results period |
+| `interim` | Half-year / interim results period |
 
 Default when `period` is omitted: **latest annual** report. Interim must be requested explicitly via `report_type="interim"` and/or an interim `fiscal_year_label` / `period_end`.
 
@@ -33,15 +50,56 @@ Default when `period` is omitted: **latest annual** report. Interim must be requ
 
 Never rely on the label alone across companies: Alibaba’s fiscal year differs from Tencent/HSBC.
 
+## Snapshot metadata (not period ends)
+
+In `financial.json` → `meta`:
+
+| Field | Meaning |
+|-------|---------|
+| `snapshot_created_date` | When this local JSON snapshot was assembled |
+| `latest_source_publication_date` | Max `publication_date` among included source documents |
+
+Do **not** use a report `period_end` as the snapshot creation date.
+
 ## Company period conventions (v1)
 
 | Ticker | Latest annual | `period_end` | Latest interim in v1 | `period_end` |
 |--------|---------------|--------------|----------------------|--------------|
-| 0700.HK | FY2025 | 2025-12-31 | 1H2026 | 2026-06-30 |
-| 0005.HK | FY2025 | 2025-12-31 | 1H2026 | 2026-06-30 |
-| 9988.HK | FY2026 | **2026-03-31** | *(not in v1; schema allows future add)* | — |
+| 0700.HK | FY2025 Annual Report | 2025-12-31 | 2026 Interim Report | 2026-06-30 |
+| 0005.HK | FY2025 Annual Report & Accounts | 2025-12-31 | 2026 Interim Report | 2026-06-30 |
+| 9988.HK | FY2026 Annual Report | **2026-03-31** | *(schema allows future add)* | — |
 
 Alibaba FY2026 is the year ended **31 March 2026**, not calendar year 2026.
+
+## Metric口径 fields
+
+Tool API still accepts `metric` (`revenue` / `net_profit` / `eps`) for compatibility, but each stored row also has:
+
+| Field | Purpose |
+|-------|---------|
+| `canonical_metric` | Precise company-specific metric name |
+| `metric_definition` | Human-readable definition |
+| `metric_type` | `reported` or `adjusted` |
+| `adjustment_basis` | Full adjustment description when `metric_type=adjusted` |
+| `eps_basis` | `basic` or `diluted` when metric is EPS |
+
+Examples:
+
+- Tencent `net_profit` reported → `profit_attributable_to_equity_holders`
+- HSBC `net_profit` reported → `profit_after_tax`
+- Alibaba `net_profit` reported → `net_income_attributable_to_ordinary_shareholders`
+- HSBC adjusted revenue → `constant_currency_revenue_excluding_notable_items` with full `adjustment_basis`
+
+These companies’ `net_profit` values are **not interchangeable** without reading `canonical_metric`.
+
+## Evidence pages
+
+For every `verification_status=verified` metric:
+
+- `source_url` required
+- `source_page_pdf` required (PDF page index starting at 1)
+- `source_page_printed` optional
+- `evidence_text` must be locatable on that PDF page
 
 ## Data source rules
 
@@ -55,24 +113,6 @@ Not allowed as ground truth:
 - News websites, blogs, search snippets
 - Memory / guessed figures
 
-## Reported vs adjusted
-
-| `metric_type` | Examples |
-|---------------|----------|
-| `reported` | IFRS / US GAAP headline figures |
-| `adjusted` | non-IFRS, non-GAAP, constant-currency excl. notable items |
-
-Tools never silently mix these. Request `metric_type` explicitly when asking for adjusted figures.
-
-## `verification_status`
-
-| Status | Meaning |
-|--------|---------|
-| `verified` | Number taken from an official IR/HKEX document text in this project pass |
-| `pending` | Not yet manually verified (or page-level check incomplete) |
-
-`source_page` may be `null` when the PDF page was not manually recorded; the metric can still be `verified` if the value itself was confirmed from the official release text.
-
 ## Benchmark ambiguity rules
 
 Benchmark questions must state:
@@ -85,6 +125,14 @@ Avoid vague wording like “2026 revenue” unless the item is an **error/ambigu
 Formal scorable set: `benchmarks/questions/financial_questions_v1.jsonl`  
 Draft/pending: `benchmarks/questions/financial_questions_draft_pending.jsonl`  
 The evaluation runner **skips** rows with `verification_status: pending`.
+
+## Evaluation limitation (important)
+
+`EvaluationRunner` currently passes **`gold_tools` and `gold_arguments` directly** into the agent/router.
+
+Therefore a `strict_task_success_rate` of 1.0 on financial_questions_v1 is only a **gold-path execution smoke test**. It does **not** measure agent tool-selection accuracy or end-to-end autonomous performance.
+
+True tool-selection / routed-mode experiments require a later agent that chooses tools without gold arguments.
 
 ## Real data later (out of scope for this PR)
 

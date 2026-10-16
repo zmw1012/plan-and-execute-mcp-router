@@ -41,7 +41,11 @@ def test_pending_benchmark_not_scored(tmp_path: Path):
     assert summary["execution_success_rate"] == 1.0
 
 
-def test_financial_v1_eval_smoke(tmp_path: Path):
+def test_financial_v1_gold_path_execution_smoke(tmp_path: Path):
+    """Gold-path smoke only: runner injects gold_tools/gold_arguments.
+
+    A 1.0 rate here does NOT claim autonomous agent tool-selection accuracy.
+    """
     output = tmp_path / "fin_eval.csv"
     runner = EvaluationRunner(
         questions_path=str(FIN_V1), output_csv=str(output), mode="flat"

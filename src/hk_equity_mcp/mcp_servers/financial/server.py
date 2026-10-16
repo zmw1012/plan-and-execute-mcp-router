@@ -18,14 +18,20 @@ class FinancialServer:
         self.store = get_store()
 
     def _as_of(self, report: Optional[Dict[str, Any]] = None) -> str:
+        """Response as_of_date uses selected report period_end when available.
+
+        Snapshot creation dates live in financial.json meta
+        (snapshot_created_date / latest_source_publication_date), not here.
+        """
         if report and report.get("period_end"):
             return str(report["period_end"])
-        return self.store.as_of_snapshot or ""
+        return self.store.latest_source_publication_date or ""
 
     def _report_meta(self, company: Dict[str, Any], report: Dict[str, Any]) -> Dict[str, Any]:
         return {
             "company_name": company.get("company_name"),
             "report_type": report.get("report_type"),
+            "document_type": report.get("document_type"),
             "fiscal_year_label": report.get("fiscal_year_label"),
             "period_start": report.get("period_start"),
             "period_end": report.get("period_end"),
@@ -36,6 +42,23 @@ class FinancialServer:
             "accounting_standard": report.get("accounting_standard"),
             "source_document": report.get("source_document"),
             "source_url": report.get("source_url"),
+        }
+
+    def _metric_fields(self, metric_row: Dict[str, Any]) -> Dict[str, Any]:
+        page_pdf = metric_row.get("source_page_pdf")
+        return {
+            "metric": metric_row.get("metric"),
+            "canonical_metric": metric_row.get("canonical_metric"),
+            "metric_definition": metric_row.get("metric_definition"),
+            "metric_type": metric_row.get("metric_type"),
+            "adjustment_basis": metric_row.get("adjustment_basis"),
+            "eps_basis": metric_row.get("eps_basis"),
+            "value": metric_row.get("value"),
+            "source_page_pdf": page_pdf,
+            "source_page_printed": metric_row.get("source_page_printed"),
+            # Backward-compatible alias for older callers/tests.
+            "source_page": page_pdf,
+            "verification_status": metric_row.get("verification_status"),
         }
 
     def get_financial_metric(
@@ -84,6 +107,8 @@ class FinancialServer:
 
         evidence = [metric_row.get("evidence_text") or ""]
         evidence = [e for e in evidence if e]
+        if metric_row.get("source_page_pdf") is not None:
+            evidence.append(f"source_page_pdf: {metric_row['source_page_pdf']}")
         if report.get("source_url"):
             evidence.append(f"source_url: {report['source_url']}")
 
@@ -94,11 +119,7 @@ class FinancialServer:
             as_of_date=self._as_of(report),
             data={
                 **self._report_meta(company, report),
-                "metric": metric_row.get("metric"),
-                "metric_type": metric_row.get("metric_type"),
-                "value": metric_row.get("value"),
-                "source_page": metric_row.get("source_page"),
-                "verification_status": metric_row.get("verification_status"),
+                **self._metric_fields(metric_row),
             },
             evidence=evidence,
         )
@@ -141,18 +162,16 @@ class FinancialServer:
                 continue
             key_metrics.append(
                 {
-                    "metric": row.get("metric"),
-                    "metric_type": row.get("metric_type"),
-                    "value": row.get("value"),
+                    **self._metric_fields(row),
                     "currency": report.get("currency"),
                     "unit": report.get("unit"),
-                    "verification_status": row.get("verification_status"),
                 }
             )
             if row.get("evidence_text"):
                 evidence.append(row["evidence_text"])
         if report.get("source_url"):
             evidence.append(f"source_url: {report['source_url']}")
+
         structured = {
             "selected_report": self._report_meta(company, report),
             "key_reported_metrics": key_metrics,
@@ -165,11 +184,13 @@ class FinancialServer:
                 "report_type": report.get("report_type"),
             },
             "source": {
+                "document_type": report.get("document_type"),
                 "source_document": report.get("source_document"),
                 "source_url": report.get("source_url"),
+                "audit_status": report.get("audit_status"),
             },
             "summary_facts": summary_facts,
-            # Plain-text join for simple string matching in smoke evals; factual only.
+            # Plain-text join for gold-path smoke evals; factual only.
             "summary": " ".join(summary_facts),
         }
 

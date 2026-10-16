@@ -31,4 +31,4 @@ Does domain routing (and structured outputs) improve tool use quality and answer
 
 ## Current status
 
-Mock end-to-end path works with gold tools for smoke evaluation. Real LLM integration is intentionally deferred.
+Mock end-to-end path works for a **gold-path execution smoke test**: the runner injects `gold_tools` / `gold_arguments`, so a 1.0 `strict_task_success_rate` does **not** mean the agent can autonomously select tools. Real LLM integration and true tool-selection evaluation are intentionally deferred. See also `docs/financial_domain.md`.

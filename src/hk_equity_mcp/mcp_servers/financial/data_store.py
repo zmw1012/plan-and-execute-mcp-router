@@ -24,7 +24,30 @@ class FinancialDataStore:
         self.json_path = Path(json_path) if json_path else default_financial_json_path()
         self._raw = self._load()
         self.companies: Dict[str, Dict[str, Any]] = self._raw.get("companies", {})
-        self.as_of_snapshot = self._raw.get("meta", {}).get("as_of_snapshot", "")
+        meta = self._raw.get("meta", {})
+        self.snapshot_created_date = meta.get("snapshot_created_date", "")
+        self.latest_source_publication_date = meta.get(
+            "latest_source_publication_date", ""
+        )
+        # Deprecated alias — do not treat period_end as snapshot creation date.
+        self.as_of_snapshot = self.latest_source_publication_date
+        self._validate_meta()
+
+    def _validate_meta(self) -> None:
+        pubs = [
+            r.get("publication_date")
+            for c in self.companies.values()
+            for r in c.get("reports") or []
+            if r.get("publication_date")
+        ]
+        if pubs and self.latest_source_publication_date:
+            expected = max(pubs)
+            if self.latest_source_publication_date != expected:
+                raise ValueError(
+                    "meta.latest_source_publication_date "
+                    f"({self.latest_source_publication_date}) != max publication_date "
+                    f"({expected})"
+                )
 
     def _load(self) -> Dict[str, Any]:
         with self.json_path.open("r", encoding="utf-8") as f:
