@@ -54,6 +54,9 @@ class EvaluationRunner:
                         raise ValueError(
                             f"Missing field '{key}' in {self.questions_path}:{line_no}"
                         )
+                # Pending items stay in JSONL for draft review but are not scored.
+                if str(item.get("verification_status", "verified")).lower() == "pending":
+                    continue
                 rows.append(item)
         return rows
 
@@ -71,15 +74,29 @@ class EvaluationRunner:
         predicted_tool = result["selected_tool"]
         predicted_args = result.get("arguments") or {}
         tool_result = result["tool_result"]
-        execution_success = bool(tool_result.get("success"))
+        expect_error = bool(item.get("expect_error"))
         tool_correct = predicted_tool in gold_tools
         args_correct = args_match(predicted_args, gold_args)
-        answer_correct = answer_contains_reference(
-            result.get("answer"), item["reference_answer"]
-        )
-        evidence_correct = evidence_overlap(
-            result.get("evidence") or [], item.get("supporting_evidence") or []
-        )
+
+        if expect_error:
+            # Structured failure is the gold outcome for ambiguity / mismatch items.
+            execution_success = tool_result.get("success") is False
+            answer_correct = answer_contains_reference(
+                tool_result.get("error"), item["reference_answer"]
+            )
+            evidence_correct = evidence_overlap(
+                [tool_result.get("error") or ""],
+                item.get("supporting_evidence") or [],
+            )
+        else:
+            execution_success = bool(tool_result.get("success"))
+            answer_correct = answer_contains_reference(
+                result.get("answer"), item["reference_answer"]
+            )
+            evidence_correct = evidence_overlap(
+                result.get("evidence") or [], item.get("supporting_evidence") or []
+            )
+
         wrong_or_unnecessary = not tool_correct
         strict_success = (
             tool_correct

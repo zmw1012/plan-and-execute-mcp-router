@@ -28,7 +28,7 @@ src/hk_equity_mcp/
   agent/                 # router + experiment modes
   common/                # schema + mock data
   mcp_servers/
-    financial/
+    financial/           # multi-period annual/interim snapshots
     market/
     news/
   evaluation/            # JSONL runner + metrics interfaces
@@ -38,6 +38,8 @@ benchmarks/questions/    # JSONL test questions
 tests/
 docs/
 ```
+
+Financial domain details (periods, sources, verification): see [docs/financial_domain.md](docs/financial_domain.md).
 
 ## Local setup
 

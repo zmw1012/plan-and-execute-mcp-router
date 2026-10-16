@@ -151,8 +151,11 @@ def main() -> None:
     """Minimal mock demo entrypoint."""
     router = AgentRouter()
     demo_questions = [
-        ("What was Tencent FY2024 revenue?", "get_financial_metric", {
-            "ticker": "0700.HK", "metric": "revenue"
+        ("What was Tencent FY2025 annual revenue?", "get_financial_metric", {
+            "ticker": "0700.HK",
+            "metric": "revenue",
+            "period": "FY2025",
+            "report_type": "annual",
         }),
         ("HSBC price return late Dec 2024?", "calculate_return", {
             "ticker": "0005.HK",
