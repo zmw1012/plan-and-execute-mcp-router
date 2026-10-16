@@ -199,7 +199,7 @@
               "eps_basis": null,
               "value": 68274000000,
               "source_page_pdf": 15,
-              "source_page_printed": 15,
+              "source_page_printed": null,
               "evidence_text": "Key financial metrics: Revenue USD68,274 million for 2025.",
               "verification_status": "verified"
             },
@@ -212,7 +212,7 @@
               "eps_basis": null,
               "value": 23131000000,
               "source_page_pdf": 15,
-              "source_page_printed": 15,
+              "source_page_printed": null,
               "evidence_text": "Key financial metrics: Profit after tax USD23,131 million for 2025.",
               "verification_status": "verified"
             },
@@ -225,7 +225,7 @@
               "eps_basis": "basic",
               "value": 1.21,
               "source_page_pdf": 15,
-              "source_page_printed": 15,
+              "source_page_printed": null,
               "evidence_text": "Key financial metrics: Basic earnings per share USD1.21 for 2025.",
               "verification_status": "verified"
             },
@@ -238,7 +238,7 @@
               "eps_basis": null,
               "value": 71020000000,
               "source_page_pdf": 15,
-              "source_page_printed": 15,
+              "source_page_printed": null,
               "evidence_text": "Key financial metrics: Constant currency revenue excluding notable items USD71,020 million for 2025.",
               "verification_status": "verified"
             }
@@ -273,7 +273,7 @@
               "eps_basis": null,
               "value": 37742000000,
               "source_page_pdf": 8,
-              "source_page_printed": 8,
+              "source_page_printed": null,
               "evidence_text": "Key financial metrics: Revenue USD37,742 million for the half-year to 30 June 2026.",
               "verification_status": "verified"
             },
@@ -286,7 +286,7 @@
               "eps_basis": null,
               "value": 15321000000,
               "source_page_pdf": 8,
-              "source_page_printed": 8,
+              "source_page_printed": null,
               "evidence_text": "Key financial metrics: Profit after tax USD15,321 million for 1H2026.",
               "verification_status": "verified"
             },
@@ -299,7 +299,7 @@
               "eps_basis": "basic",
               "value": 0.85,
               "source_page_pdf": 8,
-              "source_page_printed": 8,
+              "source_page_printed": null,
               "evidence_text": "Key financial metrics: Basic earnings per share USD0.85 for 1H2026.",
               "verification_status": "verified"
             },
@@ -312,7 +312,7 @@
               "eps_basis": null,
               "value": 38168000000,
               "source_page_pdf": 8,
-              "source_page_printed": 8,
+              "source_page_printed": null,
               "evidence_text": "Key financial metrics: Constant currency revenue excluding notable items USD38,168 million for 1H2026.",
               "verification_status": "verified"
             }
