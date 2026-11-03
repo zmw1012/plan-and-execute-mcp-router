@@ -24,7 +24,14 @@ limits:
   max_invocations: 6
   timeout_sec: 120
 
+real_mcp:
+  # Shared Financial v1 catalog for Real-MCP Operation-Visible / Flat baselines.
+  catalog: configs/operations/financial_real_mcp.yaml
+  # When enabled, invoke_api routes through RealMcpGateway (never data/mock as tool data).
+  enabled_by_default: false
+
 notes:
   - Underlying financial tools are NOT directly exposed to the central model.
   - find_operations / describe_operation are resolver calls, not underlying API calls.
   - Flat mode remains a separate comparison path and is unchanged by this config.
+  - Real-MCP catalog: configs/operations/financial_real_mcp.yaml (AKTools + mcp-hkexnews).

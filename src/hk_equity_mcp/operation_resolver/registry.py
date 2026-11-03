@@ -1,4 +1,9 @@
-"""Deterministic local operation registry for HK-equity tools."""
+"""Deterministic operation registries for HK-equity tools.
+
+Controlled Local-Tool Pilot: `build_default_registry()` (mock FinancialServer ops).
+Real MCP track: `hk_equity_mcp.real_mcp.load_real_mcp_registry()` from
+`configs/operations/financial_real_mcp.yaml`.
+"""
 
 from __future__ import annotations
 
@@ -10,7 +15,7 @@ from hk_equity_mcp.operation_resolver.schemas import OperationSpec, ParameterSpe
 
 
 def build_financial_operations() -> List[OperationSpec]:
-    """Register existing Financial MCP tools as Operation-Resolver operations.
+    """Register local FinancialServer tools (Controlled Local-Tool Pilot only).
 
     Does not invent new financial data or remote APIs.
     """

@@ -1,0 +1,520 @@
+# Frozen Financial v1 Real-MCP catalog (shared by baseline + future proposed method).
+# Servers: AKTools + mcp-hkexnews only. No FTShare / ah-disclosure / xueqiu / trading.
+version: 1
+catalog_id: financial_real_mcp_v1
+read_only: true
+notes:
+  - data/mock/financial.json is for offline reconciliation only; never as agent tool data.
+  - Named AKTools operations execute exclusively via MCP get_data (never import akshare).
+  - HSBC absolute amounts from East Money are not gold.
+
+servers:
+  aktools:
+    server_id: aktools
+    transport: stdio
+    command_env: AKTOOLS_MCP_COMMAND
+    default_command: aktools-mcp
+    python_requires: ">=3.11"
+    exposed_mcp_tools:
+      - search_interfaces
+      - describe_interface
+      - get_data
+  mcp_hkexnews:
+    server_id: mcp_hkexnews
+    transport: stdio
+    command_env: HKEXNEWS_MCP_COMMAND
+    default_command: agentladle-mcp-hkexnews
+    python_requires: ">=3.10"
+    cache_dir_env: HKEXNEWS_CACHE_DIR
+    exposed_mcp_tools:
+      - lookup_stock_code
+      - list_hkexnews_announcements
+      - download_hkexnews_announcement
+      - parse_hkexnews_announcement
+      - keyword_search
+      - get_announcement_pages
+
+operations:
+  # ---- AKTools meta-tools ----
+  - operation_id: aktools.search_interfaces
+    server_id: aktools
+    name: search_interfaces
+    role: supporting_evidence
+    exposed_mcp_tool: search_interfaces
+    underlying_aktools_interface: null
+    read_only: true
+    audit_status: verified_live
+    summary: Search AKShare interfaces by keyword via AKTools MCP.
+    description: Returns ranked interface names/titles for discovery. Not a numeric gold source.
+    action_terms: [search, interfaces, akshare, discover]
+    parameters:
+      - {name: keyword, type: string, required: true, description: "Search keyword(s)"}
+    known_risks: ["Broad search may surface non-HK interfaces"]
+    execution:
+      kind: mcp_tool
+      tool: search_interfaces
+      arg_map: {keyword: keyword}
+
+  - operation_id: aktools.describe_interface
+    server_id: aktools
+    name: describe_interface
+    role: supporting_evidence
+    exposed_mcp_tool: describe_interface
+    underlying_aktools_interface: null
+    read_only: true
+    audit_status: verified_live
+    summary: Describe an AKShare interface schema via AKTools MCP.
+    description: Returns parameters, columns, and usage notes for one interface name.
+    action_terms: [describe, schema, interface, parameters]
+    parameters:
+      - {name: name, type: string, required: true, description: "AKShare interface name"}
+    known_risks: []
+    execution:
+      kind: mcp_tool
+      tool: describe_interface
+      arg_map: {name: name}
+
+  - operation_id: aktools.get_data
+    server_id: aktools
+    name: get_data
+    role: supporting_evidence
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: null
+    read_only: true
+    audit_status: verified_live
+    summary: Invoke an arbitrary AKShare interface by name via AKTools MCP get_data.
+    description: Low-level fetch. Prefer curated named operations when available.
+    action_terms: [get_data, fetch, invoke, akshare]
+    parameters:
+      - {name: name, type: string, required: true, description: "Interface name"}
+      - {name: params, type: object, required: false, description: "Interface parameters object", default: {}}
+      - {name: offset, type: number, required: false, description: "Row offset", default: 0}
+      - {name: max_rows, type: number, required: false, description: "Max rows (AKTools get_data max_rows)", default: 20}
+    known_risks: ["Unscoped interface calls may hit irrelevant/non-HK sources"]
+    execution:
+      kind: mcp_tool
+      tool: get_data
+      arg_map: {name: name, params: params, offset: offset, max_rows: max_rows}
+
+  # ---- Curated AKTools underlying operations (via get_data) ----
+  - operation_id: aktools.stock_financial_hk_report_em
+    server_id: aktools
+    name: stock_financial_hk_report_em
+    role: core_gold
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: stock_financial_hk_report_em
+    read_only: true
+    audit_status: verified_live
+    summary: HK financial statements (IS/BS/CF) from East Money via AKTools.
+    description: >
+      Line-item statements for HK stocks. Use symbol like 00700 and indicator
+      利润表 / 资产负债表 / 现金流量表. Bank templates expose 净利息收入 etc.
+      HSBC absolute amounts are NOT gold versus IR USD snapshots.
+    action_terms: [income, balance, cashflow, statement, report, bank, NII]
+    parameters:
+      - {name: stock, type: string, required: true, description: "5-digit HK code e.g. 00700"}
+      - {name: symbol, type: string, required: true, description: "资产负债表|利润表|现金流量表"}
+      - {name: indicator, type: string, required: false, description: "年度|报告期", default: "年度"}
+      - {name: offset, type: number, required: false, description: "Row offset (newest-first)", default: 0}
+      - {name: max_rows, type: number, required: false, description: "Max rows (AKTools get_data max_rows)", default: 40}
+    known_risks:
+      - "HSBC currency/scale may not match IR USD gold"
+      - "Pagination/sort footguns on offset"
+      - "No dedicated non-IFRS columns"
+    execution:
+      kind: aktools_get_data
+      interface: stock_financial_hk_report_em
+      param_keys: [stock, symbol, indicator]
+
+  - operation_id: aktools.stock_financial_hk_analysis_indicator_em
+    server_id: aktools
+    name: stock_financial_hk_analysis_indicator_em
+    role: core_gold
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: stock_financial_hk_analysis_indicator_em
+    read_only: true
+    audit_status: verified_live
+    summary: HK analysis indicators (revenue, EPS, ROE, currency label).
+    description: >
+      Period analysis table. Tencent/Alibaba reported revenue and basic EPS
+      reconcile to verified snapshots; HSBC does not. Never treat as non-GAAP.
+    action_terms: [analysis, indicator, revenue, EPS, ROE, currency]
+    parameters:
+      - {name: symbol, type: string, required: true, description: "5-digit HK code e.g. 00700"}
+      - {name: indicator, type: string, required: false, description: "年度|报告期", default: "年度"}
+      - {name: offset, type: number, required: false, default: 0}
+      - {name: max_rows, type: number, required: false, default: 10}
+    known_risks:
+      - "HSBC OPERATE_INCOME/EPS disagree with IR USD gold"
+      - "No non-IFRS / non-GAAP fields"
+    execution:
+      kind: aktools_get_data
+      interface: stock_financial_hk_analysis_indicator_em
+      param_keys: [symbol, indicator]
+
+  - operation_id: aktools.stock_hk_company_profile_em
+    server_id: aktools
+    name: stock_hk_company_profile_em
+    role: supporting_evidence
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: stock_hk_company_profile_em
+    read_only: true
+    audit_status: verified_live
+    summary: HK company profile including fiscal year-end clues.
+    description: Identity / registration / year-end related profile fields from East Money.
+    action_terms: [profile, company, fiscal, year-end, identity]
+    parameters:
+      - {name: symbol, type: string, required: true, description: "5-digit HK code"}
+      - {name: offset, type: number, required: false, default: 0}
+      - {name: max_rows, type: number, required: false, default: 5}
+    known_risks: ["Field naming varies; corroborate with security profile"]
+    execution:
+      kind: aktools_get_data
+      interface: stock_hk_company_profile_em
+      param_keys: [symbol]
+
+  - operation_id: aktools.stock_hk_security_profile_em
+    server_id: aktools
+    name: stock_hk_security_profile_em
+    role: supporting_evidence
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: stock_hk_security_profile_em
+    read_only: true
+    audit_status: verified_live
+    summary: HK security listing profile / 年结日 corroboration.
+    description: Listing and settlement-date style profile fields.
+    action_terms: [security, listing, 年结日, profile]
+    parameters:
+      - {name: symbol, type: string, required: true, description: "5-digit HK code"}
+      - {name: offset, type: number, required: false, default: 0}
+      - {name: max_rows, type: number, required: false, default: 5}
+    known_risks: []
+    execution:
+      kind: aktools_get_data
+      interface: stock_hk_security_profile_em
+      param_keys: [symbol]
+
+  - operation_id: aktools.stock_hk_dividend_payout_em
+    server_id: aktools
+    name: stock_hk_dividend_payout_em
+    role: equivalent_alternative
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: stock_hk_dividend_payout_em
+    read_only: true
+    audit_status: verified_live
+    summary: HK dividend payout history (East Money).
+    description: Dividend schemes by fiscal year; not a substitute for income-statement gold.
+    action_terms: [dividend, payout, distribution]
+    parameters:
+      - {name: symbol, type: string, required: true, description: "5-digit HK code"}
+      - {name: offset, type: number, required: false, default: 0}
+      - {name: max_rows, type: number, required: false, default: 20}
+    known_risks: ["Dividend FX conversions may be computed values"]
+    execution:
+      kind: aktools_get_data
+      interface: stock_hk_dividend_payout_em
+      param_keys: [symbol]
+
+  - operation_id: aktools.stock_hk_financial_indicator_em
+    server_id: aktools
+    name: stock_hk_financial_indicator_em
+    role: distractor_valid
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: stock_hk_financial_indicator_em
+    read_only: true
+    audit_status: verified_live
+    summary: Latest HK core indicators snapshot (as-of latest, not FY-labeled gold).
+    description: Must be labeled as latest snapshot; do not treat as FY2025 gold.
+    action_terms: [latest, indicator, snapshot, core]
+    parameters:
+      - {name: symbol, type: string, required: true, description: "5-digit HK code"}
+      - {name: offset, type: number, required: false, default: 0}
+      - {name: max_rows, type: number, required: false, default: 5}
+    known_risks: ["Not period-aligned to formal FY/interim gold"]
+    execution:
+      kind: aktools_get_data
+      interface: stock_hk_financial_indicator_em
+      param_keys: [symbol]
+
+  - operation_id: aktools.stock_hk_growth_comparison_em
+    server_id: aktools
+    name: stock_hk_growth_comparison_em
+    role: distractor_valid
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: stock_hk_growth_comparison_em
+    read_only: true
+    audit_status: verified_live
+    summary: HK growth comparison ranks (non-gold comparative).
+    description: Comparative growth ranks; not formal report gold.
+    action_terms: [growth, comparison, rank]
+    parameters:
+      - {name: symbol, type: string, required: true, description: "5-digit HK code"}
+      - {name: offset, type: number, required: false, default: 0}
+      - {name: max_rows, type: number, required: false, default: 5}
+    known_risks: ["Comparative only"]
+    execution:
+      kind: aktools_get_data
+      interface: stock_hk_growth_comparison_em
+      param_keys: [symbol]
+
+  - operation_id: aktools.stock_hk_valuation_comparison_em
+    server_id: aktools
+    name: stock_hk_valuation_comparison_em
+    role: distractor_valid
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: stock_hk_valuation_comparison_em
+    read_only: true
+    audit_status: verified_live
+    summary: HK valuation comparison ranks (non-gold comparative).
+    description: Comparative valuation ranks; not formal report gold.
+    action_terms: [valuation, PE, comparison]
+    parameters:
+      - {name: symbol, type: string, required: true, description: "5-digit HK code"}
+      - {name: offset, type: number, required: false, default: 0}
+      - {name: max_rows, type: number, required: false, default: 5}
+    known_risks: ["Comparative only"]
+    execution:
+      kind: aktools_get_data
+      interface: stock_hk_valuation_comparison_em
+      param_keys: [symbol]
+
+  - operation_id: aktools.stock_hk_fhpx_detail_ths
+    server_id: aktools
+    name: stock_hk_fhpx_detail_ths
+    role: equivalent_alternative
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: stock_hk_fhpx_detail_ths
+    read_only: true
+    audit_status: verified_live
+    summary: HK dividend/allotment detail (THS); symbol form like 0700.
+    description: Equal-function alternative to East Money dividend payout.
+    action_terms: [dividend, allotment, fhpx, THS]
+    parameters:
+      - {name: symbol, type: string, required: true, description: "THS-style code e.g. 0700"}
+      - {name: offset, type: number, required: false, default: 0}
+      - {name: max_rows, type: number, required: false, default: 20}
+    known_risks: ["Symbol format differs from East Money 00700"]
+    execution:
+      kind: aktools_get_data
+      interface: stock_hk_fhpx_detail_ths
+      param_keys: [symbol]
+
+  - operation_id: aktools.stock_hk_valuation_baidu
+    server_id: aktools
+    name: stock_hk_valuation_baidu
+    role: equivalent_alternative
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: stock_hk_valuation_baidu
+    read_only: true
+    audit_status: verified_live
+    summary: HK valuation time series from Baidu.
+    description: Supporting/alternative valuation series; not FY statement gold.
+    action_terms: [valuation, baidu, PE, series]
+    parameters:
+      - {name: symbol, type: string, required: true, description: "HK code / baidu symbol"}
+      - {name: indicator, type: string, required: false, description: "总市值|市盈率(TTM)|...", default: "市盈率(TTM)"}
+      - {name: period, type: string, required: false, description: "近一年|近三年|全部", default: "近一年"}
+      - {name: offset, type: number, required: false, default: 0}
+      - {name: max_rows, type: number, required: false, default: 20}
+    known_risks: ["Vendor methodology opaque"]
+    execution:
+      kind: aktools_get_data
+      interface: stock_hk_valuation_baidu
+      param_keys: [symbol, indicator, period]
+
+  - operation_id: aktools.stock_hk_scale_comparison_em
+    server_id: aktools
+    name: stock_hk_scale_comparison_em
+    role: distractor_valid
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: stock_hk_scale_comparison_em
+    read_only: true
+    audit_status: verified_live
+    summary: HK scale comparison (mkt cap / revenue / profit ranks).
+    description: Comparative only; period labeling is latest-style.
+    action_terms: [scale, market_cap, rank, comparison]
+    parameters:
+      - {name: symbol, type: string, required: true, description: "5-digit HK code"}
+      - {name: offset, type: number, required: false, default: 0}
+      - {name: max_rows, type: number, required: false, default: 5}
+    known_risks: ["Not FY-labeled gold"]
+    execution:
+      kind: aktools_get_data
+      interface: stock_hk_scale_comparison_em
+      param_keys: [symbol]
+
+  - operation_id: aktools.stock_hk_indicator_eniu
+    server_id: aktools
+    name: stock_hk_indicator_eniu
+    role: supporting_evidence
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: stock_hk_indicator_eniu
+    read_only: true
+    audit_status: verified_live
+    summary: Historical ROE/PE style series (eniu); supporting only.
+    description: Requires symbol like hk00700 and an indicator such as roe or pe.
+    action_terms: [ROE, PE, eniu, historical]
+    parameters:
+      - {name: symbol, type: string, required: true, description: "e.g. hk00700"}
+      - {name: indicator, type: string, required: true, description: "roe|pe|..."}
+      - {name: offset, type: number, required: false, default: 0}
+      - {name: max_rows, type: number, required: false, default: 20}
+    known_risks: ["Upstream JSON failures observed intermittently"]
+    execution:
+      kind: aktools_get_data
+      interface: stock_hk_indicator_eniu
+      param_keys: [symbol, indicator]
+
+  # ---- mcp-hkexnews ----
+  - operation_id: hkexnews.lookup_stock_code
+    server_id: mcp_hkexnews
+    name: lookup_stock_code
+    role: supporting_evidence
+    exposed_mcp_tool: lookup_stock_code
+    underlying_aktools_interface: null
+    read_only: true
+    audit_status: verified_live
+    summary: Resolve HK stock code to HKEXnews stockId.
+    description: Mapping helper before listing/downloading announcements.
+    action_terms: [lookup, stock_code, hkex, mapping]
+    parameters:
+      - {name: stock_code, type: string, required: true, description: "5-digit HK code"}
+      - {name: refresh, type: boolean, required: false, default: false}
+    known_risks: []
+    execution:
+      kind: mcp_tool
+      tool: lookup_stock_code
+      arg_map: {stock_code: stock_code, refresh: refresh}
+
+  - operation_id: hkexnews.list_hkexnews_announcements
+    server_id: mcp_hkexnews
+    name: list_hkexnews_announcements
+    role: supporting_evidence
+    exposed_mcp_tool: list_hkexnews_announcements
+    underlying_aktools_interface: null
+    read_only: true
+    audit_status: verified_live
+    summary: List HKEXnews announcements for a stock (results announcements in scope).
+    description: Prefer title_keyword + date window. Full annual report PDFs out of scope in v0.1.
+    action_terms: [list, announcements, results, hkexnews]
+    parameters:
+      - {name: stock_code, type: string, required: true, description: "5-digit HK code"}
+      - {name: category, type: string, required: false}
+      - {name: start_date, type: string, required: false, description: "YYYY-MM-DD"}
+      - {name: end_date, type: string, required: false, description: "YYYY-MM-DD"}
+      - {name: title_keyword, type: string, required: false}
+      - {name: max_rows, type: number, required: false, default: 10}
+    known_risks: ["Title filters can miss filings; broaden keyword if empty"]
+    execution:
+      kind: mcp_tool
+      tool: list_hkexnews_announcements
+      arg_map:
+        stock_code: stock_code
+        category: category
+        start_date: start_date
+        end_date: end_date
+        title_keyword: title_keyword
+        limit: limit
+
+  - operation_id: hkexnews.download_hkexnews_announcement
+    server_id: mcp_hkexnews
+    name: download_hkexnews_announcement
+    role: supporting_evidence
+    exposed_mcp_tool: download_hkexnews_announcement
+    underlying_aktools_interface: null
+    read_only: true
+    audit_status: verified_live
+    summary: Download one HKEXnews announcement PDF to local cache.
+    description: >
+      Always pass release_date + short title_keyword (and/or news_id). news_id alone
+      can resolve to the wrong document. No bulk download in experiments.
+    action_terms: [download, pdf, announcement]
+    parameters:
+      - {name: stock_code, type: string, required: true}
+      - {name: release_date, type: string, required: false, description: "YYYY-MM-DD"}
+      - {name: title_keyword, type: string, required: false}
+      - {name: category, type: string, required: false}
+      - {name: news_id, type: string, required: false}
+      - {name: local_key, type: string, required: false}
+    known_risks:
+      - "news_id-only matching can fall through to wrong first hit"
+      - "Writes local cache under gitignored directory"
+    execution:
+      kind: mcp_tool
+      tool: download_hkexnews_announcement
+      arg_map:
+        stock_code: stock_code
+        release_date: release_date
+        title_keyword: title_keyword
+        category: category
+        news_id: news_id
+        local_key: local_key
+
+  - operation_id: hkexnews.parse_hkexnews_announcement
+    server_id: mcp_hkexnews
+    name: parse_hkexnews_announcement
+    role: supporting_evidence
+    exposed_mcp_tool: parse_hkexnews_announcement
+    underlying_aktools_interface: null
+    read_only: true
+    audit_status: verified_live
+    summary: Parse a downloaded announcement into page JSON.
+    description: Requires local_key from download/list.
+    action_terms: [parse, pdf, pages]
+    parameters:
+      - {name: local_key, type: string, required: true}
+    known_risks: []
+    execution:
+      kind: mcp_tool
+      tool: parse_hkexnews_announcement
+      arg_map: {local_key: local_key}
+
+  - operation_id: hkexnews.keyword_search
+    server_id: mcp_hkexnews
+    name: keyword_search
+    role: supporting_evidence
+    exposed_mcp_tool: keyword_search
+    underlying_aktools_interface: null
+    read_only: true
+    audit_status: verified_live
+    summary: Keyword search within a parsed announcement (page snippets).
+    description: Useful for revenue / Non-IFRS / currency evidence with page numbers.
+    action_terms: [keyword, search, non-IFRS, evidence, page]
+    parameters:
+      - {name: local_key, type: string, required: true}
+      - {name: keywords, type: array, required: true, description: "List of keyword strings"}
+      - {name: match_mode, type: string, required: false, default: ANY}
+      - {name: max_results, type: number, required: false, default: 10}
+    known_risks: ["Snippet retrieval is lexical, not structured extraction"]
+    execution:
+      kind: mcp_tool
+      tool: keyword_search
+      arg_map:
+        local_key: local_key
+        keywords: keywords
+        match_mode: match_mode
+        max_results: max_results
+
+  - operation_id: hkexnews.get_announcement_pages
+    server_id: mcp_hkexnews
+    name: get_announcement_pages
+    role: supporting_evidence
+    exposed_mcp_tool: get_announcement_pages
+    underlying_aktools_interface: null
+    read_only: true
+    audit_status: verified_live
+    summary: Fetch page text slices from a parsed announcement.
+    description: Page-level evidence after parse.
+    action_terms: [pages, text, evidence]
+    parameters:
+      - {name: local_key, type: string, required: true}
+      - {name: start_page, type: number, required: true}
+      - {name: page_count, type: number, required: false, default: 3}
+    known_risks: []
+    execution:
+      kind: mcp_tool
+      tool: get_announcement_pages
+      arg_map:
+        local_key: local_key
+        start_page: start_page
+        page_count: page_count

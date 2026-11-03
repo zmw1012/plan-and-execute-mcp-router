@@ -220,3 +220,10 @@ External MCP values are **never** auto-promoted to gold.
 - Prior helper: `scripts/aktools_mcp_discovery.py`  
 - This round: offline artifact check — presence of `outputs/mcp_discovery_v2/{aktools_gap_*,ftshare_audit,ah_disclosure_tools_list,hkexnews_tools_list,reconciliation_summary}.json`  
 - No LLM; no agent wiring.
+
+## 12. Follow-on (wired)
+
+- Frozen catalog: `configs/operations/financial_real_mcp.yaml`  
+- 30Q answerability: `docs/financial_30q_real_mcp_coverage.md`  
+- Real MCP adapters: `src/hk_equity_mcp/real_mcp/`  
+- Live smokes: `tests/test_real_mcp_smoke.py` (no paid LLM)

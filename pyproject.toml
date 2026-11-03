@@ -17,6 +17,10 @@ dependencies = [
 dev = [
   "pytest>=7.4",
 ]
+real_mcp = [
+  # AKTools MCP server currently expects mcp>=2.3; client adapters support 1.x/2.x.
+  "mcp>=1.7.0,<3",
+]
 
 [project.scripts]
 hk-equity-demo = "hk_equity_mcp.agent.router:main"

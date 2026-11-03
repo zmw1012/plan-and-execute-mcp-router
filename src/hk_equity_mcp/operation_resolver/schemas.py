@@ -36,6 +36,13 @@ class OperationSpec:
     invocation_guidance: str = ""
     # Underlying callable name on the domain server
     underlying_tool: str = ""
+    # Real-MCP catalog metadata (optional; unused by local FinancialServer pilot)
+    role: str = ""
+    audit_status: str = ""
+    known_risks: List[str] = field(default_factory=list)
+    exposed_mcp_tool: str = ""
+    underlying_aktools_interface: Optional[str] = None
+    execution: Dict[str, Any] = field(default_factory=dict)
 
     def required_params(self) -> List[ParameterSpec]:
         return [p for p in self.parameters if p.required]

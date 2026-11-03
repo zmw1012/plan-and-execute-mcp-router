@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Protocol
 
 from hk_equity_mcp.mcp_servers.financial import FinancialServer
 from hk_equity_mcp.operation_resolver.registry import build_default_registry
@@ -18,6 +18,11 @@ from hk_equity_mcp.operation_resolver.schemas import OperationSpec, ParameterSpe
 META_TOOLS = ("find_operations", "describe_operation", "invoke_api")
 
 
+class RealInvokeBackend(Protocol):
+    def invoke(self, operation_id: str, arguments: Optional[Dict[str, Any]] = None) -> Any:
+        ...
+
+
 class OperationResolverServer:
     """Deterministic operation resolution boundary (no internal LLM planner)."""
 
@@ -27,15 +32,21 @@ class OperationResolverServer:
         financial_server: Optional[FinancialServer] = None,
         registry: Optional[Dict[str, OperationSpec]] = None,
         cache_dir: Optional[Path] = None,
+        real_mcp_gateway: Optional[RealInvokeBackend] = None,
     ):
         self.registry = registry or build_default_registry()
-        self.financial = financial_server or FinancialServer()
+        self.real_mcp_gateway = real_mcp_gateway
+        # Local FinancialServer remains for Controlled Local-Tool Pilot tests only.
+        # Real-MCP mode must pass real_mcp_gateway and must not use mock JSON as tool data.
+        self.financial = None if real_mcp_gateway is not None else (
+            financial_server or FinancialServer()
+        )
         self.retriever = OperationRetriever(
             self.registry, embedding_backend, cache_dir=cache_dir
         )
-        self._servers = {
-            "financial": self.financial,
-        }
+        self._servers = {}
+        if self.financial is not None:
+            self._servers["financial"] = self.financial
 
     # ---- public meta-tools -------------------------------------------------
 
@@ -99,6 +110,39 @@ class OperationResolverServer:
                 "result": None,
             }
 
+        # Apply defaults for optional params with defaults.
+        call_args = dict(arguments)
+        for p in op.optional_params():
+            if p.name not in call_args and p.default is not None:
+                call_args[p.name] = p.default
+
+        if self.real_mcp_gateway is not None:
+            try:
+                mcp_result = self.real_mcp_gateway.invoke(operation_id, call_args)
+            except Exception as exc:  # noqa: BLE001
+                return {
+                    "success": False,
+                    "operation_id": operation_id,
+                    "error_type": "execution_error",
+                    "error": f"Real MCP invoke failed: {type(exc).__name__}: {exc}",
+                    "result": None,
+                }
+            payload = (
+                mcp_result.to_dict()
+                if hasattr(mcp_result, "to_dict")
+                else dict(mcp_result)
+            )
+            return {
+                "success": bool(payload.get("success")),
+                "operation_id": operation_id,
+                "arguments": call_args,
+                "result": payload,
+                "error_type": None
+                if payload.get("success")
+                else (payload.get("error_type") or "underlying_tool_error"),
+                "error": payload.get("error"),
+            }
+
         server = self._servers.get(op.service_id)
         if server is None:
             return {
@@ -109,11 +153,6 @@ class OperationResolverServer:
                 "result": None,
             }
         try:
-            # Apply defaults for optional params with defaults.
-            call_args = dict(arguments)
-            for p in op.optional_params():
-                if p.name not in call_args and p.default is not None:
-                    call_args[p.name] = p.default
             result = server.call(op.underlying_tool, **call_args)
         except TypeError as exc:
             return {
