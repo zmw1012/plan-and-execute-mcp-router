@@ -5,6 +5,17 @@
 **Method:** real MCP client over **stdio** to official `aktools-mcp` (`io.github.akfamily/aktools`).  
 **Not used:** paid LLM calls; direct `import akshare` as a substitute for MCP; full 30-question reruns; mutation of existing `outputs/real_smoke_*`.
 
+**Gap-driven follow-up (same branch):** see **[`financial_mcp_gap_discovery.md`](financial_mcp_gap_discovery.md)** — AKTools gap probes + FTShare-MCP + ah-disclosure-kit + live mcp-hkexnews verification; recommended shared catalog **18** named Financial ops across **≥2** MCP servers; FTShare data path blocked without API key.
+
+### Final recommendation (summary)
+
+| Pool | Contents |
+|------|----------|
+| Shared baseline + proposed | AKTools 3 meta-tools + 12 named HK numeric/comparative ops; mcp-hkexnews 6 evidence tools |
+| Optional third server | ah-disclosure-kit annual-report / filing-source tools (Equal evidence set; structured financials ≡ AKShare) |
+| Not accepted yet | FTShare finance tools (list OK, rows blocked); xueqiu; invented non-IFRS/segment APIs |
+| L5 abstain boundary | HSBC IR USD fidelity; numeric non-IFRS/non-GAAP; segments; CET1/NIM/RoTE |
+
 Raw MCP JSON dumps (gitignored under `outputs/`):
 
 - `outputs/mcp_discovery/aktools_tools_list.json`
@@ -15,8 +26,9 @@ Raw MCP JSON dumps (gitignored under `outputs/`):
 - `outputs/mcp_discovery/aktools_report_em_head.json`
 - `outputs/mcp_discovery/aktools_availability_summary.json`
 - `outputs/mcp_discovery/aktools_discovery_summary.json`
+- `outputs/mcp_discovery_v2/*` (gap round: AKTools/FTShare/ah-disclosure/hkexnews)
 
-Repro helper (no LLM): `scripts/aktools_mcp_discovery.py` with `.venv-aktools-discovery` (Python ≥3.11; local exclude).
+Repro helper (no LLM): `scripts/aktools_mcp_discovery.py` with `.venv-aktools-discovery` (Python ≥3.11; local exclude). Offline gap smoke: `scripts/mcp_gap_discovery_smoke.py`.
 
 ---
 
@@ -206,7 +218,7 @@ Fairness rules (unchanged intent): same questions, model, temperature, answer co
 
 ## Next step (recommended)
 
-1. Freeze this audit; keep local-tool pilot results under the Controlled Local-Tool Pilot label.  
-2. Decide registry strategy: wrap AKTools 3 meta-tools vs promote 6–8 named HK ops with deterministic schemas.  
-3. Build a **non-LLM** numeric reconciliation harness (MCP vs `data/mock/financial.json`) before any paid Real-MCP 30Q run.  
-4. Only then implement Flat/OV agents against real MCP on a new branch.
+1. Freeze this audit **and** the gap discovery doc; keep local-tool pilot results under the Controlled Local-Tool Pilot label.  
+2. Registry strategy: expose AKTools 3 meta-tools **plus** the curated named HK ops in gap discovery §8; add mcp-hkexnews as the second server for filing evidence.  
+3. Extend the **non-LLM** numeric reconciliation harness (MCP vs `data/mock/financial.json`) — especially HSBC USD — before any paid Real-MCP 30Q run.  
+4. Only then implement Flat/OV agents against real MCP (still no silent promotion of East Money bank figures to gold).
