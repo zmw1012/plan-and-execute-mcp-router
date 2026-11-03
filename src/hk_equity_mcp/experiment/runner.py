@@ -38,15 +38,21 @@ from hk_equity_mcp.experiment.schema import (
 from hk_equity_mcp.operation_resolver.registry import build_default_registry
 from hk_equity_mcp.operation_resolver.retrieval import OpenAICompatibleEmbeddingBackend
 from hk_equity_mcp.operation_resolver.server import OperationResolverServer
+from hk_equity_mcp.real_mcp.catalog import load_real_mcp_catalog, load_real_mcp_registry
+from hk_equity_mcp.real_mcp.gateway import RealMcpGateway
+from hk_equity_mcp.real_mcp.readiness import require_real_mcp_ready
 
 RESUME_IDENTITY_KEYS = (
     "condition",
+    "execution_backend",
     "generation_model",
     "questions_file",
     "system_prompt_hash",
     "temperature",
     "max_tokens",
 )
+
+EXECUTION_BACKENDS = ("none", "controlled_local", "real_mcp")
 
 
 def repo_root() -> Path:
@@ -139,9 +145,45 @@ def system_prompt_for(condition: str) -> str:
     raise ValueError(f"Unknown condition: {condition}")
 
 
-def catalog_size_for(condition: str) -> int:
+def file_sha256(path: Path) -> str:
+    import hashlib
+
+    h = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def normalize_execution_backend(condition: str, execution_backend: Optional[str]) -> str:
+    """Map condition + requested backend to a concrete, non-ambiguous backend id."""
+    if condition == "mcp_free":
+        if execution_backend in (None, "", "none"):
+            return "none"
+        raise ValueError(
+            "mcp_free requires --execution-backend none "
+            f"(got {execution_backend!r})"
+        )
+    backend = execution_backend or "controlled_local"
+    if backend not in ("controlled_local", "real_mcp"):
+        raise ValueError(
+            f"Unsupported execution_backend {backend!r} for condition={condition}. "
+            "Use controlled_local or real_mcp."
+        )
+    if condition == "flat" and backend == "real_mcp":
+        raise ValueError(
+            "flat + real_mcp is not supported in this wiring pass "
+            "(FlatAgent still targets FinancialServer). "
+            "Use operation_visible --execution-backend real_mcp."
+        )
+    return backend
+
+
+def catalog_size_for(condition: str, execution_backend: str = "controlled_local") -> int:
     if condition == "mcp_free":
         return 0
+    if execution_backend == "real_mcp":
+        return len(load_real_mcp_registry())
     if condition == "flat":
         return 2
     if condition == "operation_visible":
@@ -306,12 +348,16 @@ class FinancialExperimentRunner:
         config: Optional[Dict[str, Any]] = None,
         root: Optional[Path] = None,
         json_mode: bool = True,
+        execution_backend: Optional[str] = None,
+        real_mcp_catalog: Optional[Path] = None,
+        allow_hkex_download: bool = False,
     ):
         if condition not in CONDITIONS:
             raise ValueError(
                 f"Unsupported condition {condition!r}. Choose from {list(CONDITIONS)}"
             )
         self.condition = condition
+        self.execution_backend = normalize_execution_backend(condition, execution_backend)
         self.root = root or repo_root()
         self.questions_path = questions_path
         self.output_dir = output_dir
@@ -327,8 +373,15 @@ class FinancialExperimentRunner:
         self.max_tokens = int(self.config.get("max_tokens", 1024))
         self.limits = self.config.get("limits") or {}
         self.json_mode = bool(json_mode)
+        self.real_mcp_catalog = (
+            Path(real_mcp_catalog)
+            if real_mcp_catalog is not None
+            else (self.root / "configs" / "operations" / "financial_real_mcp.yaml")
+        )
+        self.allow_hkex_download = bool(allow_hkex_download)
         self.gen_meta: Dict[str, str] = {}
         self.emb_meta: Optional[Dict[str, str]] = None
+        self._real_mcp_gateway: Optional[RealMcpGateway] = None
 
     def prepare(self) -> Dict[str, Any]:
         dirty = git_dirty(self.root)
@@ -379,15 +432,44 @@ class FinancialExperimentRunner:
         else:
             self.emb_meta = None
 
-        catalog_size = catalog_size_for(self.condition)
-        if self.condition == "operation_visible":
-            registry = build_default_registry()
-            if len(registry) != catalog_size:
-                raise RuntimeError("Operation registry size mismatch.")
+        if self.execution_backend == "real_mcp":
+            # Fail closed before any agent construction / network LLM call.
+            require_real_mcp_ready(self.real_mcp_catalog)
+            catalog = load_real_mcp_catalog(self.real_mcp_catalog)
+            registry = load_real_mcp_registry(self.real_mcp_catalog)
+            catalog_size = len(registry)
+            catalog_id = catalog.get("catalog_id")
+            server_ids = sorted(catalog.get("servers") or [])
+            catalog_sha = file_sha256(self.real_mcp_catalog)
+            catalog_path = str(self.real_mcp_catalog)
+            real_mcp_flag = True
+        else:
+            catalog_size = catalog_size_for(self.condition, self.execution_backend)
+            if self.condition == "operation_visible":
+                registry = build_default_registry()
+                if len(registry) != catalog_size:
+                    raise RuntimeError("Operation registry size mismatch.")
+            catalog_id = None
+            server_ids = ["financial"] if self.condition != "mcp_free" else []
+            catalog_sha = None
+            catalog_path = None
+            real_mcp_flag = False
 
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         prompt = system_prompt_for(self.condition)
+        # Hard guarantee: coverage/gold fields never enter the system prompt.
+        for banned in (
+            "reference_answer",
+            "gold_operations",
+            "expected_tool_path",
+            "answerability_class",
+            "known_data_risks",
+            "gold_values",
+        ):
+            if banned in prompt:
+                raise RuntimeError(f"System prompt unexpectedly contains {banned}")
+
         gen_host = url_host(self.gen_meta.get("base_url") or os.environ.get("LLM_BASE_URL"))
         emb_host = None
         if self.emb_meta is not None:
@@ -395,9 +477,13 @@ class FinancialExperimentRunner:
                 self.emb_meta.get("base_url") or os.environ.get("EMBEDDING_BASE_URL")
             )
 
+        questions_sha = file_sha256(self.questions_path)
         meta = {
             "condition": self.condition,
+            "execution_backend": self.execution_backend,
+            "real_mcp": real_mcp_flag,
             "questions_file": str(self.questions_path),
+            "questions_file_sha256": questions_sha,
             "question_ids": [item["id"] for item in items],
             "question_count": len(items),
             "generation_provider": self.gen_meta.get("provider"),
@@ -414,7 +500,12 @@ class FinancialExperimentRunner:
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
             "json_mode": self.json_mode,
+            "catalog_id": catalog_id,
+            "catalog_path": catalog_path,
+            "catalog_sha256": catalog_sha,
+            "catalog_entry_count": catalog_size,
             "catalog_size": catalog_size,
+            "server_ids": server_ids,
             "system_prompt_hash": prompt_hash(prompt),
             "system_prompt": prompt,
             "branch": git_branch(self.root),
@@ -429,6 +520,10 @@ class FinancialExperimentRunner:
                 "simplified reimplementation adapted from Ghoshal et al. (2026)"
                 if self.condition == "operation_visible"
                 else None
+            ),
+            "dataset_note": (
+                "Financial 30Q coverage rows are development / method-analysis "
+                "(not held-out final test) when using financial_real_mcp_coverage_v1."
             ),
         }
         return {"items": items, "run_metadata": redact_secrets(meta)}
@@ -448,6 +543,7 @@ class FinancialExperimentRunner:
                 llm, temperature=self.temperature, max_tokens=self.max_tokens
             )
         if self.condition == "flat":
+            # Controlled local FinancialServer only.
             return FlatAgent(
                 llm,
                 temperature=self.temperature,
@@ -461,7 +557,6 @@ class FinancialExperimentRunner:
             api_key=os.environ["EMBEDDING_API_KEY"],
             model=os.environ["EMBEDDING_MODEL"],
         )
-        resolver = OperationResolverServer(embedding_backend=embedding)
         cfg = {
             "llm": {
                 "temperature": self.temperature,
@@ -469,9 +564,38 @@ class FinancialExperimentRunner:
             },
             "limits": dict(self.limits),
         }
+        if self.execution_backend == "real_mcp":
+            require_real_mcp_ready(self.real_mcp_catalog)
+            gateway = RealMcpGateway(
+                catalog_path=self.real_mcp_catalog,
+                allow_hkex_download=self.allow_hkex_download,
+                persistent=True,
+            )
+            gateway.open()
+            self._real_mcp_gateway = gateway
+            registry = load_real_mcp_registry(self.real_mcp_catalog)
+            resolver = OperationResolverServer(
+                embedding_backend=embedding,
+                registry=registry,
+                real_mcp_gateway=gateway,
+            )
+            # Hard assert: no local FinancialServer in Real-MCP mode.
+            if resolver.financial is not None:
+                gateway.close()
+                raise RuntimeError(
+                    "Real-MCP fail-closed: OperationResolverServer unexpectedly "
+                    "retained FinancialServer."
+                )
+        else:
+            resolver = OperationResolverServer(embedding_backend=embedding)
         return OperationVisibleAgent(
             llm=llm, embedding_backend=embedding, config=cfg, resolver=resolver
         )
+
+    def close(self) -> None:
+        if self._real_mcp_gateway is not None:
+            self._real_mcp_gateway.close()
+            self._real_mcp_gateway = None
 
     def run(self) -> Dict[str, Any]:
         prepared = self.prepare()
@@ -487,6 +611,8 @@ class FinancialExperimentRunner:
             )
             print("DRY-RUN OK")
             print(f"condition={self.condition}")
+            print(f"execution_backend={run_meta['execution_backend']}")
+            print(f"real_mcp={run_meta['real_mcp']}")
             print(f"questions={self.questions_path}")
             print(f"question_count={run_meta['question_count']}")
             print(f"question_ids={run_meta.get('question_ids')}")
@@ -495,7 +621,10 @@ class FinancialExperimentRunner:
             print(f"generation_base_url_host={run_meta['generation_base_url_host']}")
             print(f"embedding_model={run_meta['embedding_model']}")
             print(f"embedding_base_url_host={run_meta['embedding_base_url_host']}")
+            print(f"catalog_id={run_meta.get('catalog_id')}")
+            print(f"catalog_entry_count={run_meta.get('catalog_entry_count')}")
             print(f"catalog_size={run_meta['catalog_size']}")
+            print(f"server_ids={run_meta.get('server_ids')}")
             print(f"temperature={run_meta['temperature']}")
             print(f"max_tokens={run_meta['max_tokens']}")
             print(f"json_mode={run_meta['json_mode']}")
@@ -522,74 +651,81 @@ class FinancialExperimentRunner:
             json.dumps(run_meta, ensure_ascii=False, indent=2), encoding="utf-8"
         )
 
-        agent = self.build_agent()
-        done = already_done_ids(predictions_path) if self.resume else set()
-        if not self.resume and predictions_path.exists():
-            predictions_path.unlink()
+        try:
+            agent = self.build_agent()
+            done = already_done_ids(predictions_path) if self.resume else set()
+            if not self.resume and predictions_path.exists():
+                predictions_path.unlink()
 
-        predictions_by_id: Dict[str, Dict[str, Any]] = {}
-        if self.resume and predictions_path.exists():
-            for line in predictions_path.read_text(encoding="utf-8").splitlines():
-                if not line.strip():
-                    continue
-                row = json.loads(line)
-                predictions_by_id[row["id"]] = row
+            predictions_by_id: Dict[str, Dict[str, Any]] = {}
+            if self.resume and predictions_path.exists():
+                for line in predictions_path.read_text(encoding="utf-8").splitlines():
+                    if not line.strip():
+                        continue
+                    row = json.loads(line)
+                    predictions_by_id[row["id"]] = row
 
-        mode = "a" if self.resume else "w"
-        with predictions_path.open(mode, encoding="utf-8") as pred_file:
-            for index, item in enumerate(items, start=1):
-                qid = item["id"]
-                if qid in done:
-                    print(f"[{index:02d}/{len(items)}] skip {qid} (resume)", flush=True)
-                    continue
-                print(f"[{index:02d}/{len(items)}] {qid}", flush=True)
-                try:
-                    result = agent.run(item["question"])
-                    row = build_prediction_row(
-                        item=item, condition=self.condition, result=result
-                    )
-                except Exception as exc:  # noqa: BLE001
-                    row = build_prediction_row(
-                        item=item,
-                        condition=self.condition,
-                        result={
-                            "final_answer": "",
-                            "predicted_status": "unavailable",
-                            "trace": [],
-                            "llm_calls": 0,
-                            "resolver_calls": {
-                                "find_operations": 0,
-                                "describe_operation": 0,
+            mode = "a" if self.resume else "w"
+            with predictions_path.open(mode, encoding="utf-8") as pred_file:
+                for index, item in enumerate(items, start=1):
+                    qid = item["id"]
+                    if qid in done:
+                        print(
+                            f"[{index:02d}/{len(items)}] skip {qid} (resume)",
+                            flush=True,
+                        )
+                        continue
+                    print(f"[{index:02d}/{len(items)}] {qid}", flush=True)
+                    try:
+                        # Model receives ONLY the question string (no gold leakage).
+                        result = agent.run(item["question"])
+                        row = build_prediction_row(
+                            item=item, condition=self.condition, result=result
+                        )
+                    except Exception as exc:  # noqa: BLE001
+                        row = build_prediction_row(
+                            item=item,
+                            condition=self.condition,
+                            result={
+                                "final_answer": "",
+                                "predicted_status": "unavailable",
+                                "trace": [],
+                                "llm_calls": 0,
+                                "resolver_calls": {
+                                    "find_operations": 0,
+                                    "describe_operation": 0,
+                                },
+                                "underlying_operation_calls": 0,
+                                "tokens": {},
+                                "latency_ms": None,
+                                "provider_metadata": {
+                                    "llm_provider": run_meta.get("generation_provider"),
+                                    "llm_model": run_meta.get("generation_model"),
+                                    "embedding_model": run_meta.get("embedding_model"),
+                                },
+                                "error": type(exc).__name__,
                             },
-                            "underlying_operation_calls": 0,
-                            "tokens": {},
-                            "latency_ms": None,
-                            "provider_metadata": {
-                                "llm_provider": run_meta.get("generation_provider"),
-                                "llm_model": run_meta.get("generation_model"),
-                                "embedding_model": run_meta.get("embedding_model"),
-                            },
-                            "error": type(exc).__name__,
-                        },
-                    )
-                for key in PREDICTION_FIELDS:
-                    row.setdefault(key, None)
-                pred_file.write(json.dumps(row, ensure_ascii=False) + "\n")
-                pred_file.flush()
-                predictions_by_id[qid] = row
+                        )
+                    for key in PREDICTION_FIELDS:
+                        row.setdefault(key, None)
+                    pred_file.write(json.dumps(row, ensure_ascii=False) + "\n")
+                    pred_file.flush()
+                    predictions_by_id[qid] = row
 
-        write_manual_grading(
-            grading_path,
-            condition=self.condition,
-            items=items,
-            predictions_by_id=predictions_by_id,
-        )
-        run_meta["run_status"] = "completed"
-        run_meta["completed_at"] = datetime.now(timezone.utc).isoformat()
-        meta_path.write_text(
-            json.dumps(run_meta, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
-        print(f"Predictions: {predictions_path}")
-        print(f"Manual grading: {grading_path}")
-        print(f"Run metadata: {meta_path}")
-        return run_meta
+            write_manual_grading(
+                grading_path,
+                condition=self.condition,
+                items=items,
+                predictions_by_id=predictions_by_id,
+            )
+            run_meta["run_status"] = "completed"
+            run_meta["completed_at"] = datetime.now(timezone.utc).isoformat()
+            meta_path.write_text(
+                json.dumps(run_meta, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            print(f"Predictions: {predictions_path}")
+            print(f"Manual grading: {grading_path}")
+            print(f"Run metadata: {meta_path}")
+            return run_meta
+        finally:
+            self.close()

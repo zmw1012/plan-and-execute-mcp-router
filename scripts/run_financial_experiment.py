@@ -76,6 +76,28 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Embedding env profile path (default EMBEDDING_ENV_FILE or .env.embedding-relay)",
     )
+    parser.add_argument(
+        "--execution-backend",
+        default=None,
+        choices=["none", "controlled_local", "real_mcp"],
+        help=(
+            "Tool execution backend. mcp_free→none; "
+            "operation_visible defaults to controlled_local; "
+            "real_mcp loads configs/operations/financial_real_mcp.yaml and "
+            "RealMcpGateway (fail-closed; never silent local fallback)."
+        ),
+    )
+    parser.add_argument(
+        "--real-mcp-catalog",
+        default=None,
+        help="Path to frozen Real-MCP catalog YAML "
+        "(default configs/operations/financial_real_mcp.yaml)",
+    )
+    parser.add_argument(
+        "--allow-hkex-download",
+        action="store_true",
+        help="Permit mcp-hkexnews download tool (still max 1 per gateway session)",
+    )
     return parser.parse_args()
 
 
@@ -91,6 +113,10 @@ def main() -> None:
     output_dir = Path(args.output_dir)
     if not output_dir.is_absolute():
         output_dir = (ROOT / output_dir).resolve()
+    catalog = args.real_mcp_catalog
+    catalog_path = Path(catalog) if catalog else None
+    if catalog_path is not None and not catalog_path.is_absolute():
+        catalog_path = (ROOT / catalog_path).resolve()
 
     runner = FinancialExperimentRunner(
         condition=args.condition,
@@ -106,6 +132,9 @@ def main() -> None:
         config=cfg,
         root=ROOT,
         json_mode=True,
+        execution_backend=args.execution_backend,
+        real_mcp_catalog=catalog_path,
+        allow_hkex_download=args.allow_hkex_download,
     )
     runner.run()
 

@@ -8,6 +8,16 @@
 
 No paid LLM was used. Reference answers were **not** edited to match tool output.
 
+### Dataset role (important)
+
+Every coverage row sets:
+
+- `dataset_split: development`
+- `benchmark_role: method_development_and_error_analysis`
+
+These 30 questions **may** be used in the formal evaluation *pipeline* and for method development / error analysis.  
+They are **not** a held-out final test set, because they already participated in tool discovery and system design.
+
 ---
 
 ## 1. Answerability class counts
@@ -19,15 +29,27 @@ No paid LLM was used. Reference answers were **not** edited to match tool output
 | `intentionally_infeasible` | **5** | Shared pool correctly cannot answer; tests abstain/clarify |
 | `unsupported_invalid` | **0** | None — every item has a refuse path or a real MCP path |
 
-## 2. ETOM level distribution
+Answerability classes were **not** changed in the L3/L4 fix.
 
-| Level | Count |
-|-------|------:|
-| L1 | 10 |
-| L2 | 6 |
-| L3 | 9 |
-| L4 | 0 |
-| L5 | 5 |
+## 2. ETOM level distribution (corrected)
+
+| Level | Count | Definition used |
+|-------|------:|-----------------|
+| L1 | 10 | Explicit single-tool call |
+| L2 | 6 | Implicit / equivalent tool choice |
+| L3 | 4 | Multi-step chain **within one server** |
+| L4 | 5 | **Cross-server** call chain (AKTools + mcp-hkexnews) |
+| L5 | 5 | Infeasible / refuse / clarify |
+
+### Cross-server → L4
+
+These require both `aktools` and `mcp_hkexnews` in `gold_server_ids` and are labeled **L4**:
+
+- `fin_cf_005`
+- `fin_cf_006`
+- `fin_cf_021`
+- `fin_cf_027`
+- `fin_cf_030`
 
 ## 3. Formal-test eligibility
 
@@ -36,11 +58,7 @@ No paid LLM was used. Reference answers were **not** edited to match tool output
 | `formal_test_eligible=true` | 30 |
 | `formal_test_eligible=false` | 0 |
 
-All 30 remain usable as formal tests **under the annotated class**:
-
-- Structured items grade against verified mock snapshots when MCP reconciles.  
-- Evidence items grade on evidence process / extracted figures from filings, **not** East Money HSBC absolutes.  
-- Intentionally infeasible items grade abstention/clarification.
+Usable under the annotated class for development evaluation — **not** held-out final test.
 
 ### Items that must **not** be graded as ordinary structured numeric failures
 
@@ -56,12 +74,13 @@ All 30 remain usable as formal tests **under the annotated class**:
 2. HSBC absolute revenue/PAT/EPS **never** `structured_answerable`.  
 3. non-IFRS/non-GAAP → `evidence_answerable` only (HKEX PDF keywords/pages).  
 4. Refusal/clarify benchmarks → `intentionally_infeasible`.  
-5. No `unsupported_invalid` in this set because each question either has a real path or an intentional refuse target.
+5. Cross-server gold paths → ETOM **L4** (not L3).  
+6. No `unsupported_invalid` in this set because each question either has a real path or an intentional refuse target.
 
 ## 5. Per-question summary
 
-See `benchmarks/questions/financial_real_mcp_coverage_v1.jsonl` for full fields:
-`etom_level`, `answerability_class`, `gold_server_ids`, `gold_operations`, `required_capabilities`, `expected_tool_path`, `known_data_risks`, `formal_test_eligible`, `exclusion_reason`.
+See `benchmarks/questions/financial_real_mcp_coverage_v1.jsonl` for full fields including  
+`etom_level`, `answerability_class`, `dataset_split`, `benchmark_role`, `gold_server_ids`, `gold_operations`, `required_capabilities`, `expected_tool_path`, `known_data_risks`, `formal_test_eligible`, `exclusion_reason`.
 
 ## 6. Shared catalog boundary (L5)
 

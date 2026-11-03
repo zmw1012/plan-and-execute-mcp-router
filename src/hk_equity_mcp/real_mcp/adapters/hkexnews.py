@@ -6,7 +6,12 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional, Set
 
-from hk_equity_mcp.real_mcp.client import RealMcpError, StdioMcpClient, run_coro
+from hk_equity_mcp.real_mcp.client import (
+    PersistentStdioMcpClient,
+    RealMcpError,
+    StdioMcpClient,
+    run_coro,
+)
 from hk_equity_mcp.real_mcp.redaction import redact_obj
 from hk_equity_mcp.real_mcp.types import RealMcpResult
 
@@ -50,6 +55,8 @@ class HkexnewsAdapter:
         cwd: Optional[str] = None,
         cache_dir: Optional[Path] = None,
         allow_download: bool = False,
+        *,
+        persistent: bool = True,
     ):
         self.command = command or default_hkexnews_command()
         self.timeout_sec = timeout_sec
@@ -57,26 +64,55 @@ class HkexnewsAdapter:
         self.cache_dir = Path(cache_dir) if cache_dir else default_cache_dir()
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.allow_download = allow_download
+        self.persistent = persistent
         self._download_count = 0
-        self._client = StdioMcpClient(
-            server_id=SERVER_ID,
-            command=self.command,
-            args=[],
-            cwd=self.cwd,
-            env={
-                # Best-effort; package may ignore unknown env vars.
-                "HKEXNEWS_CACHE_DIR": str(self.cache_dir),
-            },
-            timeout_sec=timeout_sec,
-        )
+        env = {"HKEXNEWS_CACHE_DIR": str(self.cache_dir)}
+        if persistent:
+            self._client: Any = PersistentStdioMcpClient(
+                server_id=SERVER_ID,
+                command=self.command,
+                args=[],
+                cwd=self.cwd,
+                env=env,
+                timeout_sec=timeout_sec,
+            )
+        else:
+            self._client = StdioMcpClient(
+                server_id=SERVER_ID,
+                command=self.command,
+                args=[],
+                cwd=self.cwd,
+                env=env,
+                timeout_sec=timeout_sec,
+            )
+
+    def open(self) -> "HkexnewsAdapter":
+        if self.persistent:
+            self._client.start()
+        return self
+
+    def close(self) -> None:
+        if self.persistent and hasattr(self._client, "close"):
+            self._client.close()
+
+    def __enter__(self) -> "HkexnewsAdapter":
+        return self.open()
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        self.close()
 
     def list_tools(self) -> Dict[str, Any]:
-        tools = run_coro(self._client.list_tools())
+        if self.persistent:
+            tools = self._client.list_tools()
+            version = self._client.server_version
+        else:
+            tools = run_coro(self._client.list_tools())
+            version = self._client.server_version
         return {
             "success": True,
             "server_id": SERVER_ID,
             "tools": tools,
-            "server_version": self._client.server_version,
+            "server_version": version,
             "real_mcp": True,
         }
 
@@ -120,14 +156,20 @@ class HkexnewsAdapter:
                     server_id=SERVER_ID,
                     operation_id=operation_id or f"hkexnews.{tool_name}",
                     arguments=redact_obj(arguments),
-                    error="Download budget exhausted (max 1 announcement per adapter session).",
+                    error=(
+                        "Download budget exhausted "
+                        "(max 1 announcement per adapter session)."
+                    ),
                     error_type="unavailable",
                     protocol_success=True,
                     execution_success=False,
                 )
 
         try:
-            payload = run_coro(self._client.call_tool(tool_name, arguments))
+            if self.persistent:
+                payload = self._client.call_tool(tool_name, arguments)
+            else:
+                payload = run_coro(self._client.call_tool(tool_name, arguments))
         except RealMcpError as exc:
             return RealMcpResult(
                 success=False,
@@ -155,7 +197,6 @@ class HkexnewsAdapter:
             self._download_count += 1
 
         is_error = bool(payload.get("is_error"))
-        # Some hkexnews tools return JSON status=error without MCP isError.
         normalized = self._extract_normalized(payload)
         if isinstance(normalized, dict) and normalized.get("status") == "error":
             is_error = True
@@ -181,7 +222,8 @@ class HkexnewsAdapter:
             latency_ms=payload.get("latency_ms"),
             real_mcp=True,
             transport="stdio",
-            server_version=payload.get("server_version") or self._client.server_version,
+            server_version=payload.get("server_version")
+            or getattr(self._client, "server_version", None),
             protocol_success=bool(payload.get("protocol_success")),
             execution_success=not is_error,
         )

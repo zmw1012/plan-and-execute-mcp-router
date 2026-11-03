@@ -99,7 +99,12 @@ def test_coverage_jsonl_counts():
     assert sum(1 for r in rows if r["answerability_class"] == "evidence_answerable") == 15
     assert sum(1 for r in rows if r["answerability_class"] == "intentionally_infeasible") == 5
     assert sum(1 for r in rows if r["answerability_class"] == "unsupported_invalid") == 0
+    assert sum(1 for r in rows if r["etom_level"] == "L4") == 5
+    assert sum(1 for r in rows if r["etom_level"] == "L3") == 4
     # HSBC absolute revenue not structured.
     hsbc_rev = next(r for r in rows if r["id"] == "fin_cf_010")
     assert hsbc_rev["answerability_class"] == "evidence_answerable"
     assert hsbc_rev["gold_server_ids"] == ["mcp_hkexnews"]
+    for r in rows:
+        assert r["dataset_split"] == "development"
+        assert r["benchmark_role"] == "method_development_and_error_analysis"

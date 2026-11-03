@@ -6,7 +6,12 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from hk_equity_mcp.real_mcp.client import RealMcpError, StdioMcpClient, run_coro
+from hk_equity_mcp.real_mcp.client import (
+    PersistentStdioMcpClient,
+    RealMcpError,
+    StdioMcpClient,
+    run_coro,
+)
 from hk_equity_mcp.real_mcp.redaction import redact_obj
 from hk_equity_mcp.real_mcp.types import RealMcpResult
 
@@ -30,25 +35,57 @@ class AktoolsAdapter:
         command: Optional[str] = None,
         timeout_sec: float = 120.0,
         cwd: Optional[str] = None,
+        *,
+        persistent: bool = True,
     ):
         self.command = command or default_aktools_command()
         self.timeout_sec = timeout_sec
         self.cwd = cwd or str(Path(__file__).resolve().parents[4])
-        self._client = StdioMcpClient(
-            server_id=SERVER_ID,
-            command=self.command,
-            args=[],
-            cwd=self.cwd,
-            timeout_sec=timeout_sec,
-        )
+        self.persistent = persistent
+        if persistent:
+            self._client: Any = PersistentStdioMcpClient(
+                server_id=SERVER_ID,
+                command=self.command,
+                args=[],
+                cwd=self.cwd,
+                timeout_sec=timeout_sec,
+            )
+        else:
+            self._client = StdioMcpClient(
+                server_id=SERVER_ID,
+                command=self.command,
+                args=[],
+                cwd=self.cwd,
+                timeout_sec=timeout_sec,
+            )
+
+    def open(self) -> "AktoolsAdapter":
+        if self.persistent:
+            self._client.start()
+        return self
+
+    def close(self) -> None:
+        if self.persistent and hasattr(self._client, "close"):
+            self._client.close()
+
+    def __enter__(self) -> "AktoolsAdapter":
+        return self.open()
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        self.close()
 
     def list_tools(self) -> Dict[str, Any]:
-        tools = run_coro(self._client.list_tools())
+        if self.persistent:
+            tools = self._client.list_tools()
+            version = self._client.server_version
+        else:
+            tools = run_coro(self._client.list_tools())
+            version = self._client.server_version
         return {
             "success": True,
             "server_id": SERVER_ID,
             "tools": tools,
-            "server_version": self._client.server_version,
+            "server_version": version,
             "real_mcp": True,
         }
 
@@ -57,7 +94,10 @@ class AktoolsAdapter:
     ) -> RealMcpResult:
         arguments = arguments or {}
         try:
-            payload = run_coro(self._client.call_tool(tool_name, arguments))
+            if self.persistent:
+                payload = self._client.call_tool(tool_name, arguments)
+            else:
+                payload = run_coro(self._client.call_tool(tool_name, arguments))
         except RealMcpError as exc:
             return RealMcpResult(
                 success=False,
@@ -96,7 +136,9 @@ class AktoolsAdapter:
             latency_ms=payload.get("latency_ms"),
             real_mcp=True,
             transport="stdio",
-            server_version=payload.get("server_version") or self._client.server_version,
+            server_version=payload.get("server_version") or getattr(
+                self._client, "server_version", None
+            ),
             protocol_success=bool(payload.get("protocol_success")),
             execution_success=not is_error,
         )
@@ -119,7 +161,6 @@ class AktoolsAdapter:
         }
         result = self.call_mcp_tool("get_data", args)
         result.operation_id = operation_id or f"aktools.{interface}"
-        # Preserve search/describe/get_data trace markers in evidence.
         result.evidence = [
             {
                 "type": "aktools_mcp_trace",
