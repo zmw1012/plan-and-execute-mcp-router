@@ -9,7 +9,10 @@ from typing import Any, Dict, List
 import pytest
 
 from hk_equity_mcp.agent.llm_client import ScriptedLLMClient
-from hk_equity_mcp.agent.operation_visible import OperationVisibleAgent, load_operation_visible_config
+from hk_equity_mcp.agent.operation_visible import (
+    OperationVisibleAgent,
+    load_operation_visible_config,
+)
 from hk_equity_mcp.operation_resolver.retrieval import DeterministicHashEmbeddingBackend
 from hk_equity_mcp.operation_resolver.schemas import OperationSpec, ParameterSpec
 from hk_equity_mcp.operation_resolver.server import META_TOOLS, OperationResolverServer
@@ -98,7 +101,15 @@ def test_full_visible_trajectory_and_metrics(backend, tmp_path: Path):
                 }
             ],
         ),
-        _turn("done", [], final_answer="Tencent FY2025 revenue is 751766000000 CNY."),
+        _turn(
+            "done",
+            [],
+            final_answer={
+                "status": "answered",
+                "final_answer": "Tencent FY2025 revenue is 751766000000 CNY.",
+                "reasoning_brief": "from invoke_api",
+            },
+        ),
     ]
     agent = OperationVisibleAgent(
         llm=ScriptedLLMClient(scripts, model="mock-llm"),
@@ -113,6 +124,8 @@ def test_full_visible_trajectory_and_metrics(backend, tmp_path: Path):
         "fidelity_note"
     ]
     assert out["status"] == "full"
+    assert out["predicted_status"] == "answered"
+    assert "751766000000" in out["final_answer"]
     assert out["llm_calls"] == 4
     assert out["resolver_calls"]["find_operations"] == 1
     assert out["resolver_calls"]["describe_operation"] == 1
@@ -369,7 +382,15 @@ def test_validation_error_visible_to_loop(backend, tmp_path: Path):
                 }
             ],
         ),
-        _turn("recover", [], final_answer="need metric"),
+        _turn(
+            "recover",
+            [],
+            final_answer={
+                "status": "clarification_needed",
+                "final_answer": "need metric",
+                "reasoning_brief": "",
+            },
+        ),
     ]
     agent = OperationVisibleAgent(
         llm=ScriptedLLMClient(scripts),
@@ -382,3 +403,145 @@ def test_validation_error_visible_to_loop(backend, tmp_path: Path):
     inv = next(e for e in out["trace"] if e.get("name") == "invoke_api")
     assert inv["result"]["success"] is False
     assert inv["result"]["error_type"] == "validation_error"
+
+
+class SpyResolver:
+    """Records real call_meta dispatch order."""
+
+    def __init__(self, inner: OperationResolverServer):
+        self.inner = inner
+        self.registry = inner.registry
+        self.retriever = inner.retriever
+        self.order: List[str] = []
+
+    def call_meta(self, tool_name: str, **kwargs: Any) -> Dict[str, Any]:
+        self.order.append(tool_name)
+        return self.inner.call_meta(tool_name, **kwargs)
+
+
+def test_mixed_find_describe_invoke_real_dispatch_order(backend, tmp_path: Path):
+    """Dispatch order must be find → describe → invoke (not invoke-first)."""
+    scripts = [
+        _turn(
+            "mixed in one turn",
+            [
+                {
+                    "name": "find_operations",
+                    "arguments": {"query": "revenue metric", "top_k": 20},
+                },
+                {
+                    "name": "describe_operation",
+                    "arguments": {"operation_id": "financial.get_financial_metric"},
+                },
+                {
+                    "name": "invoke_api",
+                    "arguments": {
+                        "operation_id": "financial.get_financial_metric",
+                        "arguments": {
+                            "ticker": "0700.HK",
+                            "metric": "revenue",
+                            "period": "FY2025",
+                            "report_type": "annual",
+                        },
+                    },
+                },
+            ],
+        ),
+        _turn(
+            "done",
+            [],
+            final_answer={
+                "status": "answered",
+                "final_answer": "ok",
+                "reasoning_brief": "",
+            },
+        ),
+    ]
+    inner = OperationResolverServer(
+        embedding_backend=backend, cache_dir=tmp_path / "c"
+    )
+    spy = SpyResolver(inner)
+    agent = OperationVisibleAgent(
+        llm=ScriptedLLMClient(scripts),
+        embedding_backend=backend,
+        resolver=spy,  # type: ignore[arg-type]
+    )
+    out = agent.run("order check")
+    assert spy.order == [
+        "find_operations",
+        "describe_operation",
+        "invoke_api",
+    ]
+    names = [e.get("name") for e in out["trace"] if e.get("type") == "tool_result"]
+    assert names == [
+        "find_operations",
+        "describe_operation",
+        "invoke_api",
+    ]
+
+
+def test_noncontiguous_invokes_do_not_jump_ahead(backend, tmp_path: Path):
+    """invoke after describe must wait; only contiguous invokes may batch."""
+    scripts = [
+        _turn(
+            "describe then two invokes",
+            [
+                {
+                    "name": "describe_operation",
+                    "arguments": {"operation_id": "financial.get_financial_metric"},
+                },
+                {
+                    "name": "invoke_api",
+                    "arguments": {
+                        "operation_id": "financial.get_financial_metric",
+                        "arguments": {
+                            "ticker": "0700.HK",
+                            "metric": "revenue",
+                            "period": "FY2025",
+                            "report_type": "annual",
+                        },
+                    },
+                },
+                {
+                    "name": "invoke_api",
+                    "arguments": {
+                        "operation_id": "financial.get_filing_summary",
+                        "arguments": {
+                            "ticker": "0700.HK",
+                            "period": "FY2025",
+                            "report_type": "annual",
+                        },
+                    },
+                },
+            ],
+        ),
+        _turn(
+            "done",
+            [],
+            final_answer={
+                "status": "answered",
+                "final_answer": "ok",
+                "reasoning_brief": "",
+            },
+        ),
+    ]
+    inner = OperationResolverServer(
+        embedding_backend=backend, cache_dir=tmp_path / "c"
+    )
+    spy = SpyResolver(inner)
+    agent = OperationVisibleAgent(
+        llm=ScriptedLLMClient(scripts),
+        embedding_backend=backend,
+        resolver=spy,  # type: ignore[arg-type]
+    )
+    out = agent.run("contiguous batch")
+    assert spy.order[0] == "describe_operation"
+    assert spy.order[1:] == [
+        "invoke_api",
+        "invoke_api",
+    ]
+    tool_events = [e for e in out["trace"] if e.get("type") == "tool_result"]
+    assert tool_events[0]["name"] == "describe_operation"
+    assert tool_events[0]["parallel"] is False
+    assert tool_events[1]["parallel"] is True
+    assert tool_events[2]["parallel"] is True

@@ -17,35 +17,15 @@ from typing import Any, Dict, List, Optional, Sequence
 import yaml
 
 from hk_equity_mcp.agent.llm_client import LLMClient
+from hk_equity_mcp.experiment.prompts import OPERATION_VISIBLE_SYSTEM_PROMPT
+from hk_equity_mcp.experiment.normalize import (
+    agent_completion_to_fallback,
+    normalize_final_payload,
+)
 from hk_equity_mcp.operation_resolver.retrieval import EmbeddingBackend
 from hk_equity_mcp.operation_resolver.server import META_TOOLS, OperationResolverServer
 
-SYSTEM_PROMPT = """You are an Operation-Visible enterprise agent for HK equity Q&A.
-You may call ONLY these meta-tools:
-- find_operations(query, top_k?): search the operation registry
-- describe_operation(operation_id): inspect schema/constraints
-- invoke_api(operation_id, arguments): validate and execute
-
-Do NOT invent underlying tool names. Do NOT claim hidden planning.
-Use find_operations first for a subgoal, then describe_operation before invoke_api
-unless the contract is already known from this trajectory.
-You may issue multiple independent read-only invoke_api calls in one turn when
-arguments are already known and calls have no dependency.
-If validation/execution errors occur, recover using the visible structured error.
-
-Respond with a single JSON object of the form:
-{
-  "thought": "brief visible plan (not private chain-of-thought)",
-  "tool_calls": [
-     {"name": "find_operations", "arguments": {"query": "...", "top_k": 20}},
-     {"name": "describe_operation", "arguments": {"operation_id": "..."}},
-     {"name": "invoke_api", "arguments": {"operation_id": "...", "arguments": {...}}}
-  ],
-  "final_answer": null
-}
-When ready to answer, set tool_calls to [] and put the answer in final_answer.
-If blocked, set final_answer to a clarification/unavailable message.
-"""
+SYSTEM_PROMPT = OPERATION_VISIBLE_SYSTEM_PROMPT
 
 
 def load_operation_visible_config(path: Optional[str] = None) -> Dict[str, Any]:
@@ -115,14 +95,20 @@ class OperationVisibleAgent:
         llm_calls = 0
         total_in = 0
         total_out = 0
-        final_answer = None
+        final_payload: Any = None
         status = "failed"
+        error = None
         deadline = started + self.timeout_sec
 
         for turn in range(1, self.max_llm_turns + 1):
             if time.perf_counter() > deadline:
                 status = "failed"
-                final_answer = "Timed out before completing the request."
+                final_payload = {
+                    "status": "unavailable",
+                    "final_answer": "Timed out before completing the request.",
+                    "reasoning_brief": "timeout",
+                }
+                error = "timeout"
                 break
 
             llm_resp = self.llm.complete(
@@ -168,14 +154,19 @@ class OperationVisibleAgent:
             }
             trace.append(event)
 
-            if parsed.get("final_answer") and not tool_calls:
-                final_answer = parsed.get("final_answer")
-                status = "full"  # placeholder label; human/judge labeling later
+            if parsed.get("final_answer") is not None and not tool_calls:
+                final_payload = parsed.get("final_answer")
+                # agent_status=full means a final answer object was produced, NOT correctness.
+                status = "full"
                 break
 
             if not tool_calls:
-                final_answer = parsed.get("final_answer") or "No tool calls and no answer."
-                status = "partial" if final_answer else "failed"
+                final_payload = parsed.get("final_answer") or {
+                    "status": "unavailable",
+                    "final_answer": "No tool calls and no answer.",
+                    "reasoning_brief": "",
+                }
+                status = "partial"
                 break
 
             # Execute tool calls for this turn.
@@ -201,18 +192,37 @@ class OperationVisibleAgent:
             )
 
             if search_calls > self.max_search_reformulations + 1:
-                final_answer = "Exceeded max search reformulations."
+                final_payload = {
+                    "status": "unavailable",
+                    "final_answer": "Exceeded max search reformulations.",
+                    "reasoning_brief": "",
+                }
                 status = "failed"
+                error = "max_search_reformulations"
                 break
             if invoke_calls > self.max_invocations:
-                final_answer = "Exceeded max invocations."
+                final_payload = {
+                    "status": "unavailable",
+                    "final_answer": "Exceeded max invocations.",
+                    "reasoning_brief": "",
+                }
                 status = "failed"
+                error = "max_invocations"
                 break
         else:
-            if final_answer is None:
-                final_answer = "Reached max LLM turns without a final answer."
+            if final_payload is None:
+                final_payload = {
+                    "status": "unavailable",
+                    "final_answer": "Reached max LLM turns without a final answer.",
+                    "reasoning_brief": "",
+                }
                 status = "failed"
+                error = "max_llm_turns"
 
+        predicted_status, final_text = normalize_final_payload(
+            final_payload,
+            fallback_status=agent_completion_to_fallback(status),
+        )
         latency_ms = (time.perf_counter() - started) * 1000
         return {
             "question": question,
@@ -221,7 +231,8 @@ class OperationVisibleAgent:
                 "simplified reimplementation adapted from Ghoshal et al. (2026)"
             ),
             "exposed_tools": self.exposed_tools(),
-            "final_answer": final_answer,
+            "final_answer": final_text,
+            "predicted_status": predicted_status,
             "status": status,
             "llm_calls": llm_calls,
             "tokens": {
@@ -244,35 +255,72 @@ class OperationVisibleAgent:
                 # Never include API keys.
             },
             "trace": trace,
+            "error": error,
         }
 
     def _execute_tool_calls(
         self, tool_calls: Sequence[Dict[str, Any]], counters: Dict[str, int]
     ) -> Dict[str, Any]:
-        # Partition: independent read-only invoke_api may run in parallel;
-        # find/describe and dependent invokes stay ordered.
+        """Dispatch preserving original call order.
+
+        Only a contiguous run of independent read-only ``invoke_api`` calls may
+        form a parallel batch. find/describe (and dependent invokes) that appear
+        earlier in the list always complete before later invokes.
+        """
         prepared: List[Dict[str, Any]] = []
         for idx, call in enumerate(tool_calls):
             name = call.get("name")
             args = call.get("arguments") or {}
             prepared.append({"index": idx, "name": name, "arguments": args})
 
-        independent_invokes: List[Dict[str, Any]] = []
-        sequential: List[Dict[str, Any]] = []
-        for item in prepared:
-            if item["name"] == "invoke_api" and self._is_independent_readonly(item):
-                independent_invokes.append(item)
-            else:
-                sequential.append(item)
-
         results: List[Optional[Dict[str, Any]]] = [None] * len(prepared)
+        i = 0
+        while i < len(prepared):
+            item = prepared[i]
+            if item["name"] == "invoke_api" and self._is_independent_readonly(item):
+                batch = [item]
+                j = i + 1
+                while j < len(prepared):
+                    nxt = prepared[j]
+                    if nxt["name"] == "invoke_api" and self._is_independent_readonly(
+                        nxt
+                    ):
+                        batch.append(nxt)
+                        j += 1
+                    else:
+                        break
+                self._run_invoke_batch(batch, results, counters)
+                i = j
+                continue
 
-        # Run independent invokes in parallel when >1.
-        if len(independent_invokes) > 1:
-            with ThreadPoolExecutor(max_workers=min(4, len(independent_invokes))) as pool:
+            payload = self._dispatch(item["name"], item["arguments"])
+            self._bump_counter(counters, item["name"])
+            results[item["index"]] = {
+                "type": "tool_result",
+                "name": item["name"],
+                "arguments": item["arguments"],
+                "parallel": False,
+                "result": payload,
+            }
+            i += 1
+
+        return {
+            "results": [r for r in results if r is not None],
+            "counters": counters,
+        }
+
+    def _run_invoke_batch(
+        self,
+        batch: List[Dict[str, Any]],
+        results: List[Optional[Dict[str, Any]]],
+        counters: Dict[str, int],
+    ) -> None:
+        parallel = len(batch) > 1
+        if parallel:
+            with ThreadPoolExecutor(max_workers=min(4, len(batch))) as pool:
                 futs = {
                     pool.submit(self._dispatch, item["name"], item["arguments"]): item
-                    for item in independent_invokes
+                    for item in batch
                 }
                 for fut in as_completed(futs):
                     item = futs[fut]
@@ -285,39 +333,27 @@ class OperationVisibleAgent:
                         "parallel": True,
                         "result": payload,
                     }
-        elif len(independent_invokes) == 1:
-            item = independent_invokes[0]
-            payload = self._dispatch(item["name"], item["arguments"])
-            counters["invoke_calls"] += 1
-            results[item["index"]] = {
-                "type": "tool_result",
-                "name": item["name"],
-                "arguments": item["arguments"],
-                "parallel": False,
-                "result": payload,
-            }
+            return
 
-        for item in sequential:
-            name = item["name"]
-            payload = self._dispatch(name, item["arguments"])
-            if name == "find_operations":
-                counters["search_calls"] += 1
-            elif name == "describe_operation":
-                counters["describe_calls"] += 1
-            elif name == "invoke_api":
-                counters["invoke_calls"] += 1
-            results[item["index"]] = {
-                "type": "tool_result",
-                "name": name,
-                "arguments": item["arguments"],
-                "parallel": False,
-                "result": payload,
-            }
-
-        return {
-            "results": [r for r in results if r is not None],
-            "counters": counters,
+        item = batch[0]
+        payload = self._dispatch(item["name"], item["arguments"])
+        counters["invoke_calls"] += 1
+        results[item["index"]] = {
+            "type": "tool_result",
+            "name": item["name"],
+            "arguments": item["arguments"],
+            "parallel": False,
+            "result": payload,
         }
+
+    @staticmethod
+    def _bump_counter(counters: Dict[str, int], name: Optional[str]) -> None:
+        if name == "find_operations":
+            counters["search_calls"] += 1
+        elif name == "describe_operation":
+            counters["describe_calls"] += 1
+        elif name == "invoke_api":
+            counters["invoke_calls"] += 1
 
     def _is_independent_readonly(self, item: Dict[str, Any]) -> bool:
         args = item.get("arguments") or {}

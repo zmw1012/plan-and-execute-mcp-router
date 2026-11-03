@@ -38,12 +38,14 @@ class OpenAICompatibleChatClient(LLMClient):
         model: Optional[str] = None,
         provider: Optional[str] = None,
         timeout_sec: float = 120.0,
+        json_mode: bool = True,
     ):
         self.base_url = (base_url or os.environ.get("LLM_BASE_URL") or "").rstrip("/")
         self.api_key = api_key or os.environ.get("LLM_API_KEY") or ""
         self.model = model or os.environ.get("LLM_MODEL") or ""
         self.provider = provider or os.environ.get("LLM_PROVIDER") or "openai_compatible"
         self.timeout_sec = timeout_sec
+        self.json_mode = bool(json_mode)
         if not self.base_url:
             raise RuntimeError("Missing LLM_BASE_URL. Load ENV_FILE=.env.aliyun.")
         if not self.api_key:
@@ -61,12 +63,14 @@ class OpenAICompatibleChatClient(LLMClient):
         max_tokens: int = 1024,
     ) -> Dict[str, Any]:
         url = f"{self.base_url}/chat/completions"
-        payload = {
+        payload: Dict[str, Any] = {
             "model": self.model,
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
         }
+        if self.json_mode:
+            payload["response_format"] = {"type": "json_object"}
         req = urllib.request.Request(
             url,
             data=json.dumps(payload).encode("utf-8"),
