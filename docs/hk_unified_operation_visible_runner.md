@@ -80,6 +80,59 @@ Writes/refreshes: `per_task_metrics.csv`, `manual_grading.csv`, `cost_summary.js
 - `tool_execution_success` ≡ `all_tool_invocations_successful` (all invokes succeeded; vacuous True if zero invokes).
 - `recovered_after_tool_error`: early invoke failed, later invoke succeeded, complete final answer — execution recovery only, not answer correctness.
 
-## Held-out
+## Held-out (legacy)
 
 Locked unless both `--split heldout` and `--confirm-heldout-final` are provided.
+This project now prefers exploratory_all for method development.
+
+## Exploratory 155 (method development + difficulty audit)
+
+Pointer-only manifest: `benchmarks/manifests/hk_unified_exploratory_all_v1.json`  
+Locked run-order: `benchmarks/manifests/hk_unified_exploratory_all_run_order_v1.json`
+
+Requires both `--split exploratory_all` and `--confirm-retire-heldout`.
+Dry-run/mock show retirement policy but do **not** count as first real exposure.
+Only a real (non-mock, non-dry-run) run sets
+`heldout_status=retired_into_exploratory_development`.
+
+Use a dedicated output directory (never smoke / never dev70):
+
+```bash
+PYTHON="../hk-equity-mcp-agent/.venv-aktools-discovery/bin/python"
+ENV_GEN="../hk-equity-mcp-agent/.env.aliyun"
+ENV_EMB="../hk-equity-mcp-agent/.env.embedding-relay"
+OUT=outputs/hk_unified_exploratory155_operation_visible_v1
+
+# dry-run
+PYTHONPATH=src "$PYTHON" scripts/run_hk_unified_operation_visible_experiment.py \
+  --split exploratory_all --confirm-retire-heldout --dry-run --allow-dirty \
+  --output-dir "$OUT"
+
+# real batches (do not execute in offline hardening rounds)
+PYTHONPATH=src "$PYTHON" scripts/run_hk_unified_operation_visible_experiment.py \
+  --split exploratory_all --confirm-retire-heldout \
+  --env-file "$ENV_GEN" --embedding-env-file "$ENV_EMB" \
+  --allow-hkex-download --max-tasks 20 \
+  --output-dir "$OUT"
+
+PYTHONPATH=src "$PYTHON" scripts/run_hk_unified_operation_visible_experiment.py \
+  --split exploratory_all --confirm-retire-heldout \
+  --env-file "$ENV_GEN" --embedding-env-file "$ENV_EMB" \
+  --allow-hkex-download --max-tasks 50 --resume \
+  --output-dir "$OUT"
+
+PYTHONPATH=src "$PYTHON" scripts/run_hk_unified_operation_visible_experiment.py \
+  --split exploratory_all --confirm-retire-heldout \
+  --env-file "$ENV_GEN" --embedding-env-file "$ENV_EMB" \
+  --allow-hkex-download --max-tasks 100 --resume \
+  --output-dir "$OUT"
+
+PYTHONPATH=src "$PYTHON" scripts/run_hk_unified_operation_visible_experiment.py \
+  --split exploratory_all --confirm-retire-heldout \
+  --env-file "$ENV_GEN" --embedding-env-file "$ENV_EMB" \
+  --allow-hkex-download --resume \
+  --output-dir "$OUT"
+
+# offline postprocess
+PYTHONPATH=src "$PYTHON" scripts/postprocess_hk_unified_run.py --run-dir "$OUT"
+```

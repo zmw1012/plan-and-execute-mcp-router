@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Sequence
 
 DEFAULT_MANIFEST = "benchmarks/manifests/hk_unified_dataset_v1.json"
 DEFAULT_SMOKE = "benchmarks/smoke/hk_unified_dev_smoke_8_v1.json"
-VALID_SPLITS = ("development", "heldout")
+VALID_SPLITS = ("development", "heldout", "exploratory_all")
 
 
 def load_json(path: Path) -> Dict[str, Any]:
@@ -78,6 +78,12 @@ def load_split_tasks(
 ) -> List[Dict[str, Any]]:
     if split not in VALID_SPLITS:
         raise ValueError(f"Unknown split {split!r}; expected {VALID_SPLITS}")
+    if split == "exploratory_all":
+        from hk_equity_mcp.experiment.unified_exploratory import (
+            load_exploratory_tasks_in_locked_order,
+        )
+
+        return load_exploratory_tasks_in_locked_order(root)
     man = manifest or load_manifest(root, manifest_path)
     split_cfg = man["splits"][split]
     tasks: List[Dict[str, Any]] = []
@@ -149,7 +155,7 @@ def assert_heldout_unlocked(*, split: str, confirm_heldout_final: bool) -> Dict[
         "reason": "",
     }
     if split != "heldout":
-        status["heldout_lock_active"] = split == "heldout"
+        status["heldout_lock_active"] = False
         status["allowed"] = True
         status["reason"] = "development_or_non_heldout"
         return status

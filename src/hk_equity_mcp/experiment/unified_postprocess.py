@@ -13,12 +13,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from hk_equity_mcp.experiment.unified_aggregates import build_grouped_aggregates
 from hk_equity_mcp.experiment.unified_evaluator import (
     EVALUATOR_VERSION,
     evaluator_identity,
     reevaluate_prediction_row,
     summarize_predictions,
 )
+from hk_equity_mcp.experiment.unified_grading import grade_task, summarize_grading
 from hk_equity_mcp.experiment.unified_runner import atomic_write_json, fsync_file
 from hk_equity_mcp.experiment.unified_schema import (
     MANUAL_GRADING_FIELDS,
@@ -37,11 +39,50 @@ IDENTITY_KEYS = (
     "temperature",
     "max_tokens",
     "catalog_fingerprint",
+    "exploratory_manifest_hash",
+    "run_order_hash",
+    "retirement_policy_version",
     "git_commit",
     "branch",
     "question_ids",
     "catalog_stats",
 )
+
+
+def _load_manual_grades(path: Path) -> Dict[str, Dict[str, Any]]:
+    if not path.exists():
+        return {}
+    out: Dict[str, Dict[str, Any]] = {}
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        for row in reader:
+            tid = row.get("task_id") or row.get("id")
+            if tid:
+                out[str(tid)] = row
+    return out
+
+
+def _merge_overall_accuracy(
+    grading_summary: Dict[str, Any], enriched: List[Dict[str, Any]]
+) -> Dict[str, Any]:
+    """If every task has overall_task_success_0_or_1 filled, compute overall accuracy."""
+    vals = []
+    for row in enriched:
+        raw = row.get("overall_task_success_0_or_1")
+        if raw in ("", None):
+            raw = row.get("manual_overall_task_success")
+        if raw in ("", None):
+            return grading_summary
+        try:
+            vals.append(int(raw))
+        except Exception:
+            return grading_summary
+    if len(vals) != len(enriched):
+        return grading_summary
+    out = dict(grading_summary)
+    out["overall_accuracy"] = sum(vals) / len(vals) if vals else None
+    out["overall_accuracy_note"] = "computed from completed manual overall_task_success_0_or_1"
+    return out
 
 
 def load_predictions(path: Path) -> List[Dict[str, Any]]:
@@ -68,16 +109,41 @@ def postprocess_run_dir(
         raise FileNotFoundError(f"Missing predictions.jsonl: {predictions_path}")
 
     rows = load_predictions(predictions_path)
+    existing_manual = _load_manual_grades(run_dir / "manual_grading.csv")
     enriched: List[Dict[str, Any]] = []
     for row in rows:
         metrics = reevaluate_prediction_row(row)
+        grade = grade_task(row, {**row, **metrics})
         # Merge metrics for side artifacts only; predictions.jsonl stays untouched.
         merged = dict(row)
         merged.update(metrics)
-        # Preserve original row status/error for summarize.
+        merged["auto_grade_status"] = grade.get("auto_grade_status")
+        merged["answer_correct"] = grade.get("answer_correct")
+        merged["auto_grade_reason"] = grade.get("reason")
+        tid = str(merged.get("task_id") or merged.get("id") or "")
+        if tid in existing_manual:
+            man = existing_manual[tid]
+            for key in (
+                "answer_correct_0_or_1",
+                "evidence_correct_0_or_1",
+                "unsupported_claim_0_or_1",
+                "causal_overclaim_0_or_1",
+                "overall_task_success_0_or_1",
+                "grader_notes",
+                "manual_answer_correctness",
+                "manual_evidence_correctness",
+                "manual_unsupported_claim",
+                "manual_causal_overclaim",
+                "manual_overall_task_success",
+                "notes",
+            ):
+                if man.get(key) not in (None, ""):
+                    merged[key] = man.get(key)
         enriched.append(merged)
 
     summary = summarize_predictions(enriched)
+    grading_summary = _merge_overall_accuracy(summarize_grading(enriched), enriched)
+    grouped = build_grouped_aggregates(enriched)
 
     # per_task_metrics.csv
     metrics_path = run_dir / "per_task_metrics.csv"
@@ -139,6 +205,7 @@ def postprocess_run_dir(
                         "task_id": row.get("task_id") or row.get("id"),
                         "domain": row.get("domain", ""),
                         "domain_combination": row.get("domain_combination", ""),
+                        "source_split": row.get("source_split", ""),
                         "company": row.get("company", ""),
                         "project_difficulty": row.get("project_difficulty", ""),
                         "exact_etom_level": row.get("exact_etom_level", ""),
@@ -158,6 +225,22 @@ def postprocess_run_dir(
                         "evidence": json.dumps(
                             row.get("evidence") or [], ensure_ascii=False
                         ),
+                        "auto_grade_status": row.get("auto_grade_status", ""),
+                        "answer_correct": row.get("answer_correct", ""),
+                        "answer_correct_0_or_1": row.get("answer_correct_0_or_1", ""),
+                        "evidence_correct_0_or_1": row.get(
+                            "evidence_correct_0_or_1", ""
+                        ),
+                        "unsupported_claim_0_or_1": row.get(
+                            "unsupported_claim_0_or_1", ""
+                        ),
+                        "causal_overclaim_0_or_1": row.get(
+                            "causal_overclaim_0_or_1", ""
+                        ),
+                        "overall_task_success_0_or_1": row.get(
+                            "overall_task_success_0_or_1", ""
+                        ),
+                        "grader_notes": row.get("grader_notes", ""),
                         "manual_answer_correctness": row.get(
                             "manual_answer_correctness", ""
                         ),
@@ -237,14 +320,19 @@ def postprocess_run_dir(
         },
         "evaluator": evaluator_identity(),
         "aggregate": summary,
+        "grading": grading_summary,
+        "grouped_aggregates": grouped,
         "postprocessed": True,
         "source_predictions": str(predictions_path),
         "predictions_unchanged": True,
     }
     atomic_write_json(run_dir / "error_summary.json", error_payload)
+    atomic_write_json(run_dir / "grouped_aggregates.json", grouped)
+    atomic_write_json(run_dir / "grading_summary.json", grading_summary)
 
     eval_meta = {
         **evaluator_identity(),
+        "evaluator_version_note": EVALUATOR_VERSION,
         "postprocessed_at": datetime.now(timezone.utc).isoformat(),
         "run_dir": str(run_dir),
         "n_tasks": len(enriched),
@@ -256,12 +344,15 @@ def postprocess_run_dir(
             "cost_summary.json",
             "retrieval_analysis.json",
             "error_summary.json",
+            "grouped_aggregates.json",
+            "grading_summary.json",
             "evaluation_metadata.json",
         ],
         "preserved_run_metadata_identity_keys": list(IDENTITY_KEYS),
         "run_metadata_identity_snapshot": {
             k: run_meta.get(k) for k in IDENTITY_KEYS if k in run_meta
         },
+        "grading": grading_summary,
         "note": (
             "Offline postprocess only. Did not call LLM/Embedding/MCP/Agent. "
             "Did not modify predictions.jsonl or run_metadata identity fields."
@@ -278,6 +369,8 @@ def postprocess_run_dir(
         "n_tasks": len(enriched),
         "error_counts": error_payload["error_counts"],
         "result_status_counts": error_payload["result_status_counts"],
+        "grading": grading_summary,
+        "grouped_origin_ok": (grouped.get("origin_count_check") or {}).get("ok"),
         "evaluator": evaluator_identity(),
         "run_dir": str(run_dir),
     }

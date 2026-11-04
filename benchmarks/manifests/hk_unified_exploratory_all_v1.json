@@ -1,0 +1,91 @@
+{
+  "benchmark_id": "hk_unified_exploratory_all_v1",
+  "role": "method_development_and_difficulty_audit",
+  "total_count": 155,
+  "development_source_count": 70,
+  "previously_reserved_source_count": 85,
+  "contains_previously_reserved_items": true,
+  "previously_reserved_items_cease_to_be_heldout_after_first_real_agent_run": true,
+  "not_for_unseen_final_claims": true,
+  "no_final_test_claim": true,
+  "retirement_policy_version": "retirement_policy_v1",
+  "cutoff_date": "2026-08-12",
+  "timezone": "Asia/Hong_Kong",
+  "base_commit": "2a9d492e44e2df000ceefda990e10bc42b32c108",
+  "sources": [
+    {
+      "domain": "financial",
+      "source_split": "development",
+      "path": "benchmarks/questions/financial_real_mcp_coverage_v1_3.jsonl",
+      "expected_count": 30,
+      "sha256": "61e4559803b61c4b8f34f8b78b402d952e40d3390e09299b484461b8e9b8ed39"
+    },
+    {
+      "domain": "financial",
+      "source_split": "previously_reserved",
+      "path": "benchmarks/heldout/financial_test_30_v1_3.jsonl",
+      "expected_count": 30,
+      "sha256": "44dae2af018f8db5e755cf1c75d3b384721a22c2ee30eaa5551a63c8b3028705"
+    },
+    {
+      "domain": "market",
+      "source_split": "development",
+      "path": "benchmarks/questions/market_development_15_v1_1.jsonl",
+      "expected_count": 15,
+      "sha256": "e289df2ee4257b81deb80d68539ac172658f958a028e09c09d86984fd9ce1a77"
+    },
+    {
+      "domain": "market",
+      "source_split": "previously_reserved",
+      "path": "benchmarks/heldout/market_test_20_v1_1.jsonl",
+      "expected_count": 20,
+      "sha256": "21fd5995fa0e1ed27132530bc022b8562bd8f7207d23f43c5b2b9eca9362e93a"
+    },
+    {
+      "domain": "news",
+      "source_split": "development",
+      "path": "benchmarks/questions/news_development_15_v1.jsonl",
+      "expected_count": 15,
+      "sha256": "41f96ba3f5711894e61a84deb5ce24fb44acade3b2088862e3fdd3f2bb6b196c"
+    },
+    {
+      "domain": "news",
+      "source_split": "previously_reserved",
+      "path": "benchmarks/heldout/news_test_20_v1.jsonl",
+      "expected_count": 20,
+      "sha256": "799c2cac8d4e5231b4e6a25b7e63b5b9ff590c04540b6853ba74406840e368b7"
+    },
+    {
+      "domain": "cross_domain",
+      "source_split": "development",
+      "path": "benchmarks/questions/cross_domain_development_10_v1.jsonl",
+      "expected_count": 10,
+      "sha256": "aba606002fec8b471c9185be44c64b884e46d824cd48349a75dcc165be8457bd"
+    },
+    {
+      "domain": "cross_domain",
+      "source_split": "previously_reserved",
+      "path": "benchmarks/heldout/cross_domain_test_15_v1.jsonl",
+      "expected_count": 15,
+      "sha256": "ab8c138867ea3602f17d89f6416ecf146352fd1f9fff28bf514dcfcdec8fead4"
+    }
+  ],
+  "domain_counts": {
+    "cross_domain": 25,
+    "financial": 60,
+    "market": 35,
+    "news": 35
+  },
+  "source_split_counts": {
+    "development": 70,
+    "previously_reserved": 85
+  },
+  "run_order_path": "benchmarks/manifests/hk_unified_exploratory_all_run_order_v1.json",
+  "run_order_hash": "14aa3c253eea155b038b70fe11b8a69ee51331b5599790bb2827e72d4e321254",
+  "notes": [
+    "Pointer-only manifest; frozen JSONL files are not copied or rewritten.",
+    "Dry-run/mock must not be recorded as the first real held-out exposure.",
+    "After first real exploratory_all Agent run, previously reserved 85 are retired."
+  ],
+  "manifest_hash": "f2257e3de89189c5d5784e3f58824c10928294d9454bcf68b3d061dca37f92c5"
+}

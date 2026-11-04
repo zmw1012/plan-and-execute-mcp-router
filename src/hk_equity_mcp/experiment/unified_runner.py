@@ -35,7 +35,6 @@ from hk_equity_mcp.experiment.runner import (
 )
 from hk_equity_mcp.experiment.unified_dataset import (
     assert_heldout_unlocked,
-    load_manifest,
     load_smoke_tasks,
     load_split_tasks,
     select_by_ids,
@@ -43,6 +42,13 @@ from hk_equity_mcp.experiment.unified_dataset import (
 from hk_equity_mcp.experiment.unified_evaluator import (
     evaluate_task,
     summarize_predictions,
+)
+from hk_equity_mcp.experiment.unified_exploratory import (
+    RETIREMENT_POLICY_VERSION,
+    assert_exploratory_unlocked,
+    build_retirement_metadata,
+    load_exploratory_manifest,
+    load_exploratory_run_order,
 )
 from hk_equity_mcp.experiment.unified_prompt import (
     UNIFIED_HK_OPERATION_VISIBLE_SYSTEM_PROMPT,
@@ -75,6 +81,10 @@ RESUME_IDENTITY_KEYS = (
     "temperature",
     "max_tokens",
     "catalog_fingerprint",
+    # exploratory_all identity (null/absent-equivalent for other splits)
+    "exploratory_manifest_hash",
+    "run_order_hash",
+    "retirement_policy_version",
 )
 
 
@@ -231,6 +241,7 @@ class UnifiedHkOperationVisibleRunner:
         mock: bool = False,
         allow_dirty: bool = False,
         confirm_heldout_final: bool = False,
+        confirm_retire_heldout: bool = False,
         env_file: Optional[str] = None,
         embedding_env_file: Optional[str] = None,
         config: Optional[Dict[str, Any]] = None,
@@ -249,6 +260,7 @@ class UnifiedHkOperationVisibleRunner:
         self.mock = mock
         self.allow_dirty = allow_dirty
         self.confirm_heldout_final = confirm_heldout_final
+        self.confirm_retire_heldout = confirm_retire_heldout
         self.env_file = env_file
         self.embedding_env_file = embedding_env_file
         self.config = config or load_unified_config(root=self.root)
@@ -265,21 +277,33 @@ class UnifiedHkOperationVisibleRunner:
         self.emb_meta: Optional[Dict[str, str]] = None
         self._gateway: Optional[UnifiedRealMcpGateway] = None
         self.bundle = build_unified_catalog(root=self.root)
+        self._exploratory_manifest: Optional[Dict[str, Any]] = None
+        self._exploratory_run_order: Optional[Dict[str, Any]] = None
 
     def _load_tasks(self) -> List[Dict[str, Any]]:
         heldout_status = assert_heldout_unlocked(
             split=self.split, confirm_heldout_final=self.confirm_heldout_final
         )
         self._heldout_status = heldout_status
+        exploratory_status = assert_exploratory_unlocked(
+            split=self.split, confirm_retire_heldout=self.confirm_retire_heldout
+        )
+        self._exploratory_status = exploratory_status
         if self.smoke:
             if self.split != "development":
                 raise RuntimeError("--smoke is only valid with --split development")
             tasks = load_smoke_tasks(self.root)
         else:
+            if self.split == "exploratory_all":
+                self._exploratory_manifest = load_exploratory_manifest(self.root)
+                self._exploratory_run_order = load_exploratory_run_order(self.root)
             tasks = load_split_tasks(self.root, self.split)
         if self.ids is not None:
-            tasks = select_by_ids(tasks, self.ids)
+            tasks = select_by_ids(
+                tasks, self.ids, preserve_id_order=(self.split == "exploratory_all")
+            )
         if self.max_tasks is not None:
+            # For exploratory_all this is the locked-order prefix.
             tasks = tasks[: max(0, int(self.max_tasks))]
         return tasks
 
@@ -377,10 +401,48 @@ class UnifiedHkOperationVisibleRunner:
         )
 
         domain_counts: Dict[str, int] = {}
+        source_split_counts: Dict[str, int] = {}
         for t in tasks:
             domain_counts[str(t.get("domain"))] = domain_counts.get(
                 str(t.get("domain")), 0
             ) + 1
+            if t.get("source_split") is not None:
+                source_split_counts[str(t.get("source_split"))] = (
+                    source_split_counts.get(str(t.get("source_split")), 0) + 1
+                )
+
+        exploratory_manifest_hash = None
+        run_order_hash = None
+        retirement_policy_version = None
+        retirement_meta = None
+        if self.split == "exploratory_all":
+            man = self._exploratory_manifest or load_exploratory_manifest(self.root)
+            order = self._exploratory_run_order or load_exploratory_run_order(self.root)
+            exploratory_manifest_hash = man.get("manifest_hash")
+            run_order_hash = order.get("run_order_hash")
+            retirement_policy_version = RETIREMENT_POLICY_VERSION
+            existing_first = None
+            meta_path = self.output_dir / "run_metadata.json"
+            if self.resume and meta_path.exists():
+                try:
+                    existing = json.loads(meta_path.read_text(encoding="utf-8"))
+                    existing_first = (existing.get("retirement") or {}).get(
+                        "first_real_exploratory_run"
+                    )
+                except Exception:  # noqa: BLE001
+                    existing_first = None
+            retirement_meta = build_retirement_metadata(
+                dry_run=self.dry_run,
+                mock=self.mock,
+                confirm_retire_heldout=self.confirm_retire_heldout,
+                git_commit=git_commit(self.root),
+                prompt_hash=prompt_h,
+                catalog_fingerprint=fingerprint,
+                manifest_hash=str(exploratory_manifest_hash),
+                run_order_hash=str(run_order_hash),
+                timestamp=datetime.now(timezone.utc).isoformat(),
+                existing_first_real=existing_first,
+            )
 
         meta = {
             "condition": self.condition,
@@ -391,9 +453,15 @@ class UnifiedHkOperationVisibleRunner:
             "dataset_split": self.split,
             "smoke": self.smoke,
             "heldout_lock": getattr(self, "_heldout_status", {}),
+            "exploratory_lock": getattr(self, "_exploratory_status", {}),
+            "exploratory_manifest_hash": exploratory_manifest_hash,
+            "run_order_hash": run_order_hash,
+            "retirement_policy_version": retirement_policy_version,
+            "retirement": retirement_meta,
             "question_ids": [t["task_id"] for t in tasks],
             "question_count": len(tasks),
             "domain_counts": domain_counts,
+            "source_split_counts": source_split_counts or None,
             "generation_provider": self.gen_meta.get("provider") or expected_provider,
             "generation_model": self.gen_meta.get("model") or expected_model,
             "generation_profile_file": self.gen_meta.get("profile_file"),
@@ -438,8 +506,10 @@ class UnifiedHkOperationVisibleRunner:
                 "simplified reimplementation adapted from Ghoshal et al. (2026)"
             ),
             "dataset_note": (
-                "Development is method-analysis; Held-out locked until "
-                "--split heldout --confirm-heldout-final."
+                "Development / exploratory_all are method-analysis. "
+                "Held-out locked until --split heldout --confirm-heldout-final. "
+                "exploratory_all requires --confirm-retire-heldout; first real run "
+                "retires previously reserved items from unseen-final status."
             ),
             "dry_run_missing_env": getattr(self, "_dry_run_missing", None),
         }
@@ -513,7 +583,10 @@ class UnifiedHkOperationVisibleRunner:
     def _build_prediction_row(
         self, item: Dict[str, Any], result: Dict[str, Any]
     ) -> Dict[str, Any]:
+        from hk_equity_mcp.experiment.unified_grading import grade_task
+
         metrics = evaluate_task(item=item, result=result)
+        grade = grade_task(item, {**result, **metrics, "task_id": item["task_id"]})
         tokens = result.get("tokens") or {}
         row = {
             "task_id": item["task_id"],
@@ -531,6 +604,12 @@ class UnifiedHkOperationVisibleRunner:
             "final_answer": result.get("final_answer"),
             "predicted_status": result.get("predicted_status"),
             "answerability_class": item.get("answerability_class"),
+            "source_split": item.get("source_split"),
+            "previously_reserved": item.get("previously_reserved"),
+            "benchmark_role": item.get("benchmark_role"),
+            "company": item.get("company"),
+            "gold_status": item.get("gold_status"),
+            "gold_values": item.get("gold_values"),
             "llm_calls": result.get("llm_calls"),
             "tokens": tokens,
             "embedding_calls": result.get("embedding_calls"),
@@ -544,11 +623,20 @@ class UnifiedHkOperationVisibleRunner:
             "underlying_operation_calls": result.get("underlying_operation_calls", 0),
             "provider_metadata": result.get("provider_metadata") or {},
             "condition": self.condition,
+            "auto_grade_status": grade.get("auto_grade_status"),
+            "answer_correct": grade.get("answer_correct"),
+            "auto_grade_reason": grade.get("reason"),
             "manual_answer_correctness": "",
             "manual_evidence_correctness": "",
             "manual_unsupported_claim": "",
             "manual_causal_overclaim": "",
             "manual_overall_task_success": "",
+            "answer_correct_0_or_1": "",
+            "evidence_correct_0_or_1": "",
+            "unsupported_claim_0_or_1": "",
+            "causal_overclaim_0_or_1": "",
+            "overall_task_success_0_or_1": "",
+            "grader_notes": "",
         }
         row.update(metrics)
         for key in PREDICTION_FIELDS:
@@ -631,6 +719,7 @@ class UnifiedHkOperationVisibleRunner:
                         "task_id": item["task_id"],
                         "domain": item.get("domain"),
                         "domain_combination": item.get("domain_combination"),
+                        "source_split": item.get("source_split", ""),
                         "company": item.get("company", ""),
                         "project_difficulty": item.get("project_difficulty", ""),
                         "exact_etom_level": item.get("exact_etom_level", ""),
@@ -650,6 +739,14 @@ class UnifiedHkOperationVisibleRunner:
                         "evidence": json.dumps(
                             pred.get("evidence") or [], ensure_ascii=False
                         ),
+                        "auto_grade_status": pred.get("auto_grade_status", ""),
+                        "answer_correct": pred.get("answer_correct", ""),
+                        "answer_correct_0_or_1": "",
+                        "evidence_correct_0_or_1": "",
+                        "unsupported_claim_0_or_1": "",
+                        "causal_overclaim_0_or_1": "",
+                        "overall_task_success_0_or_1": "",
+                        "grader_notes": "",
                         "manual_answer_correctness": "",
                         "manual_evidence_correctness": "",
                         "manual_unsupported_claim": "",
@@ -698,9 +795,13 @@ class UnifiedHkOperationVisibleRunner:
                 ],
             },
         )
+        from hk_equity_mcp.experiment.unified_aggregates import build_grouped_aggregates
         from hk_equity_mcp.experiment.unified_evaluator import evaluator_identity
+        from hk_equity_mcp.experiment.unified_grading import summarize_grading
         from hk_equity_mcp.experiment.unified_schema import METRIC_FIELD_DEFINITIONS
 
+        grading_summary = summarize_grading(rows)
+        grouped = build_grouped_aggregates(rows)
         atomic_write_json(
             self.output_dir / "error_summary.json",
             {
@@ -720,8 +821,12 @@ class UnifiedHkOperationVisibleRunner:
                 },
                 "evaluator": evaluator_identity(),
                 "aggregate": summary,
+                "grading": grading_summary,
+                "grouped_aggregates": grouped,
             },
         )
+        atomic_write_json(self.output_dir / "grouped_aggregates.json", grouped)
+        atomic_write_json(self.output_dir / "grading_summary.json", grading_summary)
 
     def run(self) -> Dict[str, Any]:
         prepared = self.prepare()
@@ -737,8 +842,19 @@ class UnifiedHkOperationVisibleRunner:
             print(f"smoke={self.smoke}")
             print(f"mock={self.mock}")
             print(f"heldout_lock={json.dumps(run_meta.get('heldout_lock'), ensure_ascii=False)}")
+            print(
+                "exploratory_lock="
+                + json.dumps(run_meta.get("exploratory_lock"), ensure_ascii=False)
+            )
+            print(
+                "retirement="
+                + json.dumps(run_meta.get("retirement"), ensure_ascii=False)
+            )
             print(f"question_count={run_meta['question_count']}")
             print(f"domain_counts={run_meta['domain_counts']}")
+            print(f"source_split_counts={run_meta.get('source_split_counts')}")
+            print(f"exploratory_manifest_hash={run_meta.get('exploratory_manifest_hash')}")
+            print(f"run_order_hash={run_meta.get('run_order_hash')}")
             print(f"generation_model={run_meta['generation_model']}")
             print(f"embedding_model={run_meta['embedding_model']}")
             print(f"system_prompt_hash={run_meta['system_prompt_hash']}")

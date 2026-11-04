@@ -5,11 +5,12 @@ Defaults:
   --split development
   Operation-Visible + UnifiedRealMcpGateway + 42 unique logical operations
 
-Held-out is locked unless BOTH:
-  --split heldout
-  --confirm-heldout-final
+Locks:
+  --split heldout requires --confirm-heldout-final
+  --split exploratory_all requires --confirm-retire-heldout
 
-This round forbids paid runs unless the operator explicitly omits --dry-run/--mock.
+Use sibling discovery python for real runs, e.g.:
+  ../hk-equity-mcp-agent/.venv-aktools-discovery/bin/python
 """
 
 from __future__ import annotations
@@ -37,13 +38,21 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--split",
         default="development",
-        choices=["development", "heldout"],
+        choices=["development", "heldout", "exploratory_all"],
         help="Dataset split (default: development)",
     )
     p.add_argument(
         "--confirm-heldout-final",
         action="store_true",
-        help="Required together with --split heldout",
+        help="Required together with --split heldout (legacy; project no longer uses)",
+    )
+    p.add_argument(
+        "--confirm-retire-heldout",
+        action="store_true",
+        help=(
+            "Required together with --split exploratory_all. After the first real "
+            "Agent run, previously reserved items cease to be unseen final-test."
+        ),
     )
     p.add_argument("--smoke", action="store_true", help="Run locked Dev smoke-8")
     p.add_argument("--ids", default=None, help="Comma-separated task ids")
@@ -85,6 +94,7 @@ def main() -> None:
         mock=args.mock,
         allow_dirty=args.allow_dirty,
         confirm_heldout_final=args.confirm_heldout_final,
+        confirm_retire_heldout=args.confirm_retire_heldout,
         env_file=args.env_file,
         embedding_env_file=args.embedding_env_file,
         config=cfg,
