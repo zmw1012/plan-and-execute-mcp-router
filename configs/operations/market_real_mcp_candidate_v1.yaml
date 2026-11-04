@@ -1,0 +1,623 @@
+# Market Real-MCP candidate catalog (NOT frozen).
+# Status: candidate_v1 — tool-first discovery only; no final Market questions yet.
+# Separate from configs/operations/financial_real_mcp.yaml (Financial v1 remains frozen/unchanged).
+version: 1
+catalog_id: market_real_mcp_candidate_v1
+catalog_status: candidate_v1
+domain: market
+read_only: true
+freeze_status: not_frozen
+notes:
+  - Raw MCP tools != logical operations. AKTools exposes 3 raw MCP tools; logical Market ops below map to get_data interfaces (or meta tools).
+  - Benchmark temporal policy: max gold date 2026-08-12 Asia/Hong_Kong; never use floating "latest" as gold.
+  - Previous-valid-trading-day rule: if requested date absent, use max trading date <= requested date in the same series/adjustment mode.
+  - FTShare Market tools are documented as blocked (anonymous 429 / no local API key), not accepted.
+  - data/mock market JSON remains offline mock only; never as Real-MCP tool data.
+
+temporal_policy:
+  max_data_date: "2026-08-12"
+  timezone: Asia/Hong_Kong
+  previous_valid_trading_day_rule: >
+    If a requested calendar date is missing from the returned series (weekend/holiday),
+    select the maximum available session date <= the requested date under the same
+    symbol, frequency, and adjustment mode. Do not forward-fill from a later date.
+  evidence: >
+    stock_hk_hist 00700 window 2026-08-07..2026-08-12 returned sessions
+    2026-08-07, 2026-08-10, 2026-08-11, 2026-08-12 (2026-08-08/09 absent).
+
+servers:
+  aktools:
+    server_id: aktools
+    package: aktools
+    package_version_live: "0.1.4"
+    akshare_version_live: "1.20.22"
+    repository: https://github.com/akfamily/aktools
+    transport: stdio
+    command_env: AKTOOLS_MCP_COMMAND
+    default_command: aktools-mcp
+    authentication: none
+    cost: free_local
+    license: MIT
+    implements_mcp: true
+    raw_mcp_tool_count: 3
+    exposed_mcp_tools:
+      - search_interfaces
+      - describe_interface
+      - get_data
+    audit_status: accepted_primary_server
+    live_evidence: outputs/mcp_discovery_market_v1/
+  ftshare:
+    server_id: ftshare
+    package: FTShare-MCP
+    repository: https://github.com/FTShare-Lab/FTShare-MCP
+    transport: streamable_http
+    url: https://market.ft.tech/gateway/mcp
+    authentication: API_key_recommended
+    cost: anonymous_quota_or_paid_key
+    implements_mcp: true
+    raw_mcp_tool_count: 250
+    hk_market_raw_tools:
+      - ft_v2_hk_hk_candlesticks
+      - ft_v1_hk_hsi_daily_weight
+      - ft_v1_hk_stk_ah_comparison
+    audit_status: blocked
+    rejection_reason: >
+      tools/list succeeds anonymously, but live Market data calls return
+      UPSTREAM_UNAVAILABLE/429 anonymous daily quota; no local FTSHARE_API_KEY.
+      Not reproducible for free/local formal gold.
+
+operations:
+  # ---- Meta (supporting) ----
+  - operation_id: aktools.search_interfaces
+    server_id: aktools
+    role: supporting
+    classification: supporting
+    exposed_mcp_tool: search_interfaces
+    underlying_interface: null
+    name: search_interfaces
+    summary: Search AKShare interface names by keyword (Market discovery aid).
+    description: >
+      Meta tool to locate HK market interfaces such as stock_hk_hist.
+      Not a price series itself.
+    action_terms: [search, find, interface, market, hist, 港股]
+    parameters:
+      - {name: keyword, type: string, required: true, description: "Search keyword"}
+      - {name: limit, type: number, required: false, default: 20}
+    output_fields: [items]
+    asset_type: meta
+    ticker_format: n/a
+    supported_exchanges: [HKEX]
+    frequency: n/a
+    historical_date_coverage: n/a
+    timezone: Asia/Hong_Kong
+    currency: n/a
+    adjustment_mode: n/a
+    data_source_provider: AKShare catalog
+    read_only: true
+    idempotence: true
+    invocation_constraints: ["stdio MCP only"]
+    known_risks: ["Keyword mismatch may hide interfaces"]
+    audit_status: live_verified
+    live_evidence: "outputs/mcp_discovery_market_v1/aktools_market_search.json"
+    decision: supporting
+
+  - operation_id: aktools.describe_interface
+    server_id: aktools
+    role: supporting
+    classification: supporting
+    exposed_mcp_tool: describe_interface
+    underlying_interface: null
+    name: describe_interface
+    summary: Describe an AKShare interface schema/doc before get_data.
+    description: Returns params/doc/outputs for interfaces such as stock_hk_hist.
+    action_terms: [describe, schema, parameters, docs]
+    parameters:
+      - {name: name, type: string, required: true, description: "Interface name"}
+    output_fields: [name, params, doc, outputs]
+    asset_type: meta
+    ticker_format: n/a
+    supported_exchanges: [HKEX]
+    frequency: n/a
+    historical_date_coverage: n/a
+    timezone: Asia/Hong_Kong
+    currency: n/a
+    adjustment_mode: n/a
+    data_source_provider: AKShare catalog
+    read_only: true
+    idempotence: true
+    invocation_constraints: ["stdio MCP only"]
+    known_risks: []
+    audit_status: live_verified
+    live_evidence: "outputs/mcp_discovery_market_v1/aktools_market_describe.json"
+    decision: supporting
+
+  # ---- Primary price history ----
+  - operation_id: aktools.stock_hk_hist
+    server_id: aktools
+    role: primary
+    classification: primary
+    exposed_mcp_tool: get_data
+    underlying_interface: stock_hk_hist
+    name: stock_hk_hist
+    summary: HK equity historical OHLCV with explicit date range and adjustment mode (East Money).
+    description: >
+      Primary Market operation for fixed-date and date-range daily/weekly/monthly
+      OHLCV. Parameters include symbol (5-digit HK code), period, start_date/end_date
+      (YYYYMMDD), and adjust in {'' unadjusted, qfq forward, hfq backward}.
+      Returns 日期/开盘/收盘/最高/最低/成交量/成交额 plus amplitude/change fields.
+      Live-verified for 00700, 00005, 09988 including session 2026-08-12.
+    action_terms: [price, history, OHLCV, daily, close, volume, turnover, 复权, 港股行情]
+    parameters:
+      - {name: symbol, type: string, required: true, description: "5-digit HK code e.g. 00700"}
+      - {name: period, type: string, required: false, default: daily, description: "daily|weekly|monthly"}
+      - {name: start_date, type: string, required: false, description: "YYYYMMDD"}
+      - {name: end_date, type: string, required: false, description: "YYYYMMDD"}
+      - {name: adjust, type: string, required: false, default: "", description: "''|qfq|hfq"}
+      - {name: offset, type: number, required: false, default: 0}
+      - {name: max_rows, type: number, required: false, default: 100, description: "MCP get_data page size <=1000"}
+    output_fields: [日期, 开盘, 收盘, 最高, 最低, 成交量, 成交额, 振幅, 涨跌幅, 涨跌额, 换手率]
+    asset_type: equity
+    ticker_format: "5-digit zero-padded HK code (00700/00005/09988)"
+    supported_exchanges: [HKEX]
+    frequency: daily_or_weekly_or_monthly
+    historical_date_coverage: "Date-range selectable; live window includes 2026-08-12"
+    timezone: Asia/Hong_Kong
+    currency: HKD
+    adjustment_mode: "explicit: ''=unadjusted, qfq=forward, hfq=backward"
+    data_source_provider: East Money via AKShare
+    read_only: true
+    idempotence: true
+    invocation_constraints:
+      - "Must set adjust explicitly for gold"
+      - "Filter/clamp dates to <=2026-08-12 for benchmark gold"
+      - "Invalid symbol returns execution error (NoneType subscriptable)"
+    known_risks:
+      - "qfq may equal unadjusted on some recent windows (e.g. Tencent 2026-08-12)"
+      - "hfq levels differ materially from unadjusted"
+      - "Currency not a dedicated column; treat as HKD by HK feed convention"
+    audit_status: live_verified_three_issuers
+    live_evidence: "outputs/mcp_discovery_market_v1/aktools_market_probes_hist.json"
+    covers_companies: [Tencent, HSBC, Alibaba]
+    decision: primary
+
+  - operation_id: aktools.stock_hk_daily
+    server_id: aktools
+    role: supporting
+    classification: supporting
+    exposed_mcp_tool: get_data
+    underlying_interface: stock_hk_daily
+    name: stock_hk_daily
+    summary: Sina HK equity full-history daily bars and optional qfq / qfq-factor.
+    description: >
+      Overlapping OHLCV source (Sina). No start/end params; use get_data negative
+      offset to read recent rows, then filter <=2026-08-12. adjust ''|qfq|qfq-factor.
+      Useful as corroboration and for adjustment factors; prefer stock_hk_hist for
+      explicit date-range gold paths.
+    action_terms: [sina, daily, history, qfq-factor, adjustment factor]
+    parameters:
+      - {name: symbol, type: string, required: true, description: "5-digit HK code"}
+      - {name: adjust, type: string, required: false, default: "", description: "''|qfq|qfq-factor"}
+      - {name: offset, type: number, required: false, default: 0, description: "Use negative offset for recent rows"}
+      - {name: max_rows, type: number, required: false, default: 100}
+    output_fields: [date, open, high, low, close, volume, amount, qfq_factor]
+    asset_type: equity
+    ticker_format: "5-digit zero-padded HK code"
+    supported_exchanges: [HKEX]
+    frequency: daily
+    historical_date_coverage: "Long history; recent rows via offset<0"
+    timezone: Asia/Hong_Kong
+    currency: HKD
+    adjustment_mode: "explicit: ''|qfq|qfq-factor"
+    data_source_provider: Sina Finance via AKShare
+    read_only: true
+    idempotence: true
+    invocation_constraints:
+      - "Must not treat unfiltered newest row after 2026-08-12 as gold"
+      - "Reconcile vs stock_hk_hist with float tolerance (~1e-4)"
+    known_risks:
+      - "Positive offset from 0 returns oldest history first"
+      - "qfq-factor series may include dates after cutoff (filter required)"
+      - "amount may disagree slightly with East Money hist"
+    audit_status: live_verified_three_issuers
+    live_evidence: "outputs/mcp_discovery_market_v1/aktools_market_final_recon.json"
+    covers_companies: [Tencent, HSBC, Alibaba]
+    decision: supporting
+
+  # ---- Index / benchmark ----
+  - operation_id: aktools.stock_hk_index_daily_sina
+    server_id: aktools
+    role: primary
+    classification: primary
+    exposed_mcp_tool: get_data
+    underlying_interface: stock_hk_index_daily_sina
+    name: stock_hk_index_daily_sina
+    summary: Hang Seng Index (and other HK index) daily history via Sina.
+    description: >
+      Historical OHLCV for symbol=HSI. Because series is long, use get_data
+      negative offset (e.g. -100) then filter date<=2026-08-12. Live row on
+      2026-08-12 close≈25440.17 with volume/amount.
+    action_terms: [HSI, Hang Seng, index, benchmark, history]
+    parameters:
+      - {name: symbol, type: string, required: true, description: "Index code e.g. HSI"}
+      - {name: offset, type: number, required: false, default: 0}
+      - {name: max_rows, type: number, required: false, default: 100}
+    output_fields: [date, open, high, low, close, volume, amount]
+    asset_type: index
+    ticker_format: "Index code HSI (from stock_hk_index_spot_sina)"
+    supported_exchanges: [HKEX]
+    frequency: daily
+    historical_date_coverage: "Includes 2026-08-12 via negative offset"
+    timezone: Asia/Hong_Kong
+    currency: index_points
+    adjustment_mode: "not_applicable_index_level"
+    data_source_provider: Sina Finance via AKShare
+    read_only: true
+    idempotence: true
+    invocation_constraints:
+      - "Invalid symbol errors"
+      - "Must filter out post-cutoff rows present in negative-offset windows"
+    known_risks:
+      - "Spot 'latest' from index_spot tools is not historical gold"
+      - "Paging with positive offset from start is inefficient for recent dates"
+    audit_status: live_verified_HSI_cutoff
+    live_evidence: "outputs/mcp_discovery_market_v1/aktools_market_hsi_cutoff_neg_offset.json"
+    decision: primary
+
+  - operation_id: aktools.stock_hk_index_daily_em
+    server_id: aktools
+    role: supporting
+    classification: supporting
+    exposed_mcp_tool: get_data
+    underlying_interface: stock_hk_index_daily_em
+    name: stock_hk_index_daily_em
+    summary: Alternate East Money HK index daily history (HSI close field named latest).
+    description: >
+      Overlapping HSI history. Close-like field is `latest` (not `close`).
+      Live 2026-08-12 latest=25440.17 reconciles with Sina close within float noise.
+    action_terms: [HSI, index, eastmoney, latest]
+    parameters:
+      - {name: symbol, type: string, required: true, description: "Index code e.g. HSI"}
+      - {name: offset, type: number, required: false, default: 0}
+      - {name: max_rows, type: number, required: false, default: 100}
+    output_fields: [date, open, high, low, latest]
+    asset_type: index
+    ticker_format: "Index code HSI"
+    supported_exchanges: [HKEX]
+    frequency: daily
+    historical_date_coverage: "Includes 2026-08-12 via negative offset"
+    timezone: Asia/Hong_Kong
+    currency: index_points
+    adjustment_mode: "not_applicable_index_level"
+    data_source_provider: East Money via AKShare
+    read_only: true
+    idempotence: true
+    invocation_constraints:
+      - "Map latest->close for comparisons"
+      - "Filter <=2026-08-12"
+    known_risks: ["Field-name mismatch vs Sina close"]
+    audit_status: live_verified_HSI_cutoff
+    live_evidence: "outputs/mcp_discovery_market_v1/aktools_market_final_recon.json"
+    decision: supporting
+
+  - operation_id: aktools.stock_hk_index_spot_sina
+    server_id: aktools
+    role: supporting
+    classification: supporting
+    exposed_mcp_tool: get_data
+    underlying_interface: stock_hk_index_spot_sina
+    name: stock_hk_index_spot_sina
+    summary: Resolve Hang Seng Index code (HSI) from Sina HK index spot list.
+    description: >
+      Supporting identity/resolution tool. Live row 代码=HSI 名称=恒生指数.
+      Spot fields are not formal historical gold.
+    action_terms: [index spot, HSI code, resolve]
+    parameters: []
+    output_fields: [代码, 名称, 最新价, 涨跌额, 涨跌幅, 昨收, 今开, 最高, 最低]
+    asset_type: index
+    ticker_format: "Returns codes such as HSI"
+    supported_exchanges: [HKEX]
+    frequency: spot
+    historical_date_coverage: "spot_only"
+    timezone: Asia/Hong_Kong
+    currency: index_points
+    adjustment_mode: n/a
+    data_source_provider: Sina Finance via AKShare
+    read_only: true
+    idempotence: false
+    invocation_constraints: ["Do not use 最新价 as fixed-date gold"]
+    known_risks: ["Floating spot values"]
+    audit_status: live_verified
+    live_evidence: "outputs/mcp_discovery_market_v1/aktools_market_probes_index_misc.json"
+    decision: supporting
+
+  - operation_id: aktools.stock_hk_security_profile_em
+    server_id: aktools
+    role: supporting
+    classification: supporting
+    exposed_mcp_tool: get_data
+    underlying_interface: stock_hk_security_profile_em
+    name: stock_hk_security_profile_em
+    summary: HK security profile / ticker identity helper.
+    description: Supporting issuer identity metadata (not OHLCV).
+    action_terms: [profile, ticker, identity, security]
+    parameters:
+      - {name: symbol, type: string, required: true, description: "5-digit HK code"}
+    output_fields: [证券代码, 证券简称, 年结日]
+    asset_type: equity
+    ticker_format: "5-digit HK code"
+    supported_exchanges: [HKEX]
+    frequency: n/a
+    historical_date_coverage: n/a
+    timezone: Asia/Hong_Kong
+    currency: n/a
+    adjustment_mode: n/a
+    data_source_provider: East Money via AKShare
+    read_only: true
+    idempotence: true
+    invocation_constraints: []
+    known_risks: []
+    audit_status: live_verified
+    live_evidence: "outputs/mcp_discovery_market_v1/aktools_market_probes_index_misc.json"
+    decision: supporting
+
+  # ---- Distractors ----
+  - operation_id: aktools.stock_hk_famous_spot_em
+    server_id: aktools
+    role: distractor
+    classification: distractor
+    exposed_mcp_tool: get_data
+    underlying_interface: stock_hk_famous_spot_em
+    name: stock_hk_famous_spot_em
+    summary: Famous HK names spot board (not fixed-date historical gold).
+    description: Live spot table; distractor for agents that grab "latest price".
+    action_terms: [spot, latest, famous, quote]
+    parameters: []
+    output_fields: [代码, 名称, 最新价]
+    asset_type: equity
+    ticker_format: board_list
+    supported_exchanges: [HKEX]
+    frequency: spot
+    historical_date_coverage: spot_only
+    timezone: Asia/Hong_Kong
+    currency: HKD
+    adjustment_mode: unspecified_spot
+    data_source_provider: East Money via AKShare
+    read_only: true
+    idempotence: false
+    invocation_constraints: ["Unsafe as formal gold"]
+    known_risks: ["Floating latest; no historical date argument"]
+    audit_status: live_verified_distractor
+    live_evidence: "outputs/mcp_discovery_market_v1/aktools_market_probes_index_misc.json"
+    decision: distractor
+
+  - operation_id: aktools.stock_hk_hot_rank_em
+    server_id: aktools
+    role: distractor
+    classification: distractor
+    exposed_mcp_tool: get_data
+    underlying_interface: stock_hk_hot_rank_em
+    name: stock_hk_hot_rank_em
+    summary: HK hot-rank / popularity board distractor.
+    description: Ranking distractor, not OHLCV history.
+    action_terms: [hot, rank, popularity]
+    parameters: []
+    output_fields: [排名, 股票代码, 股票名称]
+    asset_type: equity
+    ticker_format: board_list
+    supported_exchanges: [HKEX]
+    frequency: spot
+    historical_date_coverage: spot_only
+    timezone: Asia/Hong_Kong
+    currency: n/a
+    adjustment_mode: n/a
+    data_source_provider: East Money via AKShare
+    read_only: true
+    idempotence: false
+    invocation_constraints: []
+    known_risks: ["Not price history"]
+    audit_status: live_verified_distractor
+    live_evidence: "outputs/mcp_discovery_market_v1/aktools_market_probes_index_misc.json"
+    decision: distractor
+
+  - operation_id: aktools.stock_hk_gxl_lg
+    server_id: aktools
+    role: distractor
+    classification: distractor
+    exposed_mcp_tool: get_data
+    underlying_interface: stock_hk_gxl_lg
+    name: stock_hk_gxl_lg
+    summary: Hang Seng Index dividend-yield series (not HSI price level).
+    description: Easy-to-confuse HSI-related series that is yield, not index OHLC.
+    action_terms: [HSI, dividend yield, 股息率]
+    parameters: []
+    output_fields: [date, value]
+    asset_type: index_yield
+    ticker_format: n/a
+    supported_exchanges: [HKEX]
+    frequency: daily_like
+    historical_date_coverage: series
+    timezone: Asia/Hong_Kong
+    currency: percent
+    adjustment_mode: n/a
+    data_source_provider: legulegu via AKShare
+    read_only: true
+    idempotence: true
+    invocation_constraints: []
+    known_risks: ["Must not substitute for HSI close"]
+    audit_status: live_verified_distractor
+    live_evidence: "outputs/mcp_discovery_market_v1/aktools_market_probes_index_misc.json"
+    decision: distractor
+
+  - operation_id: aktools.stock_hk_indicator_eniu
+    server_id: aktools
+    role: distractor
+    classification: distractor
+    exposed_mcp_tool: get_data
+    underlying_interface: stock_hk_indicator_eniu
+    name: stock_hk_indicator_eniu
+    summary: Eniu HK valuation indicators (PE/PB/ROE/market cap) distractor.
+    description: Valuation/fundamental indicators, not OHLCV market series.
+    action_terms: [PE, PB, valuation, ROE, market cap]
+    parameters:
+      - {name: symbol, type: string, required: true, description: "e.g. hk00700"}
+      - {name: indicator, type: string, required: false, default: 市盈率}
+    output_fields: [date, value]
+    asset_type: equity_valuation
+    ticker_format: "hk##### style"
+    supported_exchanges: [HKEX]
+    frequency: series
+    historical_date_coverage: provider_dependent
+    timezone: Asia/Hong_Kong
+    currency: mixed
+    adjustment_mode: n/a
+    data_source_provider: eniu via AKShare
+    read_only: true
+    idempotence: true
+    invocation_constraints: ["Different symbol format hk00700"]
+    known_risks: ["Symbol format mismatch vs 00700"]
+    audit_status: described_live_interface
+    live_evidence: "outputs/mcp_discovery_market_v1/aktools_market_describe.json"
+    decision: distractor
+
+  - operation_id: aktools.tool_trade_date_hist_sina
+    server_id: aktools
+    role: distractor
+    classification: distractor
+    exposed_mcp_tool: get_data
+    underlying_interface: tool_trade_date_hist_sina
+    name: tool_trade_date_hist_sina
+    summary: Sina trading-calendar history (SSE/A-share oriented distractor for HK).
+    description: >
+      Calendar helper that is easy to misuse for HK sessions. Live sample starts
+      1990-12-19; not verified as HKEX calendar.
+    action_terms: [calendar, trading day]
+    parameters: []
+    output_fields: [trade_date]
+    asset_type: calendar
+    ticker_format: n/a
+    supported_exchanges: [uncertain_SSE]
+    frequency: daily
+    historical_date_coverage: long
+    timezone: Asia/Shanghai_likely
+    currency: n/a
+    adjustment_mode: n/a
+    data_source_provider: Sina via AKShare
+    read_only: true
+    idempotence: true
+    invocation_constraints: ["Do not treat as HKEX official calendar without verification"]
+    known_risks: ["Likely mainland calendar; unsafe for HK previous-valid-day alone"]
+    audit_status: live_verified_distractor
+    live_evidence: "outputs/mcp_discovery_market_v1/aktools_market_probes_index_misc.json"
+    decision: distractor
+
+  - operation_id: aktools.stock_hk_hist_min_em
+    server_id: aktools
+    role: distractor
+    classification: distractor
+    exposed_mcp_tool: get_data
+    underlying_interface: stock_hk_hist_min_em
+    name: stock_hk_hist_min_em
+    summary: HK intraday minute bars (not needed for daily Market gold templates).
+    description: Minute interface; live probe for 00700 on 2026-08-12 returned 0 rows in tested window.
+    action_terms: [intraday, minute, 分时]
+    parameters:
+      - {name: symbol, type: string, required: true}
+      - {name: period, type: string, required: false, default: "5"}
+      - {name: adjust, type: string, required: false, default: ""}
+      - {name: start_date, type: string, required: false}
+      - {name: end_date, type: string, required: false}
+    output_fields: [时间, 开盘, 收盘, 最高, 最低, 成交量, 成交额]
+    asset_type: equity
+    ticker_format: "5-digit HK code"
+    supported_exchanges: [HKEX]
+    frequency: minute
+    historical_date_coverage: uncertain
+    timezone: Asia/Hong_Kong
+    currency: HKD
+    adjustment_mode: "''|qfq|hfq"
+    data_source_provider: East Money via AKShare
+    read_only: true
+    idempotence: true
+    invocation_constraints: []
+    known_risks: ["Empty rows in discovery probe; brittle for formal gold"]
+    audit_status: live_probed_empty_window
+    live_evidence: "outputs/mcp_discovery_market_v1/aktools_market_probes_index_misc.json"
+    decision: distractor
+
+  # ---- Blocked external server ops (documented, not accepted) ----
+  - operation_id: ftshare.ft_v2_hk_hk_candlesticks
+    server_id: ftshare
+    role: blocked
+    classification: blocked
+    exposed_mcp_tool: ft_v2_hk_hk_candlesticks
+    underlying_interface: null
+    name: ft_v2_hk_hk_candlesticks
+    summary: FTShare HK candlesticks (blocked — anonymous quota / no API key).
+    description: Schema live-listed; data calls return 429 UPSTREAM_UNAVAILABLE without API key.
+    action_terms: [candlestick, HK, OHLCV]
+    parameters:
+      - {name: trade_code, type: string, required: true}
+      - {name: interval_unit, type: string, required: true}
+      - {name: until_date, type: string, required: true}
+      - {name: since_date, type: string, required: false}
+      - {name: adjust_kind, type: string, required: false, description: "forward|none"}
+    output_fields: []
+    asset_type: equity
+    ticker_format: "00700 or 00700.HK"
+    supported_exchanges: [HKEX]
+    frequency: day_month_quarter_year
+    historical_date_coverage: unknown_not_live
+    timezone: Asia/Hong_Kong
+    currency: HKD_assumed
+    adjustment_mode: "forward|none"
+    data_source_provider: FTShare
+    read_only: true
+    idempotence: unknown
+    invocation_constraints: ["Requires API key for reproducible access"]
+    known_risks: ["Anonymous 429"]
+    audit_status: blocked_quota
+    live_evidence: "outputs/mcp_discovery_market_v1/ftshare_market_calls.json"
+    decision: blocked
+
+  - operation_id: ftshare.ft_v1_hk_hsi_daily_weight
+    server_id: ftshare
+    role: blocked
+    classification: blocked
+    exposed_mcp_tool: ft_v1_hk_hsi_daily_weight
+    underlying_interface: null
+    name: ft_v1_hk_hsi_daily_weight
+    summary: FTShare HSI constituent weights (blocked — anonymous quota).
+    description: Schema live-listed; data call 429 without API key.
+    action_terms: [HSI, weights, constituents]
+    parameters:
+      - {name: trade_date, type: integer, required: true, description: "YYYYMMDD"}
+      - {name: index_slug, type: string, required: false}
+    output_fields: []
+    asset_type: index_weights
+    ticker_format: HSI
+    supported_exchanges: [HKEX]
+    frequency: daily_snapshot
+    historical_date_coverage: unknown_not_live
+    timezone: Asia/Hong_Kong
+    currency: n/a
+    adjustment_mode: n/a
+    data_source_provider: FTShare
+    read_only: true
+    idempotence: unknown
+    invocation_constraints: ["Requires API key"]
+    known_risks: ["Anonymous 429"]
+    audit_status: blocked_quota
+    live_evidence: "outputs/mcp_discovery_market_v1/ftshare_market_calls.json"
+    decision: blocked
+
+counts:
+  raw_mcp_tools_by_server:
+    aktools: 3
+    ftshare_listed: 250
+  logical_operations_in_this_candidate_file: 16
+  by_decision:
+    primary: 2
+    supporting: 6
+    distractor: 6
+    blocked: 2
+    rejected: 0
