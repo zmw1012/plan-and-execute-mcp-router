@@ -62,6 +62,7 @@ class OperationVisibleAgent:
         embedding_backend: EmbeddingBackend,
         config: Optional[Dict[str, Any]] = None,
         resolver: Optional[OperationResolverServer] = None,
+        system_prompt: Optional[str] = None,
     ):
         self.llm = llm
         self.config = config or load_operation_visible_config()
@@ -72,6 +73,7 @@ class OperationVisibleAgent:
         self.timeout_sec = float(limits.get("timeout_sec", 120))
         self.temperature = float(self.config.get("llm", {}).get("temperature", 0.0))
         self.max_tokens = int(self.config.get("llm", {}).get("max_tokens", 1024))
+        self.system_prompt = system_prompt if system_prompt is not None else SYSTEM_PROMPT
         self.resolver = resolver or OperationResolverServer(
             embedding_backend=embedding_backend
         )
@@ -84,7 +86,7 @@ class OperationVisibleAgent:
         started = time.perf_counter()
         history = history or []
         messages: List[Dict[str, str]] = [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": self.system_prompt},
             *history,
             {"role": "user", "content": question},
         ]

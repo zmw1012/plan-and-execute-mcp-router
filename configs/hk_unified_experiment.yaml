@@ -1,0 +1,34 @@
+# Unified HK Operation-Visible baseline (Financial + Market + News + Cross-domain)
+condition: operation_visible
+execution_backend: real_mcp
+generation_provider: aliyun
+generation_model: deepseek-v4.1-flash
+embedding_model: text-embedding-3-small
+temperature: 0.0
+max_tokens: 1024
+json_mode: true
+dataset_split: development
+dataset_manifest: benchmarks/manifests/hk_unified_dataset_v1.json
+smoke_manifest: benchmarks/smoke/hk_unified_dev_smoke_8_v1.json
+
+retrieval:
+  top_k: 20
+  lexical_weight: 0.12
+
+limits:
+  max_llm_turns: 8
+  max_search_reformulations: 3
+  max_invocations: 6
+  timeout_sec: 120
+  bounded_retry: 1
+
+catalogs:
+  financial: configs/operations/financial_real_mcp.yaml
+  market: configs/operations/market_real_mcp_v1_1.yaml
+  news: configs/operations/news_real_mcp_v1.yaml
+  cross_domain: configs/operations/cross_domain_real_mcp_v1.yaml
+
+notes:
+  - Must execute real MCP operations via UnifiedRealMcpGateway (not ETOM routing-only).
+  - Held-out requires --split heldout AND --confirm-heldout-final.
+  - No silent fallback to mock FinancialServer for unknown operations.

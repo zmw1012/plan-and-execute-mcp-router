@@ -1,0 +1,68 @@
+{
+  "manifest_id": "hk_unified_dataset_v1",
+  "version": "1.0",
+  "description": "Unified HK Operation-Visible baseline dataset pointers. Does not copy or modify frozen questions/gold.",
+  "default_split": "development",
+  "cutoff_date": "2026-08-12",
+  "timezone": "Asia/Hong_Kong",
+  "splits": {
+    "development": {
+      "locked_for_heldout_policy": false,
+      "expected_count": 70,
+      "sources": [
+        {
+          "domain": "financial",
+          "path": "benchmarks/questions/financial_real_mcp_coverage_v1_3.jsonl",
+          "expected_count": 30
+        },
+        {
+          "domain": "market",
+          "path": "benchmarks/questions/market_development_15_v1_1.jsonl",
+          "expected_count": 15
+        },
+        {
+          "domain": "news",
+          "path": "benchmarks/questions/news_development_15_v1.jsonl",
+          "expected_count": 15
+        },
+        {
+          "domain": "cross_domain",
+          "path": "benchmarks/questions/cross_domain_development_10_v1.jsonl",
+          "expected_count": 10
+        }
+      ]
+    },
+    "heldout": {
+      "locked_for_heldout_policy": true,
+      "requires_cli_flags": ["--split heldout", "--confirm-heldout-final"],
+      "expected_count": 85,
+      "sources": [
+        {
+          "domain": "financial",
+          "path": "benchmarks/heldout/financial_test_30_v1_3.jsonl",
+          "expected_count": 30
+        },
+        {
+          "domain": "market",
+          "path": "benchmarks/heldout/market_test_20_v1_1.jsonl",
+          "expected_count": 20
+        },
+        {
+          "domain": "news",
+          "path": "benchmarks/heldout/news_test_20_v1.jsonl",
+          "expected_count": 20
+        },
+        {
+          "domain": "cross_domain",
+          "path": "benchmarks/heldout/cross_domain_test_15_v1.jsonl",
+          "expected_count": 15
+        }
+      ]
+    }
+  },
+  "smoke": {
+    "path": "benchmarks/smoke/hk_unified_dev_smoke_8_v1.json",
+    "split": "development",
+    "expected_count": 8
+  }
+}
