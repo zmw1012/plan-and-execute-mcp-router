@@ -33,13 +33,18 @@ See `configs/operations/news_real_mcp_candidate_v1.yaml`.
 | Decision | Count | Examples |
 |---|---|---|
 | primary | 5 | hkexnews list / download / parse / keyword / pages |
-| supporting | 6 | lookup; AKTools meta×2; `stock_news_em`; ah `resolve_company`; ah `search_annual_report` |
-| distractor | 6 | ah `search_filings` (date-unsafe); A-share notice/gsrl; global EM; CCTV; Caixin |
+| supporting | 5 | lookup; AKTools meta×2; ah `resolve_company`; ah `search_annual_report` |
+| distractor | 7 | **`stock_news_em` (runtime-only)**; ah `search_filings`; A-share notice/gsrl; global EM; CCTV; Caixin |
 | blocked | 1 | FTShare announcements list |
 | rejected | 2 | `stock_individual_notice_report`; mock NewsServer |
 | **total logical ops** | **20** | |
 
-`equal_function_sets: []` — media ≠ official disclosure.
+`equal_function_sets: []` — media ≠ official disclosure ⇒ **Exact L2 = 0**.  
+`stock_news_em`: `formal_gold_eligible=false` (supporting_runtime_only / distractor_for_formal_gold).
+
+### Dependency smoke correction
+
+Re-ran list→download→parse→`keyword_search(keywords=[...])`→pages for Tencent/HSBC/Alibaba with fixed ≤2026-08-12 corporate-event announcements. All three `success=true`. See `docs/news_mcp_discovery_v1/hkexnews_dependency_chain_summary.json`.
 
 ## Live coverage (≤2026-08-12 window where applicable)
 

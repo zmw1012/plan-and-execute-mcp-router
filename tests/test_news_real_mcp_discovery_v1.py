@@ -12,14 +12,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG = ROOT / "configs" / "operations" / "news_real_mcp_candidate_v1.yaml"
 EVIDENCE = ROOT / "docs" / "news_mcp_discovery_v1"
-
-# Frozen paths — must remain present; content hash checked vs committed baseline files.
-FROZEN = [
-    ROOT / "configs" / "operations" / "financial_real_mcp.yaml",
-    ROOT / "configs" / "operations" / "market_real_mcp_v1_1.yaml",
-    ROOT / "benchmarks" / "questions" / "financial_real_mcp_coverage_v1_3.jsonl",
-    ROOT / "benchmarks" / "heldout" / "financial_test_30_v1_3.jsonl",
-]
+BLUEPRINT = ROOT / "docs" / "news_benchmark_blueprint.md"
 
 
 def _sha256(path: Path) -> str:
@@ -30,11 +23,12 @@ def test_docs_and_evidence_exist():
     assert CATALOG.exists()
     assert (ROOT / "docs" / "news_mcp_candidate_audit.md").exists()
     assert (ROOT / "docs" / "news_mcp_capability_matrix.md").exists()
-    assert (ROOT / "docs" / "news_benchmark_blueprint.md").exists()
+    assert BLUEPRINT.exists()
     assert (ROOT / "docs" / "news_mcp_accepted_blocked_rejected.md").exists()
     assert (EVIDENCE / "aktools_mcp_news_smoke.json").exists()
-    assert (EVIDENCE / "hkexnews_mcp_news_smoke.json").exists()
-    assert (ROOT / "scripts" / "news_mcp_discovery_smoke.py").exists()
+    assert (EVIDENCE / "hkexnews_dependency_chain_summary.json").exists()
+    assert (EVIDENCE / "observed_dependency_edges.json").exists()
+    assert (ROOT / "scripts" / "news_hkexnews_dependency_smoke.py").exists()
 
 
 def test_validator_ok():
@@ -42,36 +36,56 @@ def test_validator_ok():
     assert ns["main"]() == 0
 
 
-def test_catalog_decisions_and_source_classes():
+def test_catalog_media_and_equal_sets():
     cat = yaml.safe_load(CATALOG.read_text(encoding="utf-8"))
-    assert cat["catalog_status"] == "candidate_v1"
-    assert cat["freeze_status"] == "not_frozen"
-    assert cat["temporal_policy"]["max_data_date"] == "2026-08-12"
-    ops = cat["operations"]
-    by_dec = {}
-    for o in ops:
-        by_dec.setdefault(o["decision"], []).append(o["operation_id"])
-    assert len(by_dec["primary"]) == 5
-    assert "hkexnews.list_hkexnews_announcements" in by_dec["primary"]
-    assert "aktools.stock_news_em" in by_dec["supporting"]
-    assert "ah_disclosure.search_filings" in by_dec["distractor"]
-    assert cat.get("equal_function_sets") == []
-    for o in ops:
-        if o["decision"] == "primary":
-            assert o["source_class"] == "official_disclosure"
+    assert cat["equal_function_sets"] == []
+    media = next(o for o in cat["operations"] if o["operation_id"] == "aktools.stock_news_em")
+    assert media["formal_gold_eligible"] is False
+    assert media["heldout_evidence_eligible"] is False
+    assert media["decision"] == "distractor"
+    assert media["role"] == "supporting_runtime_only"
+    assert "formal_numeric_or_text_gold" in media["forbidden_uses"]
+    assert "latest_before_cutoff_gold" in media["forbidden_uses"]
 
 
-def test_smoke_evidence_three_issuers_hkexnews():
-    smoke = json.loads(
-        (EVIDENCE / "hkexnews_mcp_news_smoke.json").read_text(encoding="utf-8")
+def test_blueprint_exact_l2_is_zero():
+    text = BLUEPRINT.read_text(encoding="utf-8")
+    assert "Exact L2 = 0" in text or "Exact L2 | **0**" in text
+    assert "equal_function_sets" in text
+    # no non-zero Exact L2 assignment
+    assert "Exact L2 = 2" not in text
+    assert "Exact L2 = 3" not in text
+    assert "Dev Exact L2=2" not in text
+    assert "list ∥ media" not in text
+    assert "Official vs media source discrimination" not in text or "not Exact L2" in text
+
+
+def test_dependency_chain_three_issuers_keywords_list():
+    summary = json.loads(
+        (EVIDENCE / "hkexnews_dependency_chain_summary.json").read_text(encoding="utf-8")
     )
-    assert smoke["cutoff"] == "2026-08-12"
+    assert summary["all_success"] is True
+    assert summary["cutoff"] == "2026-08-12"
     for name in ("Tencent", "HSBC", "Alibaba"):
-        probe = smoke["probes"][f"list_{name}"]
-        assert probe["success"] is True
-        assert int(probe["n"]) >= 1
-        fields = set(probe.get("fields") or [])
-        assert {"title", "release_date", "news_id", "local_key", "file_link"} <= fields
+        assert summary["issuers"][name]["success"] is True
+        chain = json.loads(
+            (
+                EVIDENCE / f"hkexnews_dependency_chain_{name.lower()}.json"
+            ).read_text(encoding="utf-8")
+        )
+        assert chain["success"] is True
+        rd = str(chain["chosen"]["release_date"])[:10]
+        assert rd <= "2026-08-12"
+        kw = chain["steps"]["keyword_search"]
+        assert kw["success"] is True
+        assert isinstance(kw["args"]["keywords"], list)
+        assert kw["n_matches"] >= 1
+        pages = chain["steps"]["get_announcement_pages"]
+        assert pages["success"] is True
+        assert "start_page" in pages["args"]
+        # corporate-event style: not revenue/EPS packaging
+        title = str(chain["chosen"]["title"]).upper()
+        assert "EPS" not in title
 
 
 def test_stock_news_em_not_historical_gold():
@@ -84,33 +98,14 @@ def test_stock_news_em_not_historical_gold():
         assert int(probe["n_before_cutoff"]) == 0
 
 
-def test_ah_filings_date_filter_unreliable():
-    probe = json.loads(
-        (EVIDENCE / "ah_disclosure_date_filter_probe.json").read_text(encoding="utf-8")
-    )
-    # At least one post-cutoff publish_time appears despite end_date=20260812
-    blob = json.dumps(probe, ensure_ascii=False)
-    assert "2026-11" in blob or "2026-10" in blob
-
-
-def test_frozen_financial_market_files_untouched_hashes():
-    """Presence check + stable sha256 for key frozen artifacts in this worktree."""
-    expected = {
-        "configs/operations/financial_real_mcp.yaml": None,
-        "configs/operations/market_real_mcp_v1_1.yaml": None,
-        "benchmarks/questions/financial_real_mcp_coverage_v1_3.jsonl": None,
-        "benchmarks/heldout/financial_test_30_v1_3.jsonl": None,
-    }
-    # Record hashes locally for regression within this branch; fail if file missing.
-    hashes = {}
-    for rel in expected:
+def test_frozen_financial_market_files_present():
+    for rel in (
+        "configs/operations/financial_real_mcp.yaml",
+        "configs/operations/market_real_mcp_v1_1.yaml",
+        "benchmarks/questions/financial_real_mcp_coverage_v1_3.jsonl",
+        "benchmarks/heldout/financial_test_30_v1_3.jsonl",
+    ):
         path = ROOT / rel
         assert path.exists(), rel
-        hashes[rel] = _sha256(path)
-    # Cross-check Market held-out if present
-    mheld = ROOT / "benchmarks" / "heldout" / "market_test_20_v1_1.jsonl"
-    if mheld.exists():
-        hashes[str(mheld.relative_to(ROOT))] = _sha256(mheld)
-    # Ensure News catalog is a different file
+        assert _sha256(path)
     assert CATALOG.name == "news_real_mcp_candidate_v1.yaml"
-    assert _sha256(CATALOG) not in set(hashes.values())

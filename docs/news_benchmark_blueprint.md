@@ -1,7 +1,8 @@
-# News Benchmark Blueprint (Proposal — not frozen)
+# News / Corporate Disclosure Benchmark Blueprint (Proposal — not frozen)
 
-**Status:** proposal after capability discovery. **No final 35 questions** in this phase.  
-Await user confirmation of the capability matrix before drafting/freezing items.
+**Domain label:** **News / Corporate Disclosure**  
+**Status:** proposal after capability discovery + dependency-smoke correction. **No final 35 questions** yet.  
+**Catalog note:** `equal_function_sets: []` ⇒ **Exact ETOM L2 = 0**.
 
 ## Planned split sizes
 
@@ -10,62 +11,83 @@ Await user confirmation of the capability matrix before drafting/freezing items.
 | Development | **15** | method / error analysis |
 | Held-out | **20** | final evaluation (lock later) |
 
-## Dual labels (carry Financial/Market discipline)
+## Dual labels
 
-- `project_difficulty_level` (D1–D5): news/event reasoning complexity  
-- `etom_level` + `etom_alignment` (exact / adapted / not_applicable)  
-- Do **not** force L1–L5 count balance  
-- Exact L3 requires same-server field edges (list→download→parse→keyword/pages)  
-- Exact L4 only if a real cross-server **field** transfer is required (likely rare; may be 0 until Cross-domain)  
-- Parallel official + media retrieval without field passing → adapted L4 at most  
-- Exact L5 = frozen-catalog capability gap (e.g. historical media before cutoff)
+- `project_difficulty_level` (D1–D5): disclosure/event reasoning complexity (may include chronological / latest-before-cutoff **reasoning**)
+- `etom_level` + `etom_alignment` (exact / adapted / not_applicable)
+- Do **not** force L1–L5 balance
+- **Exact L2 = 0** while `equal_function_sets` is empty (official ≠ media ≠ annual report ≠ results announcement as equal tools)
+- **Exact L3** only via live HKEXnews field edges: list→download→parse→keyword_search(`keywords:list`)→pages(`start_page`)
+- **Exact L4 = 0** for now (no required cross-server field transfer; do not invent)
+- Chronological / latest-before-cutoff over an official list raises **project difficulty**, not ETOM level, unless a real multi-op field DAG is required
+- Source discrimination (official vs media) is **project difficulty / adapted**, **not** Exact L2
 
-## Suggested Dev 15 distribution
+## Strict Exact ETOM planning counts
+
+### Development (15)
 
 | Bucket | Count | Intent |
 |---|---|---|
-| Exact L1 | 3 | single list/lookup with explicit code + date window |
-| Exact L2 | 2 | choose official vs media / annual vs results title (unequal tools) |
-| Exact L3 | 3 | download→parse→keyword (or pages) field chain |
-| Adapted L4 | 2 | official list + media snippet without field pass |
-| Exact L5 / adapted robustness | 3 | historical media gap; invalid code; post-cutoff refuse |
-| Project-hard / multi-event | 2 | chronological / latest-before-cutoff over official list |
+| Exact L1 | 5 | single official list/lookup; date window; title/category |
+| Exact L2 | **0** | no equal-function set |
+| Exact L3 | 4 | HKEXnews field-dependency evidence chain |
+| Exact L4 | **0** | no cross-server field edge required |
+| Exact L5 (`capability_gap`) | 2 | historical media unavailable under frozen catalog |
+| Adapted robustness | 2 | invalid code / post-cutoff temporal / name ambiguity (see subtypes) |
+| Project-reasoning (D↑, ETOM not upgraded) | 2 | chronological / latest-before-cutoff on official list |
 
-## Suggested Held-out 20 distribution
+### Held-out (20)
 
 | Bucket | Count |
 |---|---|
-| Exact L1 | 4 |
-| Exact L2 | 3 |
-| Exact L3 | 4 |
-| Adapted L4 | 3 |
-| Exact L5 / robustness | 4 |
-| Multi-event / category | 2 |
+| Exact L1 | 6 |
+| Exact L2 | **0** |
+| Exact L3 | 5 |
+| Exact L4 | **0** |
+| Exact L5 (`capability_gap`) | 3 |
+| Adapted robustness | 3 |
+| Project-reasoning (D↑, ETOM not upgraded) | 3 |
 
-## Task-type templates (no final wording yet)
+## Robustness / L5 subtype split (do not collapse)
 
-| Template | Dev | Held | Supported by |
-|---|---|---|---|
-| Fixed-window official announcement title/date | 2 | 3 | hkexnews list |
-| Latest official disclosure ≤ cutoff | 2 | 2 | list + offline max datetime |
-| Event category / title keyword filter | 1 | 2 | list category/title_keyword |
-| PDF evidence snippet (keyword/pages) | 2 | 3 | download→parse→keyword[/pages] |
-| Official vs media source discrimination | 2 | 2 | list vs `stock_news_em` (L2) |
-| Annual report **existence**/date/URL (not numbers) | 1 | 1 | ah `search_annual_report` |
-| Chronological order of ≥2 announcements | 1 | 2 | list + offline sort |
-| Multi-source adapted (no field edge) | 1 | 1 | list ∥ media |
-| L5 refuse: historical media / bad code / future gold | 3 | 4 | gaps above |
+| Situation | Label | Exact L5? |
+|---|---|---|
+| Historical media unavailable (`stock_news_em` no date filter; n_before_cutoff=0) | `robustness_subtype=capability_gap` | **yes (candidate)** |
+| Invalid stock code | `adapted` + `invalid_symbol` / fail-closed | **no** |
+| Post-cutoff request | `adapted` + `temporal_policy` | **no** |
+| Ambiguous company name | `adapted` + `ambiguous_request` | **no** |
 
-Company mix: Tencent / HSBC / Alibaba across both splits.  
-**Exclude:** revenue/profit/EPS extraction; non-IFRS numerics; formal report table digging as News gold.
+## Task-type templates (formal gold — no floating media)
+
+| Template | Dev | Held | Supported by | Notes |
+|---|---|---|---|---|
+| Fixed-window official announcement title/date | 3 | 4 | hkexnews list | Exact L1 |
+| Latest official disclosure ≤ cutoff | 2 | 2 | list + offline max datetime | project reasoning; ETOM L1 unless multi-op DAG |
+| Event category / title keyword filter | 1 | 2 | list category/title_keyword | Exact L1 |
+| PDF evidence snippet (keyword/pages) | 3 | 4 | download→parse→keyword→pages | Exact L3 |
+| Annual report **existence**/date/URL (not numbers) | 1 | 1 | ah `search_annual_report` | supporting; not Financial numerics |
+| Chronological order of ≥2 official announcements | 1 | 2 | list + offline sort | project difficulty |
+| Exact L5: historical media gap refuse | 2 | 3 | frozen catalog gap | capability_gap |
+| Adapted: invalid code / post-cutoff / ambiguity | 2 | 2 | hkexnews errors + policy | not Exact L5 |
+
+### Explicitly excluded from formal gold
+
+- `aktools.stock_news_em` content as answer evidence
+- Official-vs-media factual comparison gold
+- Cross-source adapted L4 that depends on media text
+- Revenue / profit / EPS / non-IFRS extraction (Financial domain)
+- Floating “latest media” as cutoff gold
+
+`stock_news_em` may appear only as **tool-selection distractor**, **capability-gap**, **fail-closed**, or **informal demo**.
 
 ## Required future gold fields (when freezing)
 
-- `domain=news`, `source_class`, `cutoff_date=2026-08-12`, `timezone=Asia/Hong_Kong`
-- `gold_operations` / `dependency_graph` with producer/consumer **fields** for exact L3+
-- `live_verified_dependency` when edges claimed
-- Held-out: `locked=true`, `heldout_agent_run_status=never_agent_run` until first eval
+- `domain=news_corporate_disclosure` (or `news` with `domain_scope=corporate_disclosure`)
+- `source_class=official_disclosure` for formal gold rows
+- `cutoff_date=2026-08-12`, `timezone=Asia/Hong_Kong`
+- field-level `dependency_graph` + `live_verified_dependency` for Exact L3
+- Held-out: `locked=true`, `heldout_agent_run_status=never_agent_run`
 
 ## Stop point
 
-Confirm capability matrix + candidate catalog before any question authoring / freeze.
+Capability matrix correction complete after dependency smoke. Still **do not** author/freeze the final 35 until explicit go-ahead.

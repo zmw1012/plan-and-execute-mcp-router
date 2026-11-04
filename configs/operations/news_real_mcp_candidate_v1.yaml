@@ -212,15 +212,15 @@ operations:
     parameters:
       - {name: local_key, type: string, required: true}
       - {name: keywords, type: array, required: true, description: "list of keyword strings"}
-      - {name: max_hits, type: number, required: false}
+      - {name: max_results, type: number, required: false, default: 5}
     output_fields: [matches, page_number, snippet]
     content_availability: snippet
     depends_on_fields_from:
       - {producer: hkexnews.parse_hkexnews_announcement, fields: [local_key]}
     audit_status: live_verified
     decision: primary
-    live_evidence: docs/news_mcp_discovery_v1/hkexnews_mcp_news_smoke.json
-    notes: "Argument name is keywords (list), not keyword."
+    live_evidence: docs/news_mcp_discovery_v1/hkexnews_dependency_chain_summary.json
+    notes: "Argument name is keywords (list), not keyword. Singular keyword fails schema."
 
   - operation_id: hkexnews.get_announcement_pages
     server_id: mcp_hkexnews
@@ -233,15 +233,15 @@ operations:
     parameters:
       - {name: local_key, type: string, required: true}
       - {name: start_page, type: number, required: true}
-      - {name: end_page, type: number, required: false}
+      - {name: page_count, type: number, required: false, default: 3}
     output_fields: [pages, text]
     content_availability: page_text
     depends_on_fields_from:
       - {producer: hkexnews.parse_hkexnews_announcement, fields: [local_key]}
       - {producer: hkexnews.keyword_search, fields: [page_number]}
-    audit_status: live_verified_prior_financial_smoke
+    audit_status: live_verified
     decision: primary
-    live_evidence: docs/financial_hkexnews_dependency_smoke_v1/observed_dependency_edges.json
+    live_evidence: docs/news_mcp_discovery_v1/hkexnews_dependency_chain_summary.json
 
   # ---- Supporting: AKTools meta + media ----
   - operation_id: aktools.search_interfaces
@@ -275,8 +275,8 @@ operations:
 
   - operation_id: aktools.stock_news_em
     server_id: aktools
-    role: supporting
-    classification: supporting
+    role: supporting_runtime_only
+    classification: distractor_for_formal_gold
     source_class: financial_media
     exposed_mcp_tool: get_data
     underlying_interface: stock_news_em
@@ -284,6 +284,7 @@ operations:
     summary: >
       East Money keyword/symbol news search returning headline, snippet, publish time,
       media source name, and URL. Floating recent feed only (hardcoded ~10 rows; no date params).
+      Runtime-only / formal-gold distractor: live for three issuers but n_before_cutoff=0.
     parameters:
       - {name: symbol, type: string, required: true, description: "ticker or company keyword"}
     output_fields: [关键词, 新闻标题, 新闻内容, 发布时间, 文章来源, 新闻链接]
@@ -294,13 +295,27 @@ operations:
     date_range_filter: false
     chronological_ordering: provider_default
     languages: [zh]
+    formal_gold_eligible: false
+    heldout_evidence_eligible: false
     issuer_coverage: {Tencent: live_ok_floating, HSBC: live_ok_floating, Alibaba: live_ok_floating}
+    allowed_uses:
+      - tool_selection_distractor
+      - capability_gap_probe
+      - fail_closed_demo
+      - informal_demo
+    forbidden_uses:
+      - formal_numeric_or_text_gold
+      - heldout_answer_evidence
+      - official_vs_media_factual_comparison_gold
+      - cross_source_adapted_l4_formal
+      - latest_before_cutoff_gold
     known_risks:
       - n_before_cutoff=0 in 2026-08-12 probes — unsuitable as historical gold
+      - No start/end date parameters; feed drifts over time
       - Ambiguous short codes (e.g. 700) can return unrelated articles
-      - Not equivalent to HKEXnews official disclosure
-    audit_status: live_verified_not_historical_gold
-    decision: supporting
+      - Not equivalent to HKEXnews official disclosure (equal_function_sets empty)
+    audit_status: live_verified_runtime_only_not_formal_gold
+    decision: distractor
     live_evidence: docs/news_mcp_discovery_v1/aktools_mcp_news_smoke.json
 
   # ---- Supporting: ah-disclosure title/URL discovery ----

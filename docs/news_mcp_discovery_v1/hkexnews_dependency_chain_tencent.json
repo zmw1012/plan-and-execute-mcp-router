@@ -1,0 +1,194 @@
+{
+  "issuer": "Tencent",
+  "stock_code": "00700",
+  "cutoff": "2026-08-12",
+  "window": [
+    "2026-07-01",
+    "2026-08-12"
+  ],
+  "steps": {
+    "list": {
+      "success": true,
+      "error": null,
+      "latency_ms": 3331,
+      "n": 8,
+      "raw_status": "success"
+    },
+    "download": {
+      "success": true,
+      "error": null,
+      "latency_ms": 4,
+      "args": {
+        "stock_code": "00700",
+        "news_id": "12275186",
+        "release_date": "2026-08-06",
+        "title_keyword": "Monthly Return",
+        "local_key": "00700_GEN_2026-08-06_f90abb86"
+      },
+      "local_key": "00700_GEN_2026-08-06_f90abb86",
+      "normalized_keys": [
+        "status",
+        "data",
+        "hint"
+      ]
+    },
+    "parse": {
+      "success": true,
+      "error": null,
+      "latency_ms": 3,
+      "local_key": "00700_GEN_2026-08-06_f90abb86"
+    },
+    "keyword_search": {
+      "success": true,
+      "error": null,
+      "latency_ms": 3,
+      "args": {
+        "local_key": "00700_GEN_2026-08-06_f90abb86",
+        "keywords": [
+          "Monthly",
+          "Return",
+          "Issuer"
+        ],
+        "max_results": 5
+      },
+      "n_matches": 5,
+      "matches_sample": [
+        {
+          "page_number": 4,
+          "score": 0.070588,
+          "keyword_hits": 1,
+          "snippet": "FF301 v Page 4 of 10 1.2.1 (B). Warrants to Issue Shares of the **Issuer** Not applicable"
+        },
+        {
+          "page_number": 5,
+          "score": 0.057692,
+          "keyword_hits": 1,
+          "snippet": "FF301 v Page 5 of 10 1.2.1 (C). Convertibles (i.e. Convertible into Shares of the **Issuer**) Not applicable"
+        },
+        {
+          "page_number": 6,
+          "score": 0.036145,
+          "keyword_hits": 1,
+          "snippet": "FF301 v Page 6 of 10 1.2.1 (D). Any other Agreements or Arrangements to Issue Shares of the **Issuer**, including Options (other than Share Option Schemes) Not applicable"
+        }
+      ],
+      "raw_status": "success"
+    },
+    "get_announcement_pages": {
+      "success": true,
+      "error": null,
+      "latency_ms": 2,
+      "args": {
+        "local_key": "00700_GEN_2026-08-06_f90abb86",
+        "start_page": 4,
+        "page_count": 1
+      },
+      "normalized_slim": {
+        "status": "success",
+        "data": {
+          "document": "00700_GEN_2026-08-06_f90abb86",
+          "total_pages": 10,
+          "page_range": "4-4",
+          "pages": [
+            {
+              "page_number": 4,
+              "content": "FF301\nv\nPage 4 of 10\n1.2.1\n(B). Warrants to Issue Shares of the Issuer\nNot applicable"
+            }
+          ]
+        },
+        "data_slim": {
+          "keys": [
+            "document",
+            "total_pages",
+            "page_range",
+            "pages"
+          ],
+          "pages": [
+            {
+              "page_number": 4,
+              "content": "FF301\nv\nPage 4 of 10\n1.2.1\n(B). Warrants to Issue Shares of the Issuer\nNot applicable"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "dependency_edges": [
+    {
+      "producer_operation": "hkexnews.list_hkexnews_announcements",
+      "producer_output_field": "local_key",
+      "consumer_operation": "hkexnews.download_hkexnews_announcement",
+      "consumer_input_field": "local_key",
+      "live_verified_dependency": true,
+      "example_value": "00700_GEN_2026-08-06_f90abb86"
+    },
+    {
+      "producer_operation": "hkexnews.list_hkexnews_announcements",
+      "producer_output_field": "news_id",
+      "consumer_operation": "hkexnews.download_hkexnews_announcement",
+      "consumer_input_field": "news_id",
+      "live_verified_dependency": true,
+      "example_value": "12275186"
+    },
+    {
+      "producer_operation": "hkexnews.list_hkexnews_announcements",
+      "producer_output_field": "release_date",
+      "consumer_operation": "hkexnews.download_hkexnews_announcement",
+      "consumer_input_field": "release_date",
+      "live_verified_dependency": true,
+      "example_value": "2026-08-06"
+    },
+    {
+      "producer_operation": "hkexnews.list_hkexnews_announcements",
+      "producer_output_field": "title",
+      "consumer_operation": "hkexnews.download_hkexnews_announcement",
+      "consumer_input_field": "title_keyword",
+      "live_verified_dependency": true,
+      "example_value": "Monthly Return",
+      "note": "list.title truncated into download.title_keyword"
+    },
+    {
+      "producer_operation": "hkexnews.download_hkexnews_announcement",
+      "producer_output_field": "local_key",
+      "consumer_operation": "hkexnews.parse_hkexnews_announcement",
+      "consumer_input_field": "local_key",
+      "live_verified_dependency": true,
+      "example_value": "00700_GEN_2026-08-06_f90abb86"
+    },
+    {
+      "producer_operation": "hkexnews.parse_hkexnews_announcement",
+      "producer_output_field": "local_key",
+      "consumer_operation": "hkexnews.keyword_search",
+      "consumer_input_field": "local_key",
+      "live_verified_dependency": true,
+      "example_value": "00700_GEN_2026-08-06_f90abb86",
+      "note": "keywords must be a list; singular keyword fails schema"
+    },
+    {
+      "producer_operation": "hkexnews.keyword_search",
+      "producer_output_field": "page_number",
+      "consumer_operation": "hkexnews.get_announcement_pages",
+      "consumer_input_field": "start_page",
+      "live_verified_dependency": true,
+      "example_value": 4
+    },
+    {
+      "producer_operation": "hkexnews.parse_hkexnews_announcement",
+      "producer_output_field": "local_key",
+      "consumer_operation": "hkexnews.get_announcement_pages",
+      "consumer_input_field": "local_key",
+      "live_verified_dependency": true,
+      "example_value": "00700_GEN_2026-08-06_f90abb86"
+    }
+  ],
+  "success": true,
+  "chosen": {
+    "title": "Monthly Return of Equity Issuer on Movements in Securities for the month ended 31 July 2026",
+    "release_date": "2026-08-06",
+    "release_datetime": "06/08/2026 16:57",
+    "news_id": "12275186",
+    "local_key": "00700_GEN_2026-08-06_f90abb86",
+    "file_link": "/listedco/listconews/sehk/2026/0806/2026080600836.pdf",
+    "category_label": "Monthly Returns"
+  }
+}

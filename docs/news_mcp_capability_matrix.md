@@ -1,53 +1,76 @@
-# News MCP Capability Matrix (Discovery v1)
+# News / Corporate Disclosure MCP Capability Matrix (Discovery v1 — corrected)
 
 Temporal policy: **max gold date = 2026-08-12**, timezone **Asia/Hong_Kong**.  
-Legend: ✅ live-verified usable for gold · ⚠️ usable with constraints · ❌ unsupported/blocked · D distractor
+Legend: ✅ live-verified usable for **formal gold** · ⚠️ runtime-only / constrained · ❌ unsupported · D distractor
+
+## HKEXnews dependency smoke (corrected)
+
+Full live chain for **Tencent / HSBC / Alibaba** (fixed announcements ≤ cutoff; corporate-event keywords; **not** revenue/EPS extraction):
+
+`list → download → parse → keyword_search(keywords=[...]) → get_announcement_pages(start_page=page_number)`
+
+| Issuer | Announcement (≤2026-08-12) | keyword_search | pages |
+|---|---|---|---|
+| Tencent 00700 | Monthly Return … 31 July 2026 (`2026-08-06`) | ✅ `keywords=["Monthly","Return","Issuer"]` | ✅ `start_page=4` |
+| HSBC 00005 | Transaction in own shares (`2026-08-12`) | ✅ `keywords=["Transaction","shares","HSBC"]` | ✅ `start_page=2` |
+| Alibaba 09988 | DATE OF BOARD MEETING (`2026-08-07`) | ✅ `keywords=["Board","Meeting","Director"]` | ✅ `start_page=1` |
+
+Evidence: `docs/news_mcp_discovery_v1/hkexnews_dependency_chain_{tencent,hsbc,alibaba}.json`, `hkexnews_dependency_chain_summary.json`, `observed_dependency_edges.json`.  
+Prior failed `keyword` (singular) probe is **not** treated as success; re-run used schema-correct `keywords:list`.
+
+### Verified field edges
+
+- `list.local_key|news_id|release_date|title` → `download.local_key|news_id|release_date|title_keyword` (short title_keyword required)
+- `download.local_key` → `parse.local_key`
+- `parse.local_key` → `keyword_search.local_key` / `get_announcement_pages.local_key`
+- `keyword_search.page_number` → `get_announcement_pages.start_page`
 
 ## Capability × operation
 
-| # | Capability | Primary path | Supporting | Distractor / blocked / gap |
+| # | Capability | Primary formal-gold path | Supporting | Distractor / gap |
 |---|---|---|---|---|
-| 1 | Search by stock code | ✅ `hkexnews.list_*` | ⚠️ `stock_news_em` (floating) | D A-share notice |
-| 2 | Search by company name | ⚠️ media keyword via `stock_news_em` | — | ❌ no official name-search equal to code list |
-| 3 | Date-range filter | ✅ hkexnews `start_date`/`end_date` | — | D ah `search_filings` (date filter **unreliable**) |
-| 4 | Accurate publication timestamp | ✅ `release_datetime` / `release_date` | ⚠️ media `发布时间` (recent only) | — |
-| 5 | Source name + URL | ✅ `file_link` (HKEXnews) | ⚠️ media `文章来源`+`新闻链接` | — |
-| 6 | Headline | ✅ `title` | ⚠️ media `新闻标题` | — |
-| 7 | Body / snippet / citable fragment | ✅ parse→keyword snippet / pages | ⚠️ media `新闻内容` snippet | — |
-| 8 | HKEX official announcement list | ✅ list | ⚠️ ah annual title discovery | D ah filings (date-unsafe) |
-| 9 | Download / parse / keyword / page evidence | ✅ download→parse→keyword→pages (field deps) | — | — |
-| 10 | Dedup | ⚠️ offline on `news_id`/`local_key` | — | ❌ no dedicated MCP dedup tool |
-| 11 | Chinese + English | ✅ HKEX EN titles live; ZH via lang/local | ⚠️ media mostly ZH | — |
-| 12 | Chronological ordering | ✅ list sorted by DateTime | ⚠️ media provider order | — |
-| 13 | Latest-before-cutoff | ✅ max `release_datetime` ≤ cutoff in window | ❌ `stock_news_em` empty before cutoff | D ah filings latest ignores cutoff |
-| 14 | Fail closed (empty / future / gap) | ✅ invalid code error; policy on post-cutoff | ⚠️ empty historical media → refuse | ❌ FTShare blocked |
+| 1 | Search by stock code | ✅ hkexnews list | — | D A-share notice; ⚠️ media runtime-only |
+| 2 | Search by company name | ⚠️ weak for official | — | D media name keyword (not formal gold) |
+| 3 | Date-range filter | ✅ hkexnews start/end | — | D ah `search_filings` (date-unreliable) |
+| 4 | Publication timestamp | ✅ `release_datetime` | — | ⚠️ media `发布时间` floating |
+| 5 | Source name + URL | ✅ `file_link` | ah annual `pdf_url` | ⚠️ media URL runtime-only |
+| 6 | Headline | ✅ `title` | ah annual title | ⚠️ media headline runtime-only |
+| 7 | Snippet / page text | ✅ keyword/pages chain | — | ⚠️ media snippet runtime-only |
+| 8 | HKEX official list | ✅ list | — | D ah filings |
+| 9 | Download/parse/keyword/pages | ✅ live 3-issuer chain | — | — |
+| 10 | Dedup | ⚠️ offline on `news_id`/`local_key` | — | ❌ no MCP dedup tool |
+| 11 | ZH + EN | ✅ EN list live | — | — |
+| 12 | Chronological ordering | ✅ list DateTime order | offline sort | — |
+| 13 | Latest-before-cutoff | ✅ max datetime on official list | — | ❌ media (n_before_cutoff=0) |
+| 14 | Fail closed | ✅ invalid code; temporal policy | — | media historical → capability_gap |
 
-## Issuer coverage
+## `stock_news_em` role (corrected)
 
-| Operation | Tencent | HSBC | Alibaba | Notes |
-|---|---|---|---|---|
-| hkexnews list (Jul1–Aug12 2026) | ✅ | ✅ | ✅ | official_disclosure |
-| hkexnews download/parse/keyword | sample OK (HSBC) | ✅ | chain transferable | same server deps |
-| `stock_news_em` | ✅ floating / 0≤cutoff | ✅ / 0 | ✅ / 0 | financial_media |
-| ah `search_annual_report` | ✅ | prior | prior | title/URL only |
-| A-share notice / gsrl | n/a | n/a | n/a | distractors |
+| Attribute | Value |
+|---|---|
+| Live feed Tencent/HSBC/Alibaba | yes (floating ~10) |
+| `n_before_cutoff` | **0** |
+| Date-range params | **none** |
+| Catalog role | `supporting_runtime_only` / `distractor_for_formal_gold` |
+| `formal_gold_eligible` | **false** |
+| Allowed | tool-selection distractor; capability-gap; fail-closed; informal demo |
+| Forbidden | formal gold; held-out evidence; official-vs-media factual gold; adapted L4 formal; latest-before-cutoff gold |
 
-## Timestamp / source / content fidelity
+## Exact ETOM planning constraints
 
-| Path | Timestamp | Source URL | Content |
-|---|---|---|---|
-| HKEXnews list | `release_date` + `release_datetime` | `file_link` | metadata; body via download chain |
-| HKEXnews keyword | n/a | via local_key doc | `snippet` + `page_number` |
-| `stock_news_em` | `发布时间` (recent) | `新闻链接` | `新闻内容` snippet |
-| ah annual search | `publish_time` | `pdf_url` | title/metadata (not parsed here) |
+- `equal_function_sets: []` ⇒ **Exact L2 = 0**
+- Official disclosure ≠ financial media ≠ Annual Report ≠ results announcement (as equal tools)
+- Exact L3 only via HKEXnews field DAG above
+- Exact L4 = 0 until a real cross-server field transfer exists
+- Exact L5 only for true `capability_gap` (e.g. historical media under frozen catalog)
 
-## Counts (candidate catalog)
+## Counts (candidate catalog after correction)
 
 | Class | Count |
 |---|---|
 | primary | 5 |
-| supporting | 6 |
-| distractor | 6 |
+| supporting | 5 |
+| distractor | 7 (includes `stock_news_em`) |
 | blocked | 1 |
 | rejected | 2 |
 | **logical ops** | **20** |
@@ -55,10 +78,8 @@ Legend: ✅ live-verified usable for gold · ⚠️ usable with constraints · �
 
 ## Remaining gaps
 
-1. **No free historical HK media archive** with date-range filter (East Money feed is floating ~10).
-2. **No verified media↔disclosure dedup** tool across servers.
-3. **ah `search_filings` date window untrustworthy** — cannot replace hkexnews list for cutoff gold.
-4. **Company-name → official disclosure** without stock code is weak (lookup expects code).
-5. **FTShare** announcement APIs remain blocked without key.
-6. Full Annual Report **numeric** reading stays Financial — News only uses title/date/URL/event tasks.
-7. Explicit multilingual ZH list smoke not exhaustively paired for every title (EN list verified live).
+1. No free historical HK **media** archive with date filter.  
+2. ah `search_filings` date window untrustworthy.  
+3. No cross-source dedup MCP.  
+4. FTShare still blocked.  
+5. Company-name → official disclosure without code remains weak.
