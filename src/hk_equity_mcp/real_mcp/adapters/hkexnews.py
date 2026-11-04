@@ -26,15 +26,17 @@ ALLOWED_TOOLS: Set[str] = {
 }
 
 
-def default_hkexnews_command() -> str:
-    env = os.environ.get("HKEXNEWS_MCP_COMMAND")
-    if env:
-        return env
-    root = Path(__file__).resolve().parents[4]
-    candidate = root / ".venv-hkexnews-discovery" / "bin" / "agentladle-mcp-hkexnews"
-    if candidate.exists():
-        return str(candidate)
-    return "agentladle-mcp-hkexnews"
+def default_hkexnews_command(*, require: bool = True) -> Optional[str]:
+    """Resolve agentladle-mcp-hkexnews: env → local venv → sibling main → PATH."""
+    from hk_equity_mcp.real_mcp.command_resolve import resolve_mcp_executable
+
+    return resolve_mcp_executable(
+        env_var="HKEXNEWS_MCP_COMMAND",
+        binary_name="agentladle-mcp-hkexnews",
+        venv_dirname=".venv-hkexnews-discovery",
+        label="agentladle-mcp-hkexnews",
+        require=require,
+    )
 
 
 def default_cache_dir() -> Path:

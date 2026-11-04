@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -18,15 +17,17 @@ from hk_equity_mcp.real_mcp.types import RealMcpResult
 SERVER_ID = "aktools"
 
 
-def default_aktools_command() -> str:
-    env = os.environ.get("AKTOOLS_MCP_COMMAND")
-    if env:
-        return env
-    root = Path(__file__).resolve().parents[4]
-    candidate = root / ".venv-aktools-discovery" / "bin" / "aktools-mcp"
-    if candidate.exists():
-        return str(candidate)
-    return "aktools-mcp"
+def default_aktools_command(*, require: bool = True) -> Optional[str]:
+    """Resolve aktools-mcp: env → local venv → sibling main repo → PATH."""
+    from hk_equity_mcp.real_mcp.command_resolve import resolve_mcp_executable
+
+    return resolve_mcp_executable(
+        env_var="AKTOOLS_MCP_COMMAND",
+        binary_name="aktools-mcp",
+        venv_dirname=".venv-aktools-discovery",
+        label="aktools-mcp",
+        require=require,
+    )
 
 
 class AktoolsAdapter:

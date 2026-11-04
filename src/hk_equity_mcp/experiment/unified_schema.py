@@ -22,7 +22,15 @@ PREDICTION_FIELDS = (
     "describe_calls",
     "invoke_calls",
     "dependency_edges_predicted",
+    # tool_execution_success == all_tool_invocations_successful
+    # (True iff every invoke succeeded; vacuous True when zero invokes).
     "tool_execution_success",
+    "all_tool_invocations_successful",
+    "successful_invocation_count",
+    "failed_invocation_count",
+    "recovered_after_tool_error",
+    "protocol_success_rate",
+    "final_operation_success_by_operation_id",
     "evidence",
     "citations",
     "llm_calls",
@@ -71,6 +79,11 @@ PER_TASK_METRIC_FIELDS = (
     "exact_tool_set",
     "graph_dependency_accuracy",
     "tool_execution_success",
+    "all_tool_invocations_successful",
+    "successful_invocation_count",
+    "failed_invocation_count",
+    "recovered_after_tool_error",
+    "protocol_success_rate",
     "wrong_tool_rate",
     "refusal_correctness",
     "llm_calls",
@@ -85,6 +98,30 @@ PER_TASK_METRIC_FIELDS = (
     "timeout",
     "parse_repair_count",
 )
+
+METRIC_FIELD_DEFINITIONS = {
+    "tool_execution_success": (
+        "Alias of all_tool_invocations_successful: True iff every invoke_api "
+        "succeeded. Vacuous True when there were zero invocations "
+        "(refusal without tools is not an execution failure)."
+    ),
+    "all_tool_invocations_successful": (
+        "True iff every invoke_api succeeded (vacuous True if none)."
+    ),
+    "recovered_after_tool_error": (
+        "True when an earlier invoke failed, a later invoke succeeded, and the "
+        "agent still produced a complete final answer (status=full). "
+        "Execution recovery only — not answer correctness."
+    ),
+    "error_counts": (
+        "Counts of non-empty prediction error/error_type only. "
+        "status=full is never counted as an error."
+    ),
+    "result_status_counts": (
+        "Independent counts of agent result status (full/failed/…). "
+        "Not an error taxonomy."
+    ),
+}
 
 MANUAL_GRADING_FIELDS = (
     "task_id",

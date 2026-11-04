@@ -39,11 +39,17 @@ def _has_mcp_sdk() -> bool:
 
 
 requires_aktools = pytest.mark.skipif(
-    not (_has_mcp_sdk() and _has_cmd(default_aktools_command())),
+    not (
+        _has_mcp_sdk()
+        and bool(default_aktools_command(require=False))
+    ),
     reason="mcp SDK or aktools-mcp binary not available in this Python env",
 )
 requires_hkexnews = pytest.mark.skipif(
-    not (_has_mcp_sdk() and _has_cmd(default_hkexnews_command())),
+    not (
+        _has_mcp_sdk()
+        and bool(default_hkexnews_command(require=False))
+    ),
     reason="mcp SDK or agentladle-mcp-hkexnews binary not available in this Python env",
 )
 

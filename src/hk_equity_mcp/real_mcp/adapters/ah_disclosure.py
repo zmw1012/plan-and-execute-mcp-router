@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Any, Dict, Optional, Set
 
@@ -22,24 +21,17 @@ ALLOWED_TOOLS: Set[str] = {
 }
 
 
-def default_ah_disclosure_command() -> str:
-    env = os.environ.get("AH_DISCLOSURE_MCP_COMMAND")
-    if env:
-        return env
-    root = Path(__file__).resolve().parents[4]
-    candidate = (
-        root.parent
-        / "hk-equity-mcp-agent"
-        / ".venv-ahdisclosure-discovery"
-        / "bin"
-        / "ah-disclosure-mcp"
+def default_ah_disclosure_command(*, require: bool = True) -> Optional[str]:
+    """Resolve ah-disclosure-mcp: env → local venv → sibling main → PATH."""
+    from hk_equity_mcp.real_mcp.command_resolve import resolve_mcp_executable
+
+    return resolve_mcp_executable(
+        env_var="AH_DISCLOSURE_MCP_COMMAND",
+        binary_name="ah-disclosure-mcp",
+        venv_dirname=".venv-ahdisclosure-discovery",
+        label="ah-disclosure-mcp",
+        require=require,
     )
-    if candidate.exists():
-        return str(candidate)
-    local = root / ".venv-ahdisclosure-discovery" / "bin" / "ah-disclosure-mcp"
-    if local.exists():
-        return str(local)
-    return "ah-disclosure-mcp"
 
 
 class AhDisclosureAdapter:

@@ -588,6 +588,19 @@ class UnifiedHkOperationVisibleRunner:
                             "graph_dependency_accuracy"
                         ),
                         "tool_execution_success": pred.get("tool_execution_success"),
+                        "all_tool_invocations_successful": pred.get(
+                            "all_tool_invocations_successful"
+                        ),
+                        "successful_invocation_count": pred.get(
+                            "successful_invocation_count"
+                        ),
+                        "failed_invocation_count": pred.get(
+                            "failed_invocation_count"
+                        ),
+                        "recovered_after_tool_error": pred.get(
+                            "recovered_after_tool_error"
+                        ),
+                        "protocol_success_rate": pred.get("protocol_success_rate"),
                         "wrong_tool_rate": pred.get("wrong_tool_rate"),
                         "refusal_correctness": pred.get("refusal_correctness"),
                         "llm_calls": pred.get("llm_calls"),
@@ -685,10 +698,27 @@ class UnifiedHkOperationVisibleRunner:
                 ],
             },
         )
+        from hk_equity_mcp.experiment.unified_evaluator import evaluator_identity
+        from hk_equity_mcp.experiment.unified_schema import METRIC_FIELD_DEFINITIONS
+
         atomic_write_json(
             self.output_dir / "error_summary.json",
             {
-                "error_counts": summary.get("error_counts"),
+                "error_counts": summary.get("error_counts") or {},
+                "result_status_counts": summary.get("result_status_counts") or {},
+                "definitions": {
+                    "error_counts": METRIC_FIELD_DEFINITIONS["error_counts"],
+                    "result_status_counts": METRIC_FIELD_DEFINITIONS[
+                        "result_status_counts"
+                    ],
+                    "tool_execution_success": METRIC_FIELD_DEFINITIONS[
+                        "tool_execution_success"
+                    ],
+                    "recovered_after_tool_error": METRIC_FIELD_DEFINITIONS[
+                        "recovered_after_tool_error"
+                    ],
+                },
+                "evaluator": evaluator_identity(),
                 "aggregate": summary,
             },
         )
