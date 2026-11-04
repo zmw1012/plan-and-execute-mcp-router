@@ -1,6 +1,3 @@
-# News Real-MCP candidate catalog (NOT frozen).
-# Status: candidate_v1 — discovery only; no final News questions yet.
-# Financial v1.3 and Market v1.1 catalogs remain frozen/readonly and are NOT modified.
 version: 1
 catalog_id: news_real_mcp_candidate_v1
 catalog_status: candidate_v1
@@ -8,29 +5,34 @@ domain: news
 read_only: true
 freeze_status: not_frozen
 notes:
-  - Raw MCP tools != logical operations. AKTools exposes 3 raw MCP tools; logical News ops map to get_data interfaces or dedicated servers.
-  - Temporal policy: max gold date 2026-08-12 Asia/Hong_Kong; never use floating "latest" as gold.
-  - Source classes must not be conflated: official_disclosure ≠ financial_media ≠ Annual/Interim Report PDF numeric extraction (Financial domain).
-  - Results announcements may appear in News as event/title/date tasks, but revenue/EPS extraction remains Financial — do not re-wrap.
-  - data/mock news JSON and in-repo NewsServer remain offline mock only; never as Real-MCP tool data.
-
+- Raw MCP tools != logical operations. AKTools exposes 3 raw MCP tools; logical News
+  ops map to get_data interfaces or dedicated servers.
+- Temporal policy: max gold date 2026-08-12 Asia/Hong_Kong; never use floating "latest"
+    as gold.
+- Source classes must not be conflated: official_disclosure ≠ financial_media ≠ Annual/Interim
+    Report PDF numeric extraction (Financial domain).
+- Results announcements may appear in News as event/title/date tasks, but revenue/EPS
+  extraction remains Financial — do not re-wrap.
+- data/mock news JSON and in-repo NewsServer remain offline mock only; never as Real-MCP
+  tool data.
 temporal_policy:
-  max_data_date: "2026-08-12"
+  max_data_date: '2026-08-12'
   timezone: Asia/Hong_Kong
-  latest_before_cutoff_rule: >
-    When a question asks for the latest announcement/news before the cutoff,
-    select the maximum release_datetime/发布时间 <= 2026-08-12 Asia/Hong_Kong
+  latest_before_cutoff_rule: 'When a question asks for the latest announcement/news
+    before the cutoff, select the maximum release_datetime/发布时间 <= 2026-08-12 Asia/Hong_Kong
     under the same issuer and source class. Do not use post-cutoff rows.
-  evidence: >
-    mcp-hkexnews list for 00700/00005/09988 with start_date=2026-07-01 end_date=2026-08-12
+
+    '
+  evidence: 'mcp-hkexnews list for 00700/00005/09988 with start_date=2026-07-01 end_date=2026-08-12
     returned dated announcements with release_date/release_datetime inside the window.
     aktools.stock_news_em returned only floating recent rows with n_before_cutoff=0.
 
+    '
 servers:
   mcp_hkexnews:
     server_id: mcp_hkexnews
     package: agentladle-mcp-hkexnews
-    package_version_live: "0.1.0"
+    package_version_live: 0.1.0
     repository: https://github.com/agentladle/mcp-hkexnews
     transport: stdio
     command_env: HKEXNEWS_MCP_COMMAND
@@ -40,21 +42,20 @@ servers:
     implements_mcp: true
     raw_mcp_tool_count: 6
     exposed_mcp_tools:
-      - lookup_stock_code
-      - list_hkexnews_announcements
-      - download_hkexnews_announcement
-      - parse_hkexnews_announcement
-      - keyword_search
-      - get_announcement_pages
+    - lookup_stock_code
+    - list_hkexnews_announcements
+    - download_hkexnews_announcement
+    - parse_hkexnews_announcement
+    - keyword_search
+    - get_announcement_pages
     audit_status: accepted_primary_server
     source_class_default: official_disclosure
     live_evidence: docs/news_mcp_discovery_v1/hkexnews_mcp_news_smoke.json
-
   aktools:
     server_id: aktools
     package: aktools
-    package_version_live: "0.1.4"
-    akshare_version_live: "1.20.22"
+    package_version_live: 0.1.4
+    akshare_version_live: 1.20.22
     repository: https://github.com/akfamily/aktools
     transport: stdio
     command_env: AKTOOLS_MCP_COMMAND
@@ -65,12 +66,11 @@ servers:
     implements_mcp: true
     raw_mcp_tool_count: 3
     exposed_mcp_tools:
-      - search_interfaces
-      - describe_interface
-      - get_data
+    - search_interfaces
+    - describe_interface
+    - get_data
     audit_status: accepted_supporting_server
     live_evidence: docs/news_mcp_discovery_v1/aktools_mcp_news_smoke.json
-
   ah_disclosure:
     server_id: ah_disclosure
     package: ah-disclosure-kit
@@ -85,10 +85,10 @@ servers:
     audit_status: accepted_supporting_with_risks
     source_class_default: official_disclosure
     known_risks:
-      - search_filings did not honor start_date/end_date in live probes (returned post-cutoff publish_time)
-      - LLM/cleanup tools must stay rejected
+    - search_filings did not honor start_date/end_date in live probes (returned post-cutoff
+      publish_time)
+    - LLM/cleanup tools must stay rejected
     live_evidence: docs/news_mcp_discovery_v1/ah_disclosure_news_smoke.json
-
   ftshare:
     server_id: ftshare
     package: FTShare-MCP
@@ -96,404 +96,523 @@ servers:
     authentication: API_key_recommended
     cost: anonymous_quota_or_paid_key
     audit_status: blocked
-    rejection_reason: >
-      Prior Financial/Market discovery: tools/list OK anonymously but live data calls
-      return UPSTREAM_UNAVAILABLE/429 without FTSHARE_API_KEY. Not free/reproducible.
+    rejection_reason: 'Prior Financial/Market discovery: tools/list OK anonymously
+      but live data calls return UPSTREAM_UNAVAILABLE/429 without FTSHARE_API_KEY.
+      Not free/reproducible.
 
+      '
 operations:
-  # ---- Primary: mcp-hkexnews official disclosure chain ----
-  - operation_id: hkexnews.lookup_stock_code
-    server_id: mcp_hkexnews
-    role: supporting
-    classification: supporting
-    source_class: official_disclosure
-    exposed_mcp_tool: lookup_stock_code
-    name: lookup_stock_code
-    summary: Resolve HK stock code to HKEXnews stockId.
-    parameters:
-      - {name: stock_code, type: string, required: true}
-    output_fields: [stock_code, stock_id]
-    languages: [en, zh]
-    audit_status: live_verified
-    decision: supporting
-    live_evidence: docs/news_mcp_discovery_v1/hkexnews_mcp_news_smoke.json
+- operation_id: hkexnews.lookup_stock_code
+  server_id: mcp_hkexnews
+  role: supporting
+  classification: supporting
+  source_class: official_disclosure
+  exposed_mcp_tool: lookup_stock_code
+  name: lookup_stock_code
+  summary: Resolve HK stock code to HKEXnews stockId.
+  parameters:
+  - name: stock_code
+    type: string
+    required: true
+  output_fields:
+  - stock_code
+  - stock_id
+  languages:
+  - en
+  - zh
+  audit_status: live_verified
+  decision: supporting
+  live_evidence: docs/news_mcp_discovery_v1/hkexnews_mcp_news_smoke.json
+- operation_id: hkexnews.list_hkexnews_announcements
+  server_id: mcp_hkexnews
+  role: primary
+  classification: primary
+  source_class: official_disclosure
+  exposed_mcp_tool: list_hkexnews_announcements
+  name: list_hkexnews_announcements
+  summary: 'List HKEXnews announcements for a stock with optional date window, category,
+    and title keyword. Primary path for dated official disclosure / company events.
 
-  - operation_id: hkexnews.list_hkexnews_announcements
-    server_id: mcp_hkexnews
-    role: primary
-    classification: primary
-    source_class: official_disclosure
-    exposed_mcp_tool: list_hkexnews_announcements
-    name: list_hkexnews_announcements
-    summary: >
-      List HKEXnews announcements for a stock with optional date window, category,
-      and title keyword. Primary path for dated official disclosure / company events.
-    parameters:
-      - {name: stock_code, type: string, required: true}
-      - {name: category, type: string, required: false}
-      - {name: start_date, type: string, required: false, description: "YYYY-MM-DD"}
-      - {name: end_date, type: string, required: false, description: "YYYY-MM-DD"}
-      - {name: title_keyword, type: string, required: false}
-      - {name: limit, type: number, required: false, default: 10}
-    output_fields:
-      - stock_code
-      - sec_name
-      - title
-      - release_date
-      - release_datetime
-      - category_t1
-      - category_t2
-      - category_label
-      - news_id
-      - local_key
-      - file_link
-      - file_type
-    timestamp_field: release_datetime
-    source_url_field: file_link
-    headline_field: title
-    content_availability: metadata_plus_pdf_link
-    date_range_filter: true
-    chronological_ordering: true
-    languages: [en, zh]
-    issuer_coverage: {Tencent: live_ok, HSBC: live_ok, Alibaba: live_ok}
-    known_risks:
-      - Full Annual/Interim Report PDF body may be out of scope for some categories in v0.1
-      - Must not treat results announcement numeric tables as News gold (Financial domain)
-    audit_status: live_verified
-    decision: primary
-    live_evidence: docs/news_mcp_discovery_v1/hkexnews_mcp_news_smoke.json
+    '
+  parameters:
+  - name: stock_code
+    type: string
+    required: true
+  - name: category
+    type: string
+    required: false
+  - name: start_date
+    type: string
+    required: false
+    description: YYYY-MM-DD
+  - name: end_date
+    type: string
+    required: false
+    description: YYYY-MM-DD
+  - name: title_keyword
+    type: string
+    required: false
+  - name: limit
+    type: number
+    required: false
+    default: 10
+  output_fields:
+  - stock_code
+  - sec_name
+  - title
+  - release_date
+  - release_datetime
+  - category_t1
+  - category_t2
+  - category_label
+  - news_id
+  - local_key
+  - file_link
+  - file_type
+  timestamp_field: release_datetime
+  source_url_field: file_link
+  headline_field: title
+  content_availability: metadata_plus_pdf_link
+  date_range_filter: true
+  chronological_ordering: true
+  languages:
+  - en
+  - zh
+  issuer_coverage:
+    Tencent: live_ok
+    HSBC: live_ok
+    Alibaba: live_ok
+  known_risks:
+  - Full Annual/Interim Report PDF body may be out of scope for some categories in
+    v0.1
+  - Must not treat results announcement numeric tables as News gold (Financial domain)
+  audit_status: live_verified
+  decision: primary
+  live_evidence: docs/news_mcp_discovery_v1/hkexnews_mcp_news_smoke.json
+- operation_id: hkexnews.download_hkexnews_announcement
+  server_id: mcp_hkexnews
+  role: primary
+  classification: primary
+  source_class: official_disclosure
+  exposed_mcp_tool: download_hkexnews_announcement
+  name: download_hkexnews_announcement
+  summary: Download one HKEXnews announcement PDF into local_key cache.
+  parameters:
+  - name: stock_code
+    type: string
+    required: false
+  - name: news_id
+    type: string
+    required: false
+  - name: release_date
+    type: string
+    required: false
+  - name: title_keyword
+    type: string
+    required: false
+  - name: local_key
+    type: string
+    required: false
+  output_fields:
+  - local_key
+  - status
+  depends_on_fields_from:
+  - producer: hkexnews.list_hkexnews_announcements
+    fields:
+    - local_key
+    - news_id
+    - release_date
+    - title
+    - stock_code
+  audit_status: live_verified
+  decision: primary
+  live_evidence: docs/news_mcp_discovery_v1/hkexnews_mcp_news_smoke.json
+- operation_id: hkexnews.parse_hkexnews_announcement
+  server_id: mcp_hkexnews
+  role: primary
+  classification: primary
+  source_class: official_disclosure
+  exposed_mcp_tool: parse_hkexnews_announcement
+  name: parse_hkexnews_announcement
+  summary: Parse downloaded announcement PDF into page JSON (required before keyword/pages).
+  parameters:
+  - name: local_key
+    type: string
+    required: true
+  output_fields:
+  - local_key
+  - pages
+  depends_on_fields_from:
+  - producer: hkexnews.download_hkexnews_announcement
+    fields:
+    - local_key
+  audit_status: live_verified
+  decision: primary
+  live_evidence: docs/news_mcp_discovery_v1/hkexnews_mcp_news_smoke.json
+- operation_id: hkexnews.keyword_search
+  server_id: mcp_hkexnews
+  role: primary
+  classification: primary
+  source_class: official_disclosure
+  exposed_mcp_tool: keyword_search
+  name: keyword_search
+  summary: Keyword search within a parsed announcement; returns page_number + snippet.
+  parameters:
+  - name: local_key
+    type: string
+    required: true
+  - name: keywords
+    type: array
+    required: true
+    description: list of keyword strings
+  - name: max_results
+    type: number
+    required: false
+    default: 5
+  output_fields:
+  - matches
+  - page_number
+  - snippet
+  content_availability: snippet
+  depends_on_fields_from:
+  - producer: hkexnews.parse_hkexnews_announcement
+    fields:
+    - local_key
+  audit_status: live_verified
+  decision: primary
+  live_evidence: docs/news_mcp_discovery_v1/hkexnews_dependency_chain_summary.json
+  notes: Argument name is keywords (list), not keyword. Singular keyword fails schema.
+- operation_id: hkexnews.get_announcement_pages
+  server_id: mcp_hkexnews
+  role: primary
+  classification: primary
+  source_class: official_disclosure
+  exposed_mcp_tool: get_announcement_pages
+  name: get_announcement_pages
+  summary: Fetch page text slices; requires local_key and start_page.
+  parameters:
+  - name: local_key
+    type: string
+    required: true
+  - name: start_page
+    type: number
+    required: true
+  - name: page_count
+    type: number
+    required: false
+    default: 3
+  output_fields:
+  - pages
+  - text
+  content_availability: page_text
+  depends_on_fields_from:
+  - producer: hkexnews.parse_hkexnews_announcement
+    fields:
+    - local_key
+  - producer: hkexnews.keyword_search
+    fields:
+    - page_number
+  audit_status: live_verified
+  decision: primary
+  live_evidence: docs/news_mcp_discovery_v1/hkexnews_dependency_chain_summary.json
+- operation_id: aktools.search_interfaces
+  server_id: aktools
+  role: supporting
+  classification: supporting
+  source_class: metadata_only
+  exposed_mcp_tool: search_interfaces
+  name: search_interfaces
+  summary: Search AKShare interface names (News discovery aid).
+  parameters:
+  - name: keyword
+    type: string
+    required: true
+  - name: limit
+    type: number
+    required: false
+    default: 20
+  audit_status: live_verified
+  decision: supporting
+  live_evidence: docs/news_mcp_discovery_v1/aktools_mcp_news_smoke.json
+- operation_id: aktools.describe_interface
+  server_id: aktools
+  role: supporting
+  classification: supporting
+  source_class: metadata_only
+  exposed_mcp_tool: describe_interface
+  name: describe_interface
+  summary: Describe AKShare interface schema before get_data.
+  parameters:
+  - name: name
+    type: string
+    required: true
+  audit_status: live_verified
+  decision: supporting
+  live_evidence: docs/news_mcp_discovery_v1/aktools_mcp_news_smoke.json
+- operation_id: aktools.stock_news_em
+  server_id: aktools
+  role: supporting_runtime_only
+  classification: distractor_for_formal_gold
+  source_class: financial_media
+  exposed_mcp_tool: get_data
+  underlying_interface: stock_news_em
+  name: stock_news_em
+  summary: 'East Money keyword/symbol news search returning headline, snippet, publish
+    time, media source name, and URL. Floating recent feed only (hardcoded ~10 rows;
+    no date params). Runtime-only / formal-gold distractor: live for three issuers
+    but n_before_cutoff=0.
 
-  - operation_id: hkexnews.download_hkexnews_announcement
-    server_id: mcp_hkexnews
-    role: primary
-    classification: primary
-    source_class: official_disclosure
-    exposed_mcp_tool: download_hkexnews_announcement
-    name: download_hkexnews_announcement
-    summary: Download one HKEXnews announcement PDF into local_key cache.
-    parameters:
-      - {name: stock_code, type: string, required: false}
-      - {name: news_id, type: string, required: false}
-      - {name: release_date, type: string, required: false}
-      - {name: title_keyword, type: string, required: false}
-      - {name: local_key, type: string, required: false}
-    output_fields: [local_key, status]
-    depends_on_fields_from:
-      - {producer: hkexnews.list_hkexnews_announcements, fields: [local_key, news_id, release_date, title, stock_code]}
-    audit_status: live_verified
-    decision: primary
-    live_evidence: docs/news_mcp_discovery_v1/hkexnews_mcp_news_smoke.json
+    '
+  parameters:
+  - name: symbol
+    type: string
+    required: true
+    description: ticker or company keyword
+  output_fields:
+  - 关键词
+  - 新闻标题
+  - 新闻内容
+  - 发布时间
+  - 文章来源
+  - 新闻链接
+  timestamp_field: 发布时间
+  source_url_field: 新闻链接
+  headline_field: 新闻标题
+  content_availability: snippet
+  date_range_filter: false
+  chronological_ordering: provider_default
+  languages:
+  - zh
+  formal_gold_eligible: false
+  heldout_evidence_eligible: false
+  issuer_coverage:
+    Tencent: live_ok_floating
+    HSBC: live_ok_floating
+    Alibaba: live_ok_floating
+  allowed_uses:
+  - tool_selection_distractor
+  - capability_gap_probe
+  - fail_closed_demo
+  - informal_demo
+  forbidden_uses:
+  - formal_numeric_or_text_gold
+  - heldout_answer_evidence
+  - official_vs_media_factual_comparison_gold
+  - cross_source_adapted_l4_formal
+  - latest_before_cutoff_gold
+  known_risks:
+  - n_before_cutoff=0 in 2026-08-12 probes — unsuitable as historical gold
+  - No start/end date parameters; feed drifts over time
+  - Ambiguous short codes (e.g. 700) can return unrelated articles
+  - Not equivalent to HKEXnews official disclosure (equal_function_sets empty)
+  audit_status: live_verified_runtime_only_not_formal_gold
+  decision: distractor
+  live_evidence: docs/news_mcp_discovery_v1/aktools_mcp_news_smoke.json
+- operation_id: ah_disclosure.resolve_company
+  server_id: ah_disclosure
+  role: supporting
+  classification: supporting
+  source_class: metadata_only
+  exposed_mcp_tool: resolve_company
+  name: resolve_company
+  summary: Normalize market/symbol for HK issuers.
+  parameters:
+  - name: market
+    type: string
+    required: true
+  - name: symbol
+    type: string
+    required: true
+  audit_status: live_verified
+  decision: supporting
+  live_evidence: docs/news_mcp_discovery_v1/ah_disclosure_news_smoke.json
+- operation_id: ah_disclosure.search_annual_report
+  server_id: ah_disclosure
+  role: supporting
+  classification: supporting
+  source_class: official_disclosure
+  exposed_mcp_tool: search_annual_report
+  name: search_annual_report
+  summary: 'Discover Annual Report title + HKEXnews PDF URL by year. News-usable for
+    existence/date/title tasks only — not for Financial numeric extraction.
 
-  - operation_id: hkexnews.parse_hkexnews_announcement
-    server_id: mcp_hkexnews
-    role: primary
-    classification: primary
-    source_class: official_disclosure
-    exposed_mcp_tool: parse_hkexnews_announcement
-    name: parse_hkexnews_announcement
-    summary: Parse downloaded announcement PDF into page JSON (required before keyword/pages).
-    parameters:
-      - {name: local_key, type: string, required: true}
-    output_fields: [local_key, pages]
-    depends_on_fields_from:
-      - {producer: hkexnews.download_hkexnews_announcement, fields: [local_key]}
-    audit_status: live_verified
-    decision: primary
-    live_evidence: docs/news_mcp_discovery_v1/hkexnews_mcp_news_smoke.json
-
-  - operation_id: hkexnews.keyword_search
-    server_id: mcp_hkexnews
-    role: primary
-    classification: primary
-    source_class: official_disclosure
-    exposed_mcp_tool: keyword_search
-    name: keyword_search
-    summary: Keyword search within a parsed announcement; returns page_number + snippet.
-    parameters:
-      - {name: local_key, type: string, required: true}
-      - {name: keywords, type: array, required: true, description: "list of keyword strings"}
-      - {name: max_results, type: number, required: false, default: 5}
-    output_fields: [matches, page_number, snippet]
-    content_availability: snippet
-    depends_on_fields_from:
-      - {producer: hkexnews.parse_hkexnews_announcement, fields: [local_key]}
-    audit_status: live_verified
-    decision: primary
-    live_evidence: docs/news_mcp_discovery_v1/hkexnews_dependency_chain_summary.json
-    notes: "Argument name is keywords (list), not keyword. Singular keyword fails schema."
-
-  - operation_id: hkexnews.get_announcement_pages
-    server_id: mcp_hkexnews
-    role: primary
-    classification: primary
-    source_class: official_disclosure
-    exposed_mcp_tool: get_announcement_pages
-    name: get_announcement_pages
-    summary: Fetch page text slices; requires local_key and start_page.
-    parameters:
-      - {name: local_key, type: string, required: true}
-      - {name: start_page, type: number, required: true}
-      - {name: page_count, type: number, required: false, default: 3}
-    output_fields: [pages, text]
-    content_availability: page_text
-    depends_on_fields_from:
-      - {producer: hkexnews.parse_hkexnews_announcement, fields: [local_key]}
-      - {producer: hkexnews.keyword_search, fields: [page_number]}
-    audit_status: live_verified
-    decision: primary
-    live_evidence: docs/news_mcp_discovery_v1/hkexnews_dependency_chain_summary.json
-
-  # ---- Supporting: AKTools meta + media ----
-  - operation_id: aktools.search_interfaces
-    server_id: aktools
-    role: supporting
-    classification: supporting
-    source_class: metadata_only
-    exposed_mcp_tool: search_interfaces
-    name: search_interfaces
-    summary: Search AKShare interface names (News discovery aid).
-    parameters:
-      - {name: keyword, type: string, required: true}
-      - {name: limit, type: number, required: false, default: 20}
-    audit_status: live_verified
-    decision: supporting
-    live_evidence: docs/news_mcp_discovery_v1/aktools_mcp_news_smoke.json
-
-  - operation_id: aktools.describe_interface
-    server_id: aktools
-    role: supporting
-    classification: supporting
-    source_class: metadata_only
-    exposed_mcp_tool: describe_interface
-    name: describe_interface
-    summary: Describe AKShare interface schema before get_data.
-    parameters:
-      - {name: name, type: string, required: true}
-    audit_status: live_verified
-    decision: supporting
-    live_evidence: docs/news_mcp_discovery_v1/aktools_mcp_news_smoke.json
-
-  - operation_id: aktools.stock_news_em
-    server_id: aktools
-    role: supporting_runtime_only
-    classification: distractor_for_formal_gold
-    source_class: financial_media
-    exposed_mcp_tool: get_data
-    underlying_interface: stock_news_em
-    name: stock_news_em
-    summary: >
-      East Money keyword/symbol news search returning headline, snippet, publish time,
-      media source name, and URL. Floating recent feed only (hardcoded ~10 rows; no date params).
-      Runtime-only / formal-gold distractor: live for three issuers but n_before_cutoff=0.
-    parameters:
-      - {name: symbol, type: string, required: true, description: "ticker or company keyword"}
-    output_fields: [关键词, 新闻标题, 新闻内容, 发布时间, 文章来源, 新闻链接]
-    timestamp_field: 发布时间
-    source_url_field: 新闻链接
-    headline_field: 新闻标题
-    content_availability: snippet
-    date_range_filter: false
-    chronological_ordering: provider_default
-    languages: [zh]
-    formal_gold_eligible: false
-    heldout_evidence_eligible: false
-    issuer_coverage: {Tencent: live_ok_floating, HSBC: live_ok_floating, Alibaba: live_ok_floating}
-    allowed_uses:
-      - tool_selection_distractor
-      - capability_gap_probe
-      - fail_closed_demo
-      - informal_demo
-    forbidden_uses:
-      - formal_numeric_or_text_gold
-      - heldout_answer_evidence
-      - official_vs_media_factual_comparison_gold
-      - cross_source_adapted_l4_formal
-      - latest_before_cutoff_gold
-    known_risks:
-      - n_before_cutoff=0 in 2026-08-12 probes — unsuitable as historical gold
-      - No start/end date parameters; feed drifts over time
-      - Ambiguous short codes (e.g. 700) can return unrelated articles
-      - Not equivalent to HKEXnews official disclosure (equal_function_sets empty)
-    audit_status: live_verified_runtime_only_not_formal_gold
-    decision: distractor
-    live_evidence: docs/news_mcp_discovery_v1/aktools_mcp_news_smoke.json
-
-  # ---- Supporting: ah-disclosure title/URL discovery ----
-  - operation_id: ah_disclosure.resolve_company
-    server_id: ah_disclosure
-    role: supporting
-    classification: supporting
-    source_class: metadata_only
-    exposed_mcp_tool: resolve_company
-    name: resolve_company
-    summary: Normalize market/symbol for HK issuers.
-    parameters:
-      - {name: market, type: string, required: true}
-      - {name: symbol, type: string, required: true}
-    audit_status: live_verified
-    decision: supporting
-    live_evidence: docs/news_mcp_discovery_v1/ah_disclosure_news_smoke.json
-
-  - operation_id: ah_disclosure.search_annual_report
-    server_id: ah_disclosure
-    role: supporting
-    classification: supporting
-    source_class: official_disclosure
-    exposed_mcp_tool: search_annual_report
-    name: search_annual_report
-    summary: >
-      Discover Annual Report title + HKEXnews PDF URL by year. News-usable for
-      existence/date/title tasks only — not for Financial numeric extraction.
-    parameters:
-      - {name: market, type: string, required: true}
-      - {name: symbol, type: string, required: true}
-      - {name: year, type: number, required: true}
-    output_fields: [title, publish_time, pdf_url, document_type, source]
-    timestamp_field: publish_time
-    source_url_field: pdf_url
-    headline_field: title
-    issuer_coverage: {Tencent: live_ok, HSBC: prior_ok, Alibaba: prior_ok}
-    known_risks:
-      - Distinct from results announcement; do not mix source classes
-      - Numeric tables remain Financial domain
-    audit_status: live_verified
-    decision: supporting
-    live_evidence: docs/news_mcp_discovery_v1/ah_disclosure_news_smoke.json
-
-  # ---- Distractors ----
-  - operation_id: ah_disclosure.search_filings
-    server_id: ah_disclosure
-    role: distractor
-    classification: distractor
-    source_class: official_disclosure
-    exposed_mcp_tool: search_filings
-    name: search_filings
-    summary: Filing search that appeared to ignore date window in live probes (post-cutoff hits).
-    parameters:
-      - {name: market, type: string, required: true}
-      - {name: symbol, type: string, required: true}
-      - {name: start_date, type: string, required: false}
-      - {name: end_date, type: string, required: false}
-      - {name: category, type: string, required: false}
-      - {name: keyword, type: string, required: false}
-    known_risks:
-      - Date filter not trustworthy for cutoff gold (see date_filter_probe)
-    audit_status: live_verified_unsafe_for_cutoff_gold
-    decision: distractor
-    live_evidence: docs/news_mcp_discovery_v1/ah_disclosure_date_filter_probe.json
-
-  - operation_id: aktools.stock_notice_report
-    server_id: aktools
-    role: distractor
-    classification: distractor
-    source_class: official_disclosure
-    exposed_mcp_tool: get_data
-    underlying_interface: stock_notice_report
-    name: stock_notice_report
-    summary: East Money A-share notice board by date (not HKEX issuer feed).
-    parameters:
-      - {name: symbol, type: string, required: false}
-      - {name: date, type: string, required: true}
-    issuer_coverage: {Tencent: not_applicable, HSBC: not_applicable, Alibaba: not_applicable}
-    audit_status: live_verified_a_share_only
-    decision: distractor
-    live_evidence: docs/news_mcp_discovery_v1/aktools_mcp_news_smoke.json
-
-  - operation_id: aktools.stock_gsrl_gsdt_em
-    server_id: aktools
-    role: distractor
-    classification: distractor
-    source_class: aggregator
-    exposed_mcp_tool: get_data
-    underlying_interface: stock_gsrl_gsdt_em
-    name: stock_gsrl_gsdt_em
-    summary: East Money A-share company-event calendar for a trading day.
-    parameters:
-      - {name: date, type: string, required: true}
-    audit_status: live_verified_a_share_only
-    decision: distractor
-    live_evidence: docs/news_mcp_discovery_v1/aktools_mcp_news_smoke.json
-
-  - operation_id: aktools.stock_info_global_em
-    server_id: aktools
-    role: distractor
-    classification: distractor
-    source_class: financial_media
-    exposed_mcp_tool: get_data
-    underlying_interface: stock_info_global_em
-    name: stock_info_global_em
-    summary: East Money global flash headlines (not issuer-scoped HK news).
-    parameters: []
-    audit_status: live_verified
-    decision: distractor
-    live_evidence: docs/news_mcp_discovery_v1/aktools_mcp_news_smoke.json
-
-  - operation_id: aktools.news_cctv
-    server_id: aktools
-    role: distractor
-    classification: distractor
-    source_class: financial_media
-    exposed_mcp_tool: get_data
-    underlying_interface: news_cctv
-    name: news_cctv
-    summary: CCTV news transcript by date — macro/political, not HK issuer news.
-    parameters:
-      - {name: date, type: string, required: true}
-    audit_status: live_verified
-    decision: distractor
-    live_evidence: docs/news_mcp_discovery_v1/aktools_mcp_news_smoke.json
-
-  - operation_id: aktools.stock_news_main_cx
-    server_id: aktools
-    role: distractor
-    classification: distractor
-    source_class: financial_media
-    exposed_mcp_tool: get_data
-    underlying_interface: stock_news_main_cx
-    name: stock_news_main_cx
-    summary: Caixin data-通 headline feed without issuer/date filter.
-    parameters: []
-    audit_status: live_verified
-    decision: distractor
-    live_evidence: docs/news_mcp_discovery_v1/aktools_mcp_news_smoke.json
-
-  # ---- Blocked / rejected (documented, not accepted primary) ----
-  - operation_id: ftshare.ft_v1_report_announcements_list
-    server_id: ftshare
-    role: blocked
-    classification: blocked
-    source_class: blocked
-    name: ft_v1_report_announcements_list
-    summary: FTShare announcements list (schema known; data path blocked without API key).
-    audit_status: blocked
-    decision: blocked
-    rejection_reason: Anonymous quota / missing FTSHARE_API_KEY (prior discovery).
-
-  - operation_id: aktools.stock_individual_notice_report
-    server_id: aktools
-    role: rejected
-    classification: rejected
-    source_class: rejected
-    exposed_mcp_tool: get_data
-    underlying_interface: stock_individual_notice_report
-    name: stock_individual_notice_report
-    summary: Individual notice report — failed live for HK 00700 ('代码' key error).
-    audit_status: live_failed
-    decision: rejected
-    rejection_reason: Live MCP get_data failed for HK security code.
-
-  - operation_id: mock.news_server
-    server_id: mock
-    role: rejected
-    classification: rejected
-    source_class: rejected
-    name: mock_news_server
-    summary: In-repo offline NewsServer mock — not a Real-MCP server.
-    audit_status: rejected
-    decision: rejected
-    rejection_reason: Offline mock only; forbidden as Real-MCP gold path.
-
+    '
+  parameters:
+  - name: market
+    type: string
+    required: true
+  - name: symbol
+    type: string
+    required: true
+  - name: year
+    type: number
+    required: true
+  output_fields:
+  - title
+  - publish_time
+  - pdf_url
+  - document_type
+  - source
+  timestamp_field: publish_time
+  source_url_field: pdf_url
+  headline_field: title
+  issuer_coverage:
+    Tencent: live_ok
+    HSBC: prior_ok
+    Alibaba: prior_ok
+  known_risks:
+  - Distinct from results announcement; do not mix source classes
+  - Numeric tables remain Financial domain
+  audit_status: live_verified
+  decision: supporting
+  live_evidence: docs/news_mcp_discovery_v1/ah_disclosure_news_smoke.json
+- operation_id: ah_disclosure.search_filings
+  server_id: ah_disclosure
+  role: distractor
+  classification: distractor
+  source_class: official_disclosure
+  exposed_mcp_tool: search_filings
+  name: search_filings
+  summary: Filing search that appeared to ignore date window in live probes (post-cutoff
+    hits).
+  parameters:
+  - name: market
+    type: string
+    required: true
+  - name: symbol
+    type: string
+    required: true
+  - name: start_date
+    type: string
+    required: false
+  - name: end_date
+    type: string
+    required: false
+  - name: category
+    type: string
+    required: false
+  - name: keyword
+    type: string
+    required: false
+  known_risks:
+  - Date filter not trustworthy for cutoff gold (see date_filter_probe)
+  audit_status: live_verified_unsafe_for_cutoff_gold
+  decision: distractor
+  live_evidence: docs/news_mcp_discovery_v1/ah_disclosure_date_filter_probe.json
+- operation_id: aktools.stock_notice_report
+  server_id: aktools
+  role: distractor
+  classification: distractor
+  source_class: official_disclosure
+  exposed_mcp_tool: get_data
+  underlying_interface: stock_notice_report
+  name: stock_notice_report
+  summary: East Money A-share notice board by date (not HKEX issuer feed).
+  parameters:
+  - name: symbol
+    type: string
+    required: false
+  - name: date
+    type: string
+    required: true
+  issuer_coverage:
+    Tencent: not_applicable
+    HSBC: not_applicable
+    Alibaba: not_applicable
+  audit_status: live_verified_a_share_only
+  decision: distractor
+  live_evidence: docs/news_mcp_discovery_v1/aktools_mcp_news_smoke.json
+- operation_id: aktools.stock_gsrl_gsdt_em
+  server_id: aktools
+  role: distractor
+  classification: distractor
+  source_class: aggregator
+  exposed_mcp_tool: get_data
+  underlying_interface: stock_gsrl_gsdt_em
+  name: stock_gsrl_gsdt_em
+  summary: East Money A-share company-event calendar for a trading day.
+  parameters:
+  - name: date
+    type: string
+    required: true
+  audit_status: live_verified_a_share_only
+  decision: distractor
+  live_evidence: docs/news_mcp_discovery_v1/aktools_mcp_news_smoke.json
+- operation_id: aktools.stock_info_global_em
+  server_id: aktools
+  role: distractor
+  classification: distractor
+  source_class: financial_media
+  exposed_mcp_tool: get_data
+  underlying_interface: stock_info_global_em
+  name: stock_info_global_em
+  summary: East Money global flash headlines (not issuer-scoped HK news).
+  parameters: []
+  audit_status: live_verified
+  decision: distractor
+  live_evidence: docs/news_mcp_discovery_v1/aktools_mcp_news_smoke.json
+- operation_id: aktools.news_cctv
+  server_id: aktools
+  role: distractor
+  classification: distractor
+  source_class: financial_media
+  exposed_mcp_tool: get_data
+  underlying_interface: news_cctv
+  name: news_cctv
+  summary: CCTV news transcript by date — macro/political, not HK issuer news.
+  parameters:
+  - name: date
+    type: string
+    required: true
+  audit_status: live_verified
+  decision: distractor
+  live_evidence: docs/news_mcp_discovery_v1/aktools_mcp_news_smoke.json
+- operation_id: aktools.stock_news_main_cx
+  server_id: aktools
+  role: distractor
+  classification: distractor
+  source_class: financial_media
+  exposed_mcp_tool: get_data
+  underlying_interface: stock_news_main_cx
+  name: stock_news_main_cx
+  summary: Caixin data-通 headline feed without issuer/date filter.
+  parameters: []
+  audit_status: live_verified
+  decision: distractor
+  live_evidence: docs/news_mcp_discovery_v1/aktools_mcp_news_smoke.json
+- operation_id: ftshare.ft_v1_report_announcements_list
+  server_id: ftshare
+  role: blocked
+  classification: blocked
+  source_class: blocked
+  name: ft_v1_report_announcements_list
+  summary: FTShare announcements list (schema known; data path blocked without API
+    key).
+  audit_status: blocked
+  decision: blocked
+  rejection_reason: Anonymous quota / missing FTSHARE_API_KEY (prior discovery).
+- operation_id: aktools.stock_individual_notice_report
+  server_id: aktools
+  role: rejected
+  classification: rejected
+  source_class: rejected
+  exposed_mcp_tool: get_data
+  underlying_interface: stock_individual_notice_report
+  name: stock_individual_notice_report
+  summary: Individual notice report — failed live for HK 00700 ('代码' key error).
+  audit_status: live_failed
+  decision: rejected
+  rejection_reason: Live MCP get_data failed for HK security code.
+- operation_id: mock.news_server
+  server_id: mock
+  role: rejected
+  classification: rejected
+  source_class: rejected
+  name: mock_news_server
+  summary: In-repo offline NewsServer mock — not a Real-MCP server.
+  audit_status: rejected
+  decision: rejected
+  rejection_reason: Offline mock only; forbidden as Real-MCP gold path.
 equal_function_sets: []
-# Intentionally empty: stock_news_em (media) is NOT function-equivalent to
-# hkexnews.list_hkexnews_announcements (official disclosure). ah search_filings
-# is not date-safe equivalent to hkexnews list.
+supersession_status: superseded_by_frozen_v1
+superseded_by: configs/operations/news_real_mcp_v1.yaml

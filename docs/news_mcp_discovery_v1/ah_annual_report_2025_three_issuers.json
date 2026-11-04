@@ -1,0 +1,68 @@
+{
+  "cutoff": "2026-08-12",
+  "annual_reports": {
+    "Tencent": {
+      "success": true,
+      "year": 2025,
+      "symbol": "00700",
+      "publish_time": "2026-04-09",
+      "within_cutoff": true,
+      "record": {
+        "market": "H",
+        "symbol": "00700",
+        "company_name": "TENCENT",
+        "title": "ANNUAL REPORT 2025",
+        "publish_time": "2026-04-09",
+        "document_type": "Financial Statements/ESG Information - [Annual Report]",
+        "source": "HKEXnews",
+        "detail_url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0409/2026040901231.pdf",
+        "pdf_url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0409/2026040901231.pdf",
+        "raw_id": "2026040901231",
+        "category": "Financial Statements/ESG Information - [Annual Report]",
+        "file_size_label": "4MB"
+      }
+    },
+    "HSBC": {
+      "success": true,
+      "year": 2025,
+      "symbol": "00005",
+      "publish_time": "2026-03-27",
+      "within_cutoff": true,
+      "record": {
+        "market": "H",
+        "symbol": "00005",
+        "company_name": "HSBC HOLDINGS",
+        "title": "Annual Report and Accounts 2025 (with employee share plans)",
+        "publish_time": "2026-03-27",
+        "document_type": "Financial Statements/ESG Information - [Annual Report / Environmental, Social and Governance Information/Report]",
+        "source": "HKEXnews",
+        "detail_url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0327/2026032700187.pdf",
+        "pdf_url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0327/2026032700187.pdf",
+        "raw_id": "2026032700187",
+        "category": "Financial Statements/ESG Information - [Annual Report / Environmental, Social and Governance Information/Report]",
+        "file_size_label": "12MB"
+      }
+    },
+    "Alibaba": {
+      "success": true,
+      "year": 2025,
+      "symbol": "09988",
+      "publish_time": "2025-06-26",
+      "within_cutoff": true,
+      "record": {
+        "market": "H",
+        "symbol": "09988",
+        "company_name": "BABA-W",
+        "title": "FISCAL YEAR 2025 ANNUAL REPORT",
+        "publish_time": "2025-06-26",
+        "document_type": "Financial Statements/ESG Information - [Annual Report]",
+        "source": "HKEXnews",
+        "detail_url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2025/0626/2025062601064.pdf",
+        "pdf_url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2025/0626/2025062601064.pdf",
+        "raw_id": "2025062601064",
+        "category": "Financial Statements/ESG Information - [Annual Report]",
+        "file_size_label": "7MB"
+      }
+    }
+  }
+}
