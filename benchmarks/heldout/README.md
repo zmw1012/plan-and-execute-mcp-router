@@ -4,29 +4,27 @@
 
 | File | Status | Notes |
 |---|---|---|
-| `financial_test_30_v1.jsonl` | **`superseded_before_any_agent_run`** | Candidate freeze at `f85d53f`. Superseded because 14 `evidence_answerable` items cited formal Annual/Interim **Reports** and report PDF pages while `gold_operations` used **mcp-hkexnews v0.1**, which only supports results/performance **announcements**. No agent/LLM run was ever executed on this file. |
-| `financial_test_30_v1_1.jsonl` | **`active`** | Provenance-audited held-out Test 30. |
+| `financial_test_30_v1.jsonl` | **`superseded_before_any_agent_run`** | Candidate freeze at `f85d53f`. Superseded for evidence-document provenance (report vs results announcement). No agent/LLM run. |
+| `financial_test_30_v1_1.jsonl` | **`superseded_before_any_agent_run`** | Provenance-audited golds. Superseded by taxonomy v1.2 **before any Agent evaluation** (`fin_ht_*` absent from all `predictions.jsonl`). Numerical gold retained as trail. |
+| `financial_test_30_v1_2.jsonl` | **`active`** | Taxonomy-corrected Held-out 30. Strict ETOM vs project-difficulty dual labels. Numerical gold identical to v1.1. |
 
 ## Market
 
 | File | Status | Notes |
 |---|---|---|
-| `market_test_20_v1.jsonl` | **`superseded_before_any_agent_run`** | Initial Market freeze at `c91e910`. Superseded for **taxonomy/provenance/schema** correction (package name, blocked FTShare IDs, ETOM vs project-difficulty separation, adjustment_mode schema) **before any Agent/LLM/embedding run**. Numerical gold unchanged; retained as provenance trail. |
-| `market_test_20_v1_1.jsonl` | **`active`** | Taxonomy-corrected Market held-out 20. Locked/`final_evaluation_only`. Catalog: `configs/operations/market_real_mcp_v1_1.yaml`. |
+| `market_test_20_v1.jsonl` | **`superseded_before_any_agent_run`** | Initial Market freeze. Superseded for taxonomy/provenance/schema correction before any Agent run. |
+| `market_test_20_v1_1.jsonl` | **`active`** | Taxonomy-corrected Market held-out 20. Catalog: `market_real_mcp_v1_1.yaml`. |
 
-## Why Market v1 was superseded
+## Financial Development (non-heldout, for context)
 
-v1 incorrectly:
-
-1. Labeled the Python package as `mcp-server-aktools` instead of `aktools==0.1.4`
-2. Used non-candidate blocked FTShare aliases instead of `ftshare.ft_v2_hk_hk_candlesticks` / `ftshare.ft_v1_hk_hsi_daily_weight`
-3. Treated local calculation difficulty as ETOM L3/L4 despite a single-server Market catalog
-
-v1.1 keeps the same questions, membership, and numerical gold; it adds strict ETOM fields and project difficulty distribution.
+| File | Status |
+|---|---|
+| `../questions/financial_real_mcp_coverage_v1.jsonl` | **`taxonomy_corrected_after_nonformal_pilot`** (same `fin_cf_*` content used in mcp-free/flat/OV pilots via `financial_mcp_free_30_v1.jsonl`) |
+| `../questions/financial_real_mcp_coverage_v1_2.jsonl` | **`active`** Development taxonomy v1.2 |
 
 ## Validation
 
-- Market: `scripts/validate_market_benchmark_v1_1.py`, `tests/test_market_benchmark_v1_1.py`
-- Financial: `scripts/validate_financial_heldout_test_v1_1.py`
+- Financial taxonomy: `scripts/validate_financial_taxonomy_v1_2.py`, `tests/test_financial_taxonomy_v1_2.py`
+- Market: `scripts/validate_market_benchmark_v1_1.py`
 
 Do not expose gold / provenance fields to agent prompts.
