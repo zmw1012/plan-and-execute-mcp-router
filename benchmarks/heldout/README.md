@@ -22,6 +22,12 @@
 |---|---|---|
 | `news_test_20_v1.jsonl` | **`active`** | Locked held-out 20; `heldout_agent_run_status=never_agent_run`. Catalog: `news_real_mcp_v1.yaml`. Exact L2/L4 = 0. |
 
+## Cross-domain
+
+| File | Status | Notes |
+|---|---|---|
+| `cross_domain_test_15_v1.jsonl` | **`active`** | Locked held-out 15; `never_agent_run`. Manifest: `cross_domain_real_mcp_v1.yaml` (references frozen domain catalogs). |
+
 ## Financial Development (non-heldout, for context)
 
 | File | Status |
@@ -42,6 +48,7 @@
 - Financial taxonomy v1.2 (historical): `scripts/validate_financial_taxonomy_v1_2.py`, `tests/test_financial_taxonomy_v1_2.py`
 - Market: `scripts/validate_market_benchmark_v1_1.py`
 - News: `scripts/validate_news_benchmark_v1.py`, `tests/test_news_benchmark_v1.py`
+- Cross-domain: `scripts/validate_cross_domain_benchmark_v1.py`, `tests/test_cross_domain_benchmark_v1.py`
 - HKEXnews dependency smoke evidence: `docs/financial_hkexnews_dependency_smoke_v1/`, `docs/news_mcp_discovery_v1/`
 
 Do not expose gold / provenance fields to agent prompts.
