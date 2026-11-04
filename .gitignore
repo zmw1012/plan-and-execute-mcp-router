@@ -47,3 +47,10 @@ results/
 # Large or local data dumps (keep mock/ and .gitkeep)
 data/raw/
 data/private/
+
+# ETOM external pilot: raw checkout, derived registry, embedding cache.
+# Pin, lock, and conversion code stay tracked. Do not commit API keys.
+data/etom/raw/
+data/etom/derived/
+data/etom/cache/
+.cache/etom_embeddings/
