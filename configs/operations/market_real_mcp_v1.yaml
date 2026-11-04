@@ -1,0 +1,513 @@
+# Frozen Market Real-MCP catalog v1 (active Operation Resolver registry).
+# Source candidate: configs/operations/market_real_mcp_candidate_v1.yaml
+# Freeze cutoff: 2026-08-12 (Asia/Hong_Kong). Previous-valid-day: max(session <= requested).
+# Blocked FTShare ops and empty-window minute hist are NOT in active operations[].
+# Formal gold price source for L1–L4: stock_hk_hist (adjust="") and stock_hk_index_daily_sina (HSI).
+# Distractors are executable but NOT formal gold price sources.
+
+catalog_id: market_real_mcp_v1
+version: "1.0"
+status: frozen
+domain: market
+dataset_cutoff: "2026-08-12"
+timezone: Asia/Hong_Kong
+currency_default: HKD
+currency_provenance_default: exchange_convention
+formal_gold_price_ops:
+  - aktools.stock_hk_hist
+  - aktools.stock_hk_index_daily_sina
+previous_valid_day_rule: max_available_session_date_le_requested
+forward_fill_forbidden: true
+post_cutoff_rows_forbidden: true
+default_adjustment_mode: ""
+allowed_adjustment_modes: ["", "qfq", "hfq"]
+auto_mix_adjustment_forbidden: true
+tool_trade_date_hist_sina_is_hkex_official_calendar: false
+candidate_source: configs/operations/market_real_mcp_candidate_v1.yaml
+schema_layers:
+  raw_mcp_tools:
+    - search_interfaces
+    - describe_interface
+    - get_data
+  logical_operations: "see operations[].operation_id"
+  active_searchable_operations: "operations[] only (this file)"
+  blocked_rejected_candidates: "see blocked_operations + deferred_operations below"
+
+blocked_operations:
+  - operation_id: ftshare.hk_hist
+    reason: streamable_http_429_unreliable; not in active registry; not gold
+  - operation_id: ftshare.stock_hk_daily
+    reason: streamable_http_429_unreliable; not in active registry; not gold
+
+deferred_operations:
+  - operation_id: aktools.stock_hk_hist_min_em
+    reason: empty_window_evidence_only_under_cutoff; not in frozen active catalog
+    candidate_role_was: supporting
+
+servers:
+  - server_id: aktools
+    package: mcp-server-aktools
+    transport: stdio
+    command_env: AKTOOLS_MCP_COMMAND
+    default_command: aktools-mcp
+    notes: Only active Market Real-MCP server in v1. Fail-closed if binary/SDK missing.
+
+operations:
+  # ---- primary (formal gold price) ----
+  - operation_id: aktools.stock_hk_hist
+    server_id: aktools
+    name: stock_hk_hist
+    role: primary
+    audit_status: verified
+    formal_gold_price_source: true
+    summary: HK equity daily OHLCV history with explicit start/end and adjust mode.
+    description: >
+      Formal Development/Held-out gold price source for single names. Default
+      adjust="" (unadjusted). Do not auto-mix qfq/hfq. Dates must be <= 2026-08-12.
+    action_terms: [hk, equity, history, ohlcv, close, volume, adjust, qfq, hfq]
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: stock_hk_hist
+    provider: eastmoney_via_akshare
+    parameters:
+      - name: symbol
+        type: string
+        required: true
+        description: "5-digit HK code without exchange suffix (e.g. 00700)."
+      - name: start_date
+        type: string
+        required: true
+        description: "YYYYMMDD inclusive start."
+      - name: end_date
+        type: string
+        required: true
+        description: "YYYYMMDD inclusive end; must be <= 20260812."
+      - name: period
+        type: string
+        required: false
+        default: "daily"
+        enum: ["daily"]
+      - name: adjust
+        type: string
+        required: false
+        default: ""
+        enum: ["", "qfq", "hfq"]
+        description: "Empty string = unadjusted (formal default)."
+    read_only: true
+    constraints:
+      - "date window end <= 2026-08-12"
+      - "formal gold uses adjust='' unless question explicitly asks adjusted"
+      - "never auto-mix adjust modes"
+    invocation_guidance: >
+      Pass symbol, start_date, end_date, period=daily, adjust explicitly.
+      Adapter normalizes rows and records currency_provenance=exchange_convention.
+    known_risks:
+      - "HKD is exchange-convention inference, not an explicit API field"
+      - "provider may revise history; freeze via provenance hash"
+    execution:
+      kind: aktools_get_data
+      interface: stock_hk_hist
+      param_keys: [symbol, period, start_date, end_date, adjust]
+      defaults:
+        period: daily
+        adjust: ""
+      max_rows: 1000
+      offset: 0
+      post_filter: cutoff_inclusive
+      previous_valid_day: true
+
+  - operation_id: aktools.stock_hk_index_daily_sina
+    server_id: aktools
+    name: stock_hk_index_daily_sina
+    role: primary
+    audit_status: verified
+    formal_gold_price_source: true
+    summary: HSI (and selected HK indices) daily history via Sina; requires negative offset + post-filter.
+    description: >
+      Formal gold source for Hang Seng Index levels. Call with symbol=HSI,
+      offset<0 (recent slice), then adapter keeps only date <= 2026-08-12 and
+      applies previous-valid-day. Never use post-cutoff rows.
+    action_terms: [hsi, hang seng, index, daily, level, close]
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: stock_hk_index_daily_sina
+    provider: sina_via_akshare
+    parameters:
+      - name: symbol
+        type: string
+        required: true
+        description: "Index code, typically HSI."
+      - name: offset
+        type: integer
+        required: false
+        default: -400
+        description: "Negative offset to reach recent history (provider quirk)."
+      - name: max_rows
+        type: integer
+        required: false
+        default: 400
+      - name: target_date
+        type: string
+        required: false
+        description: "Optional YYYY-MM-DD; adapter selects previous-valid session <= target and <= cutoff."
+    read_only: true
+    constraints:
+      - "must post-filter date <= 2026-08-12"
+      - "no forward-fill from future sessions"
+      - "not an official HKEX calendar"
+    invocation_guidance: Use symbol=HSI with negative offset; rely on adapter cutoff filter.
+    known_risks:
+      - "without post-filter, response can include post-cutoff sessions"
+      - "provider close may differ slightly from other HSI feeds"
+    execution:
+      kind: aktools_get_data
+      interface: stock_hk_index_daily_sina
+      param_keys: [symbol]
+      defaults:
+        offset: -400
+        max_rows: 400
+      post_filter: cutoff_inclusive
+      previous_valid_day: true
+
+  # ---- supporting ----
+  - operation_id: aktools.search_interfaces
+    server_id: aktools
+    name: search_interfaces
+    role: supporting
+    audit_status: verified
+    formal_gold_price_source: false
+    summary: Keyword search over AKTools interface catalog.
+    description: Discovery helper; not a price gold source.
+    action_terms: [search, interface, discover, aktools]
+    exposed_mcp_tool: search_interfaces
+    underlying_aktools_interface: null
+    provider: aktools_catalog
+    parameters:
+      - name: keyword
+        type: string
+        required: true
+    read_only: true
+    constraints: ["not a price series source"]
+    invocation_guidance: Use keyword like 'hk hist' or 'hsi'.
+    known_risks: []
+    execution:
+      kind: mcp_tool
+      tool: search_interfaces
+      arg_map: {keyword: keyword}
+
+  - operation_id: aktools.describe_interface
+    server_id: aktools
+    name: describe_interface
+    role: supporting
+    audit_status: verified
+    formal_gold_price_source: false
+    summary: Describe an AKTools interface schema.
+    description: Discovery helper; not a price gold source.
+    action_terms: [describe, schema, interface]
+    exposed_mcp_tool: describe_interface
+    underlying_aktools_interface: null
+    provider: aktools_catalog
+    parameters:
+      - name: name
+        type: string
+        required: true
+    read_only: true
+    constraints: ["not a price series source"]
+    invocation_guidance: Pass exact interface name.
+    known_risks: []
+    execution:
+      kind: mcp_tool
+      tool: describe_interface
+      arg_map: {name: name}
+
+  - operation_id: aktools.stock_hk_daily
+    server_id: aktools
+    name: stock_hk_daily
+    role: supporting
+    audit_status: verified
+    formal_gold_price_source: false
+    summary: Alternate HK daily bars (Sina); requires post-filter; not formal gold.
+    description: >
+      Executable supporting series. Prefer stock_hk_hist for formal gold.
+      Adapter post-filters date <= cutoff and supports previous-valid-day.
+    action_terms: [hk, daily, sina, equity]
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: stock_hk_daily
+    provider: sina_via_akshare
+    parameters:
+      - name: symbol
+        type: string
+        required: true
+        description: "Sina-style symbol e.g. 00700.HK"
+      - name: offset
+        type: integer
+        required: false
+        default: -400
+      - name: max_rows
+        type: integer
+        required: false
+        default: 400
+      - name: target_date
+        type: string
+        required: false
+    read_only: true
+    constraints:
+      - "not formal gold price source"
+      - "must post-filter date <= 2026-08-12"
+    invocation_guidance: Supporting/cross-check only; formal gold uses stock_hk_hist.
+    known_risks:
+      - "symbol format differs from stock_hk_hist (00700.HK)"
+      - "values may diverge from East Money hist"
+    execution:
+      kind: aktools_get_data
+      interface: stock_hk_daily
+      param_keys: [symbol]
+      defaults:
+        offset: -400
+        max_rows: 400
+      post_filter: cutoff_inclusive
+      previous_valid_day: true
+
+  - operation_id: aktools.stock_hk_index_daily_em
+    server_id: aktools
+    name: stock_hk_index_daily_em
+    role: supporting
+    audit_status: verified
+    formal_gold_price_source: false
+    summary: Alternate HSI daily via East Money; supporting cross-check only.
+    description: Not formal gold; prefer stock_hk_index_daily_sina for locked answers.
+    action_terms: [hsi, index, eastmoney, daily]
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: stock_hk_index_daily_em
+    provider: eastmoney_via_akshare
+    parameters:
+      - name: symbol
+        type: string
+        required: true
+        default: "HSI"
+      - name: start_date
+        type: string
+        required: false
+      - name: end_date
+        type: string
+        required: false
+    read_only: true
+    constraints: ["not formal gold price source", "end_date <= 20260812"]
+    invocation_guidance: Supporting only.
+    known_risks: ["may disagree slightly with Sina HSI"]
+    execution:
+      kind: aktools_get_data
+      interface: stock_hk_index_daily_em
+      param_keys: [symbol, start_date, end_date]
+      defaults:
+        symbol: HSI
+      max_rows: 1000
+      post_filter: cutoff_inclusive
+      previous_valid_day: true
+
+  - operation_id: aktools.stock_hk_index_spot_sina
+    server_id: aktools
+    name: stock_hk_index_spot_sina
+    role: supporting
+    audit_status: verified
+    formal_gold_price_source: false
+    summary: HK index spot snapshot (Sina); not a historical gold source.
+    description: Snapshot/identity helper; never use as formal historical close gold.
+    action_terms: [spot, index, sina, snapshot]
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: stock_hk_index_spot_sina
+    provider: sina_via_akshare
+    parameters:
+      - name: max_rows
+        type: integer
+        required: false
+        default: 50
+    read_only: true
+    constraints: ["not historical gold", "spot may be post-cutoff"]
+    invocation_guidance: Identity/listing only.
+    known_risks: ["live snapshot can be after dataset cutoff"]
+    execution:
+      kind: aktools_get_data
+      interface: stock_hk_index_spot_sina
+      defaults:
+        max_rows: 50
+        offset: 0
+
+  - operation_id: aktools.stock_hk_security_profile_em
+    server_id: aktools
+    name: stock_hk_security_profile_em
+    role: supporting
+    audit_status: verified
+    formal_gold_price_source: false
+    summary: HK security profile / identity metadata.
+    description: Ticker/name identity helper; not a price series.
+    action_terms: [profile, identity, ticker, name, security]
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: stock_hk_security_profile_em
+    provider: eastmoney_via_akshare
+    parameters:
+      - name: symbol
+        type: string
+        required: true
+    read_only: true
+    constraints: ["not a price series"]
+    invocation_guidance: Use for name/ticker identity checks.
+    known_risks: []
+    execution:
+      kind: aktools_get_data
+      interface: stock_hk_security_profile_em
+      param_keys: [symbol]
+      max_rows: 20
+
+  # ---- distractors (executable; NOT formal gold price sources) ----
+  - operation_id: aktools.stock_hk_famous_spot_em
+    server_id: aktools
+    name: stock_hk_famous_spot_em
+    role: distractor
+    audit_status: verified
+    formal_gold_price_source: false
+    distractor_family: spot
+    summary: Famous HK spot board (distractor for wrong tool selection).
+    description: Spot board distractor; not historical OHLCV gold.
+    action_terms: [spot, famous, board, live]
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: stock_hk_famous_spot_em
+    provider: eastmoney_via_akshare
+    parameters:
+      - name: max_rows
+        type: integer
+        required: false
+        default: 20
+    read_only: true
+    constraints: ["distractor", "not formal gold price source"]
+    invocation_guidance: Expect wrong-tool selection tests to prefer this incorrectly.
+    known_risks: ["live/spot may be post-cutoff"]
+    execution:
+      kind: aktools_get_data
+      interface: stock_hk_famous_spot_em
+      defaults: {max_rows: 20, offset: 0}
+
+  - operation_id: aktools.stock_hk_hot_rank_em
+    server_id: aktools
+    name: stock_hk_hot_rank_em
+    role: distractor
+    audit_status: verified
+    formal_gold_price_source: false
+    distractor_family: hot_rank
+    summary: HK hot-rank board distractor.
+    description: Ranking distractor; not historical price gold.
+    action_terms: [hot, rank, popularity]
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: stock_hk_hot_rank_em
+    provider: eastmoney_via_akshare
+    parameters:
+      - name: max_rows
+        type: integer
+        required: false
+        default: 20
+    read_only: true
+    constraints: ["distractor", "not formal gold price source"]
+    invocation_guidance: Distractor only.
+    known_risks: []
+    execution:
+      kind: aktools_get_data
+      interface: stock_hk_hot_rank_em
+      defaults: {max_rows: 20, offset: 0}
+
+  - operation_id: aktools.bond_zh_hk_rate
+    server_id: aktools
+    name: bond_zh_hk_rate
+    role: distractor
+    audit_status: verified
+    formal_gold_price_source: false
+    distractor_family: hk_yield
+    summary: HK/China rate series distractor (yield, not equity price).
+    description: Yield/rate distractor; never equity/HSI close gold.
+    action_terms: [yield, rate, bond, interest]
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: bond_zh_hk_rate
+    provider: akshare
+    parameters:
+      - name: start_date
+        type: string
+        required: false
+      - name: end_date
+        type: string
+        required: false
+    read_only: true
+    constraints: ["distractor", "not equity price"]
+    invocation_guidance: Distractor for yield-vs-price confusion.
+    known_risks: []
+    execution:
+      kind: aktools_get_data
+      interface: bond_zh_hk_rate
+      param_keys: [start_date, end_date]
+      max_rows: 100
+      post_filter: cutoff_inclusive
+
+  - operation_id: aktools.stock_hk_indicator_eniu
+    server_id: aktools
+    name: stock_hk_indicator_eniu
+    role: distractor
+    audit_status: verified
+    formal_gold_price_source: false
+    distractor_family: valuation_indicator
+    summary: Eniu valuation indicator distractor.
+    description: Valuation indicator distractor; not OHLCV gold.
+    action_terms: [pe, pb, valuation, indicator, eniu]
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: stock_hk_indicator_eniu
+    provider: eniu_via_akshare
+    parameters:
+      - name: symbol
+        type: string
+        required: true
+      - name: indicator
+        type: string
+        required: false
+        default: "pe"
+    read_only: true
+    constraints: ["distractor", "not formal gold price source"]
+    invocation_guidance: Distractor only.
+    known_risks: []
+    execution:
+      kind: aktools_get_data
+      interface: stock_hk_indicator_eniu
+      param_keys: [symbol, indicator]
+      defaults:
+        indicator: pe
+      max_rows: 50
+
+  - operation_id: aktools.tool_trade_date_hist_sina
+    server_id: aktools
+    name: tool_trade_date_hist_sina
+    role: distractor
+    audit_status: verified
+    formal_gold_price_source: false
+    distractor_family: non_hk_trading_calendar
+    summary: Sina trade-date history distractor; NOT HKEX official calendar.
+    description: >
+      Explicitly not HKEX official calendar. Must not be used as gold session calendar.
+      Previous-valid-day for Market v1 is derived from available price sessions, not this tool.
+    action_terms: [calendar, trade date, sina, session]
+    exposed_mcp_tool: get_data
+    underlying_aktools_interface: tool_trade_date_hist_sina
+    provider: sina_via_akshare
+    parameters:
+      - name: max_rows
+        type: integer
+        required: false
+        default: 50
+    read_only: true
+    constraints:
+      - "distractor"
+      - "NOT HKEX official calendar"
+      - "must not define Market v1 previous-valid-day"
+    invocation_guidance: Distractor / negative control only.
+    known_risks: ["easy to misuse as HK calendar"]
+    execution:
+      kind: aktools_get_data
+      interface: tool_trade_date_hist_sina
+      defaults: {max_rows: 50, offset: 0}
+
+# Role counts (active operations only):
+# primary: 2 | supporting: 6 | distractor: 5 | total active: 13
+# blocked (audit only): 2 FTShare | deferred: 1 stock_hk_hist_min_em

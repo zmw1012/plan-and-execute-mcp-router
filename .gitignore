@@ -17,6 +17,11 @@ dist/
 .venv/
 venv/
 env/
+.venv-*/
+.venv-*-discovery/
+
+# Local MCP / AKTools runtime logs (keep files locally; do not commit)
+aktools_log.log*
 
 # Test / coverage
 .pytest_cache/
