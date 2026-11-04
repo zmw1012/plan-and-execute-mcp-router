@@ -54,3 +54,7 @@ data/etom/raw/
 data/etom/derived/
 data/etom/cache/
 .cache/etom_embeddings/
+*.partial.jsonl
+*.partial.meta.json
+*.partial.jsonl.tmp
+*.partial.meta.json.tmp

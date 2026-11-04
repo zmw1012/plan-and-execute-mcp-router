@@ -20,7 +20,7 @@ embedding:
   lexical_weight: 0.12
   top_k_default: 20
   top_k_max: 20
-  batch_size: 64
+  batch_size: 32
 
 limits:
   max_tasks: 10

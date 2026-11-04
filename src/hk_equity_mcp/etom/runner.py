@@ -26,13 +26,17 @@ from hk_equity_mcp.etom import (
 )
 from hk_equity_mcp.etom.adapter import EtomRoutingResolver
 from hk_equity_mcp.etom.agent import EtomRoutingAgent
-from hk_equity_mcp.etom.convert import convert_registry, registry_fingerprint
+from hk_equity_mcp.etom.convert import convert_registry
 from hk_equity_mcp.etom.cost import summarize_costs, task_variable_cost, usd
 from hk_equity_mcp.etom.embeddings import (
+    CatalogIndexError,
     HashEmbeddingClient,
+    IncompleteCatalogIndexError,
     ModelMismatchError,
     OpenAICompatibleEmbeddingClient,
-    load_or_build_catalog_index,
+    build_catalog_index,
+    catalog_index_status,
+    load_complete_catalog_index,
     scrub_secret,
 )
 from hk_equity_mcp.etom.evaluator import evaluate_prediction
@@ -132,9 +136,16 @@ class EtomPilotRunner:
         embedding_env_file: Optional[str] = None,
         max_tasks: int = PILOT_MAX_TASKS,
         config_path: Optional[Path] = None,
+        build_index_only: bool = False,
+        require_complete_index: bool = False,
+        index_status_only: bool = False,
     ):
         if mode not in {"dry-run", "mock", "live"}:
             raise PilotLimitError(f"Unknown pilot mode {mode}.")
+        if build_index_only and index_status_only:
+            raise PilotLimitError("Choose only one of build-index-only or index-status.")
+        if (build_index_only or index_status_only) and mode == "dry-run":
+            raise PilotLimitError("Index commands cannot combine with dry-run.")
         assert_pilot_task_count(max_tasks)
         self.root = root.resolve()
         self.output_dir = _inside(self.root, output_dir)
@@ -146,11 +157,17 @@ class EtomPilotRunner:
         self.max_tasks = PILOT_MAX_TASKS
         self.config_path = config_path or (self.root / "configs" / "etom_external_pilot_v1.yaml")
         self.config = yaml.safe_load(self.config_path.read_text(encoding="utf-8"))
+        self.build_index_only = build_index_only
+        self.require_complete_index = require_complete_index or mode == "live"
+        self.index_status_only = index_status_only
         self._stop = False
+        self._cache_dir = self.root / ".cache" / "etom_embeddings"
 
     def execute(self) -> Dict[str, Any]:
         self._install_signal_handler()
         source = verify_source(self.root)
+        if self.index_status_only:
+            return self._index_status(source)
         tasks = load_official_tasks(self.root, verify=False)
         lock = assert_lock_matches(self.root, tasks)
         selected = select_locked_tasks(tasks, lock)
@@ -162,8 +179,121 @@ class EtomPilotRunner:
             report = self._preflight(source, selected, lock)
             self._write_json("preflight_report.json", report)
             return report
+        if self.build_index_only:
+            return self._build_index_phase(source)
+        return self._agent_run_phase(source, selected)
+
+    def _registry_bundle(self):
+        registry_payload = load_official_registry(self.root, verify=False)
+        specs, official = convert_registry(registry_payload)
+        if len(specs) != 2375:
+            raise PilotLimitError(f"Converted registry has {len(specs)} operations, expected 2375.")
+        registry_sha = file_sha256(self.root / "data" / "etom" / "raw" / "data" / "mcp_registry.json")
+        return specs, official, registry_sha
+
+    def _index_status(self, source) -> Dict[str, Any]:
+        specs, _official, registry_sha = self._registry_bundle()
         if self.mode == "live":
-            print("verification probe start", flush=True)
+            model_name = EXPECTED_EMBEDDING_MODEL
+        else:
+            model_name = "mock-hash-embedding-v1"
+        status = catalog_index_status(
+            registry=specs,
+            model_name=model_name,
+            registry_sha256=registry_sha,
+            cache_dir=self._cache_dir,
+        )
+        status.update(
+            {
+                "mode": "index-status",
+                "fidelity": FIDELITY_NAME,
+                "network_calls": 0,
+                "etom_commit": source["pin"]["commit_sha"],
+                "expected_total": 2375,
+            }
+        )
+        print(
+            "index-status model={model} completed={completed}/{total} "
+            "final_complete={final} partial={partial}".format(
+                model=status["model"],
+                completed=status["completed"],
+                total=status["total"],
+                final=status["final_complete"],
+                partial=status["partial_completed_count"],
+            ),
+            flush=True,
+        )
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self._write_json("index_status.json", status)
+        return status
+
+    def _build_index_phase(self, source) -> Dict[str, Any]:
+        """Phase A: embedding provider only. Never instantiate or call DeepSeek."""
+        if self.mode == "live":
+            dirty = git_dirty(self.root)
+            if dirty and not self.allow_dirty:
+                raise PilotLimitError(
+                    "Live build-index refused because the worktree is dirty. "
+                    "Commit first, or pass --allow-dirty."
+                )
+            embedding = load_embedding_profile(self.root, self.embedding_env_file)
+            self._assert_embedding_model()
+            embedder = OpenAICompatibleEmbeddingClient(
+                model_name=EXPECTED_EMBEDDING_MODEL,
+                timeout_sec=float(self.config["limits"]["request_timeout_sec"]),
+                max_retries=int(self.config["limits"]["max_http_retries"]),
+                batch_size=int(self.config["embedding"]["batch_size"]),
+            )
+        else:
+            embedding = {
+                "model": "mock-hash-embedding-v1",
+                "profile_file": None,
+                "base_url": None,
+            }
+            embedder = HashEmbeddingClient(
+                batch_size=int(self.config["embedding"]["batch_size"]),
+            )
+        specs, _official, registry_sha = self._registry_bundle()
+        print("build-index start (embedding only; no generation LLM)", flush=True)
+        index = build_catalog_index(
+            registry=specs,
+            embedder=embedder,
+            registry_sha256=registry_sha,
+            cache_dir=self._cache_dir,
+        )
+        report = {
+            "mode": "build-index",
+            "fidelity": FIDELITY_NAME,
+            "generation_llm_instantiated": False,
+            "generation_llm_calls": 0,
+            "embedding_model": embedder.model_name,
+            "embedding_base_url_host": _host(embedding.get("base_url") or os.environ.get("EMBEDDING_BASE_URL")),
+            "registry_sha256": registry_sha,
+            "completed_count": len(index.vectors),
+            "total_count": len(specs),
+            "final_complete": len(index.vectors) == len(specs),
+            "cache_reused": index.cache_reused,
+            "cache_path": index.cache_path,
+            "build_usage": index.build_usage.to_dict(),
+            "etom_commit": source["pin"]["commit_sha"],
+            "branch": git_branch(self.root),
+            "git_commit": git_commit(self.root),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+        self._write_json("build_index_report.json", report)
+        print(
+            "build-index done completed={completed}/{total} cache_reused={reused}".format(
+                completed=report["completed_count"],
+                total=report["total_count"],
+                reused=report["cache_reused"],
+            ),
+            flush=True,
+        )
+        return report
+
+    def _agent_run_phase(self, source, selected) -> Dict[str, Any]:
+        """Phase B: require complete final index, then probe generation, then 10 tasks."""
+        if self.mode == "live":
             dirty = git_dirty(self.root)
             if dirty and not self.allow_dirty:
                 raise PilotLimitError(
@@ -173,6 +303,20 @@ class EtomPilotRunner:
             generation = load_generation_profile(self.root, self.env_file)
             embedding = load_embedding_profile(self.root, self.embedding_env_file)
             self._assert_env_models()
+            model_name = EXPECTED_EMBEDDING_MODEL
+            specs, official, registry_sha = self._registry_bundle()
+            print("require complete catalog index", flush=True)
+            index = load_complete_catalog_index(
+                registry=specs,
+                model_name=model_name,
+                registry_sha256=registry_sha,
+                cache_dir=self._cache_dir,
+            )
+            print(
+                f"catalog index ready {len(index.vectors)}/{len(specs)}",
+                flush=True,
+            )
+            print("verification probe start (generation only)", flush=True)
             llm = FailClosedChatClient(
                 timeout_sec=float(self.config["limits"]["request_timeout_sec"]),
                 max_retries=int(self.config["limits"]["max_http_retries"]),
@@ -184,7 +328,7 @@ class EtomPilotRunner:
                 max_retries=int(self.config["limits"]["max_http_retries"]),
                 batch_size=int(self.config["embedding"]["batch_size"]),
             )
-            probe = self._probe(llm, embedder)
+            probe = self._probe_generation(llm)
         else:
             generation = {
                 "provider": "mock",
@@ -194,7 +338,24 @@ class EtomPilotRunner:
             }
             embedding = {"model": "mock-hash-embedding-v1", "profile_file": None, "base_url": None}
             llm = ScriptedChatClient()
-            embedder = HashEmbeddingClient()
+            embedder = HashEmbeddingClient(
+                batch_size=int(self.config["embedding"]["batch_size"]),
+            )
+            specs, official, registry_sha = self._registry_bundle()
+            if self.require_complete_index:
+                index = load_complete_catalog_index(
+                    registry=specs,
+                    model_name=embedder.model_name,
+                    registry_sha256=registry_sha,
+                    cache_dir=self._cache_dir,
+                )
+            else:
+                index = build_catalog_index(
+                    registry=specs,
+                    embedder=embedder,
+                    registry_sha256=registry_sha,
+                    cache_dir=self._cache_dir,
+                )
             probe = {
                 "llm_calls": 0,
                 "input_tokens": 0,
@@ -204,17 +365,6 @@ class EtomPilotRunner:
                 "usd": 0.0,
                 "skipped": True,
             }
-        registry_payload = load_official_registry(self.root, verify=False)
-        specs, official = convert_registry(registry_payload)
-        if len(specs) != 2375:
-            raise PilotLimitError(f"Converted registry has {len(specs)} operations, expected 2375.")
-        registry_sha = file_sha256(self.root / "data" / "etom" / "raw" / "data" / "mcp_registry.json")
-        index = load_or_build_catalog_index(
-            registry=specs,
-            embedder=embedder,
-            registry_sha256=registry_sha,
-            cache_dir=self.root / ".cache" / "etom_embeddings",
-        )
         resolver = EtomRoutingResolver(
             specs,
             official,
@@ -281,7 +431,7 @@ class EtomPilotRunner:
                     probe,
                     run_status="running",
                 )
-        except ModelMismatchError:
+        except (ModelMismatchError, IncompleteCatalogIndexError, CatalogIndexError):
             run_status = "fail_closed"
             self._flush_reports(
                 existing,
@@ -416,37 +566,42 @@ class EtomPilotRunner:
         row["variable_cost_usd"] = round(task_variable_cost(row, pricing), 6)
         return row
 
-    def _probe(self, llm, embedder) -> Dict[str, Any]:
+    def _probe_generation(self, llm) -> Dict[str, Any]:
         response = llm.complete(
             [{"role": "user", "content": 'Reply with JSON {"ok": true}'}],
             temperature=float(self.config["llm"]["temperature"]),
             max_tokens=32,
         )
-        _vectors, usage = embedder.embed(["etom embedding probe"])
         pricing = self.config["pricing"]
         llm_usd = usd(
             int(response["usage"]["input_tokens"]), float(pricing["llm_input_usd_per_million"])
         ) + usd(
             int(response["usage"]["output_tokens"]), float(pricing["llm_output_usd_per_million"])
         )
-        embed_usd = usd(usage.tokens, float(pricing["embedding_usd_per_million"]))
         return {
             "llm_calls": 1,
             "input_tokens": int(response["usage"]["input_tokens"]),
             "output_tokens": int(response["usage"]["output_tokens"]),
             "llm_model": response.get("model"),
             "model_echo_absent": response.get("model_echo_absent"),
-            "embedding_calls": usage.calls,
-            "embedding_tokens": usage.tokens,
-            "embedding_model": embedder.model_name,
-            "usd": round(llm_usd + embed_usd, 6),
+            "embedding_calls": 0,
+            "embedding_tokens": 0,
+            "usd": round(llm_usd, 6),
             "skipped": False,
+            "probe_kind": "generation_only",
         }
 
     def _preflight(self, source, selected, lock) -> Dict[str, Any]:
         generation = load_generation_profile(self.root, self.env_file)
         embedding = load_embedding_profile(self.root, self.embedding_env_file)
         self._assert_env_models()
+        specs, _official, registry_sha = self._registry_bundle()
+        status = catalog_index_status(
+            registry=specs,
+            model_name=EXPECTED_EMBEDDING_MODEL,
+            registry_sha256=registry_sha,
+            cache_dir=self._cache_dir,
+        )
         return {
             "mode": "dry-run",
             "fidelity": FIDELITY_NAME,
@@ -465,8 +620,23 @@ class EtomPilotRunner:
             "exclude_from_final_etom_sample": True,
             "seed": lock["seed"],
             "real_tool_execution": False,
+            "catalog_index": {
+                "completed": status["completed"],
+                "total": status["total"],
+                "final_complete": status["final_complete"],
+                "partial_completed_count": status["partial_completed_count"],
+            },
             "parameters": self._parameters(),
         }
+
+    def _assert_embedding_model(self) -> None:
+        embedding_model = os.environ.get("EMBEDDING_MODEL")
+        if embedding_model != EXPECTED_EMBEDDING_MODEL:
+            raise ModelMismatchError(
+                f"Embedding model mismatch: expected {EXPECTED_EMBEDDING_MODEL}."
+            )
+        if str(self.config["embedding"]["model"]) != EXPECTED_EMBEDDING_MODEL:
+            raise ModelMismatchError("Pilot config embedding model drifted.")
 
     def _assert_env_models(self) -> None:
         provider = os.environ.get("LLM_PROVIDER")
@@ -550,6 +720,7 @@ class EtomPilotRunner:
             "mode": self.mode,
             "run_status": run_status,
             "resume": self.resume,
+            "require_complete_index": self.require_complete_index,
             "max_tasks": PILOT_MAX_TASKS,
             "task_ids": [task.task_id for task in selected],
             "completed_task_ids": [
@@ -596,6 +767,7 @@ class EtomPilotRunner:
             "timeout_sec": self.config["limits"]["timeout_sec"],
             "max_parse_repairs": self.config["limits"]["max_parse_repairs"],
             "max_http_retries": self.config["limits"]["max_http_retries"],
+            "embedding_batch_size": self.config["embedding"]["batch_size"],
             "seed": self.config["sampler"]["seed"],
         }
 
