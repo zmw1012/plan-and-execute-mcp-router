@@ -1,0 +1,27 @@
+{
+  "success": true,
+  "error": null,
+  "normalized": {
+    "status": "success",
+    "data": {
+      "local_key": "00005_19860_2026-02-25_32fb365a",
+      "bundle_dir": "/Users/wzm/.agentladle/mcp-hkexnews/data/pdf/00005_19860_2026-02-25_32fb365a",
+      "primary_path": "/Users/wzm/.agentladle/mcp-hkexnews/data/pdf/00005_19860_2026-02-25_32fb365a/primary.pdf",
+      "file_size_kb": 2045.7,
+      "release_date": "2026-02-25",
+      "title": "ANNUAL RESULTS 2025 ZOOM MEETING",
+      "category_t1": "10000",
+      "category_t2": "19860",
+      "category_label": "Overseas Regulatory Announcement - Trading Update",
+      "content_type": "pdf"
+    },
+    "hint": "Call parse_hkexnews_announcement(local_key='00005_19860_2026-02-25_32fb365a') before searching."
+  },
+  "args": {
+    "stock_code": "00005",
+    "release_date": "2026-02-25",
+    "title_keyword": "Annual Results",
+    "news_id": "12029179",
+    "local_key": "00005_19860_2026-02-25_32fb365a"
+  }
+}

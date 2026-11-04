@@ -1,0 +1,9 @@
+{
+  "success": false,
+  "error": "Parsed file not found: 00005_19860_2026-02-25_32fb365a.json",
+  "normalized": {
+    "status": "error",
+    "error": "Parsed file not found: 00005_19860_2026-02-25_32fb365a.json",
+    "hint": "Call download_hkexnews_announcement then parse_hkexnews_announcement, or obtain local_key via list_hkexnews_announcements."
+  }
+}

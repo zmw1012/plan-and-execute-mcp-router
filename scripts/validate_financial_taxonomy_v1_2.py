@@ -118,8 +118,10 @@ def main() -> int:
             errors.append(f"{r['id']} held-out not locked")
         if r.get("prior_file_status") != "superseded_before_any_agent_run":
             errors.append(f"{r['id']} held prior_file_status")
-        if r.get("supersession_status") != "active":
-            errors.append(f"{r['id']} not active")
+        # v1.2 remains readable for provenance; after v1.3 it is marked superseded.
+        status = r.get("supersession_status")
+        if status not in {"active", "superseded_before_any_agent_run"}:
+            errors.append(f"{r['id']} unexpected supersession_status={status}")
 
     for r in dev:
         if r.get("prior_file_status") != "taxonomy_corrected_after_nonformal_pilot":

@@ -1,0 +1,219 @@
+{
+  "lookup_stock_code": {
+    "properties": {
+      "stock_code": {
+        "title": "Stock Code",
+        "type": "string"
+      },
+      "refresh": {
+        "default": false,
+        "title": "Refresh",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "stock_code"
+    ],
+    "title": "lookup_stock_codeArguments",
+    "type": "object"
+  },
+  "list_hkexnews_announcements": {
+    "properties": {
+      "stock_code": {
+        "title": "Stock Code",
+        "type": "string"
+      },
+      "category": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Category"
+      },
+      "start_date": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Start Date"
+      },
+      "end_date": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "End Date"
+      },
+      "title_keyword": {
+        "default": "",
+        "title": "Title Keyword",
+        "type": "string"
+      },
+      "limit": {
+        "default": 10,
+        "title": "Limit",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "stock_code"
+    ],
+    "title": "list_hkexnews_announcementsArguments",
+    "type": "object"
+  },
+  "download_hkexnews_announcement": {
+    "properties": {
+      "stock_code": {
+        "title": "Stock Code",
+        "type": "string"
+      },
+      "release_date": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Release Date"
+      },
+      "title_keyword": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Title Keyword"
+      },
+      "category": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Category"
+      },
+      "news_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "News Id"
+      },
+      "local_key": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Local Key"
+      }
+    },
+    "required": [
+      "stock_code"
+    ],
+    "title": "download_hkexnews_announcementArguments",
+    "type": "object"
+  },
+  "parse_hkexnews_announcement": {
+    "properties": {
+      "local_key": {
+        "title": "Local Key",
+        "type": "string"
+      }
+    },
+    "required": [
+      "local_key"
+    ],
+    "title": "parse_hkexnews_announcementArguments",
+    "type": "object"
+  },
+  "keyword_search": {
+    "properties": {
+      "local_key": {
+        "title": "Local Key",
+        "type": "string"
+      },
+      "keywords": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Keywords",
+        "type": "array"
+      },
+      "match_mode": {
+        "default": "ANY",
+        "title": "Match Mode",
+        "type": "string"
+      },
+      "max_results": {
+        "default": 5,
+        "title": "Max Results",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "local_key",
+      "keywords"
+    ],
+    "title": "keyword_searchArguments",
+    "type": "object"
+  },
+  "get_announcement_pages": {
+    "properties": {
+      "local_key": {
+        "title": "Local Key",
+        "type": "string"
+      },
+      "start_page": {
+        "title": "Start Page",
+        "type": "integer"
+      },
+      "page_count": {
+        "default": 3,
+        "title": "Page Count",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "local_key",
+      "start_page"
+    ],
+    "title": "get_announcement_pagesArguments",
+    "type": "object"
+  }
+}

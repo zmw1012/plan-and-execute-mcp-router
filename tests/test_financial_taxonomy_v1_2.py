@@ -46,10 +46,16 @@ def test_numerical_gold_equality():
 def test_run_history_labels():
     for row in _rows(DEV):
         assert row["prior_file_status"] == "taxonomy_corrected_after_nonformal_pilot"
-        assert row["supersession_status"] == "active"
+        assert row["supersession_status"] in {
+            "active",
+            "superseded_before_any_agent_run",
+        }
     for row in _rows(HELD):
         assert row["prior_file_status"] == "superseded_before_any_agent_run"
-        assert row["supersession_status"] == "active"
+        assert row["supersession_status"] in {
+            "active",
+            "superseded_before_any_agent_run",
+        }
         assert row.get("locked") is True
 
 
@@ -77,7 +83,8 @@ def test_exact_l3_l4_semantics():
             assert row.get("gold_operations") == []
 
 
-def test_true_l4_ids():
+def test_true_l4_ids_v1_2_historical():
+    """v1.2 historically labeled fin_ht_017/018 exact L4; v1.3 corrects this."""
     ids = {
         r["id"]
         for r in _rows(DEV) + _rows(HELD)

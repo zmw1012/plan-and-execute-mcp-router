@@ -1,0 +1,87 @@
+[
+  {
+    "producer_operation": "hkexnews.list_hkexnews_announcements",
+    "producer_output_field": "stock_code",
+    "consumer_operation": "hkexnews.download_hkexnews_announcement",
+    "consumer_input_field": "stock_code",
+    "live_verified_dependency": true,
+    "example_value": "00005"
+  },
+  {
+    "producer_operation": "hkexnews.list_hkexnews_announcements",
+    "producer_output_field": "release_date",
+    "consumer_operation": "hkexnews.download_hkexnews_announcement",
+    "consumer_input_field": "release_date",
+    "live_verified_dependency": true,
+    "example_value": "2026-02-25"
+  },
+  {
+    "producer_operation": "hkexnews.list_hkexnews_announcements",
+    "producer_output_field": "news_id",
+    "consumer_operation": "hkexnews.download_hkexnews_announcement",
+    "consumer_input_field": "news_id",
+    "live_verified_dependency": true,
+    "example_value": "12029179"
+  },
+  {
+    "producer_operation": "hkexnews.list_hkexnews_announcements",
+    "producer_output_field": "local_key",
+    "consumer_operation": "hkexnews.download_hkexnews_announcement",
+    "consumer_input_field": "local_key",
+    "live_verified_dependency": true,
+    "example_value": "00005_19860_2026-02-25_32fb365a"
+  },
+  {
+    "producer_operation": "hkexnews.list_hkexnews_announcements",
+    "producer_output_field": "title",
+    "consumer_operation": "hkexnews.download_hkexnews_announcement",
+    "consumer_input_field": "title_keyword",
+    "live_verified_dependency": true,
+    "example_value": "ANNUAL RESULTS 2025 ZOOM MEETING",
+    "note": "title string truncated/filtered into title_keyword argument"
+  },
+  {
+    "producer_operation": "hkexnews.list_hkexnews_announcements",
+    "producer_output_field": "local_key",
+    "consumer_operation": "hkexnews.download_hkexnews_announcement",
+    "consumer_input_field": "local_key",
+    "live_verified_dependency": true,
+    "example_value": "00005_19860_2026-02-25_32fb365a",
+    "note": "list already emits local_key; download materializes PDF under that key"
+  },
+  {
+    "producer_operation": "hkexnews.download_hkexnews_announcement",
+    "producer_output_field": "local_key",
+    "consumer_operation": "hkexnews.parse_hkexnews_announcement",
+    "consumer_input_field": "local_key",
+    "live_verified_dependency": true,
+    "example_value": "00005_19860_2026-02-25_32fb365a",
+    "note": "keyword/pages fail before download (see 01b)"
+  },
+  {
+    "producer_operation": "hkexnews.download_hkexnews_announcement",
+    "producer_output_field": "local_key",
+    "consumer_operation": "hkexnews.keyword_search",
+    "consumer_input_field": "local_key",
+    "live_verified_dependency": true,
+    "example_value": "00005_19860_2026-02-25_32fb365a",
+    "note": "keyword/pages fail before download (see 01b)"
+  },
+  {
+    "producer_operation": "hkexnews.download_hkexnews_announcement",
+    "producer_output_field": "local_key",
+    "consumer_operation": "hkexnews.get_announcement_pages",
+    "consumer_input_field": "local_key",
+    "live_verified_dependency": true,
+    "example_value": "00005_19860_2026-02-25_32fb365a",
+    "note": "keyword/pages fail before download (see 01b)"
+  },
+  {
+    "producer_operation": "hkexnews.keyword_search",
+    "producer_output_field": "page_number",
+    "consumer_operation": "hkexnews.get_announcement_pages",
+    "consumer_input_field": "start_page",
+    "live_verified_dependency": true,
+    "example_value": 43
+  }
+]

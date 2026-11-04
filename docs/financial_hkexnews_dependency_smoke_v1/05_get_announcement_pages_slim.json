@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "error": null,
+  "normalized": {
+    "status": "success",
+    "data": {
+      "document": "00005_19860_2026-02-25_32fb365a",
+      "total_pages": 53,
+      "page_range": "43-43",
+      "page0_keys": [
+        "page_number",
+        "content"
+      ],
+      "page0_text_preview": "40\nAppendix\n4Q25 results\nProgress on strategy execution\nRevenue — supplementary information\n2025 reported revenue to revenue excluding notable items\n$m\nHK\nUK\nCIB\nIWPB\nCorporate\nCentre\nTotal\nReported revenue\n15,878\n12,938\n27,637\n14,520\n(2,699)\n68,274\nNotable items\n—\n—\n9\n73\n2,664\n2,746\nConstant curren"
+    }
+  },
+  "start_page": 43,
+  "page_field": "page_number"
+}
