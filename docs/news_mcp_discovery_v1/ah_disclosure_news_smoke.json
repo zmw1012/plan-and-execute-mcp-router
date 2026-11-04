@@ -1,0 +1,88 @@
+{
+  "server": "ah_disclosure",
+  "probes": {
+    "resolve_company_00700": {
+      "success": true,
+      "latency_ms": 1,
+      "args": {
+        "market": "HK",
+        "symbol": "00700"
+      },
+      "content": [
+        "{\n  \"market\": \"H\",\n  \"symbol\": \"00700\",\n  \"exchange\": \"HKEX\",\n  \"input\": \"00700\"\n}"
+      ]
+    },
+    "resolve_hkex_stock_id_00700": {
+      "success": false,
+      "latency_ms": 0,
+      "args": {
+        "symbol": "00700"
+      },
+      "content": [
+        "Error executing tool resolve_hkex_stock_id: 1 validation error for resolve_hkex_stock_idArguments\nhk_code\n  Field required [type=missing, input_value={'symbol': '00700'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.14/v/missing"
+      ]
+    },
+    "search_filings_00700": {
+      "success": true,
+      "latency_ms": 12,
+      "args": {
+        "market": "HK",
+        "symbol": "00700",
+        "start_date": "2026-07-01",
+        "end_date": "2026-08-12"
+      },
+      "content": [
+        "{\n  \"market\": \"H\",\n  \"symbol\": \"00700\",\n  \"company_name\": \"TENCENT\",\n  \"title\": \"Publication of Pricing Supplements for the Issuance of US$1,300,000,000 6.10% Senior Notes Due 2036 and US$500,000,000 6.75% Senior Notes Due 2046 and CNY20,000,000,000 2.40% Senior Notes Due 2036 and CNY6,000,000,000 3.00% Senior Notes Due 2056 under the Global Medium Term Note Programme of Tencent Holdings Limited with Maximum Limit of US$30 Billion\",\n  \"publish_time\": \"2026-10-22\",\n  \"document_type\": \"Debt and Structured Products - [Offering Circular and Pricing Supplement - Debt Securities]\",\n  \"source\": \"HKEXnews\",\n  \"detail_url\": \"https://www1.hkexnews.hk/listedco/listconews/sehk/2026/1022/2026102200202.pdf\",\n  \"pdf_url\": \"https://www1.hkexnews.hk/listedco/listconews/sehk/2026/1022/2026102200202.pdf\",\n  \"raw_id\": \"2026102200202\",\n  \"category\": \"Debt and Structured Products - [Offering Circular and Pricing Supplement - Debt Securities]\",\n  \"file_size_label\": \"2MB\"\n}"
+      ]
+    },
+    "search_annual_report_00700": {
+      "success": true,
+      "latency_ms": 3073,
+      "args": {
+        "market": "HK",
+        "symbol": "00700",
+        "year": 2025
+      },
+      "content": [
+        "{\n  \"market\": \"H\",\n  \"symbol\": \"00700\",\n  \"company_name\": \"TENCENT\",\n  \"title\": \"ANNUAL REPORT 2025\",\n  \"publish_time\": \"2026-04-09\",\n  \"document_type\": \"Financial Statements/ESG Information - [Annual Report]\",\n  \"source\": \"HKEXnews\",\n  \"detail_url\": \"https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0409/2026040901231.pdf\",\n  \"pdf_url\": \"https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0409/2026040901231.pdf\",\n  \"raw_id\": \"2026040901231\",\n  \"category\": \"Financial Statements/ESG Information - [Annual Report]\",\n  \"file_size_label\": \"4MB\"\n}"
+      ]
+    },
+    "search_filings_00005": {
+      "success": true,
+      "latency_ms": 3,
+      "args": {
+        "market": "HK",
+        "symbol": "00005",
+        "start_date": "2026-07-01",
+        "end_date": "2026-08-12"
+      },
+      "content": [
+        "{\n  \"market\": \"H\",\n  \"symbol\": \"00005\",\n  \"company_name\": \"HSBC HOLDINGS\",\n  \"title\": \"Transaction in own shares\",\n  \"publish_time\": \"2026-11-03\",\n  \"document_type\": \"Announcements and Notices - [Overseas Regulatory Announcement - Other]\",\n  \"source\": \"HKEXnews\",\n  \"detail_url\": \"https://www1.hkexnews.hk/listedco/listconews/sehk/2026/1103/2026110300023.pdf\",\n  \"pdf_url\": \"https://www1.hkexnews.hk/listedco/listconews/sehk/2026/1103/2026110300023.pdf\",\n  \"raw_id\": \"2026110300023\",\n  \"category\": \"Announcements and Notices - [Overseas Regulatory Announcement - Other]\",\n  \"file_size_label\": \"430KB\"\n}"
+      ]
+    },
+    "search_filings_09988": {
+      "success": true,
+      "latency_ms": 4,
+      "args": {
+        "market": "HK",
+        "symbol": "09988",
+        "start_date": "2026-07-01",
+        "end_date": "2026-08-12"
+      },
+      "content": [
+        "{\n  \"market\": \"H\",\n  \"symbol\": \"09988\",\n  \"company_name\": \"BABA-W\",\n  \"title\": \"OVERSEAS REGULATORY ANNOUNCEMENT\",\n  \"publish_time\": \"2026-10-14\",\n  \"document_type\": \"Announcements and Notices - [Overseas Regulatory Announcement - Other]\",\n  \"source\": \"HKEXnews\",\n  \"detail_url\": \"https://www1.hkexnews.hk/listedco/listconews/sehk/2026/1014/2026101400017.pdf\",\n  \"pdf_url\": \"https://www1.hkexnews.hk/listedco/listconews/sehk/2026/1014/2026101400017.pdf\",\n  \"raw_id\": \"2026101400017\",\n  \"category\": \"Announcements and Notices - [Overseas Regulatory Announcement - Other]\",\n  \"file_size_label\": \"272KB\"\n}"
+      ]
+    },
+    "find_filing_source_tool_00700": {
+      "success": false,
+      "latency_ms": 0,
+      "args": {
+        "market": "HK",
+        "symbol": "00700"
+      },
+      "content": [
+        "Error executing tool find_filing_source_tool: 1 validation error for find_filing_source_toolArguments\ndocument_type\n  Field required [type=missing, input_value={'market': 'HK', 'symbol': '00700'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.14/v/missing"
+      ]
+    }
+  }
+}

@@ -1,0 +1,350 @@
+{
+  "resolve_company": {
+    "properties": {
+      "symbol": {
+        "title": "Symbol",
+        "type": "string"
+      },
+      "market": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Market"
+      }
+    },
+    "required": [
+      "symbol"
+    ],
+    "title": "resolve_companyArguments",
+    "type": "object"
+  },
+  "resolve_hkex_stock_id": {
+    "properties": {
+      "hk_code": {
+        "title": "Hk Code",
+        "type": "string"
+      },
+      "candidate_stock_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Candidate Stock Id"
+      },
+      "company_name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Company Name"
+      },
+      "verify": {
+        "default": true,
+        "title": "Verify",
+        "type": "boolean"
+      },
+      "refresh": {
+        "default": false,
+        "title": "Refresh",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "hk_code"
+    ],
+    "title": "resolve_hkex_stock_idArguments",
+    "type": "object"
+  },
+  "search_filings": {
+    "properties": {
+      "market": {
+        "title": "Market",
+        "type": "string"
+      },
+      "symbol": {
+        "title": "Symbol",
+        "type": "string"
+      },
+      "category": {
+        "default": "年报",
+        "title": "Category",
+        "type": "string"
+      },
+      "keyword": {
+        "default": "",
+        "title": "Keyword",
+        "type": "string"
+      },
+      "start_date": {
+        "default": "20200101",
+        "title": "Start Date",
+        "type": "string"
+      },
+      "end_date": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "End Date"
+      },
+      "max_rows": {
+        "default": 20,
+        "title": "Max Rows",
+        "type": "integer"
+      },
+      "hkex_stock_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Hkex Stock Id"
+      },
+      "lang": {
+        "default": "EN",
+        "title": "Lang",
+        "type": "string"
+      },
+      "prefer_cache": {
+        "default": true,
+        "title": "Prefer Cache",
+        "type": "boolean"
+      },
+      "refresh": {
+        "default": false,
+        "title": "Refresh",
+        "type": "boolean"
+      },
+      "offline": {
+        "default": false,
+        "title": "Offline",
+        "type": "boolean"
+      },
+      "max_cache_age_seconds": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Max Cache Age Seconds"
+      }
+    },
+    "required": [
+      "market",
+      "symbol"
+    ],
+    "title": "search_filingsArguments",
+    "type": "object"
+  },
+  "search_annual_report": {
+    "properties": {
+      "market": {
+        "title": "Market",
+        "type": "string"
+      },
+      "symbol": {
+        "title": "Symbol",
+        "type": "string"
+      },
+      "year": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Year"
+      },
+      "max_rows": {
+        "default": 10,
+        "title": "Max Rows",
+        "type": "integer"
+      },
+      "hkex_stock_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Hkex Stock Id"
+      },
+      "lang": {
+        "default": "EN",
+        "title": "Lang",
+        "type": "string"
+      },
+      "prefer_cache": {
+        "default": true,
+        "title": "Prefer Cache",
+        "type": "boolean"
+      },
+      "refresh": {
+        "default": false,
+        "title": "Refresh",
+        "type": "boolean"
+      },
+      "offline": {
+        "default": false,
+        "title": "Offline",
+        "type": "boolean"
+      },
+      "max_cache_age_seconds": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Max Cache Age Seconds"
+      }
+    },
+    "required": [
+      "market",
+      "symbol"
+    ],
+    "title": "search_annual_reportArguments",
+    "type": "object"
+  },
+  "find_filing_source_tool": {
+    "properties": {
+      "market": {
+        "title": "Market",
+        "type": "string"
+      },
+      "symbol": {
+        "title": "Symbol",
+        "type": "string"
+      },
+      "document_type": {
+        "title": "Document Type",
+        "type": "string"
+      },
+      "report_year": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Report Year"
+      },
+      "language": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Language"
+      },
+      "max_rows": {
+        "default": 10,
+        "title": "Max Rows",
+        "type": "integer"
+      },
+      "prefer_cache": {
+        "default": true,
+        "title": "Prefer Cache",
+        "type": "boolean"
+      },
+      "refresh": {
+        "default": false,
+        "title": "Refresh",
+        "type": "boolean"
+      },
+      "offline": {
+        "default": false,
+        "title": "Offline",
+        "type": "boolean"
+      },
+      "max_cache_age_seconds": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Max Cache Age Seconds"
+      },
+      "hkex_stock_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Hkex Stock Id"
+      },
+      "company_name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Company Name"
+      }
+    },
+    "required": [
+      "market",
+      "symbol",
+      "document_type"
+    ],
+    "title": "find_filing_source_toolArguments",
+    "type": "object"
+  }
+}
