@@ -1,5 +1,7 @@
 # Market Real-MCP Provenance Audit v1
 
+> v1.1 taxonomy/schema correction **reuses these provenance hashes** because raw MCP invocations and numerical gold are unchanged. No full live re-audit was run for v1.1.
+
 - Generated (UTC): 2026-11-04T05:00:08.389007+00:00
 - Catalog: `/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/configs/operations/market_real_mcp_v1.yaml`
 - Cutoff: 2026-08-12

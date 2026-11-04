@@ -1,5 +1,7 @@
 # Market Development 15 v1 Design
 
+> **Status: `superseded_before_any_agent_run`.** Active file is `market_development_15_v1_1.jsonl`. See `docs/market_development_15_v1_1_design.md`.
+
 - **File:** `benchmarks/questions/market_development_15_v1.jsonl`
 - **Split:** `development` / `method_development_and_error_analysis`
 - **Catalog:** frozen `market_real_mcp_v1` (13 active ops)

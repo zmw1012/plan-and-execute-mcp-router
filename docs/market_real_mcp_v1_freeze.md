@@ -1,5 +1,7 @@
 # Market Real-MCP v1 Freeze
 
+> **Status: `superseded_before_any_agent_run`.** Active catalog is `market_real_mcp_v1_1.yaml` (package + blocked-ID provenance correction). See `docs/market_real_mcp_v1_1_freeze.md`.
+
 - **Catalog:** `configs/operations/market_real_mcp_v1.yaml`
 - **Candidate source:** `configs/operations/market_real_mcp_candidate_v1.yaml`
 - **Cutoff:** `2026-08-12` (`Asia/Hong_Kong`)

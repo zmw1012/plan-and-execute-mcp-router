@@ -30,14 +30,18 @@ DEFAULT_MARKET_CATALOG = (
     Path(__file__).resolve().parents[3]
     / "configs"
     / "operations"
-    / "market_real_mcp_v1.yaml"
+    / "market_real_mcp_v1_1.yaml"
 )
 
+# Candidate-audit exact blocked FTShare IDs + deferred minute hist.
 BLOCKED_MARKET_OPS = frozenset(
     {
+        "ftshare.ft_v2_hk_hk_candlesticks",
+        "ftshare.ft_v1_hk_hsi_daily_weight",
+        "aktools.stock_hk_hist_min_em",
+        # Legacy mistaken aliases from market_real_mcp_v1 (never re-admit).
         "ftshare.hk_hist",
         "ftshare.stock_hk_daily",
-        "aktools.stock_hk_hist_min_em",
     }
 )
 

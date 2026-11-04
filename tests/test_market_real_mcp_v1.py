@@ -23,12 +23,30 @@ from hk_equity_mcp.real_mcp.market_normalize import (
 from hk_equity_mcp.real_mcp.types import RealMcpResult
 
 ROOT = Path(__file__).resolve().parents[1]
-CATALOG = ROOT / "configs" / "operations" / "market_real_mcp_v1.yaml"
+CATALOG = ROOT / "configs" / "operations" / "market_real_mcp_v1_1.yaml"
+CATALOG_V1 = ROOT / "configs" / "operations" / "market_real_mcp_v1.yaml"
 
 
 def test_default_catalog_path():
     assert DEFAULT_MARKET_CATALOG == CATALOG
     assert CATALOG.exists()
+    assert CATALOG_V1.exists()
+
+
+def test_v1_superseded_and_v1_1_package_blocked_ids():
+    v1 = load_real_mcp_catalog(CATALOG_V1)
+    assert v1.get("status") == "superseded_before_any_agent_run"
+    catalog = load_real_mcp_catalog(CATALOG)
+    assert catalog["catalog_id"] == "market_real_mcp_v1_1"
+    servers = catalog["servers"]
+    ak = servers[0] if isinstance(servers, list) else servers["aktools"]
+    assert ak["package"] == "aktools"
+    assert str(ak["package_version"]) == "0.1.4"
+    blocked = {b["operation_id"] for b in catalog["blocked_operations"]}
+    assert blocked == {
+        "ftshare.ft_v2_hk_hk_candlesticks",
+        "ftshare.ft_v1_hk_hsi_daily_weight",
+    }
 
 
 def test_active_role_counts_and_no_blocked():
@@ -40,8 +58,8 @@ def test_active_role_counts_and_no_blocked():
         roles[op["role"]] = roles.get(op["role"], 0) + 1
         assert op["operation_id"] not in BLOCKED_MARKET_OPS
         assert op["operation_id"] not in {
-            "ftshare.hk_hist",
-            "ftshare.stock_hk_daily",
+            "ftshare.ft_v2_hk_hk_candlesticks",
+            "ftshare.ft_v1_hk_hsi_daily_weight",
             "aktools.stock_hk_hist_min_em",
         }
     assert roles == {"primary": 2, "supporting": 6, "distractor": 5}

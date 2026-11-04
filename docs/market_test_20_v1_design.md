@@ -1,5 +1,7 @@
 # Market Held-out Test 20 v1 Design
 
+> **Status: `superseded_before_any_agent_run`.** Active file is `market_test_20_v1_1.jsonl`. See `docs/market_test_20_v1_1_design.md`.
+
 - **File:** `benchmarks/heldout/market_test_20_v1.jsonl`
 - **Flags:** `locked=true`, `frozen=true`, `dataset_split=heldout`, `benchmark_role=final_evaluation_only`
 - **Catalog:** frozen `market_real_mcp_v1`
