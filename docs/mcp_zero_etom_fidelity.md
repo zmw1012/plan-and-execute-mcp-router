@@ -55,9 +55,17 @@ temperature=0.0, max_llm_turns=8, official_combined, ATR protocol v2.
 
 ## ETOM-specific output contract
 
-Dataset-specific prompt is separate from routing knobs. Prompt version
-`mcp_zero_etom_routing_v1` / aliases under `mcp_zero_etom.prompt`.
-Final statuses: `route_complete` | `infeasible`. No task_id special cases.
+Dataset-specific prompt is separate from routing knobs. Method knobs are
+unchanged; only the answer/route contract differs from HK Q&A.
+
+| Field | Value |
+| --- | --- |
+| Prompt version | `mcp_zero_etom_routing_v1` |
+| Parser protocol | `mcp_zero_protocol_v2` (`json_mode=false`) |
+| ETOM system prompt SHA256 | `8ebac6ce045af0176c1fb9e580bad483b7ca4564e3521adc433c09476db285d7` |
+| ETOM method-card SHA256 | `0c14b7aec5b6bdf1156b9d1ab0e330c3e0bbf8264e2db0950d2efbdce09e05f6` |
+| Final statuses | `route_complete` \| `infeasible` |
+| Task-id special cases | **Forbidden** |
 
 ## Hierarchical index
 

@@ -25,11 +25,16 @@ limits:
   timeout_sec: 180
 
 pricing:
-  llm_input_usd_per_million: 0.14
-  llm_output_usd_per_million: 0.28
+  # Align with ETOM OV formal-100 pricing block for comparable cost summaries.
+  # DeepSeek-V4.1-Flash peak cache-miss list price + text-embedding-3-small.
+  currency: USD
+  assumption: conservative_peak_cache_miss
+  llm_input_usd_per_million: 0.30
+  llm_output_usd_per_million: 1.20
   embedding_usd_per_million: 0.02
 
 notes:
   - Routing-only baseline; never executes ETOM MCP tools.
   - Route exact match is not final-answer accuracy.
   - Do not retune knobs from ETOM formal-100 or Operation-Visible errors.
+  - HK method-card hash stays 77cc3b07…; ETOM prompt hash is separate.
