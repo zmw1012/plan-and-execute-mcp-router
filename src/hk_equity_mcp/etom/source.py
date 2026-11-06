@@ -25,6 +25,10 @@ def lock_path(root: Path) -> Path:
     return root / "benchmarks" / "etom" / "cost_pilot_10_v1.lock.json"
 
 
+def formal_100_lock_path(root: Path) -> Path:
+    return root / "benchmarks" / "etom" / "formal_100_v1.lock.json"
+
+
 def raw_root(root: Path) -> Path:
     return root / "data" / "etom" / "raw"
 

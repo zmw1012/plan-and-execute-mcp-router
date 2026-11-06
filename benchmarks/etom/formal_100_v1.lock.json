@@ -1,0 +1,3108 @@
+{
+  "dataset_split": "external_formal",
+  "benchmark_role": "external_validation",
+  "sample_size": 100,
+  "seed": 20261106,
+  "sampler_version": "etom_stratified_external_100_v1",
+  "source_repository": "https://github.com/snooow1029/ETOM",
+  "source_commit": "790f28727f567b88918420d163c524d46644a694",
+  "source_pin_path": "benchmarks/etom/etom_source_pin_v1.json",
+  "source_pin_sha256": "5f1ae09e7a8fbb7b554ed1302433feacaffb8645ccc560c7bb87ff64893f2692",
+  "excluded_cost_pilot_lock_path": "benchmarks/etom/cost_pilot_10_v1.lock.json",
+  "excluded_cost_pilot_lock_sha256": "bb0dff91fe999b86b21162617c8a62b3b067c0a18b86227d4308068a94abf065",
+  "excluded_task_ids": [
+    "L1-q185",
+    "L1-q233",
+    "L2-q522",
+    "L2-q732",
+    "L3-q37",
+    "L3-q105",
+    "L4-q91",
+    "L4-q13",
+    "L5-q31",
+    "L5-q66"
+  ],
+  "quotas": {
+    "L1": 20,
+    "L2": 20,
+    "L3": 20,
+    "L4": 20,
+    "L5": 20
+  },
+  "constraints": {
+    "equal_level_stratified": true,
+    "not_population_proportional": true,
+    "exclude_cost_pilot_ids": true,
+    "L1_single_step_only": true,
+    "L3_all_single_server_sequential": true,
+    "L4_all_cross_server_dependency": true,
+    "L5_official_infeasible_empty_route_only": true,
+    "max_server_frequency_per_level": 2,
+    "server_coverage": "seeded weights prefer servers not yet selected; hard cap max_server_frequency=2 within each level"
+  },
+  "ordered_task_ids": [
+    "L1-q556",
+    "L1-q160",
+    "L1-q267",
+    "L1-q533",
+    "L1-q33",
+    "L1-q98",
+    "L1-q719",
+    "L1-q107",
+    "L1-q12",
+    "L1-q183",
+    "L1-q297",
+    "L1-q200",
+    "L1-q325",
+    "L1-q2",
+    "L1-q727",
+    "L1-q10",
+    "L1-q604",
+    "L1-q591",
+    "L1-q105",
+    "L1-q506",
+    "L2-q766",
+    "L2-q702",
+    "L2-q492",
+    "L2-q520",
+    "L2-q633",
+    "L2-q751",
+    "L2-q720",
+    "L2-q640",
+    "L2-q518",
+    "L2-q64",
+    "L2-q22",
+    "L2-q668",
+    "L2-q166",
+    "L2-q315",
+    "L2-q233",
+    "L2-q399",
+    "L2-q432",
+    "L2-q445",
+    "L2-q341",
+    "L2-q14",
+    "L3-q108",
+    "L3-q302",
+    "L3-q267",
+    "L3-q29",
+    "L3-q142",
+    "L3-q264",
+    "L3-q120",
+    "L3-q17",
+    "L3-q230",
+    "L3-q195",
+    "L3-q116",
+    "L3-q208",
+    "L3-q106",
+    "L3-q117",
+    "L3-q224",
+    "L3-q180",
+    "L3-q229",
+    "L3-q55",
+    "L3-q172",
+    "L3-q188",
+    "L4-q57",
+    "L4-q4",
+    "L4-q37",
+    "L4-q100",
+    "L4-q92",
+    "L4-q48",
+    "L4-q96",
+    "L4-q52",
+    "L4-q62",
+    "L4-q75",
+    "L4-q31",
+    "L4-q71",
+    "L4-q5",
+    "L4-q7",
+    "L4-q83",
+    "L4-q95",
+    "L4-q101",
+    "L4-q54",
+    "L4-q35",
+    "L4-q36",
+    "L5-q68",
+    "L5-q4",
+    "L5-q39",
+    "L5-q11",
+    "L5-q40",
+    "L5-q49",
+    "L5-q91",
+    "L5-q69",
+    "L5-q5",
+    "L5-q46",
+    "L5-q42",
+    "L5-q71",
+    "L5-q27",
+    "L5-q24",
+    "L5-q58",
+    "L5-q73",
+    "L5-q56",
+    "L5-q44",
+    "L5-q20",
+    "L5-q33"
+  ],
+  "ordered_task_ids_sha256": "3be67c36e4eec58920864a401bbaa73db55136930b0f406e2da56c4988734479",
+  "tasks": [
+    {
+      "task_id": "L1-q556",
+      "level": 1,
+      "query_id": 556,
+      "source_file": "data/queries/level_1.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 1,
+      "server_names": [
+        "CCXT MCP Server"
+      ],
+      "operation_ids": [
+        "CCXT MCP Server::fetchTrades"
+      ],
+      "tool_names": [
+        "fetchTrades"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "40ff645d8e7a60d812dbd4db5705405de08c38b812966f65c5c10bc863960961",
+      "ground_truth_sha256": "c957dac4d29f51b9ef76df204673946b6c38ab4580779173f939d4a5206e0f4e"
+    },
+    {
+      "task_id": "L1-q160",
+      "level": 1,
+      "query_id": 160,
+      "source_file": "data/queries/level_1.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 2,
+      "server_names": [
+        "WSB Analyst MCP Server"
+      ],
+      "operation_ids": [
+        "WSB Analyst MCP Server::get_external_links"
+      ],
+      "tool_names": [
+        "get_external_links"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "56de63d08e4e004f4f29914d202e3258b99c6f3fbd12f5d51bfb8df7c8a612d9",
+      "ground_truth_sha256": "8ca9548d5f9c122ed5480d0b6b299853cc1d94cb0a80e376f29c9857de079037"
+    },
+    {
+      "task_id": "L1-q267",
+      "level": 1,
+      "query_id": 267,
+      "source_file": "data/queries/level_1.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 3,
+      "server_names": [
+        "MCP Atlassian"
+      ],
+      "operation_ids": [
+        "MCP Atlassian::jira_get_project_issues"
+      ],
+      "tool_names": [
+        "jira_get_project_issues"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "1e7893faafbb066c150da65293a94f714792d119e8b0278776c3ff9006d44e8c",
+      "ground_truth_sha256": "e7c7738dd78583a6502ff3b5a3240aa7255abb2d6f7e75841e4f9ebb69743460"
+    },
+    {
+      "task_id": "L1-q533",
+      "level": 1,
+      "query_id": 533,
+      "source_file": "data/queries/level_1.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 4,
+      "server_names": [
+        "Ethereum RPC MCP Server"
+      ],
+      "operation_ids": [
+        "Ethereum RPC MCP Server::eth_getBalance"
+      ],
+      "tool_names": [
+        "eth_getBalance"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "bf6053e39b742f9ac4e18d21fc6e46716382781a663132ef4be45cc15cab225b",
+      "ground_truth_sha256": "59d0cbb2420aae64dc4ea7567ed97751703e2e93218b2850ef70f4fadf82de58"
+    },
+    {
+      "task_id": "L1-q33",
+      "level": 1,
+      "query_id": 33,
+      "source_file": "data/queries/level_1.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 5,
+      "server_names": [
+        "Shodan MCP Server"
+      ],
+      "operation_ids": [
+        "Shodan MCP Server::search_iot_devices"
+      ],
+      "tool_names": [
+        "search_iot_devices"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "fa65f6bf21b0d796b215709b8122931fad2d4e2b152af2e09e70f301d9482a9f",
+      "ground_truth_sha256": "c6aab41b06c046d9ad05cb58401de0b9d55c8f31dea030d77870a3e4b1aeac69"
+    },
+    {
+      "task_id": "L1-q98",
+      "level": 1,
+      "query_id": 98,
+      "source_file": "data/queries/level_1.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 6,
+      "server_names": [
+        "Hunter MCP Server"
+      ],
+      "operation_ids": [
+        "Hunter MCP Server::email_finder"
+      ],
+      "tool_names": [
+        "email_finder"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "08cc55f1afcb8240e42e518fb0686411c9ca160cb242dd8c1a9a3426ecbc98d2",
+      "ground_truth_sha256": "92767558adce3d3e4c708d0bf289ed8bc862433166fbc0de3a6cde529eb26bee"
+    },
+    {
+      "task_id": "L1-q719",
+      "level": 1,
+      "query_id": 719,
+      "source_file": "data/queries/level_1.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 7,
+      "server_names": [
+        "MCP-Discord"
+      ],
+      "operation_ids": [
+        "MCP-Discord::discord_delete_channel"
+      ],
+      "tool_names": [
+        "discord_delete_channel"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "8182e791ea7c4c7b2ef92922a515c350861bffd32af34f7fe23dcdb4f7cc76ca",
+      "ground_truth_sha256": "6e0ad144f4b954c0eb3d4683fe7cd0bd3eb2754cc5536de6c130481cb8c26f49"
+    },
+    {
+      "task_id": "L1-q107",
+      "level": 1,
+      "query_id": 107,
+      "source_file": "data/queries/level_1.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 8,
+      "server_names": [
+        "Financial Modeling Prep MCP Server"
+      ],
+      "operation_ids": [
+        "Financial Modeling Prep MCP Server::get_ma_data"
+      ],
+      "tool_names": [
+        "get_ma_data"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "02f023be1b158ea0640b98e39fa8dca5d350876532c6489a3679375142fb6137",
+      "ground_truth_sha256": "1e057e4c44d64bed7002c4d20c68b19e1cf38821c00ac0d5744f1fe49afeafb2"
+    },
+    {
+      "task_id": "L1-q12",
+      "level": 1,
+      "query_id": 12,
+      "source_file": "data/queries/level_1.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 9,
+      "server_names": [
+        "Elasticsearch MCP Server"
+      ],
+      "operation_ids": [
+        "Elasticsearch MCP Server::search"
+      ],
+      "tool_names": [
+        "search"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "3b8285df458d5f6ca7e4c70a007ba44122529c1788f55ce4b7fa2caad8066c28",
+      "ground_truth_sha256": "d6af5ebb1350e20a8f0f0c6622e67dfb79edb899bdfb04f75d61d90446cad1c1"
+    },
+    {
+      "task_id": "L1-q183",
+      "level": 1,
+      "query_id": 183,
+      "source_file": "data/queries/level_1.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 10,
+      "server_names": [
+        "Excel MCP Server"
+      ],
+      "operation_ids": [
+        "Excel MCP Server::excel_create_table"
+      ],
+      "tool_names": [
+        "excel_create_table"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "69ed6845508cc10c21abefb6387bd2c1c45679793eadb8ae48c1b910f783eb75",
+      "ground_truth_sha256": "59fd2c3a4c36c2ce3aa16b00deea644d9fe4dbe5e66787bdad657dffcd7547a2"
+    },
+    {
+      "task_id": "L1-q297",
+      "level": 1,
+      "query_id": 297,
+      "source_file": "data/queries/level_1.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 11,
+      "server_names": [
+        "PDF.co MCP"
+      ],
+      "operation_ids": [
+        "PDF.co MCP::pdf_to_html"
+      ],
+      "tool_names": [
+        "pdf_to_html"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "db84c653de844b6f0aebc835958c9ca9ecd583a55405a695bf1941ec3b6b81ef",
+      "ground_truth_sha256": "bd19aab2b8ab70a6f3cb3640eaeab99fb946a3a086bc389664713aa9aea730d7"
+    },
+    {
+      "task_id": "L1-q200",
+      "level": 1,
+      "query_id": 200,
+      "source_file": "data/queries/level_1.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 12,
+      "server_names": [
+        "Google Tasks MCP Server"
+      ],
+      "operation_ids": [
+        "Google Tasks MCP Server::create_folder"
+      ],
+      "tool_names": [
+        "create_folder"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "3e4deeb298d2b0eb1e0aafc443c25c79b8c1a0b4b8e89a8e45b5f11b950dab58",
+      "ground_truth_sha256": "3b744fe2ad18267d419858b56fed3f26b62647df72b49ac86f92576c0bbc833b"
+    },
+    {
+      "task_id": "L1-q325",
+      "level": 1,
+      "query_id": 325,
+      "source_file": "data/queries/level_1.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 13,
+      "server_names": [
+        "Stability AI MCP Server"
+      ],
+      "operation_ids": [
+        "Stability AI MCP Server::stability-ai-control-sketch"
+      ],
+      "tool_names": [
+        "stability-ai-control-sketch"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "52e069d49098185a74dddf42c4d2c3ef61d845f5abe078d928db31014545e18c",
+      "ground_truth_sha256": "5854e6bf3a05af21ffdd5a746afde7c916a12f2b75807102f488b1dd2a319771"
+    },
+    {
+      "task_id": "L1-q2",
+      "level": 1,
+      "query_id": 2,
+      "source_file": "data/queries/level_1.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 14,
+      "server_names": [
+        "Semgrep MCP Server"
+      ],
+      "operation_ids": [
+        "Semgrep MCP Server::start_scan_from_content"
+      ],
+      "tool_names": [
+        "start_scan_from_content"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "81626c86852c0adda4813d8cb6583e89f206bbf15f531e6055791e314e3e7e66",
+      "ground_truth_sha256": "71a50e58799b92321dc53e40a84f9d166712234a7e6f93e0e0b4ced0183d460c"
+    },
+    {
+      "task_id": "L1-q727",
+      "level": 1,
+      "query_id": 727,
+      "source_file": "data/queries/level_1.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 15,
+      "server_names": [
+        "MCP Teams Server"
+      ],
+      "operation_ids": [
+        "MCP Teams Server::update_thread"
+      ],
+      "tool_names": [
+        "update_thread"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "eaddcb344ccd6c92bec1a91f03fc23974db03367b0994d0ee361631cab2c1d3d",
+      "ground_truth_sha256": "11ebc21b9cd5c65f12b952a489360704b4e0682708a7c2823638389836f77e37"
+    },
+    {
+      "task_id": "L1-q10",
+      "level": 1,
+      "query_id": 10,
+      "source_file": "data/queries/level_1.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 16,
+      "server_names": [
+        "Revit MCP Server"
+      ],
+      "operation_ids": [
+        "Revit MCP Server::create_floor_plan_views"
+      ],
+      "tool_names": [
+        "create_floor_plan_views"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "41261505287f94ca72da592affbfc0e51b534835af99c9d3dd158bb747ca872e",
+      "ground_truth_sha256": "3fe67d1d605a2b958fba16c6bbca277b157f530cab79df4f04f439cf6fd0c73e"
+    },
+    {
+      "task_id": "L1-q604",
+      "level": 1,
+      "query_id": 604,
+      "source_file": "data/queries/level_1.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 17,
+      "server_names": [
+        "Perplexity MCP Server"
+      ],
+      "operation_ids": [
+        "Perplexity MCP Server::search"
+      ],
+      "tool_names": [
+        "search"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "1e5b0c1b3442a50e7c55b1586c3ed90d176b987bec39352021ce169fee24636d",
+      "ground_truth_sha256": "52af6dbdd3fe4680937eae788bb7dfd0db1d5c392ab51bdbd6181d9230fd120d"
+    },
+    {
+      "task_id": "L1-q591",
+      "level": 1,
+      "query_id": 591,
+      "source_file": "data/queries/level_1.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 18,
+      "server_names": [
+        "Pinecone Developer MCP Server"
+      ],
+      "operation_ids": [
+        "Pinecone Developer MCP Server::search-docs"
+      ],
+      "tool_names": [
+        "search-docs"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "1f64e95d2713bcea20119b1c40bb97af48267fa45e813be56b479d8a0030517e",
+      "ground_truth_sha256": "e448517a71f7646be95e443e559f57cca23d51b730de594a02677a343efeb7e0"
+    },
+    {
+      "task_id": "L1-q105",
+      "level": 1,
+      "query_id": 105,
+      "source_file": "data/queries/level_1.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 19,
+      "server_names": [
+        "Financial Modeling Prep MCP Server"
+      ],
+      "operation_ids": [
+        "Financial Modeling Prep MCP Server::get_financial_statement"
+      ],
+      "tool_names": [
+        "get_financial_statement"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "6a66df65034fd6f488ccee7a03ed3b8580a71a68ca481e12bd5ee7bfbe146b45",
+      "ground_truth_sha256": "72548e752d23f47eab82e2f34d13e2f681ad55eea00070327625e75f29aa5d3a"
+    },
+    {
+      "task_id": "L1-q506",
+      "level": 1,
+      "query_id": 506,
+      "source_file": "data/queries/level_1.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 20,
+      "server_names": [
+        "BoldSign MCP Server"
+      ],
+      "operation_ids": [
+        "BoldSign MCP Server::get_team"
+      ],
+      "tool_names": [
+        "get_team"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "92e548f2b22736fb155763545cc2b8996519b9a27fb8fe0d2e1002690779bd44",
+      "ground_truth_sha256": "a74fa32a185cc4f97353b129ca58dd5e62aac0d251dfc42cbd89e2cfff7ba74e"
+    },
+    {
+      "task_id": "L2-q766",
+      "level": 2,
+      "query_id": 766,
+      "source_file": "data/queries/level_2.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 21,
+      "server_names": [
+        "Google Workspace MCP Server",
+        "Outlook Calendar MCP Tool",
+        "Outlook Meetings Scheduler MCP Server"
+      ],
+      "operation_ids": [
+        "Outlook Calendar MCP Tool::create_event",
+        "Google Workspace MCP Server::create_event",
+        "Outlook Meetings Scheduler MCP Server::create-event",
+        "Outlook Meetings Scheduler MCP Server::create-event-with-attendees"
+      ],
+      "tool_names": [
+        "create_event",
+        "create_event",
+        "create-event",
+        "create-event-with-attendees",
+        "create_event",
+        "create_event",
+        "create-event",
+        "create-event-with-attendees",
+        "create-event",
+        "create_event",
+        "create_event",
+        "create-event-with-attendees",
+        "create-event-with-attendees",
+        "create_event",
+        "create_event",
+        "create-event"
+      ],
+      "step_count": 4,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "dc6e0fe94371fbdd244eaa885f40406052ec5644c1d31f8e0cfe39fcbdd968b2",
+      "ground_truth_sha256": "a338f334e0011f63b88108fb1f365d76cba13338c3bead7a3f6d14afc2174812"
+    },
+    {
+      "task_id": "L2-q702",
+      "level": 2,
+      "query_id": 702,
+      "source_file": "data/queries/level_2.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 22,
+      "server_names": [
+        "Enhanced Todoist MCP Server Extended",
+        "Software Planning Tool",
+        "Todo List MCP Server",
+        "Todoist MCP Server Extended"
+      ],
+      "operation_ids": [
+        "Todo List MCP Server::complete-todo",
+        "Enhanced Todoist MCP Server Extended::todoist_complete_task",
+        "Software Planning Tool::update_todo_status",
+        "Todoist MCP Server Extended::todoist_complete_task"
+      ],
+      "tool_names": [
+        "complete-todo",
+        "todoist_complete_task",
+        "update_todo_status",
+        "todoist_complete_task",
+        "todoist_complete_task",
+        "complete-todo",
+        "update_todo_status",
+        "todoist_complete_task",
+        "update_todo_status",
+        "todoist_complete_task",
+        "complete-todo",
+        "todoist_complete_task",
+        "update_todo_status"
+      ],
+      "step_count": 4,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "e57c2263eeae6cf0ea1d02c448e6bcb40b8990884a8c93c778d4bf9238f5dd27",
+      "ground_truth_sha256": "602a6ec29493929513d1d11166942931b8d73d555625a8d57a59ca7675543465"
+    },
+    {
+      "task_id": "L2-q492",
+      "level": 2,
+      "query_id": 492,
+      "source_file": "data/queries/level_2.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 23,
+      "server_names": [
+        "Shadcn UI v4 MCP Server"
+      ],
+      "operation_ids": [
+        "Shadcn UI v4 MCP Server::get_component_demo"
+      ],
+      "tool_names": [
+        "get_component_demo"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "6bf48bd16c1efd285f80514610a2b02b889c79dfd1347c30a75d6c689e0696dc",
+      "ground_truth_sha256": "f56a92fe8148cf4eefc00f45b942589162b1e7f9f80e3b39102afc5fc02de320"
+    },
+    {
+      "task_id": "L2-q520",
+      "level": 2,
+      "query_id": 520,
+      "source_file": "data/queries/level_2.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 24,
+      "server_names": [
+        "MCP Journaling Server"
+      ],
+      "operation_ids": [
+        "MCP Journaling Server::generate_session_summary"
+      ],
+      "tool_names": [
+        "generate_session_summary"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "56d0a463be33bdd3491f1d3b519cbada10ecb571b39003b4b06cbbd65c7a8781",
+      "ground_truth_sha256": "86c5e61206b13635cbb5c900562274b54237ef736b2eadd8fe7813dad4170731"
+    },
+    {
+      "task_id": "L2-q633",
+      "level": 2,
+      "query_id": 633,
+      "source_file": "data/queries/level_2.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 25,
+      "server_names": [
+        "MCP Ethers Wallet",
+        "MCP Etherscan Server",
+        "MetaMask MCP"
+      ],
+      "operation_ids": [
+        "MCP Ethers Wallet::lookupAddress",
+        "MetaMask MCP::get-ens-name",
+        "MCP Etherscan Server::get-ens-name"
+      ],
+      "tool_names": [
+        "lookupAddress",
+        "get-ens-name",
+        "get-ens-name",
+        "get-ens-name",
+        "lookupAddress",
+        "get-ens-name",
+        "get-ens-name",
+        "lookupAddress",
+        "get-ens-name"
+      ],
+      "step_count": 3,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "9f040b690985b11c94f309a0f0939342964f93ae2a0a09b62fbd3f494eb35ccb",
+      "ground_truth_sha256": "5dfe9bdb831ce0f9bda4d8554e95a7f5b11a30555984d26f87249ba7d9b66cd2"
+    },
+    {
+      "task_id": "L2-q751",
+      "level": 2,
+      "query_id": 751,
+      "source_file": "data/queries/level_2.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 26,
+      "server_names": [
+        "Chrome Tools MCP Server",
+        "Puppeteer MCP Server",
+        "playwright-server MCP server"
+      ],
+      "operation_ids": [
+        "playwright-server MCP server::playwright_evaluate",
+        "Chrome Tools MCP Server::execute_script",
+        "Puppeteer MCP Server::puppeteer_evaluate"
+      ],
+      "tool_names": [
+        "playwright_evaluate",
+        "execute_script",
+        "puppeteer_evaluate",
+        "execute_script",
+        "playwright_evaluate",
+        "puppeteer_evaluate",
+        "puppeteer_evaluate",
+        "playwright_evaluate",
+        "execute_script"
+      ],
+      "step_count": 3,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "ee9387e1721299dc58eea0bf63322c8846e7356a4026fc5d33675a6dc234b46a",
+      "ground_truth_sha256": "a3f54422065586fb35c85a1ed0cd5b24f7322f77c3e1d91a5464f4f8a5854589"
+    },
+    {
+      "task_id": "L2-q720",
+      "level": 2,
+      "query_id": 720,
+      "source_file": "data/queries/level_2.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 27,
+      "server_names": [
+        "DocsFetcher MCP Server"
+      ],
+      "operation_ids": [
+        "DocsFetcher MCP Server::fetch-multilingual-docs",
+        "DocsFetcher MCP Server::fetch-package-docs",
+        "DocsFetcher MCP Server::fetch-url-docs",
+        "DocsFetcher MCP Server::fetch-library-docs"
+      ],
+      "tool_names": [
+        "fetch-multilingual-docs",
+        "fetch-package-docs",
+        "fetch-url-docs",
+        "fetch-library-docs",
+        "fetch-multilingual-docs",
+        "fetch-package-docs",
+        "fetch-url-docs",
+        "fetch-package-docs",
+        "fetch-multilingual-docs",
+        "fetch-library-docs",
+        "fetch-url-docs",
+        "fetch-url-docs",
+        "fetch-multilingual-docs",
+        "fetch-library-docs",
+        "fetch-package-docs"
+      ],
+      "step_count": 4,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "addf0ad44973d1aef8d7941368bb801273b6deaf5c982f842ebd3a061cf7517b",
+      "ground_truth_sha256": "fc7b87f0d631762e6f49bc441f9b2bfc4e59a5a92e8a5bf5738a8d328655a85a"
+    },
+    {
+      "task_id": "L2-q640",
+      "level": 2,
+      "query_id": 640,
+      "source_file": "data/queries/level_2.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 28,
+      "server_names": [
+        "MCP Web Browser Server",
+        "Puppeteer MCP Server",
+        "Steel MCP Server",
+        "Visual UI Debug Agent MCP",
+        "playwright-server MCP server"
+      ],
+      "operation_ids": [
+        "playwright-server MCP server::playwright_fill",
+        "Visual UI Debug Agent MCP::playwright_fill",
+        "Puppeteer MCP Server::puppeteer_fill",
+        "MCP Web Browser Server::browser_fill",
+        "Steel MCP Server::type"
+      ],
+      "tool_names": [
+        "playwright_fill",
+        "playwright_fill",
+        "puppeteer_fill",
+        "playwright_fill",
+        "playwright_fill",
+        "puppeteer_fill",
+        "puppeteer_fill",
+        "playwright_fill",
+        "playwright_fill",
+        "browser_fill",
+        "type",
+        "playwright_fill",
+        "playwright_fill",
+        "puppeteer_fill"
+      ],
+      "step_count": 5,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "442c274a66b890567e74b883c933d97ca5afb2a176fcd61f2944ecf4961e83f5",
+      "ground_truth_sha256": "39e355ff3b3f336c4a35ceb0d127f6160519901c6a919ad525ac29436ad18edc"
+    },
+    {
+      "task_id": "L2-q518",
+      "level": 2,
+      "query_id": 518,
+      "source_file": "data/queries/level_2.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 29,
+      "server_names": [
+        "AlphaFold MCP Server"
+      ],
+      "operation_ids": [
+        "AlphaFold MCP Server::get_organism_stats"
+      ],
+      "tool_names": [
+        "get_organism_stats"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "1cb4a787484f66f0ba834b650988149775d41dc7b50f63f733a7bb6ca7b5297a",
+      "ground_truth_sha256": "aab683808da94f5cde77f4f66fb5674c6b2d9196c38c99c8beca899c7e9a3c0b"
+    },
+    {
+      "task_id": "L2-q64",
+      "level": 2,
+      "query_id": 64,
+      "source_file": "data/queries/level_2.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 30,
+      "server_names": [
+        "OSRS MCP Server"
+      ],
+      "operation_ids": [
+        "OSRS MCP Server::osrs_wiki_parse_page"
+      ],
+      "tool_names": [
+        "osrs_wiki_parse_page"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "6ce9a691fa322f87af17cb1e3f817497684b47a11b3bc82bb458c263252169c5",
+      "ground_truth_sha256": "127dd1d41758907d725101f5f64ce663b804bc334f87f3497672c68b756c726e"
+    },
+    {
+      "task_id": "L2-q22",
+      "level": 2,
+      "query_id": 22,
+      "source_file": "data/queries/level_2.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 31,
+      "server_names": [
+        "dbt MCP Server"
+      ],
+      "operation_ids": [
+        "dbt MCP Server::get_model_details"
+      ],
+      "tool_names": [
+        "get_model_details"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "5044827ad1c8ebe4ed94769ec67c8731a9fe371b12608ead5aa1a1c6c69043bb",
+      "ground_truth_sha256": "1e04acaddd048aaf311931218bb423acc060387d0b627bfb48eafa0e7aa2f7e5"
+    },
+    {
+      "task_id": "L2-q668",
+      "level": 2,
+      "query_id": 668,
+      "source_file": "data/queries/level_2.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 32,
+      "server_names": [
+        "Graphlit MCP Server",
+        "Markdownify MCP Server - UTF-8 Enhanced",
+        "Model Context Protocol (MCP) Server for the RAG Web Browser Actor",
+        "mcp-tavily-search",
+        "pure.md MCP server"
+      ],
+      "operation_ids": [
+        "Markdownify MCP Server - UTF-8 Enhanced::bing-search-to-markdown",
+        "pure.md MCP server::search-web",
+        "Graphlit MCP Server::webSearch",
+        "Model Context Protocol (MCP) Server for the RAG Web Browser Actor::search",
+        "mcp-tavily-search::tavily_get_search_context"
+      ],
+      "tool_names": [
+        "bing-search-to-markdown",
+        "search-web",
+        "webSearch",
+        "search",
+        "search-web",
+        "bing-search-to-markdown",
+        "webSearch",
+        "search",
+        "webSearch",
+        "bing-search-to-markdown",
+        "search-web",
+        "tavily_get_search_context",
+        "search",
+        "tavily_get_search_context",
+        "bing-search-to-markdown",
+        "search-web",
+        "webSearch",
+        "search",
+        "search"
+      ],
+      "step_count": 5,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "5032b1bd63423a1f1a324f4203e21ae9f2da58b230cf01d4177fc1c99bbe42a8",
+      "ground_truth_sha256": "6148b1cd361c2ef9a229666bd41b37bf5bc227537124bc0eb017eca82246da9d"
+    },
+    {
+      "task_id": "L2-q166",
+      "level": 2,
+      "query_id": 166,
+      "source_file": "data/queries/level_2.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 33,
+      "server_names": [
+        "Backlog MCP Server"
+      ],
+      "operation_ids": [
+        "Backlog MCP Server::backlog_add_issue"
+      ],
+      "tool_names": [
+        "backlog_add_issue"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "cec7d3a00c0585d009238087821c908a5f5874317b670d2a14304f04127b2fb6",
+      "ground_truth_sha256": "1573c59a4e06c9da9e7f21cdc5fd7d35b69e28649a6d8e177e1f035f73bbbf6f"
+    },
+    {
+      "task_id": "L2-q315",
+      "level": 2,
+      "query_id": 315,
+      "source_file": "data/queries/level_2.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 34,
+      "server_names": [
+        "Enhanced Documentation Search MCP Server"
+      ],
+      "operation_ids": [
+        "Enhanced Documentation Search MCP Server::get_docs"
+      ],
+      "tool_names": [
+        "get_docs"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "242a0e7c1e41bc19de8f647ab968f2ffb02c0365a50fc3567ef547a98f8ce1c0",
+      "ground_truth_sha256": "c23ebc5ef79afb5debf60a0916356bd0aed18bc0485758e4a83c405b4f55abe0"
+    },
+    {
+      "task_id": "L2-q233",
+      "level": 2,
+      "query_id": 233,
+      "source_file": "data/queries/level_2.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 35,
+      "server_names": [
+        "Metricool MCP Server"
+      ],
+      "operation_ids": [
+        "Metricool MCP Server::get_Instagram_Posts"
+      ],
+      "tool_names": [
+        "get_Instagram_Posts"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "d25d38d48ad906a9f28b33e3b607f1553e688bc428f51cd46600305fc703380e",
+      "ground_truth_sha256": "da32fd0234da56ba72d05e4a4eeeed8303ff2762a032a86650dc1c787b216cb7"
+    },
+    {
+      "task_id": "L2-q399",
+      "level": 2,
+      "query_id": 399,
+      "source_file": "data/queries/level_2.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 36,
+      "server_names": [
+        "OP.GG MCP Server"
+      ],
+      "operation_ids": [
+        "OP.GG MCP Server::lol-champion-leader-board"
+      ],
+      "tool_names": [
+        "lol-champion-leader-board"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "628cce867b4039ce53c8ea5038fa13557c6500f6fa0ab0dc39f85544b3693565",
+      "ground_truth_sha256": "7eb46f0e364c82004a26d2a30f0d6724502f81e79067c1a68bb124daf55f6986"
+    },
+    {
+      "task_id": "L2-q432",
+      "level": 2,
+      "query_id": 432,
+      "source_file": "data/queries/level_2.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 37,
+      "server_names": [
+        "Polymarket MCP Tool"
+      ],
+      "operation_ids": [
+        "Polymarket MCP Tool::prediction_markets_markets_by_topic"
+      ],
+      "tool_names": [
+        "prediction_markets_markets_by_topic"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "7164672b9daa4fcfc2d5540f37eb86b2e90955aa17f5b8dd5de1c35ac62d60f9",
+      "ground_truth_sha256": "fa01f8aafccbc365af8a834f362f35bddca5f62b5e479349cbd8251941a0880d"
+    },
+    {
+      "task_id": "L2-q445",
+      "level": 2,
+      "query_id": 445,
+      "source_file": "data/queries/level_2.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 38,
+      "server_names": [
+        "CCXT MCP Server"
+      ],
+      "operation_ids": [
+        "CCXT MCP Server::fetchClosedOrders"
+      ],
+      "tool_names": [
+        "fetchClosedOrders"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "3b001fde43400ec837c84d443c5f762fce424b404f4776fd358870cdbc09a2dc",
+      "ground_truth_sha256": "19da2c88df38f79ee4ea5ce9f1336a3a59ed6567ac2e2c8aa9e1edb05e1feb00"
+    },
+    {
+      "task_id": "L2-q341",
+      "level": 2,
+      "query_id": 341,
+      "source_file": "data/queries/level_2.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 39,
+      "server_names": [
+        "MTS MCP Server"
+      ],
+      "operation_ids": [
+        "MTS MCP Server::reuse_forecasting_agent_and_get_forecast"
+      ],
+      "tool_names": [
+        "reuse_forecasting_agent_and_get_forecast"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "df629ebee34dfa193d05283f2270896a7c3ce3f1f3e627ec108e8883a7e34597",
+      "ground_truth_sha256": "b042cc34976bf0537f5d2e428125e88e1ed623e472daba98cb44a39e06f7cbf1"
+    },
+    {
+      "task_id": "L2-q14",
+      "level": 2,
+      "query_id": 14,
+      "source_file": "data/queries/level_2.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 40,
+      "server_names": [
+        "FetchSERP MCP Server"
+      ],
+      "operation_ids": [
+        "FetchSERP MCP Server::get_serp_html"
+      ],
+      "tool_names": [
+        "get_serp_html"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "5d4eb56f087ba44ba9498fd71bbe89380cf4c431cb971374ed17b62933ad921d",
+      "ground_truth_sha256": "f67a14fa46127758141c8f107fd74b86493f9a4b123e7dbae4953f7a0d1b41e9"
+    },
+    {
+      "task_id": "L3-q108",
+      "level": 3,
+      "query_id": 108,
+      "source_file": "data/queries/level_3.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 41,
+      "server_names": [
+        "TrueNAS MCP Server"
+      ],
+      "operation_ids": [
+        "TrueNAS MCP Server::get_pool_status",
+        "TrueNAS MCP Server::list_pools",
+        "TrueNAS MCP Server::get_system_info",
+        "TrueNAS MCP Server::list_datasets",
+        "TrueNAS MCP Server::reset_connection"
+      ],
+      "tool_names": [
+        "get_pool_status",
+        "list_pools",
+        "get_system_info",
+        "list_datasets",
+        "reset_connection"
+      ],
+      "step_count": 5,
+      "has_dependency": true,
+      "single_server_sequential": true,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "8145aa1b6fbe53d573a69b03ff31901ff40c3bd27dd574074b6c640f4c31cd00",
+      "ground_truth_sha256": "0321658f55b5a60a74cd4e43e011386af7877fd4a9dc9089520d027a127ed0f5"
+    },
+    {
+      "task_id": "L3-q302",
+      "level": 3,
+      "query_id": 302,
+      "source_file": "data/queries/level_3.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 42,
+      "server_names": [
+        "MindManager MCP Server"
+      ],
+      "operation_ids": [
+        "MindManager MCP Server::get_mindmap",
+        "MindManager MCP Server::get_versions",
+        "MindManager MCP Server::get_library_folder",
+        "MindManager MCP Server::get_mindmanager_version"
+      ],
+      "tool_names": [
+        "get_mindmap",
+        "get_versions",
+        "get_library_folder",
+        "get_mindmanager_version"
+      ],
+      "step_count": 4,
+      "has_dependency": true,
+      "single_server_sequential": true,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "b8b6f59345e57d77bbdb2b34bd699902c28eedb646cca21472716bb3e7eaf9d6",
+      "ground_truth_sha256": "4404931153402afd12e4ea5cbeb45e6a7ae7bbd49d0d5b2bff2888430489f935"
+    },
+    {
+      "task_id": "L3-q267",
+      "level": 3,
+      "query_id": 267,
+      "source_file": "data/queries/level_3.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 43,
+      "server_names": [
+        "Rootly MCP Server"
+      ],
+      "operation_ids": [
+        "Rootly MCP Server::search_incidents_paginated",
+        "Rootly MCP Server::incidents_by_incident_id_alerts_get",
+        "Rootly MCP Server::alerts_get",
+        "Rootly MCP Server::incidents_by_incident_id_alerts_post",
+        "Rootly MCP Server::alerts_post",
+        "Rootly MCP Server::environments_post",
+        "Rootly MCP Server::list_endpoints"
+      ],
+      "tool_names": [
+        "search_incidents_paginated",
+        "incidents_by_incident_id_alerts_get",
+        "alerts_get",
+        "incidents_by_incident_id_alerts_post",
+        "alerts_post",
+        "environments_post",
+        "list_endpoints"
+      ],
+      "step_count": 7,
+      "has_dependency": true,
+      "single_server_sequential": true,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "9ca3222c5c8a0169b7d39ed5e503063acd4872af08831a89f066c1e518f96c2a",
+      "ground_truth_sha256": "fbdec0566069487c938f87d91e6532f4156ecf493f80b986116ae99201931be0"
+    },
+    {
+      "task_id": "L3-q29",
+      "level": 3,
+      "query_id": 29,
+      "source_file": "data/queries/level_3.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 44,
+      "server_names": [
+        "Nessus MCP Server"
+      ],
+      "operation_ids": [
+        "Nessus MCP Server::start_scan",
+        "Nessus MCP Server::get_scan_results",
+        "Nessus MCP Server::get_scan_status",
+        "Nessus MCP Server::list_scans",
+        "Nessus MCP Server::list_scan_templates"
+      ],
+      "tool_names": [
+        "start_scan",
+        "get_scan_results",
+        "get_scan_status",
+        "list_scans",
+        "list_scan_templates"
+      ],
+      "step_count": 5,
+      "has_dependency": true,
+      "single_server_sequential": true,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "03d3b5bd8401a0ef53cb88a95157cb86b6411751bb8bd3cd9a8f0d4d12db78cf",
+      "ground_truth_sha256": "f8ec670c46852a3cfc70d3b66db53c45bc23f201d365d789d0c7b0ee4feac30b"
+    },
+    {
+      "task_id": "L3-q142",
+      "level": 3,
+      "query_id": 142,
+      "source_file": "data/queries/level_3.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 45,
+      "server_names": [
+        "cognee MCP server"
+      ],
+      "operation_ids": [
+        "cognee MCP server::search",
+        "cognee MCP server::prune"
+      ],
+      "tool_names": [
+        "search",
+        "prune"
+      ],
+      "step_count": 2,
+      "has_dependency": true,
+      "single_server_sequential": true,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "c0d48b57c38e0d2d5a24525c776c8798052ebfc40210c3fe880f0d57fa414b2b",
+      "ground_truth_sha256": "cbbf46beed1cd86817e9445884c3cc39c0d00c6e6e0b14a568e6b78270131104"
+    },
+    {
+      "task_id": "L3-q264",
+      "level": 3,
+      "query_id": 264,
+      "source_file": "data/queries/level_3.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 46,
+      "server_names": [
+        "Optuna MCP Server"
+      ],
+      "operation_ids": [
+        "Optuna MCP Server::create_study",
+        "Optuna MCP Server::get_metric_names",
+        "Optuna MCP Server::get_all_study_names"
+      ],
+      "tool_names": [
+        "create_study",
+        "get_metric_names",
+        "get_all_study_names"
+      ],
+      "step_count": 3,
+      "has_dependency": true,
+      "single_server_sequential": true,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "2e1596665efb94956ab1b459b66ee91b9ea1a0c841f9f9b1d8feb3704101c03e",
+      "ground_truth_sha256": "0a9d8146d92cf557dca7e4378bcd8976bc0a3f9ca10e7c06e4888ba24d64673e"
+    },
+    {
+      "task_id": "L3-q120",
+      "level": 3,
+      "query_id": 120,
+      "source_file": "data/queries/level_3.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 47,
+      "server_names": [
+        "Harvest Natural Language Time Entry MCP Server"
+      ],
+      "operation_ids": [
+        "Harvest Natural Language Time Entry MCP Server::get_time_report",
+        "Harvest Natural Language Time Entry MCP Server::list_projects"
+      ],
+      "tool_names": [
+        "get_time_report",
+        "list_projects"
+      ],
+      "step_count": 2,
+      "has_dependency": true,
+      "single_server_sequential": true,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "01cb9e90c92d18b8ae1d802f7fdcd6e84eecb8faae734edfc8ad6e4e1ad96fe3",
+      "ground_truth_sha256": "95cbf6fe3c0f69ce7cf8d11ebd48b1e4526d6ba876869dbd543d70799a44c095"
+    },
+    {
+      "task_id": "L3-q17",
+      "level": 3,
+      "query_id": 17,
+      "source_file": "data/queries/level_3.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 48,
+      "server_names": [
+        "MCP server to deploy code to Google Cloud Run"
+      ],
+      "operation_ids": [
+        "MCP server to deploy code to Google Cloud Run::create_project",
+        "MCP server to deploy code to Google Cloud Run::list_projects"
+      ],
+      "tool_names": [
+        "create_project",
+        "list_projects"
+      ],
+      "step_count": 2,
+      "has_dependency": true,
+      "single_server_sequential": true,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "da89ad885587913642a79e00297bb101bd31b821c17809ee305bdac5dcf9d279",
+      "ground_truth_sha256": "35bad45e96861a5e40d352b368576323f46b8f0dcb031315b874137530549d1f"
+    },
+    {
+      "task_id": "L3-q230",
+      "level": 3,
+      "query_id": 230,
+      "source_file": "data/queries/level_3.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 49,
+      "server_names": [
+        "Argo CD MCP Server"
+      ],
+      "operation_ids": [
+        "Argo CD MCP Server::get_resource_actions",
+        "Argo CD MCP Server::get_application",
+        "Argo CD MCP Server::create_application"
+      ],
+      "tool_names": [
+        "get_resource_actions",
+        "get_application",
+        "create_application"
+      ],
+      "step_count": 3,
+      "has_dependency": true,
+      "single_server_sequential": true,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "c4db50b0803ea4bdb3cda6a902cf2a7aac5c2a4edfde509df3792fc49f1dd605",
+      "ground_truth_sha256": "e1f7a520ca4f2b98b46ec380c263409e24c4d497577af5cc937c1cee5f1289c5"
+    },
+    {
+      "task_id": "L3-q195",
+      "level": 3,
+      "query_id": 195,
+      "source_file": "data/queries/level_3.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 50,
+      "server_names": [
+        "Redis Cloud API MCP Server"
+      ],
+      "operation_ids": [
+        "Redis Cloud API MCP Server::create-essential-subscription",
+        "Redis Cloud API MCP Server::get-tasks",
+        "Redis Cloud API MCP Server::get-database-modules",
+        "Redis Cloud API MCP Server::get-current-account"
+      ],
+      "tool_names": [
+        "create-essential-subscription",
+        "get-tasks",
+        "get-database-modules",
+        "get-current-account"
+      ],
+      "step_count": 4,
+      "has_dependency": true,
+      "single_server_sequential": true,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "8c1489737a0ecd605d67bd2262ac095dae19f8048b7ca3ea3eef3437e06105ba",
+      "ground_truth_sha256": "622e2978fecef3b5afbeec6bb6803fa94ef6c39d60ca4733cf5ff6cd9fef695c"
+    },
+    {
+      "task_id": "L3-q116",
+      "level": 3,
+      "query_id": 116,
+      "source_file": "data/queries/level_3.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 51,
+      "server_names": [
+        "DefectDojo MCP Server"
+      ],
+      "operation_ids": [
+        "DefectDojo MCP Server::get_engagement",
+        "DefectDojo MCP Server::close_engagement"
+      ],
+      "tool_names": [
+        "get_engagement",
+        "close_engagement"
+      ],
+      "step_count": 2,
+      "has_dependency": true,
+      "single_server_sequential": true,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "cd3c29ff576628afdf1ee3e8217ea12306ba034353f965babd29a0c088c4b011",
+      "ground_truth_sha256": "fd573bd231f497295a28fb883cc48affac1b32a75e1887bd3d351cc7fc37215e"
+    },
+    {
+      "task_id": "L3-q208",
+      "level": 3,
+      "query_id": 208,
+      "source_file": "data/queries/level_3.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 52,
+      "server_names": [
+        "MCP Yeoman Server"
+      ],
+      "operation_ids": [
+        "MCP Yeoman Server::get_ticker_info",
+        "MCP Yeoman Server::get_ticker_news"
+      ],
+      "tool_names": [
+        "get_ticker_info",
+        "get_ticker_news"
+      ],
+      "step_count": 2,
+      "has_dependency": true,
+      "single_server_sequential": true,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "33190319e5c325332162e1fb902570444bdf9ac00ffbc074652706ef9132120e",
+      "ground_truth_sha256": "4a3c19863eb7929d2842bf5c32f3ec2cc24da82cdfeef887e785df1f56c49520"
+    },
+    {
+      "task_id": "L3-q106",
+      "level": 3,
+      "query_id": 106,
+      "source_file": "data/queries/level_3.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 53,
+      "server_names": [
+        "Obsidian Local REST API MCP Server"
+      ],
+      "operation_ids": [
+        "Obsidian Local REST API MCP Server::create_note",
+        "Obsidian Local REST API MCP Server::get_note",
+        "Obsidian Local REST API MCP Server::list_files",
+        "Obsidian Local REST API MCP Server::list_notes"
+      ],
+      "tool_names": [
+        "create_note",
+        "get_note",
+        "list_files",
+        "list_notes"
+      ],
+      "step_count": 4,
+      "has_dependency": true,
+      "single_server_sequential": true,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "06bd97fcaeb2e946597ca6364edd68d9bfbd23770df5ba5f1bd1efcb3766f296",
+      "ground_truth_sha256": "090d63268a91b2834f7a8d8be303ca5c0e90e1adff488857c103b1330ea32c2c"
+    },
+    {
+      "task_id": "L3-q117",
+      "level": 3,
+      "query_id": 117,
+      "source_file": "data/queries/level_3.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 54,
+      "server_names": [
+        "DeltaTask - Advanced Task Management System"
+      ],
+      "operation_ids": [
+        "DeltaTask - Advanced Task Management System::create_task",
+        "DeltaTask - Advanced Task Management System::get_task_by_id",
+        "DeltaTask - Advanced Task Management System::delete_task"
+      ],
+      "tool_names": [
+        "create_task",
+        "get_task_by_id",
+        "delete_task"
+      ],
+      "step_count": 3,
+      "has_dependency": true,
+      "single_server_sequential": true,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "0e9d0efe065f6f70bd422034acf0f0da21781c7aaf5ad8d2bdfb6a1cc616fb0f",
+      "ground_truth_sha256": "13e1dd9df8387e666aeda3b726482d86765cc666ad2e55517164910ac7f30bf6"
+    },
+    {
+      "task_id": "L3-q224",
+      "level": 3,
+      "query_id": 224,
+      "source_file": "data/queries/level_3.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 55,
+      "server_names": [
+        "Salesforce MCP Server"
+      ],
+      "operation_ids": [
+        "Salesforce MCP Server::restore_instance",
+        "Salesforce MCP Server::get_instance_schema",
+        "Salesforce MCP Server::get_all_apps"
+      ],
+      "tool_names": [
+        "restore_instance",
+        "get_instance_schema",
+        "get_all_apps"
+      ],
+      "step_count": 3,
+      "has_dependency": true,
+      "single_server_sequential": true,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "37d8ee2d5f567524157fb50bc687a2f3e9b9ee7956181f992311ec380877a86f",
+      "ground_truth_sha256": "a5d38179f66af99ab28aafc0973ba634d1fa4d684d5324369aaa29a7c2be7c34"
+    },
+    {
+      "task_id": "L3-q180",
+      "level": 3,
+      "query_id": 180,
+      "source_file": "data/queries/level_3.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 56,
+      "server_names": [
+        "RAG Documentation MCP Server"
+      ],
+      "operation_ids": [
+        "RAG Documentation MCP Server::search_documentation",
+        "RAG Documentation MCP Server::list_queue",
+        "RAG Documentation MCP Server::clear_queue",
+        "RAG Documentation MCP Server::run_queue",
+        "RAG Documentation MCP Server::list_sources"
+      ],
+      "tool_names": [
+        "search_documentation",
+        "list_queue",
+        "clear_queue",
+        "run_queue",
+        "list_sources"
+      ],
+      "step_count": 5,
+      "has_dependency": true,
+      "single_server_sequential": true,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "a3cd4e10861c277abc29639d2bc52073a77a56e5660b5c16a83e02456839ce69",
+      "ground_truth_sha256": "29d354bc16c760bcf60bfde95609d57022ce918ad0329dc6a9ea8b630f6cc477"
+    },
+    {
+      "task_id": "L3-q229",
+      "level": 3,
+      "query_id": 229,
+      "source_file": "data/queries/level_3.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 57,
+      "server_names": [
+        "liveblocks-mcp-server"
+      ],
+      "operation_ids": [
+        "liveblocks-mcp-server::get-inbox-notification",
+        "liveblocks-mcp-server::get-notification-settings"
+      ],
+      "tool_names": [
+        "get-inbox-notification",
+        "get-notification-settings"
+      ],
+      "step_count": 2,
+      "has_dependency": true,
+      "single_server_sequential": true,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "d4328ffc196dfdbfb1f1608d7f08309e58c2dfbbaf2ebc5fd44f61ccf34025e8",
+      "ground_truth_sha256": "0217fff9c9e159ed0c52388917a14d7f6644e1367198d12c56ac14cf888b59ed"
+    },
+    {
+      "task_id": "L3-q55",
+      "level": 3,
+      "query_id": 55,
+      "source_file": "data/queries/level_3.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 58,
+      "server_names": [
+        "Q-Anon Posts/Drops MCP Server"
+      ],
+      "operation_ids": [
+        "Q-Anon Posts/Drops MCP Server::get_post_by_id_tool",
+        "Q-Anon Posts/Drops MCP Server::analyze_post"
+      ],
+      "tool_names": [
+        "get_post_by_id_tool",
+        "analyze_post"
+      ],
+      "step_count": 2,
+      "has_dependency": true,
+      "single_server_sequential": true,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "044abe9ffc856f5a75820101f2715b45a93e00604716c87305d1e215c5a849fa",
+      "ground_truth_sha256": "1776a73f07dae3dc71db4d1b235e89c88437b185e4e65d892dc8a5942f795b95"
+    },
+    {
+      "task_id": "L3-q172",
+      "level": 3,
+      "query_id": 172,
+      "source_file": "data/queries/level_3.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 59,
+      "server_names": [
+        "Contentstack MCP Server"
+      ],
+      "operation_ids": [
+        "Contentstack MCP Server::create_content_type",
+        "Contentstack MCP Server::update_content_type",
+        "Contentstack MCP Server::create_global_field"
+      ],
+      "tool_names": [
+        "create_content_type",
+        "update_content_type",
+        "create_global_field"
+      ],
+      "step_count": 3,
+      "has_dependency": true,
+      "single_server_sequential": true,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "ac5c2394f40c57447ef34499d31fde488f81495d34aa5692a8de317fabfc6464",
+      "ground_truth_sha256": "a33b2f5fc29135ffd0440fe7e57659669526d9be2904e241bf2c5720a87bf29e"
+    },
+    {
+      "task_id": "L3-q188",
+      "level": 3,
+      "query_id": 188,
+      "source_file": "data/queries/level_3.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 60,
+      "server_names": [
+        "@reapi/mcp-openapi"
+      ],
+      "operation_ids": [
+        "@reapi/mcp-openapi::search-api-schemas",
+        "@reapi/mcp-openapi::refresh-api-catalog",
+        "@reapi/mcp-openapi::get-api-catalog"
+      ],
+      "tool_names": [
+        "search-api-schemas",
+        "refresh-api-catalog",
+        "get-api-catalog"
+      ],
+      "step_count": 3,
+      "has_dependency": true,
+      "single_server_sequential": true,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "524a1457f680e623e8383e60afcadec7fe656f206c5e6b67a3d9eb2675af6e4b",
+      "ground_truth_sha256": "7c4222e44a5d7f61f12d808b5df0abe57d98b24f20ff42d4eb897300e48f694c"
+    },
+    {
+      "task_id": "L4-q57",
+      "level": 4,
+      "query_id": 57,
+      "source_file": "data/queries/level_4.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 61,
+      "server_names": [
+        "Enhanced Documentation Search MCP Server",
+        "MCP Architect",
+        "McpDocServer",
+        "RAG Documentation MCP Server"
+      ],
+      "operation_ids": [
+        "RAG Documentation MCP Server::list_sources",
+        "RAG Documentation MCP Server::search_documentation",
+        "Enhanced Documentation Search MCP Server::semantic_search",
+        "McpDocServer::search_docs",
+        "MCP Architect::generate_architecture",
+        "MCP Architect::evaluate_architecture"
+      ],
+      "tool_names": [
+        "list_sources",
+        "search_documentation",
+        "semantic_search",
+        "search_docs",
+        "generate_architecture",
+        "evaluate_architecture"
+      ],
+      "step_count": 4,
+      "has_dependency": true,
+      "single_server_sequential": false,
+      "cross_server_dependency": true,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "9c7a4a95fa1497562f45d483e948858dddbab935b983714f11ab1b2a63a2dc12",
+      "ground_truth_sha256": "449a9867fdb5c36926aa959255a4da542234493b23f4124744bf2f266be6d975"
+    },
+    {
+      "task_id": "L4-q4",
+      "level": 4,
+      "query_id": 4,
+      "source_file": "data/queries/level_4.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 62,
+      "server_names": [
+        "Nefino MCP Server",
+        "Voyp Model Context Protocol server"
+      ],
+      "operation_ids": [
+        "Nefino MCP Server::GetNewsResults",
+        "Voyp Model Context Protocol server::search_place"
+      ],
+      "tool_names": [
+        "GetNewsResults",
+        "search_place"
+      ],
+      "step_count": 2,
+      "has_dependency": true,
+      "single_server_sequential": false,
+      "cross_server_dependency": true,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "876fb9848c156732c946009d0ed1b0e626c4d204fee58cc509f6311115050c6a",
+      "ground_truth_sha256": "31d169f0ec041065b9e8390f328e7709b8fa9b53b5866f552586ee4f53e8b9e3"
+    },
+    {
+      "task_id": "L4-q37",
+      "level": 4,
+      "query_id": 37,
+      "source_file": "data/queries/level_4.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 63,
+      "server_names": [
+        "4o-image MCP Server",
+        "AWS Nova Canvas",
+        "Amazon Bedrock MCP Server",
+        "Gemini Image Generator MCP Server",
+        "Google OCR MCP server",
+        "Image Generation MCP Server",
+        "Image Generator MCP Server",
+        "LetzAI MCP Setup Guide",
+        "MCP Asset Generator",
+        "MCP Web Browser Server blazickjp",
+        "MCPollinations Multimodal MCP Server",
+        "Memgraph MCP Server",
+        "Together AI Image Server",
+        "image-gen MCP Server"
+      ],
+      "operation_ids": [
+        "MCP Web Browser Server blazickjp::browse_webpage",
+        "Memgraph MCP Server::run_query",
+        "LetzAI MCP Setup Guide::letzai_create_image",
+        "Image Generation MCP Server::generate_image",
+        "AWS Nova Canvas::generate_image",
+        "Together AI Image Server::generate_image",
+        "Amazon Bedrock MCP Server::generate_image",
+        "MCPollinations Multimodal MCP Server::generateImageUrl",
+        "Gemini Image Generator MCP Server::generate_image_from_text",
+        "image-gen MCP Server::generate_image",
+        "Image Generator MCP Server::generate-image",
+        "MCP Asset Generator::generateImage",
+        "4o-image MCP Server::generateImage",
+        "MCPollinations Multimodal MCP Server::generateImage",
+        "Google OCR MCP server::ocr"
+      ],
+      "tool_names": [
+        "browse_webpage",
+        "run_query",
+        "letzai_create_image",
+        "generate_image",
+        "generate_image",
+        "generate_image",
+        "generate_image",
+        "generateImageUrl",
+        "generate_image_from_text",
+        "generate_image",
+        "generate-image",
+        "generateImage",
+        "generateImage",
+        "generateImage",
+        "ocr"
+      ],
+      "step_count": 4,
+      "has_dependency": true,
+      "single_server_sequential": false,
+      "cross_server_dependency": true,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "9f17e8b8fe2e1d4814d7f5a7362a49ce3e81cfa306e3694accd1070e70d9fa9c",
+      "ground_truth_sha256": "45161346336daded9f0dc4b73cd5f232f8026a3096c11a5e5bfbcfd54682fea7"
+    },
+    {
+      "task_id": "L4-q100",
+      "level": 4,
+      "query_id": 100,
+      "source_file": "data/queries/level_4.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 64,
+      "server_names": [
+        "Command Executor MCP Server",
+        "Safe Local Python Executor"
+      ],
+      "operation_ids": [
+        "Command Executor MCP Server::start_instance",
+        "Command Executor MCP Server::get_instances",
+        "Command Executor MCP Server::bash",
+        "Safe Local Python Executor::run_python",
+        "Command Executor MCP Server::stop_instance"
+      ],
+      "tool_names": [
+        "start_instance",
+        "get_instances",
+        "bash",
+        "run_python",
+        "stop_instance"
+      ],
+      "step_count": 5,
+      "has_dependency": true,
+      "single_server_sequential": false,
+      "cross_server_dependency": true,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "6e8d4331e07b307603bfa3ee87fdec63b9a51b34c0be6d2acb4e63625755445b",
+      "ground_truth_sha256": "ad8aa641cce325b9c1e4d0b69b75b169046b15d70e2a5ede28844e148f39b5c5"
+    },
+    {
+      "task_id": "L4-q92",
+      "level": 4,
+      "query_id": 92,
+      "source_file": "data/queries/level_4.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 65,
+      "server_names": [
+        "Cloudflare MCP Server",
+        "Hologres MCP Server"
+      ],
+      "operation_ids": [
+        "Cloudflare MCP Server::search_cloudflare_documentation",
+        "Cloudflare MCP Server::migrate_pages_to_workers_guide",
+        "Hologres MCP Server::execute_select_sql",
+        "Hologres MCP Server::get_execution_plan"
+      ],
+      "tool_names": [
+        "search_cloudflare_documentation",
+        "migrate_pages_to_workers_guide",
+        "execute_select_sql",
+        "get_execution_plan"
+      ],
+      "step_count": 4,
+      "has_dependency": true,
+      "single_server_sequential": false,
+      "cross_server_dependency": true,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "0c62e4827b6795512c910a11b8ebdd9e987da7de7e4da37061f5facdee4c3a26",
+      "ground_truth_sha256": "c8237265f7498061f979f44e5bf3e66004d5e4c39393df58aa9a76fd63b5a2ea"
+    },
+    {
+      "task_id": "L4-q48",
+      "level": 4,
+      "query_id": 48,
+      "source_file": "data/queries/level_4.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 66,
+      "server_names": [
+        "Brave Search MCP Server",
+        "DataForSEO MCP Server",
+        "FetchSERP MCP Server",
+        "Kagi MCP server",
+        "MCP Webscan Server",
+        "Scrapeless Mcp Server",
+        "SushiMCP",
+        "kagi-server MCP Server",
+        "mcp-bocha",
+        "mcp-tavily-search"
+      ],
+      "operation_ids": [
+        "SushiMCP::list_llms_txt_sources",
+        "SushiMCP::fetch_llms_txt",
+        "Scrapeless Mcp Server::google-search",
+        "Kagi MCP server::search",
+        "kagi-server MCP Server::kagi_search",
+        "mcp-bocha::mcp-bocha_search",
+        "mcp-tavily-search::tavily_search",
+        "FetchSERP MCP Server::get_serp_results",
+        "Brave Search MCP Server::brave_web_search",
+        "DataForSEO MCP Server::serp-organic-live-advanced",
+        "MCP Webscan Server::crawl-site",
+        "MCP Webscan Server::check-links"
+      ],
+      "tool_names": [
+        "list_llms_txt_sources",
+        "fetch_llms_txt",
+        "google-search",
+        "search",
+        "kagi_search",
+        "mcp-bocha_search",
+        "tavily_search",
+        "get_serp_results",
+        "brave_web_search",
+        "serp-organic-live-advanced",
+        "crawl-site",
+        "check-links"
+      ],
+      "step_count": 5,
+      "has_dependency": true,
+      "single_server_sequential": false,
+      "cross_server_dependency": true,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "30e2c23a48fc0c9d0d02ea857456082dc9fd1a645be51f0846679cbd127f7033",
+      "ground_truth_sha256": "9874674efc6a53a85f95f3737edf1db953138ce91d5742c834b02168dba6d95c"
+    },
+    {
+      "task_id": "L4-q96",
+      "level": 4,
+      "query_id": 96,
+      "source_file": "data/queries/level_4.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 67,
+      "server_names": [
+        "Vizro MCP server",
+        "greptimedb-mcp-server"
+      ],
+      "operation_ids": [
+        "greptimedb-mcp-server::execute_sql",
+        "Vizro MCP server::load_and_analyze_data",
+        "Vizro MCP server::validate_model_config",
+        "Vizro MCP server::validate_chart_code"
+      ],
+      "tool_names": [
+        "execute_sql",
+        "load_and_analyze_data",
+        "validate_model_config",
+        "validate_chart_code"
+      ],
+      "step_count": 4,
+      "has_dependency": true,
+      "single_server_sequential": false,
+      "cross_server_dependency": true,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "c2cff0dc0a876ed729fcfef422f10022cb1e38ae57401435553e27e357103f03",
+      "ground_truth_sha256": "b78bc066f6cdb7e334cc5c8cdb273da758e3fb807b089647ca1c2b28412f00c2"
+    },
+    {
+      "task_id": "L4-q52",
+      "level": 4,
+      "query_id": 52,
+      "source_file": "data/queries/level_4.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 68,
+      "server_names": [
+        "Knowledge Graph Memory Server",
+        "SkyDeckAI Code",
+        "cognee MCP server"
+      ],
+      "operation_ids": [
+        "SkyDeckAI Code::search_files",
+        "SkyDeckAI Code::read_multiple_files",
+        "Knowledge Graph Memory Server::search_nodes",
+        "cognee MCP server::search",
+        "Knowledge Graph Memory Server::open_nodes",
+        "Knowledge Graph Memory Server::add_observations"
+      ],
+      "tool_names": [
+        "search_files",
+        "read_multiple_files",
+        "search_nodes",
+        "search",
+        "open_nodes",
+        "add_observations"
+      ],
+      "step_count": 5,
+      "has_dependency": true,
+      "single_server_sequential": false,
+      "cross_server_dependency": true,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "d466cc09ca326b5ab21989846ce8dfea7e64728355791567bef30de73f9a84b8",
+      "ground_truth_sha256": "4963f83ae7b9fa8e64ceefa4fec1b0a4b200bf62077d30e6d12e31ba491ba6f9"
+    },
+    {
+      "task_id": "L4-q62",
+      "level": 4,
+      "query_id": 62,
+      "source_file": "data/queries/level_4.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 69,
+      "server_names": [
+        "Code Index MCP",
+        "MCP Ripgrep Server",
+        "solana-docs-server MCP Server"
+      ],
+      "operation_ids": [
+        "Code Index MCP::set_project_path",
+        "Code Index MCP::search_code",
+        "Code Index MCP::search_code_advanced",
+        "MCP Ripgrep Server::advanced-search",
+        "MCP Ripgrep Server::search",
+        "Code Index MCP::get_file_summary",
+        "solana-docs-server MCP Server::get_api_reference",
+        "solana-docs-server MCP Server::search_docs"
+      ],
+      "tool_names": [
+        "set_project_path",
+        "search_code",
+        "search_code_advanced",
+        "advanced-search",
+        "search",
+        "get_file_summary",
+        "get_api_reference",
+        "search_docs"
+      ],
+      "step_count": 5,
+      "has_dependency": true,
+      "single_server_sequential": false,
+      "cross_server_dependency": true,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "f6a0276b591735598ed6bf8fda5e3d403c846bec5f747294bb63a9a783bcd15e",
+      "ground_truth_sha256": "dbd89935bafb0aa884e47a8ab557dc224ea37393df27ac04077eaf6180619da5"
+    },
+    {
+      "task_id": "L4-q75",
+      "level": 4,
+      "query_id": 75,
+      "source_file": "data/queries/level_4.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 70,
+      "server_names": [
+        "Mobile Next",
+        "Software Planning Tool"
+      ],
+      "operation_ids": [
+        "Software Planning Tool::start_planning",
+        "Software Planning Tool::add_todo",
+        "Mobile Next::list_apps_on_device",
+        "Mobile Next::launch_app",
+        "Mobile Next::take_device_screenshot",
+        "Software Planning Tool::save_plan"
+      ],
+      "tool_names": [
+        "start_planning",
+        "add_todo",
+        "list_apps_on_device",
+        "launch_app",
+        "take_device_screenshot",
+        "save_plan"
+      ],
+      "step_count": 6,
+      "has_dependency": true,
+      "single_server_sequential": false,
+      "cross_server_dependency": true,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "bfc9f757195cebb58bea4b05e7a09861da721c0e1d85af3d04ef55518efe3243",
+      "ground_truth_sha256": "eb91eb3d03a5d6429dcbcd5cfbecea9d4db2efe040632d5b62ccbf22c187eb1a"
+    },
+    {
+      "task_id": "L4-q31",
+      "level": 4,
+      "query_id": 31,
+      "source_file": "data/queries/level_4.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 71,
+      "server_names": [
+        "AIM Guard MCP",
+        "Baidu Cloud AI Content Safety MCP Server",
+        "Enkrypt AI MCP Server",
+        "Reddit MCP"
+      ],
+      "operation_ids": [
+        "Reddit MCP::search_posts",
+        "Reddit MCP::get_comments_by_submission",
+        "Baidu Cloud AI Content Safety MCP Server::input_analyze",
+        "AIM Guard MCP::aim-text-guard",
+        "Enkrypt AI MCP Server::guardrails_detect"
+      ],
+      "tool_names": [
+        "search_posts",
+        "get_comments_by_submission",
+        "input_analyze",
+        "aim-text-guard",
+        "guardrails_detect"
+      ],
+      "step_count": 3,
+      "has_dependency": true,
+      "single_server_sequential": false,
+      "cross_server_dependency": true,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "a514f8a40404234b8a3fc8b7db3aef65ff250ae89b8c1f8fd8e228ea7609bdd4",
+      "ground_truth_sha256": "0b60745aef9d4439e2df607b6847f61c77ac274d5b8b0d1e34c22d95b4cdf13c"
+    },
+    {
+      "task_id": "L4-q71",
+      "level": 4,
+      "query_id": 71,
+      "source_file": "data/queries/level_4.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 72,
+      "server_names": [
+        "IoTDB MCP Server",
+        "Model Context Protocol Server for Apache OpenDAL™"
+      ],
+      "operation_ids": [
+        "IoTDB MCP Server::list_tables",
+        "IoTDB MCP Server::describe_table",
+        "IoTDB MCP Server::read_query",
+        "Model Context Protocol Server for Apache OpenDAL™::list",
+        "Model Context Protocol Server for Apache OpenDAL™::get_info",
+        "Model Context Protocol Server for Apache OpenDAL™::read"
+      ],
+      "tool_names": [
+        "list_tables",
+        "describe_table",
+        "read_query",
+        "list",
+        "get_info",
+        "read"
+      ],
+      "step_count": 6,
+      "has_dependency": true,
+      "single_server_sequential": false,
+      "cross_server_dependency": true,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "c4235a2f0904c5d4751981b2b20316c38a5f624f1da513f91909135512386e58",
+      "ground_truth_sha256": "25b2684e0e0ffbf745695609ba6d0fab64cb7b993b57d5a41b6044cedf8fe961"
+    },
+    {
+      "task_id": "L4-q5",
+      "level": 4,
+      "query_id": 5,
+      "source_file": "data/queries/level_4.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 73,
+      "server_names": [
+        "Basic Memory",
+        "Coding Assistant Server",
+        "FileScopeMCP (Model Context Protocol) Server",
+        "GitHub Repository MCP Server",
+        "SkyDeckAI Code",
+        "Terminal Controller for MCP",
+        "mcp-editor"
+      ],
+      "operation_ids": [
+        "GitHub Repository MCP Server::get-repo-structure",
+        "Coding Assistant Server::read_file",
+        "mcp-editor::view",
+        "Basic Memory::read_content",
+        "FileScopeMCP (Model Context Protocol) Server::read_file_content",
+        "SkyDeckAI Code::read_file",
+        "Terminal Controller for MCP::read_file"
+      ],
+      "tool_names": [
+        "get-repo-structure",
+        "read_file",
+        "view",
+        "read_content",
+        "read_file_content",
+        "read_file",
+        "read_file"
+      ],
+      "step_count": 2,
+      "has_dependency": true,
+      "single_server_sequential": false,
+      "cross_server_dependency": true,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "bd3397d690840757b48e105eb9cfa2863871b8d9a3fb8834f68327c45d96910f",
+      "ground_truth_sha256": "838f028e167fdcddfc216213ffac761266d02c0719094f9956e53d29c995b253"
+    },
+    {
+      "task_id": "L4-q7",
+      "level": 4,
+      "query_id": 7,
+      "source_file": "data/queries/level_4.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 74,
+      "server_names": [
+        "Alibaba Cloud FC MCP Server",
+        "UseGrant MCP Server",
+        "hostinger-api-mcp"
+      ],
+      "operation_ids": [
+        "UseGrant MCP Server::list_domains",
+        "Alibaba Cloud FC MCP Server::get-custom-domain-config",
+        "hostinger-api-mcp::DNS_getRecordsV1"
+      ],
+      "tool_names": [
+        "list_domains",
+        "get-custom-domain-config",
+        "DNS_getRecordsV1"
+      ],
+      "step_count": 3,
+      "has_dependency": true,
+      "single_server_sequential": false,
+      "cross_server_dependency": true,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "ac8206866a8510474d36cc1a72c011bba90e928abd6cc6340de4d33f15dfab83",
+      "ground_truth_sha256": "2dc286ebb65313f0b821864c046352851ba1ef7b6c42aa91a813ebf728feda5c"
+    },
+    {
+      "task_id": "L4-q83",
+      "level": 4,
+      "query_id": 83,
+      "source_file": "data/queries/level_4.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 75,
+      "server_names": [
+        "Baidu Cloud AI Content Safety MCP Server",
+        "Folderr MCP Server"
+      ],
+      "operation_ids": [
+        "Folderr MCP Server::list_workflows",
+        "Baidu Cloud AI Content Safety MCP Server::input_analyze",
+        "Folderr MCP Server::get_workflow_inputs",
+        "Folderr MCP Server::execute_workflow"
+      ],
+      "tool_names": [
+        "list_workflows",
+        "input_analyze",
+        "get_workflow_inputs",
+        "execute_workflow"
+      ],
+      "step_count": 4,
+      "has_dependency": true,
+      "single_server_sequential": false,
+      "cross_server_dependency": true,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "189d4eb25a00e377e53e02574a939473a4da1c15a12fbcbb2c5f4c059cfd3d62",
+      "ground_truth_sha256": "9a4c6311e3948dcd66f1f380052f1f34e7004f6e87f63c42f214bb9ad78862ab"
+    },
+    {
+      "task_id": "L4-q95",
+      "level": 4,
+      "query_id": 95,
+      "source_file": "data/queries/level_4.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 76,
+      "server_names": [
+        "MCP Server Template for Cursor IDE",
+        "Reader MCP Server"
+      ],
+      "operation_ids": [
+        "Reader MCP Server::list_documents",
+        "MCP Server Template for Cursor IDE::mcp_fetch",
+        "MCP Server Template for Cursor IDE::figma_design",
+        "MCP Server Template for Cursor IDE::generate_image"
+      ],
+      "tool_names": [
+        "list_documents",
+        "mcp_fetch",
+        "figma_design",
+        "generate_image"
+      ],
+      "step_count": 4,
+      "has_dependency": true,
+      "single_server_sequential": false,
+      "cross_server_dependency": true,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "0470ae33e0bdf4326f327992d773f4dc59312c3ca2dd7d42756415cf197e31d0",
+      "ground_truth_sha256": "5e1ccddce20269b94ad3ba2d94cfd5a6fbca11308ab5fcd509862699f6c2f8c9"
+    },
+    {
+      "task_id": "L4-q101",
+      "level": 4,
+      "query_id": 101,
+      "source_file": "data/queries/level_4.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 77,
+      "server_names": [
+        "Build Agents with Needle MCP Server",
+        "VeyraX MCP",
+        "docs-mcp"
+      ],
+      "operation_ids": [
+        "Build Agents with Needle MCP Server::needle_list_collections",
+        "Build Agents with Needle MCP Server::needle_create_collection",
+        "Build Agents with Needle MCP Server::needle_add_file",
+        "Build Agents with Needle MCP Server::needle_search",
+        "docs-mcp::semantic_search",
+        "VeyraX MCP::get_flow"
+      ],
+      "tool_names": [
+        "needle_list_collections",
+        "needle_create_collection",
+        "needle_add_file",
+        "needle_search",
+        "semantic_search",
+        "get_flow"
+      ],
+      "step_count": 5,
+      "has_dependency": true,
+      "single_server_sequential": false,
+      "cross_server_dependency": true,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "6fc8848dc46416e79f603898620d33fe8f126895013d42948e2ef1d6991dc192",
+      "ground_truth_sha256": "4f94132f18c8039b6969a5cefbb2a02598a071d2465ad2bb3eca08bdba993d33"
+    },
+    {
+      "task_id": "L4-q54",
+      "level": 4,
+      "query_id": 54,
+      "source_file": "data/queries/level_4.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 78,
+      "server_names": [
+        "OpenRouter MCP Server",
+        "arizeai/phoenix-mcp"
+      ],
+      "operation_ids": [
+        "OpenRouter MCP Server::search_models",
+        "OpenRouter MCP Server::get_model_info",
+        "arizeai/phoenix-mcp::upsert-prompt",
+        "arizeai/phoenix-mcp::add-prompt-version-tag",
+        "arizeai/phoenix-mcp::list-datasets"
+      ],
+      "tool_names": [
+        "search_models",
+        "get_model_info",
+        "upsert-prompt",
+        "add-prompt-version-tag",
+        "list-datasets"
+      ],
+      "step_count": 5,
+      "has_dependency": true,
+      "single_server_sequential": false,
+      "cross_server_dependency": true,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "e8f61e13aaed2d6562e67d7b5e03873d19a5b45ffbfd0a54ecd1448e0e1aa8fc",
+      "ground_truth_sha256": "d814407a4f8c73faa18f4e4f7c76924a2a1992bfff2210d4f351b00208f4ba7e"
+    },
+    {
+      "task_id": "L4-q35",
+      "level": 4,
+      "query_id": 35,
+      "source_file": "data/queries/level_4.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 79,
+      "server_names": [
+        "Hiworks Mail MCP",
+        "Outlook Calendar MCP Tool",
+        "Outlook Meetings Scheduler MCP Server"
+      ],
+      "operation_ids": [
+        "Outlook Calendar MCP Tool::get_calendars",
+        "Outlook Calendar MCP Tool::find_free_slots",
+        "Outlook Meetings Scheduler MCP Server::find-person",
+        "Hiworks Mail MCP::send_email"
+      ],
+      "tool_names": [
+        "get_calendars",
+        "find_free_slots",
+        "find-person",
+        "send_email"
+      ],
+      "step_count": 4,
+      "has_dependency": true,
+      "single_server_sequential": false,
+      "cross_server_dependency": true,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "9f00391439e01d7507ed090c49330bd60f0eefa37f887204392bc1134fcf6455",
+      "ground_truth_sha256": "311bee137a57f880ac6a4a4fe8022a6309394ff710fd5a72b7917a1619e4eb91"
+    },
+    {
+      "task_id": "L4-q36",
+      "level": 4,
+      "query_id": 36,
+      "source_file": "data/queries/level_4.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 80,
+      "server_names": [
+        "Disclaimer",
+        "Gmail MCP",
+        "code-scanner-server"
+      ],
+      "operation_ids": [
+        "code-scanner-server::scan_code",
+        "Disclaimer::execute_parallel_mcp_client",
+        "Gmail MCP::update_draft",
+        "Gmail MCP::send_draft"
+      ],
+      "tool_names": [
+        "scan_code",
+        "execute_parallel_mcp_client",
+        "update_draft",
+        "send_draft"
+      ],
+      "step_count": 4,
+      "has_dependency": true,
+      "single_server_sequential": false,
+      "cross_server_dependency": true,
+      "infeasible": false,
+      "infeasible_subtype": null,
+      "query_sha256": "9670079c0c876c1bd60ecda2c1b6081aec507a21383cd67e37105acc01bab47f",
+      "ground_truth_sha256": "b33d313dec00464b2655a3fbf0ed87a771b405bf1b27804c89e4526441ea78a2"
+    },
+    {
+      "task_id": "L5-q68",
+      "level": 5,
+      "query_id": 68,
+      "source_file": "data/queries/level_5.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 81,
+      "server_names": [],
+      "operation_ids": [],
+      "tool_names": [],
+      "step_count": 0,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": true,
+      "infeasible_subtype": "official_empty_ground_truth_route",
+      "query_sha256": "59118be52fbf08f9a2014848839dd120dc4f1e775e27f420b2992bf84e4a4c38",
+      "ground_truth_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "task_id": "L5-q4",
+      "level": 5,
+      "query_id": 4,
+      "source_file": "data/queries/level_5.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 82,
+      "server_names": [],
+      "operation_ids": [],
+      "tool_names": [],
+      "step_count": 0,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": true,
+      "infeasible_subtype": "official_empty_ground_truth_route",
+      "query_sha256": "d427c87166c21d791985c477ce1dcad390bc99b27dd157fa4a41ea6803dae3c6",
+      "ground_truth_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "task_id": "L5-q39",
+      "level": 5,
+      "query_id": 39,
+      "source_file": "data/queries/level_5.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 83,
+      "server_names": [],
+      "operation_ids": [],
+      "tool_names": [],
+      "step_count": 0,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": true,
+      "infeasible_subtype": "official_empty_ground_truth_route",
+      "query_sha256": "07c309727c3f8af0b8c0060b01793003fc9585b570d28d3f0c8f8fb120414005",
+      "ground_truth_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "task_id": "L5-q11",
+      "level": 5,
+      "query_id": 11,
+      "source_file": "data/queries/level_5.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 84,
+      "server_names": [],
+      "operation_ids": [],
+      "tool_names": [],
+      "step_count": 0,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": true,
+      "infeasible_subtype": "official_empty_ground_truth_route",
+      "query_sha256": "0d697f52619d69c590445b0535a848b80983f66817670a8debc92ff4b6e57c9c",
+      "ground_truth_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "task_id": "L5-q40",
+      "level": 5,
+      "query_id": 40,
+      "source_file": "data/queries/level_5.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 85,
+      "server_names": [],
+      "operation_ids": [],
+      "tool_names": [],
+      "step_count": 0,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": true,
+      "infeasible_subtype": "official_empty_ground_truth_route",
+      "query_sha256": "024affa42e6d8d8c0d85f86236e278a1732e47ef926548fd8386553452884d97",
+      "ground_truth_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "task_id": "L5-q49",
+      "level": 5,
+      "query_id": 49,
+      "source_file": "data/queries/level_5.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 86,
+      "server_names": [],
+      "operation_ids": [],
+      "tool_names": [],
+      "step_count": 0,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": true,
+      "infeasible_subtype": "official_empty_ground_truth_route",
+      "query_sha256": "ff7b1e161ec78900415cf6d0ae553d9920afb20dd9f3215a55bfe113bd39a088",
+      "ground_truth_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "task_id": "L5-q91",
+      "level": 5,
+      "query_id": 91,
+      "source_file": "data/queries/level_5.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 87,
+      "server_names": [],
+      "operation_ids": [],
+      "tool_names": [],
+      "step_count": 0,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": true,
+      "infeasible_subtype": "official_empty_ground_truth_route",
+      "query_sha256": "614453645dc1e60d9b9feda5ee942930994bc639a902dc58bd80d7d00458d311",
+      "ground_truth_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "task_id": "L5-q69",
+      "level": 5,
+      "query_id": 69,
+      "source_file": "data/queries/level_5.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 88,
+      "server_names": [],
+      "operation_ids": [],
+      "tool_names": [],
+      "step_count": 0,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": true,
+      "infeasible_subtype": "official_empty_ground_truth_route",
+      "query_sha256": "283b397f67f736fcc54fbed4a9396da2951cc7a389128af027aab9706177d888",
+      "ground_truth_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "task_id": "L5-q5",
+      "level": 5,
+      "query_id": 5,
+      "source_file": "data/queries/level_5.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 89,
+      "server_names": [],
+      "operation_ids": [],
+      "tool_names": [],
+      "step_count": 0,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": true,
+      "infeasible_subtype": "official_empty_ground_truth_route",
+      "query_sha256": "589cede65caf5ef78fdd49fb4130cb8064266437793efbec5fbd747c9ffa4787",
+      "ground_truth_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "task_id": "L5-q46",
+      "level": 5,
+      "query_id": 46,
+      "source_file": "data/queries/level_5.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 90,
+      "server_names": [],
+      "operation_ids": [],
+      "tool_names": [],
+      "step_count": 0,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": true,
+      "infeasible_subtype": "official_empty_ground_truth_route",
+      "query_sha256": "0ca9e5265c0d1c9df710f992b256c716127c7d9dda16d43ea0c25211a0d89de2",
+      "ground_truth_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "task_id": "L5-q42",
+      "level": 5,
+      "query_id": 42,
+      "source_file": "data/queries/level_5.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 91,
+      "server_names": [],
+      "operation_ids": [],
+      "tool_names": [],
+      "step_count": 0,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": true,
+      "infeasible_subtype": "official_empty_ground_truth_route",
+      "query_sha256": "9ea6955702511161cc48a4caaec5fdfed25a461643fc874c99dcd39d06abbf0f",
+      "ground_truth_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "task_id": "L5-q71",
+      "level": 5,
+      "query_id": 71,
+      "source_file": "data/queries/level_5.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 92,
+      "server_names": [],
+      "operation_ids": [],
+      "tool_names": [],
+      "step_count": 0,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": true,
+      "infeasible_subtype": "official_empty_ground_truth_route",
+      "query_sha256": "6e47351d0749b2f8e8f0d1527c4fbc2049648299b84316ab31197d716589eefe",
+      "ground_truth_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "task_id": "L5-q27",
+      "level": 5,
+      "query_id": 27,
+      "source_file": "data/queries/level_5.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 93,
+      "server_names": [],
+      "operation_ids": [],
+      "tool_names": [],
+      "step_count": 0,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": true,
+      "infeasible_subtype": "official_empty_ground_truth_route",
+      "query_sha256": "2789b1b5d1e20f5eb25b07e5ef9b9ab9d320d25a523dfeb3140174ee31c890e5",
+      "ground_truth_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "task_id": "L5-q24",
+      "level": 5,
+      "query_id": 24,
+      "source_file": "data/queries/level_5.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 94,
+      "server_names": [],
+      "operation_ids": [],
+      "tool_names": [],
+      "step_count": 0,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": true,
+      "infeasible_subtype": "official_empty_ground_truth_route",
+      "query_sha256": "b05c08f288f0be85a15bea5c8070460f29f904ed45c7954804addf55688df80e",
+      "ground_truth_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "task_id": "L5-q58",
+      "level": 5,
+      "query_id": 58,
+      "source_file": "data/queries/level_5.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 95,
+      "server_names": [],
+      "operation_ids": [],
+      "tool_names": [],
+      "step_count": 0,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": true,
+      "infeasible_subtype": "official_empty_ground_truth_route",
+      "query_sha256": "73ecd3b805e2a1ceeb18fda9c8965168fdfa0417548cb74c4464b0c642fd7150",
+      "ground_truth_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "task_id": "L5-q73",
+      "level": 5,
+      "query_id": 73,
+      "source_file": "data/queries/level_5.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 96,
+      "server_names": [],
+      "operation_ids": [],
+      "tool_names": [],
+      "step_count": 0,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": true,
+      "infeasible_subtype": "official_empty_ground_truth_route",
+      "query_sha256": "fb53a1675cef294454be54db7ecd46c098c25d6cc1ca62ed3eb0ea61be62aba2",
+      "ground_truth_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "task_id": "L5-q56",
+      "level": 5,
+      "query_id": 56,
+      "source_file": "data/queries/level_5.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 97,
+      "server_names": [],
+      "operation_ids": [],
+      "tool_names": [],
+      "step_count": 0,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": true,
+      "infeasible_subtype": "official_empty_ground_truth_route",
+      "query_sha256": "b6606e6efb04e2407729ded2b89ba0d8acd4e39c39108bcee06e9410a81d1d8a",
+      "ground_truth_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "task_id": "L5-q44",
+      "level": 5,
+      "query_id": 44,
+      "source_file": "data/queries/level_5.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 98,
+      "server_names": [],
+      "operation_ids": [],
+      "tool_names": [],
+      "step_count": 0,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": true,
+      "infeasible_subtype": "official_empty_ground_truth_route",
+      "query_sha256": "1200f0a8fb9ff7902844283c386a427559f22daaee621ba7a997a1baf298641c",
+      "ground_truth_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "task_id": "L5-q20",
+      "level": 5,
+      "query_id": 20,
+      "source_file": "data/queries/level_5.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 99,
+      "server_names": [],
+      "operation_ids": [],
+      "tool_names": [],
+      "step_count": 0,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": true,
+      "infeasible_subtype": "official_empty_ground_truth_route",
+      "query_sha256": "d6da3b5d57fb731c9c99ac309ff5a706f87ae9ec983ed9bb95fae7446d824a62",
+      "ground_truth_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "task_id": "L5-q33",
+      "level": 5,
+      "query_id": 33,
+      "source_file": "data/queries/level_5.json",
+      "dataset_split": "external_formal",
+      "benchmark_role": "external_validation",
+      "selected_order": 100,
+      "server_names": [],
+      "operation_ids": [],
+      "tool_names": [],
+      "step_count": 0,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": true,
+      "infeasible_subtype": "official_empty_ground_truth_route",
+      "query_sha256": "32a251b3d022a0b37895b86205842f43cf5556ebab08057d9455e9cf3c0a8fae",
+      "ground_truth_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  ],
+  "reporting_contract": {
+    "macro_average_across_five_levels": true,
+    "per_level_results": true,
+    "pooled_100_task_result": true,
+    "pooled_is_not_etom_natural_distribution_estimate": true
+  },
+  "anti_leakage": {
+    "cost_pilot_exposed": true,
+    "cost_pilot_overlap_must_be_zero": true,
+    "do_not_tune_proposed_method_on_etom_100": true,
+    "proposed_method_primary_dev_signal": "HK-155 development error taxonomy",
+    "etom_100_role": "external comparison of Operation-Visible vs the final frozen method"
+  },
+  "note": "Equal-level stratified external formal sample (20 per L1–L5). Not a population-weighted ETOM draw. Cost-pilot ids are excluded.",
+  "sample_sha256": "99cb671ea3528c1c69ab6fc2a3d622c4d6f6bb07058728071aae5eae8720cbb1"
+}

@@ -1,0 +1,57 @@
+# Operation-Visible adapted for ETOM routing-only evaluation.
+# Formal equal-level stratified external sample: 100 locked tasks.
+# Do not use the cost-pilot config or lock for this experiment.
+
+experiment: etom_external_formal_100_v1
+fidelity: Operation-Visible adapted for ETOM routing-only evaluation
+condition: operation_visible
+execution: routing_only
+dataset_split: external_formal
+benchmark_role: external_validation
+
+llm:
+  provider: aliyun
+  model: deepseek-v4.1-flash
+  temperature: 0.0
+  max_tokens: 2048
+  top_p: null
+  top_k: null
+  json_mode: true
+
+embedding:
+  model: text-embedding-3-small
+  lexical_weight: 0.12
+  top_k_default: 20
+  top_k_max: 20
+  batch_size: 32
+  reuse_complete_catalog_index: true
+
+limits:
+  max_tasks: 100
+  max_llm_turns: 8
+  max_search_reformulations: 3
+  max_invocations: 8
+  timeout_sec: 180
+  max_parse_repairs: 2
+  max_http_retries: 1
+  request_timeout_sec: 120
+
+sampler:
+  seed: 20261106
+  sampler_version: etom_stratified_external_100_v1
+  quotas: {L1: 20, L2: 20, L3: 20, L4: 20, L5: 20}
+  lock_file: benchmarks/etom/formal_100_v1.lock.json
+
+pricing:
+  currency: USD
+  assumption: conservative_peak_cache_miss
+  llm_input_usd_per_million: 0.30
+  llm_output_usd_per_million: 1.20
+  embedding_usd_per_million: 0.02
+  source: >-
+    DeepSeek official peak cache-miss list price for deepseek-flash /
+    DeepSeek-V4.1-Flash (https://api-docs.deepseek.com/quick_start/pricing/,
+    input $0.30 and output $1.20 per 1M tokens) and OpenAI
+    text-embedding-3-small at $0.02 per 1M tokens. The Aliyun generation
+    relay and the embedding relay may invoice differently. Cache-hit
+    discounts are not applied.

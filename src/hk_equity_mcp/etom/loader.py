@@ -20,11 +20,14 @@ class EtomTask:
     ground_truth_tools: Any
     source_file: str
     server_names: Set[str] = field(default_factory=set)
+    operation_ids: tuple = ()
+    tool_names: tuple = ()
     step_count: int = 0
     has_dependency: bool = False
     single_server_sequential: bool = False
     cross_server_dependency: bool = False
     infeasible: bool = False
+    infeasible_subtype: str = ""
     query_sha256: str = ""
     ground_truth_sha256: str = ""
 
@@ -37,11 +40,36 @@ class EtomTask:
             "dataset_split": "cost_pilot",
             "exclude_from_final_etom_sample": True,
             "server_names": sorted(self.server_names),
+            "operation_ids": list(self.operation_ids),
+            "tool_names": list(self.tool_names),
             "step_count": self.step_count,
             "has_dependency": self.has_dependency,
             "single_server_sequential": self.single_server_sequential,
             "cross_server_dependency": self.cross_server_dependency,
             "infeasible": self.infeasible,
+            "infeasible_subtype": self.infeasible_subtype or None,
+            "query_sha256": self.query_sha256,
+            "ground_truth_sha256": self.ground_truth_sha256,
+        }
+
+    def formal_lock_row(self, *, selected_order: int) -> Dict[str, Any]:
+        return {
+            "task_id": self.task_id,
+            "level": self.level,
+            "query_id": self.query_id,
+            "source_file": self.source_file,
+            "dataset_split": "external_formal",
+            "benchmark_role": "external_validation",
+            "selected_order": int(selected_order),
+            "server_names": sorted(self.server_names),
+            "operation_ids": list(self.operation_ids),
+            "tool_names": list(self.tool_names),
+            "step_count": self.step_count,
+            "has_dependency": self.has_dependency,
+            "single_server_sequential": self.single_server_sequential,
+            "cross_server_dependency": self.cross_server_dependency,
+            "infeasible": self.infeasible,
+            "infeasible_subtype": self.infeasible_subtype or None,
             "query_sha256": self.query_sha256,
             "ground_truth_sha256": self.ground_truth_sha256,
         }
@@ -85,8 +113,23 @@ def task_from_official(level: int, row: Dict[str, Any], source_file: str) -> Eto
         for tool in tools
     }
     servers.discard("")
+    operation_ids = []
+    tool_names = []
+    seen_ops = set()
+    for tool in tools:
+        server = str(tool.get("server_name") or tool.get("server") or "").strip()
+        name = str(tool.get("tool_name") or "").strip()
+        if not name:
+            continue
+        tool_names.append(name)
+        if server:
+            op_id = f"{server}::{name}"
+            if op_id not in seen_ops:
+                seen_ops.add(op_id)
+                operation_ids.append(op_id)
     has_dependency = any(bool(tool.get("dependencies")) for tool in tools)
     steps = _step_count(ground_truth)
+    infeasible = level == 5 and not tools
     return EtomTask(
         task_id=f"L{level}-q{query_id}",
         level=level,
@@ -95,6 +138,8 @@ def task_from_official(level: int, row: Dict[str, Any], source_file: str) -> Eto
         ground_truth_tools=ground_truth,
         source_file=source_file,
         server_names=servers,
+        operation_ids=tuple(operation_ids),
+        tool_names=tuple(tool_names),
         step_count=steps,
         has_dependency=has_dependency,
         single_server_sequential=(
@@ -103,7 +148,9 @@ def task_from_official(level: int, row: Dict[str, Any], source_file: str) -> Eto
         cross_server_dependency=(
             level == 4 and len(servers) >= 2 and has_dependency
         ),
-        infeasible=(level == 5 and not tools),
+        infeasible=infeasible,
+        # Official L5 JSON has no subtype labels; all gold routes are empty.
+        infeasible_subtype="official_empty_ground_truth_route" if infeasible else "",
         query_sha256=_sha256_text(query),
         ground_truth_sha256=_sha256_text(_canonical(ground_truth)),
     )
