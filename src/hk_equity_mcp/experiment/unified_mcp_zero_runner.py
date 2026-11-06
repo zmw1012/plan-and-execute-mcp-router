@@ -71,8 +71,11 @@ from hk_equity_mcp.mcp_zero import (
     DEFAULT_SIMILARITY_THRESHOLD,
     DEFAULT_TOOL_TOP_K,
     FIDELITY_NAME,
+    FROZEN_GENERATION_HOST,
+    FROZEN_GENERATION_PROVIDER,
     assert_frozen_config,
     frozen_method_identity,
+    frozen_runtime_env_identity,
     method_identity_sha256,
 )
 from hk_equity_mcp.mcp_zero.agent import McpZeroAgent
@@ -108,6 +111,8 @@ MCP_ZERO_RESUME_IDENTITY_KEYS = RESUME_IDENTITY_KEYS + (
     "method_identity_sha256",
     "max_tasks_semantics",
     "embedding_cache_namespace",
+    "generation_provider",
+    "generation_base_url_host",
 )
 
 
@@ -120,7 +125,8 @@ def load_mcp_zero_config(
         return {
             "condition": CONDITION,
             "execution_backend": "real_mcp",
-            "generation_provider": "aliyun",
+            "generation_provider": FROZEN_GENERATION_PROVIDER,
+            "generation_base_url_host": FROZEN_GENERATION_HOST,
             "generation_model": "deepseek-v4.1-flash",
             "embedding_model": "text-embedding-3-small",
             "temperature": 0.0,
@@ -353,7 +359,7 @@ class UnifiedHkMcpZeroRunner:
                 self.gen_meta = load_generation_profile(self.root, self.env_file)
             except FileNotFoundError:
                 self.gen_meta = {
-                    "provider": "aliyun",
+                    "provider": FROZEN_GENERATION_PROVIDER,
                     "model": "deepseek-v4.1-flash",
                     "profile_file": None,
                     "base_url": None,
@@ -380,10 +386,20 @@ class UnifiedHkMcpZeroRunner:
         expected_model = str(
             self.config.get("generation_model") or "deepseek-v4.1-flash"
         )
-        expected_provider = str(self.config.get("generation_provider") or "aliyun")
+        expected_provider = str(
+            self.config.get("generation_provider") or FROZEN_GENERATION_PROVIDER
+        )
+        expected_host = str(
+            self.config.get("generation_base_url_host") or FROZEN_GENERATION_HOST
+        )
         expected_emb = str(
             self.config.get("embedding_model") or "text-embedding-3-small"
         )
+        if expected_provider != FROZEN_GENERATION_PROVIDER:
+            raise RuntimeError(
+                "generation_provider must remain "
+                f"{FROZEN_GENERATION_PROVIDER}; got {expected_provider!r}."
+            )
         if not self.mock:
             actual_model = self.gen_meta.get("model") or os.environ.get("LLM_MODEL")
             actual_provider = self.gen_meta.get("provider") or os.environ.get(
@@ -422,6 +438,20 @@ class UnifiedHkMcpZeroRunner:
             (self.emb_meta or {}).get("base_url")
             or os.environ.get("EMBEDDING_BASE_URL")
         )
+        if not self.mock:
+            if gen_host and gen_host != expected_host:
+                raise RuntimeError(
+                    "generation host mismatch: "
+                    f"expected {expected_host}, got {gen_host}"
+                )
+            if (
+                not self.dry_run
+                and self.gen_meta.get("base_url")
+                and not gen_host
+            ):
+                raise RuntimeError(
+                    "generation_base_url_host is required for real MCP-Zero runs."
+                )
 
         domain_counts: Dict[str, int] = {}
         source_split_counts: Dict[str, int] = {}
@@ -498,7 +528,14 @@ class UnifiedHkMcpZeroRunner:
             "generation_provider": self.gen_meta.get("provider") or expected_provider,
             "generation_model": self.gen_meta.get("model") or expected_model,
             "generation_profile_file": self.gen_meta.get("profile_file"),
-            "generation_base_url_host": gen_host,
+            # Always record provider/host/model in run + resume identity.
+            "generation_base_url_host": gen_host or expected_host,
+            "runtime_env_identity": frozen_runtime_env_identity(),
+            "provider_metadata_note": (
+                "generation_provider/host are runtime env adapter pins. "
+                "Correcting them before HK-155 real results does not change "
+                "method_identity_sha256 (routing method card)."
+            ),
             "embedding_model": (self.emb_meta or {}).get("model") or expected_emb,
             "embedding_profile_file": (self.emb_meta or {}).get("profile_file"),
             "embedding_base_url_host": emb_host,

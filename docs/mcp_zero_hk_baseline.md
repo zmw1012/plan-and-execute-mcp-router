@@ -75,11 +75,17 @@ python scripts/run_hk_unified_mcp_zero_experiment.py \
 
 ## Real smoke and HK-155 commands
 
-Do not execute these until `.env.relay-v41` also contains `LLM_PROVIDER=aliyun`. Offline audit of that file currently finds host `api.zhizengzeng.com` and `LLM_MODEL=deepseek-v4.1-flash`, but `LLM_PROVIDER` is missing, so `load_generation_profile` fail-closes. The file itself is gitignored by `.env.*` in the main repo and in this worktree.
+Generation uses an OpenAI-compatible relay, not Alibaba token-plan. Runtime env pins (`generation_provider`, host, model) enter run/resume identity. They are **not** part of the routing method-card hash (`method_identity_sha256` stays `77cc3b07…`).
+
+Required generation profile fields in gitignored main-repo `.env.relay-v41`:
+
+- `LLM_PROVIDER=openai_compatible`
+- `LLM_MODEL=deepseek-v4.1-flash`
+- `LLM_BASE_URL` host `api.zhizengzeng.com`
 
 | Role | File | Host | Model / provider pin |
 |---|---|---|---|
-| Generation | main-repo `.env.relay-v41` | `api.zhizengzeng.com` | `deepseek-v4.1-flash` (must also set `LLM_PROVIDER=aliyun`) |
+| Generation | main-repo `.env.relay-v41` | `api.zhizengzeng.com` | `deepseek-v4.1-flash` / `openai_compatible` |
 | Embedding | main-repo `.env.embedding-relay` | `api.zhizengzeng.com` | `text-embedding-3-small` |
 
 Always run from this worktree with:
@@ -108,7 +114,7 @@ A real `--split exploratory_all` run writes `retirement_effective=true` into tha
 
 ```bash
 # Real smoke. Do not point this at the formal 155 directory.
-# Blocked until .env.relay-v41 includes LLM_PROVIDER=aliyun.
+# Requires .env.relay-v41 with LLM_PROVIDER=openai_compatible.
 PYTHONPATH=src "$PY" scripts/run_hk_unified_mcp_zero_experiment.py \
   --split exploratory_all \
   --confirm-retire-heldout \

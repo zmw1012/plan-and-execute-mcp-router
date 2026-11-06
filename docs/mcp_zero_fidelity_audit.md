@@ -55,7 +55,7 @@ This baseline freezes the ETOM pinned adaptation `server_top_k=3`, `tool_top_k=5
 - `max_llm_turns=8`
 - evaluator `hk_unified_evaluator_v1.2`
 
-Do not change `server_top_k` or `tool_top_k` after seeing HK-155 results. A later run with the paper's 5/3 is an independent ablation and must not replace this baseline's primary numbers. The canonical card is `frozen_method_identity()` in `src/hk_equity_mcp/mcp_zero/__init__.py`. Its sha256 is `77cc3b07a4c2b9af00ad3f6bfb7cba59c82084d94b7592f2c820f46f1d3e8d3f`. `prepare()` refuses a config that drifts from that card.
+Do not change `server_top_k` or `tool_top_k` after seeing HK-155 results. A later run with the paper's 5/3 is an independent ablation and must not replace this baseline's primary numbers. The canonical **routing** method card is `frozen_method_identity()` in `src/hk_equity_mcp/mcp_zero/__init__.py`. Its sha256 is `77cc3b07a4c2b9af00ad3f6bfb7cba59c82084d94b7592f2c820f46f1d3e8d3f`. Provider/host are runtime env metadata (`openai_compatible` @ `api.zhizengzeng.com`), recorded in run/resume identity via `frozen_runtime_env_identity()`, and intentionally excluded from the routing method-card hash. `prepare()` refuses a config that drifts from the method card or those env pins.
 
 ## Cursor vs experiment models
 

@@ -2,7 +2,10 @@
 # Primary experiment variable vs Operation-Visible: router / orchestration method.
 condition: mcp_zero
 execution_backend: real_mcp
-generation_provider: aliyun
+# Runtime env adapter metadata (not a routing method knob).
+# OpenAI-compatible relay at api.zhizengzeng.com; not Alibaba token-plan.
+generation_provider: openai_compatible
+generation_base_url_host: api.zhizengzeng.com
 # Experiment generation model (NOT the Cursor coding agent).
 generation_model: deepseek-v4.1-flash
 # Shared embedding backbone with Operation-Visible (fair comparison).

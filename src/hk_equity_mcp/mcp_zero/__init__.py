@@ -44,6 +44,9 @@ FROZEN_EVALUATOR = "hk_unified_evaluator_v1.2"
 FROZEN_GENERATION_MODEL = "deepseek-v4.1-flash"
 FROZEN_EMBEDDING_MODEL = "text-embedding-3-small"
 FROZEN_TIE_BREAK = ("-score", "server_id", "tool_name", "operation_id")
+# Runtime env / adapter metadata. Not part of the routing method card hash.
+FROZEN_GENERATION_PROVIDER = "openai_compatible"
+FROZEN_GENERATION_HOST = "api.zhizengzeng.com"
 ABLATION_POLICY = (
     "server_top_k=5 and tool_top_k=3 may be reported only as an independent "
     "ablation. They must not replace this frozen 3/5 baseline."
@@ -51,7 +54,11 @@ ABLATION_POLICY = (
 
 
 def frozen_method_identity() -> Dict[str, Any]:
-    """Canonical MCP-Zero method card. Hash this; do not retune from HK-155."""
+    """Canonical MCP-Zero *routing* method card.
+
+    Provider / host are runtime env metadata and are intentionally excluded so
+    a pre-result adapter correction does not rewrite the routing method hash.
+    """
     return {
         "condition": CONDITION,
         "server_top_k": DEFAULT_SERVER_TOP_K,
@@ -75,6 +82,21 @@ def frozen_method_identity() -> Dict[str, Any]:
     }
 
 
+def frozen_runtime_env_identity() -> Dict[str, Any]:
+    """Generation adapter env pins used by real runs / resume identity."""
+    return {
+        "generation_provider": FROZEN_GENERATION_PROVIDER,
+        "generation_base_url_host": FROZEN_GENERATION_HOST,
+        "generation_model": FROZEN_GENERATION_MODEL,
+        "embedding_model": FROZEN_EMBEDDING_MODEL,
+        "note": (
+            "Provider/host are experiment-environment metadata, not MCP-Zero "
+            "routing knobs. Correcting aliyun→openai_compatible before any "
+            "HK-155 real result does not change method_identity_sha256."
+        ),
+    }
+
+
 def method_identity_sha256() -> str:
     blob = json.dumps(
         frozen_method_identity(),
@@ -86,8 +108,9 @@ def method_identity_sha256() -> str:
 
 
 def assert_frozen_config(config: Dict[str, Any]) -> None:
-    """Fail closed if the loaded YAML drifts from the frozen method card."""
+    """Fail closed if YAML drifts from the frozen method card or runtime env pins."""
     ident = frozen_method_identity()
+    runtime = frozen_runtime_env_identity()
     retrieval = dict(config.get("retrieval") or {})
     limits = dict(config.get("limits") or {})
     observed = {
@@ -107,6 +130,18 @@ def assert_frozen_config(config: Dict[str, Any]) -> None:
         for key in observed
         if observed[key] != ident[key]
     ]
+    provider = str(config.get("generation_provider") or "")
+    if provider != runtime["generation_provider"]:
+        mismatches.append(
+            "generation_provider: "
+            f"config={provider!r} frozen_runtime={runtime['generation_provider']!r}"
+        )
+    host = str(config.get("generation_base_url_host") or "")
+    if host and host != runtime["generation_base_url_host"]:
+        mismatches.append(
+            "generation_base_url_host: "
+            f"config={host!r} frozen_runtime={runtime['generation_base_url_host']!r}"
+        )
     if mismatches:
         raise RuntimeError(
             "MCP-Zero config is not the frozen pre-result baseline:\n"
@@ -132,10 +167,13 @@ __all__ = [
     "FROZEN_GENERATION_MODEL",
     "FROZEN_EMBEDDING_MODEL",
     "FROZEN_TIE_BREAK",
+    "FROZEN_GENERATION_PROVIDER",
+    "FROZEN_GENERATION_HOST",
     "ABLATION_POLICY",
     "SCORE_OFFICIAL_COMBINED",
     "SCORE_TOOL_ONLY",
     "frozen_method_identity",
+    "frozen_runtime_env_identity",
     "method_identity_sha256",
     "assert_frozen_config",
 ]

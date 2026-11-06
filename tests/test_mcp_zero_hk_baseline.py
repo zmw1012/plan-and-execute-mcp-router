@@ -36,9 +36,12 @@ def test_config_models_are_experiment_not_cursor():
     cfg = load_mcp_zero_config(root=ROOT)
     assert cfg["generation_model"] == "deepseek-v4.1-flash"
     assert cfg["embedding_model"] == "text-embedding-3-small"
+    assert cfg["generation_provider"] == "openai_compatible"
+    assert cfg["generation_base_url_host"] == "api.zhizengzeng.com"
     assert cfg["condition"] == "mcp_zero"
     assert cfg["retrieval"]["server_top_k"] == 3
     assert cfg["retrieval"]["tool_top_k"] == 5
+    assert "aliyun" not in json.dumps(cfg).lower()
     # Experiment model slots must never point at Cursor coding models.
     model_slots = f"{cfg['generation_model']} {cfg['embedding_model']}".lower()
     for banned in ("claude", "sonnet", "anthropic", "cursor"):
@@ -287,6 +290,7 @@ def test_method_identity_is_frozen_before_results():
         OFFICIAL_TOP_TOOLS,
         assert_frozen_config,
         frozen_method_identity,
+        frozen_runtime_env_identity,
         method_identity_sha256,
     )
 
@@ -305,14 +309,151 @@ def test_method_identity_is_frozen_before_results():
     assert ident["max_llm_turns"] == 8
     assert ident["evaluator"] == EVALUATOR_VERSION == "hk_unified_evaluator_v1.2"
     assert ident["tie_break"] == ["-score", "server_id", "tool_name", "operation_id"]
-    assert method_identity_sha256() == method_identity_sha256()
-    assert len(method_identity_sha256()) == 64
+    # Provider/host are runtime env metadata, not routing method-card fields.
+    assert "generation_provider" not in ident
+    assert "generation_base_url_host" not in ident
+    assert method_identity_sha256() == (
+        "77cc3b07a4c2b9af00ad3f6bfb7cba59c82084d94b7592f2c820f46f1d3e8d3f"
+    )
+    runtime = frozen_runtime_env_identity()
+    assert runtime["generation_provider"] == "openai_compatible"
+    assert runtime["generation_base_url_host"] == "api.zhizengzeng.com"
     assert_frozen_config(load_mcp_zero_config(root=ROOT))
     fidelity = (ROOT / "docs" / "mcp_zero_fidelity_audit.md").read_text(encoding="utf-8")
     assert "Adapted default" in fidelity
     assert "not the paper's original exact configuration" in fidelity
     assert "independent ablation" in fidelity
     assert "Official exact configuration: server_top_k=3" not in fidelity
+
+
+def test_generation_provider_profile_gate(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Relay openai_compatible profile passes; aliyun / model mismatch refuse.
+
+    Never prints or asserts on raw API key values.
+    """
+    from hk_equity_mcp.common import env_loader
+
+    relay = tmp_path / ".env.relay-v41"
+    relay.write_text(
+        "\n".join(
+            [
+                "LLM_PROVIDER=openai_compatible",
+                "LLM_BASE_URL=https://api.zhizengzeng.com/v1",
+                "LLM_MODEL=deepseek-v4.1-flash",
+                "LLM_API_KEY=test-key-not-for-live-use",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    aliyun = tmp_path / ".env.aliyun-mismatch"
+    aliyun.write_text(
+        "\n".join(
+            [
+                "LLM_PROVIDER=aliyun",
+                "LLM_BASE_URL=https://token-plan.cn-beijing.maas.aliyuncs.com/v1",
+                "LLM_MODEL=deepseek-v4.1-flash",
+                "LLM_API_KEY=test-key-not-for-live-use",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    bad_model = tmp_path / ".env.bad-model"
+    bad_model.write_text(
+        "\n".join(
+            [
+                "LLM_PROVIDER=openai_compatible",
+                "LLM_BASE_URL=https://api.zhizengzeng.com/v1",
+                "LLM_MODEL=deepseek-flash",
+                "LLM_API_KEY=test-key-not-for-live-use",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    emb = tmp_path / ".env.embedding-relay"
+    emb.write_text(
+        "\n".join(
+            [
+                "EMBEDDING_BASE_URL=https://api.zhizengzeng.com/v1",
+                "EMBEDDING_MODEL=text-embedding-3-small",
+                "EMBEDDING_API_KEY=test-embedding-key-not-for-live-use",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    def _clear_gen_env():
+        for key in (
+            "LLM_PROVIDER",
+            "LLM_BASE_URL",
+            "LLM_MODEL",
+            "LLM_API_KEY",
+            "EMBEDDING_BASE_URL",
+            "EMBEDDING_MODEL",
+            "EMBEDDING_API_KEY",
+        ):
+            monkeypatch.delenv(key, raising=False)
+
+    _clear_gen_env()
+    meta = env_loader.load_generation_profile(ROOT, str(relay))
+    assert meta["provider"] == "openai_compatible"
+    assert meta["model"] == "deepseek-v4.1-flash"
+    assert "api_key" not in meta
+    assert "test-key" not in json.dumps(meta)
+
+    _clear_gen_env()
+    ok = UnifiedHkMcpZeroRunner(
+        output_dir=tmp_path / "relay_dry",
+        split="development",
+        dry_run=True,
+        allow_dirty=True,
+        env_file=str(relay),
+        embedding_env_file=str(emb),
+        root=ROOT,
+    ).run()
+    assert ok["generation_provider"] == "openai_compatible"
+    assert ok["generation_base_url_host"] == "api.zhizengzeng.com"
+    assert ok["generation_model"] == "deepseek-v4.1-flash"
+    assert ok["method_identity_sha256"] == (
+        "77cc3b07a4c2b9af00ad3f6bfb7cba59c82084d94b7592f2c820f46f1d3e8d3f"
+    )
+    assert ok["server_top_k"] == 3
+    assert ok["tool_top_k"] == 5
+    dumped = json.dumps(ok)
+    assert "test-key" not in dumped
+    assert "test-key-not-for-live-use" not in dumped
+    assert "LLM_API_KEY" not in dumped
+
+    _clear_gen_env()
+    with pytest.raises(RuntimeError, match="generation provider mismatch"):
+        UnifiedHkMcpZeroRunner(
+            output_dir=tmp_path / "aliyun_dry",
+            split="development",
+            dry_run=True,
+            allow_dirty=True,
+            env_file=str(aliyun),
+            embedding_env_file=str(emb),
+            root=ROOT,
+        ).run()
+
+    _clear_gen_env()
+    with pytest.raises(RuntimeError, match="generation model mismatch"):
+        UnifiedHkMcpZeroRunner(
+            output_dir=tmp_path / "model_dry",
+            split="development",
+            dry_run=True,
+            allow_dirty=True,
+            env_file=str(bad_model),
+            embedding_env_file=str(emb),
+            root=ROOT,
+        ).run()
+
+    assert "generation_provider" in MCP_ZERO_RESUME_IDENTITY_KEYS
+    assert "generation_base_url_host" in MCP_ZERO_RESUME_IDENTITY_KEYS
+    assert "generation_model" in MCP_ZERO_RESUME_IDENTITY_KEYS
 
 
 def test_embedding_cache_identity_and_namespace(tmp_path: Path):
