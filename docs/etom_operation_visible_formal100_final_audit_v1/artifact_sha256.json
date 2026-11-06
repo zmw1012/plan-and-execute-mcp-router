@@ -1,0 +1,30 @@
+{
+  "predictions.jsonl": {
+    "sha256": "c8ec6b49533c92b10dcfec7ec52cda6585bd1eaa1f4f13387ed98bd5c00a478d",
+    "bytes": 2235284
+  },
+  "run_metadata.json": {
+    "sha256": "9086f74327b7cad1a59ff824255705b8e45c80b478e3a1a0adef8567b657eae8",
+    "bytes": 5965
+  },
+  "per_task_metrics.csv": {
+    "sha256": "8dabd604069e2a9e17c9dc42edaf9f3bdf274e04cc3d67bb445e0b4775e795a2",
+    "bytes": 12479
+  },
+  "cost_summary.json": {
+    "sha256": "869432af5cc835d96617b98b508eec75ea8dd3ea5e138e75567c39cf0a135c06",
+    "bytes": 4016
+  },
+  "retrieval_analysis.json": {
+    "sha256": "0b3f6f049c3904acb68fad7bd4c05787d772a28b506e839ef03daeeb293d32b4",
+    "bytes": 302
+  },
+  "error_summary.json": {
+    "sha256": "77beda4e23033cd24476b1bc6f25889321c44044e7362c4a970086db0dde2d01",
+    "bytes": 254
+  },
+  "grouped_results.json": {
+    "sha256": "ac66771f6c71be09cf5b20fac66ca43ebeee19cd042abc618b28236409d0f558",
+    "bytes": 2577
+  }
+}

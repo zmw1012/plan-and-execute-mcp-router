@@ -1,0 +1,66 @@
+{
+  "stopped": false,
+  "checks": [
+    {
+      "claim": "L1 strict EM 17/20",
+      "observed": "17/20",
+      "match": true
+    },
+    {
+      "claim": "L2 strict EM 12/20",
+      "observed": "12/20",
+      "match": true
+    },
+    {
+      "claim": "L3 strict EM 13/20",
+      "observed": "13/20",
+      "match": true
+    },
+    {
+      "claim": "L4 strict EM 5/20",
+      "observed": "5/20",
+      "match": true
+    },
+    {
+      "claim": "L5 strict EM 19/20",
+      "observed": "19/20",
+      "match": true
+    },
+    {
+      "claim": "overall strict EM 66/100",
+      "observed": "66/100",
+      "match": true
+    },
+    {
+      "claim": "completed 92",
+      "observed": 92,
+      "match": true
+    },
+    {
+      "claim": "failed 8",
+      "observed": 8,
+      "match": true
+    },
+    {
+      "claim": "parse_error 5",
+      "observed": 5,
+      "match": true
+    },
+    {
+      "claim": "max_llm_turns failures 3",
+      "observed": 3,
+      "match": true
+    },
+    {
+      "claim": "task LLM calls 434",
+      "observed": 434,
+      "match": true
+    },
+    {
+      "claim": "cost_summary llm_calls includes probe",
+      "observed": 435,
+      "match": true
+    }
+  ],
+  "llm_call_note": "Terminal total LLM calls=434 matches the sum of per-task llm_calls. cost_summary.llm_calls=435 equals that sum plus verification_probe.llm_calls=1. Both numbers are reported. Neither number is rewritten."
+}

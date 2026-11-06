@@ -1,0 +1,165 @@
+{
+  "tasks": 100,
+  "primary_error_is_unique": true,
+  "exact_route_success": 66,
+  "primary_counts_including_exact": [
+    [
+      "exact_route_success",
+      66
+    ],
+    [
+      "incomplete_tool_chain",
+      22
+    ],
+    [
+      "parse/evaluation_failure",
+      5
+    ],
+    [
+      "max_turn_resource_limit",
+      3
+    ],
+    [
+      "unnecessary_tool",
+      2
+    ],
+    [
+      "tool_selection",
+      1
+    ],
+    [
+      "infeasible_detection",
+      1
+    ]
+  ],
+  "secondary_counts": [
+    [
+      "tool_selection",
+      19
+    ],
+    [
+      "incomplete_tool_chain",
+      6
+    ],
+    [
+      "server_selection",
+      3
+    ]
+  ],
+  "by_level": {
+    "L1": {
+      "primary": {
+        "exact_route_success": 17,
+        "tool_selection": 1,
+        "unnecessary_tool": 1,
+        "parse/evaluation_failure": 1
+      },
+      "non_exact_ids": [
+        "L1-q533",
+        "L1-q107",
+        "L1-q591"
+      ]
+    },
+    "L2": {
+      "primary": {
+        "max_turn_resource_limit": 2,
+        "incomplete_tool_chain": 5,
+        "exact_route_success": 12,
+        "parse/evaluation_failure": 1
+      },
+      "non_exact_ids": [
+        "L2-q766",
+        "L2-q702",
+        "L2-q633",
+        "L2-q751",
+        "L2-q720",
+        "L2-q640",
+        "L2-q518",
+        "L2-q668"
+      ]
+    },
+    "L3": {
+      "primary": {
+        "exact_route_success": 13,
+        "incomplete_tool_chain": 6,
+        "parse/evaluation_failure": 1
+      },
+      "non_exact_ids": [
+        "L3-q302",
+        "L3-q267",
+        "L3-q120",
+        "L3-q17",
+        "L3-q195",
+        "L3-q208",
+        "L3-q180"
+      ]
+    },
+    "L4": {
+      "primary": {
+        "unnecessary_tool": 1,
+        "incomplete_tool_chain": 11,
+        "parse/evaluation_failure": 2,
+        "exact_route_success": 5,
+        "max_turn_resource_limit": 1
+      },
+      "non_exact_ids": [
+        "L4-q57",
+        "L4-q4",
+        "L4-q37",
+        "L4-q100",
+        "L4-q92",
+        "L4-q48",
+        "L4-q96",
+        "L4-q52",
+        "L4-q75",
+        "L4-q71",
+        "L4-q5",
+        "L4-q95",
+        "L4-q101",
+        "L4-q35",
+        "L4-q36"
+      ]
+    },
+    "L5": {
+      "primary": {
+        "exact_route_success": 19,
+        "infeasible_detection": 1
+      },
+      "non_exact_ids": [
+        "L5-q33"
+      ]
+    }
+  },
+  "top_completed_routing_errors": [
+    [
+      "incomplete_tool_chain",
+      22
+    ],
+    [
+      "unnecessary_tool",
+      2
+    ],
+    [
+      "tool_selection",
+      1
+    ],
+    [
+      "infeasible_detection",
+      1
+    ]
+  ],
+  "dependency_order_labels": 0,
+  "parse_error_ids": [
+    "L1-q591",
+    "L2-q518",
+    "L3-q195",
+    "L4-q48",
+    "L4-q71"
+  ],
+  "max_llm_turns_ids": [
+    "L2-q766",
+    "L2-q720",
+    "L4-q75"
+  ],
+  "real_tool_executions": 0
+}
