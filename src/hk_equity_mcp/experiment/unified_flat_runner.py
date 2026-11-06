@@ -93,8 +93,9 @@ RESUME_IDENTITY_KEYS = (
     "retirement_policy_version",
 )
 
-DEFAULT_GENERATION_PROVIDER = "aliyun"
+DEFAULT_GENERATION_PROVIDER = "openai_compatible"
 DEFAULT_GENERATION_MODEL = "deepseek-v4.1-flash"
+EXPECTED_GENERATION_HOST = "api.zhizengzeng.com"
 
 
 def _run_mode(*, dry_run: bool, mock: bool) -> str:
@@ -122,6 +123,7 @@ def load_flat_config(
             "max_tokens": 1024,
             "generation_model": DEFAULT_GENERATION_MODEL,
             "generation_provider": DEFAULT_GENERATION_PROVIDER,
+            "generation_base_url_host": EXPECTED_GENERATION_HOST,
             "limits": {
                 "max_llm_turns": 8,
                 "max_invocations": 6,
@@ -327,6 +329,9 @@ class UnifiedHkFlatAllToolsRunner:
         expected_provider = str(
             self.config.get("generation_provider") or DEFAULT_GENERATION_PROVIDER
         )
+        expected_host = str(
+            self.config.get("generation_base_url_host") or EXPECTED_GENERATION_HOST
+        )
 
         if self.mock or self.dry_run:
             try:
@@ -346,6 +351,10 @@ class UnifiedHkFlatAllToolsRunner:
         else:
             self.gen_meta = load_generation_profile(self.root, self.env_file)
 
+        gen_host = url_host(
+            self.gen_meta.get("base_url") or os.environ.get("LLM_BASE_URL")
+        )
+
         if not self.mock:
             actual_model = (
                 self.gen_meta.get("model") or os.environ.get("LLM_MODEL") or ""
@@ -353,21 +362,42 @@ class UnifiedHkFlatAllToolsRunner:
             actual_provider = (
                 self.gen_meta.get("provider") or os.environ.get("LLM_PROVIDER") or ""
             ).strip()
-            if actual_model and actual_model != expected_model:
+            actual_host = (gen_host or "").strip()
+
+            # Live runs: require provider / host / model (fail closed on missing).
+            # Dry-run: validate whenever values are present (wrong profile rejected).
+            require_present = not self.dry_run
+            if require_present and not actual_provider:
                 raise RuntimeError(
-                    f"generation model mismatch: expected {expected_model}, got {actual_model}"
+                    "Missing LLM_PROVIDER (fail-closed). "
+                    f"Flat formal runs require LLM_PROVIDER={expected_provider}."
                 )
             if actual_provider and actual_provider != expected_provider:
                 raise RuntimeError(
                     f"generation provider mismatch: expected {expected_provider}, "
                     f"got {actual_provider}"
                 )
+            if require_present and not actual_model:
+                raise RuntimeError(
+                    "Missing LLM_MODEL (fail-closed). "
+                    f"Flat formal runs require LLM_MODEL={expected_model}."
+                )
+            if actual_model and actual_model != expected_model:
+                raise RuntimeError(
+                    f"generation model mismatch: expected {expected_model}, got {actual_model}"
+                )
+            if require_present and not actual_host:
+                raise RuntimeError(
+                    "Missing LLM_BASE_URL host (fail-closed). "
+                    f"Flat formal runs require host={expected_host}."
+                )
+            if actual_host and actual_host != expected_host:
+                raise RuntimeError(
+                    f"generation host mismatch: expected {expected_host}, got {actual_host}"
+                )
 
         self.output_dir.mkdir(parents=True, exist_ok=True)
         fingerprint = catalog_fingerprint(stats, self.bundle.source_catalogs)
-        gen_host = url_host(
-            self.gen_meta.get("base_url") or os.environ.get("LLM_BASE_URL")
-        )
 
         domain_counts: Dict[str, int] = {}
         source_split_counts: Dict[str, int] = {}
@@ -443,8 +473,13 @@ class UnifiedHkFlatAllToolsRunner:
             "generation_provider": self.gen_meta.get("provider") or expected_provider,
             "generation_model": self.gen_meta.get("model") or expected_model,
             "generation_profile_file": self.gen_meta.get("profile_file"),
+            # Host pin: live/dry-run-with-profile must be EXPECTED_GENERATION_HOST.
+            # Offline dry-run without env leaves host null (not a live identity).
             "generation_base_url_host": gen_host,
             "provider_host": gen_host,
+            "expected_generation_provider": expected_provider,
+            "expected_generation_host": expected_host,
+            "expected_generation_model": expected_model,
             "embedding_model": None,
             "embedding_profile_file": None,
             "embedding_base_url_host": None,

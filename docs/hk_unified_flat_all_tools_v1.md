@@ -140,11 +140,24 @@ PYTHONPATH=src "$PYTHON" scripts/run_hk_unified_flat_all_tools_experiment.py \
 
 **Do not report mock / dry-run as experimental results.**
 
+## Generation identity (formal)
+
+| Field | Value |
+|---|---|
+| `LLM_PROVIDER` | `openai_compatible` |
+| Host | `api.zhizengzeng.com` |
+| `LLM_MODEL` | `deepseek-v4.1-flash` |
+| Env file | `../hk-equity-mcp-agent/.env.relay-v41` |
+| `json_mode` | `true` (JSON action/final only; no ATR) |
+| Embedding | **not used** (no embedding env) |
+
+Wrong provider / host / model fail closed. Aliyun Token Plan is not accepted.
+
 ## Future real smoke (do NOT run in this offline round)
 
 ```bash
 PYTHON="../hk-equity-mcp-agent/.venv-aktools-discovery/bin/python"
-ENV_GEN="../hk-equity-mcp-agent/.env.aliyun"   # or project-approved generation profile
+ENV_GEN="../hk-equity-mcp-agent/.env.relay-v41"
 
 PYTHONPATH=src "$PYTHON" scripts/run_hk_unified_flat_all_tools_experiment.py \
   --split exploratory_all --confirm-retire-heldout \
@@ -159,6 +172,6 @@ overwrite).
 
 ## Safety
 
-- Git dirty / catalog drift / schema drift / model mismatch → fail closed.
+- Git dirty / catalog drift / schema drift / provider / host / model mismatch → fail closed.
 - API keys never written to metadata, logs, or git.
 - No silent fallback to mock `FinancialServer` / local gold tools.

@@ -2,7 +2,8 @@
 condition: flat
 execution_backend: real_mcp
 architecture: flat_all_tools
-generation_provider: aliyun
+generation_provider: openai_compatible
+generation_base_url_host: api.zhizengzeng.com
 generation_model: deepseek-v4.1-flash
 # Flat does not use embedding; field retained as null for identity clarity.
 embedding_model: null
@@ -12,6 +13,8 @@ json_mode: true
 dataset_split: development
 dataset_manifest: benchmarks/manifests/hk_unified_dataset_v1.json
 smoke_manifest: benchmarks/smoke/hk_unified_dev_smoke_8_v1.json
+# Formal generation profile (never commit secrets):
+#   ../hk-equity-mcp-agent/.env.relay-v41
 
 limits:
   max_llm_turns: 8
@@ -30,3 +33,4 @@ notes:
   - No embedding / find_operations / describe_operation / Top-K / MCP-Zero routing.
   - Must execute via UnifiedRealMcpGateway (no FinancialServer silent fallback).
   - Fairness: same HK-155 manifest, model, temperature, FINAL_ANSWER_CONTRACT, evaluator v1.2.
+  - "Formal generation: openai_compatible @ api.zhizengzeng.com / deepseek-v4.1-flash via .env.relay-v41 (not Aliyun Token Plan)."
