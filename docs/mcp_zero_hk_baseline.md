@@ -75,19 +75,25 @@ python scripts/run_hk_unified_mcp_zero_experiment.py \
 
 ## Real smoke and HK-155 commands
 
-Do not run these until a generation profile is confirmed. No file in the main repo is both the long-term relay and `LLM_MODEL=deepseek-v4.1-flash`.
+Do not execute these until `.env.relay-v41` also contains `LLM_PROVIDER=aliyun`. Offline audit of that file currently finds host `api.zhizengzeng.com` and `LLM_MODEL=deepseek-v4.1-flash`, but `LLM_PROVIDER` is missing, so `load_generation_profile` fail-closes. The file itself is gitignored by `.env.*` in the main repo and in this worktree.
 
-Candidates, names and non-secret fields only:
+| Role | File | Host | Model / provider pin |
+|---|---|---|---|
+| Generation | main-repo `.env.relay-v41` | `api.zhizengzeng.com` | `deepseek-v4.1-flash` (must also set `LLM_PROVIDER=aliyun`) |
+| Embedding | main-repo `.env.embedding-relay` | `api.zhizengzeng.com` | `text-embedding-3-small` |
 
-| File | Host | Model |
-|---|---|---|
-| `.env` | `api.zhizengzeng.com` | `deepseek-flash` |
-| `.env.relay` | `api.zhizengzeng.com` | `deepseek-flash` |
-| `.env.aliyun` | `token-plan.cn-beijing.maas.aliyuncs.com` | `deepseek-v4.1-flash` |
+Always run from this worktree with:
 
-`.env` and `.env.relay` also omit `LLM_PROVIDER`. The runner requires `LLM_PROVIDER=aliyun` because that is the frozen config provider pin, and it requires `LLM_MODEL=deepseek-v4.1-flash`. `.env.aliyun` has the right model and provider, and the wrong host for a post-token-plan run. Embedding stays on the main repo file `.env.embedding-relay` (`api.zhizengzeng.com`, `text-embedding-3-small`). Pass that path absolutely; this worktree does not contain it.
+```bash
+export PYTHONPATH=src
+PY="/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.venv-aktools-discovery/bin/python"
+GEN_ENV="/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.env.relay-v41"
+EMB_ENV="/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.env.embedding-relay"
+```
 
-`--max-tasks` is the cumulative locked-order prefix, not the number of new tasks in the current process. It is recorded on every run and is intentionally outside resume identity, so 20 → 50 → 100 → 155 can resume. Resume still checks the other method identity fields, and the new `question_ids` list must extend the previous list as a prefix. Completed task ids are skipped and are not sent to the model again.
+`--allow-hkex-download` is required for real smoke and formal 155. `news_dev_006` gold includes `hkexnews.download_hkexnews_announcement`. `xd_dev_007` itself only needs list + `stock_hk_hist`, but the four-task smoke set includes `news_dev_006`. Formal HK-155 has 24 download-gold tasks. Without the flag, `UnifiedRealMcpGateway` constructs `HkexnewsAdapter(allow_download=False)` and download fails closed. Separately, the adapter still enforces a session budget of one successful download; that is a pre-existing gateway safety limit, not part of the frozen MCP-Zero method card, and it must be resolved before treating a continuous 155-run as complete for download-heavy news/financial tasks.
+
+`--max-tasks` is the cumulative locked-order prefix, not the number of new tasks in the current process. It is recorded on every run and is intentionally outside resume identity. Resume still checks the other method identity fields, and the new `question_ids` list must extend the previous list as a prefix. Completed task ids are skipped and are not sent to the model again.
 
 The four smoke ids are unchanged HK-155 development-source items:
 
@@ -95,62 +101,52 @@ The four smoke ids are unchanged HK-155 development-source items:
 |---|---|
 | `fin_cf_001` | Financial, single operation |
 | `mkt_dev_014` | Market, refusal / infeasible (`should_refuse_or_clarify`, zero gold operations) |
-| `news_dev_006` | News, multi-step dependency (5 operations, dependency edges) |
-| `xd_dev_007` | Cross-domain, output-input dependency across servers |
+| `news_dev_006` | News, multi-step dependency (includes download; needs `--allow-hkex-download`) |
+| `xd_dev_007` | Cross-domain, list→`stock_hk_hist` output-input dependency |
 
 A real `--split exploratory_all` run writes `retirement_effective=true` into that output directory. These four ids do not include previously reserved questions. The formal 155 directory is separate. Frozen JSONL is not modified.
 
 ```bash
-# NOT EXECUTABLE until GENERATION_ENV is a confirmed profile with
-# LLM_MODEL=deepseek-v4.1-flash and LLM_PROVIDER=aliyun.
 # Real smoke. Do not point this at the formal 155 directory.
-python scripts/run_hk_unified_mcp_zero_experiment.py \
+# Blocked until .env.relay-v41 includes LLM_PROVIDER=aliyun.
+PYTHONPATH=src "$PY" scripts/run_hk_unified_mcp_zero_experiment.py \
   --split exploratory_all \
   --confirm-retire-heldout \
   --ids fin_cf_001,mkt_dev_014,news_dev_006,xd_dev_007 \
-  --env-file <UNRESOLVED_GENERATION_ENV> \
-  --embedding-env-file "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.env.embedding-relay" \
+  --allow-hkex-download \
+  --env-file "$GEN_ENV" \
+  --embedding-env-file "$EMB_ENV" \
   --output-dir outputs/hk_unified_mcp_zero_real_smoke4_v1
 
-# Formal HK-155. First wave has no --resume.
-python scripts/run_hk_unified_mcp_zero_experiment.py \
+# Continuous full HK-155. First process has no --resume.
+PYTHONPATH=src "$PY" scripts/run_hk_unified_mcp_zero_experiment.py \
   --split exploratory_all \
   --confirm-retire-heldout \
-  --max-tasks 20 \
-  --env-file <UNRESOLVED_GENERATION_ENV> \
-  --embedding-env-file "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.env.embedding-relay" \
+  --max-tasks 155 \
+  --allow-hkex-download \
+  --env-file "$GEN_ENV" \
+  --embedding-env-file "$EMB_ENV" \
   --output-dir outputs/hk_unified_exploratory155_mcp_zero_live_v1
 
-# Cumulative 50, 100, then 155. Same directory. --resume skips completed ids.
-python scripts/run_hk_unified_mcp_zero_experiment.py \
-  --split exploratory_all \
-  --confirm-retire-heldout \
-  --max-tasks 50 \
-  --resume \
-  --env-file <UNRESOLVED_GENERATION_ENV> \
-  --embedding-env-file "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.env.embedding-relay" \
-  --output-dir outputs/hk_unified_exploratory155_mcp_zero_live_v1
-
-python scripts/run_hk_unified_mcp_zero_experiment.py \
-  --split exploratory_all \
-  --confirm-retire-heldout \
-  --max-tasks 100 \
-  --resume \
-  --env-file <UNRESOLVED_GENERATION_ENV> \
-  --embedding-env-file "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.env.embedding-relay" \
-  --output-dir outputs/hk_unified_exploratory155_mcp_zero_live_v1
-
-python scripts/run_hk_unified_mcp_zero_experiment.py \
+# After an interrupt: same directory, same identity, resume cumulative 155.
+PYTHONPATH=src "$PY" scripts/run_hk_unified_mcp_zero_experiment.py \
   --split exploratory_all \
   --confirm-retire-heldout \
   --max-tasks 155 \
   --resume \
-  --env-file <UNRESOLVED_GENERATION_ENV> \
-  --embedding-env-file "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.env.embedding-relay" \
+  --allow-hkex-download \
+  --env-file "$GEN_ENV" \
+  --embedding-env-file "$EMB_ENV" \
   --output-dir outputs/hk_unified_exploratory155_mcp_zero_live_v1
 
+# Optional staged prefixes (same semantics; max-tasks is cumulative):
+# --max-tasks 20
+# --max-tasks 50 --resume
+# --max-tasks 100 --resume
+# --max-tasks 155 --resume
+
 # Offline postprocess. Does not call LLM, embedding, or MCP.
-python scripts/postprocess_hk_unified_run.py \
+PYTHONPATH=src "$PY" scripts/postprocess_hk_unified_run.py \
   --run-dir outputs/hk_unified_exploratory155_mcp_zero_live_v1
 ```
 
