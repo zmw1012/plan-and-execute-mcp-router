@@ -67,6 +67,7 @@ RESUME_IDENTITY_KEYS = (
     "generation_model",
     "dataset_split",
     "system_prompt_hash",
+    "questions_identity_hash",
     "temperature",
     "max_tokens",
     "catalog_fingerprint",
@@ -75,7 +76,18 @@ RESUME_IDENTITY_KEYS = (
     "retirement_policy_version",
 )
 
-DEFAULT_OUTPUT_DIR = "outputs/hk_unified_exploratory155_mcp_free_v1"
+# Formal live default. Dry-run / real-smoke MUST use separate directories.
+DEFAULT_OUTPUT_DIR = "outputs/hk_unified_exploratory155_mcp_free_live_v1"
+DRY_RUN_OUTPUT_DIR = "outputs/hk_unified_exploratory155_mcp_free_dry_run_v1"
+REAL_SMOKE_OUTPUT_DIR = "outputs/hk_unified_mcp_free_real_smoke3_v1"
+
+
+def _run_mode(*, dry_run: bool, mock: bool) -> str:
+    if dry_run:
+        return "dry_run"
+    if mock:
+        return "mock"
+    return "live"
 
 
 def repo_root() -> Path:
@@ -223,8 +235,8 @@ class UnifiedHkMcpFreeRunner:
             tasks = select_by_ids(
                 tasks, self.ids, preserve_id_order=(self.split == "exploratory_all")
             )
-        if self.max_tasks is not None:
-            tasks = tasks[: max(0, int(self.max_tasks))]
+        # max_tasks is applied in prepare() AFTER questions_identity_hash so that
+        # resume identity stays stable when expanding the cumulative prefix.
         return tasks
 
     def prepare(self) -> Dict[str, Any]:
@@ -240,7 +252,13 @@ class UnifiedHkMcpFreeRunner:
                 raise RuntimeError(f"MCP-Free system prompt unexpectedly contains {banned}")
 
         prompt_h = unified_mcp_free_prompt_hash()
-        tasks = self._load_tasks()
+        tasks_for_identity = self._load_tasks()
+        q_hash = (
+            questions_identity_hash(tasks_for_identity) if tasks_for_identity else None
+        )
+        tasks = tasks_for_identity
+        if self.max_tasks is not None:
+            tasks = tasks[: max(0, int(self.max_tasks))]
 
         if self.mock or self.dry_run:
             try:
@@ -328,7 +346,6 @@ class UnifiedHkMcpFreeRunner:
                 existing_first_real=existing_first,
             )
 
-        q_hash = questions_identity_hash(tasks) if tasks else None
         meta = {
             "condition": self.condition,
             "execution_backend": self.execution_backend,
@@ -347,7 +364,12 @@ class UnifiedHkMcpFreeRunner:
             "retirement": retirement_meta,
             "question_ids": [t["task_id"] for t in tasks],
             "question_count": len(tasks),
+            # Identity hash is over the pre-max_tasks selection (full split or --ids).
             "questions_identity_hash": q_hash,
+            "max_tasks_semantics": (
+                "cumulative_prefix_of_locked_run_order_or_ids; "
+                "not an incremental add-N count"
+            ),
             "domain_counts": domain_counts,
             "source_split_counts": source_split_counts or None,
             "generation_provider": self.gen_meta.get("provider") or expected_provider,
@@ -661,12 +683,53 @@ class UnifiedHkMcpFreeRunner:
         # Silence unused run_meta for API parity with OV runner.
         _ = run_meta
 
+    def _assert_output_dir_safe(
+        self, *, meta_path: Path, predictions_path: Path
+    ) -> Optional[Dict[str, Any]]:
+        """Refuse mode mixing and accidental overwrite/delete of existing outputs."""
+        existing: Optional[Dict[str, Any]] = None
+        if meta_path.exists():
+            existing = json.loads(meta_path.read_text(encoding="utf-8"))
+            existing_mode = _run_mode(
+                dry_run=bool(existing.get("dry_run")),
+                mock=bool(existing.get("mock")),
+            )
+            current_mode = _run_mode(dry_run=self.dry_run, mock=self.mock)
+            if existing_mode != current_mode:
+                raise RuntimeError(
+                    "Output directory mode mismatch: "
+                    f"existing={existing_mode} current={current_mode}. "
+                    "Dry-run, mock, real smoke, and formal live must use separate "
+                    "--output-dir paths. Do not --resume a dry-run into a live run."
+                )
+
+        if self.resume:
+            return existing
+
+        # Fresh start: never delete or silently overwrite prior non-dry artifacts.
+        if predictions_path.exists():
+            raise RuntimeError(
+                f"Refusing to start without --resume: {predictions_path} already exists. "
+                "Use --resume to continue, or choose a new --output-dir."
+            )
+        if existing is not None and not self.dry_run:
+            raise RuntimeError(
+                f"Refusing to start without --resume: {meta_path} already exists. "
+                "Use a new --output-dir for the first live/mock run "
+                "(do not reuse a dry-run directory)."
+            )
+        return existing
+
     def run(self) -> Dict[str, Any]:
         prepared = self.prepare()
         items: List[Dict[str, Any]] = prepared["items"]
         run_meta = prepared["run_metadata"]
         meta_path = self.output_dir / "run_metadata.json"
         predictions_path = self.output_dir / "predictions.jsonl"
+
+        self._assert_output_dir_safe(
+            meta_path=meta_path, predictions_path=predictions_path
+        )
 
         if self.dry_run:
             atomic_write_json(meta_path, run_meta)
@@ -713,8 +776,6 @@ class UnifiedHkMcpFreeRunner:
                 )
                 if (row.get("task_id") or row.get("id"))
             }
-        if not self.resume and predictions_path.exists():
-            predictions_path.unlink()
 
         predictions_by_id: Dict[str, Dict[str, Any]] = {}
         if self.resume and predictions_path.exists():

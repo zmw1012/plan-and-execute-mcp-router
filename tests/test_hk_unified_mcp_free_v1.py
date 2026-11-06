@@ -226,12 +226,14 @@ def test_evaluator_v1_2_reusable():
 
 
 def test_resume_identity_excludes_max_tasks(tmp_path: Path):
+    qh = "a" * 64
     base = {
         "condition": "mcp_free",
         "execution_backend": "none",
         "generation_model": "deepseek-v4.1-flash",
         "dataset_split": "exploratory_all",
         "system_prompt_hash": unified_mcp_free_prompt_hash(),
+        "questions_identity_hash": qh,
         "temperature": 0.0,
         "max_tokens": 1024,
         "catalog_fingerprint": None,
@@ -243,11 +245,97 @@ def test_resume_identity_excludes_max_tasks(tmp_path: Path):
     expanded = dict(base)
     expanded["max_tasks"] = 50
     assert "max_tasks" not in RESUME_IDENTITY_KEYS
+    assert "questions_identity_hash" in RESUME_IDENTITY_KEYS
     assert_resume_compatible_mcp_free(base, expanded)
     bad = dict(expanded)
     bad["system_prompt_hash"] = "other"
     with pytest.raises(RuntimeError, match="system_prompt_hash"):
         assert_resume_compatible_mcp_free(base, bad)
+    bad_q = dict(expanded)
+    bad_q["questions_identity_hash"] = "b" * 64
+    with pytest.raises(RuntimeError, match="questions_identity_hash"):
+        assert_resume_compatible_mcp_free(base, bad_q)
+
+
+def test_max_tasks_does_not_change_questions_identity_hash(tmp_path: Path):
+    full = UnifiedHkMcpFreeRunner(
+        output_dir=tmp_path / "full",
+        split="exploratory_all",
+        confirm_retire_heldout=True,
+        dry_run=True,
+        allow_dirty=True,
+        root=ROOT,
+    ).run()
+    prefix = UnifiedHkMcpFreeRunner(
+        output_dir=tmp_path / "prefix",
+        split="exploratory_all",
+        confirm_retire_heldout=True,
+        dry_run=True,
+        allow_dirty=True,
+        max_tasks=20,
+        root=ROOT,
+    ).run()
+    assert full["questions_identity_hash"] == prefix["questions_identity_hash"]
+    assert full["question_count"] == 155
+    assert prefix["question_count"] == 20
+
+
+def test_refuse_live_on_dry_run_dir_and_no_delete_without_resume(tmp_path: Path):
+    out = tmp_path / "shared"
+    UnifiedHkMcpFreeRunner(
+        output_dir=out,
+        split="exploratory_all",
+        confirm_retire_heldout=True,
+        dry_run=True,
+        allow_dirty=True,
+        root=ROOT,
+    ).run()
+    with pytest.raises(RuntimeError, match="mode mismatch"):
+        UnifiedHkMcpFreeRunner(
+            output_dir=out,
+            split="exploratory_all",
+            confirm_retire_heldout=True,
+            mock=True,
+            allow_dirty=True,
+            max_tasks=1,
+            root=ROOT,
+        ).run()
+    with pytest.raises(RuntimeError, match="mode mismatch"):
+        UnifiedHkMcpFreeRunner(
+            output_dir=out,
+            split="exploratory_all",
+            confirm_retire_heldout=True,
+            mock=True,
+            allow_dirty=True,
+            max_tasks=1,
+            resume=True,
+            root=ROOT,
+        ).run()
+
+    mock_out = tmp_path / "mock"
+    UnifiedHkMcpFreeRunner(
+        output_dir=mock_out,
+        split="exploratory_all",
+        confirm_retire_heldout=True,
+        mock=True,
+        allow_dirty=True,
+        max_tasks=1,
+        root=ROOT,
+    ).run()
+    preds = mock_out / "predictions.jsonl"
+    assert preds.exists()
+    before = preds.read_text(encoding="utf-8")
+    with pytest.raises(RuntimeError, match="already exists"):
+        UnifiedHkMcpFreeRunner(
+            output_dir=mock_out,
+            split="exploratory_all",
+            confirm_retire_heldout=True,
+            mock=True,
+            allow_dirty=True,
+            max_tasks=2,
+            root=ROOT,
+        ).run()
+    assert preds.read_text(encoding="utf-8") == before
 
 
 def test_dry_run_exploratory(tmp_path: Path):
