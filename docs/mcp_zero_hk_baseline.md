@@ -95,7 +95,10 @@ export PYTHONPATH=src
 PY="/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.venv-aktools-discovery/bin/python"
 GEN_ENV="/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.env.relay-v41"
 EMB_ENV="/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.env.embedding-relay"
+EMB_CACHE=".cache/mcp_zero_hk_v1"
 ```
+
+Catalog embedding indexes are **shared** under `$EMB_CACHE` (worktree `.cache/mcp_zero_hk_v1`), not under each `output_dir`. Check status offline with `--index-status`. Formal agent runs should pass `--require-complete-index` so a missing index fails closed instead of rebuilding mid-run.
 
 `--allow-hkex-download` is required for real smoke and formal 155. `news_dev_006` gold includes `hkexnews.download_hkexnews_announcement`. `xd_dev_007` itself only needs list + `stock_hk_hist`, but the four-task smoke set includes `news_dev_006`. Formal HK-155 has 24 download-gold tasks. Without the flag, `UnifiedRealMcpGateway` constructs `HkexnewsAdapter(allow_download=False)` and download fails closed. Separately, the adapter still enforces a session budget of one successful download; that is a pre-existing gateway safety limit, not part of the frozen MCP-Zero method card, and it must be resolved before treating a continuous 155-run as complete for download-heavy news/financial tasks.
 

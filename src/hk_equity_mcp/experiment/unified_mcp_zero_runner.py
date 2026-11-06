@@ -83,7 +83,13 @@ from hk_equity_mcp.mcp_zero.agent import McpZeroAgent
 from hk_equity_mcp.mcp_zero.embedding import (
     CACHE_NAMESPACE,
     CountingEmbedder,
+    IncompleteEmbeddingTableError,
     build_embedding_table,
+    default_shared_cache_dir,
+    file_sha256,
+    load_complete_table,
+    resolve_embedding_cache_dir,
+    table_status,
 )
 from hk_equity_mcp.mcp_zero.metadata import build_hk_metadata
 from hk_equity_mcp.mcp_zero.prompt import HK_MCP_ZERO_SYSTEM_PROMPT, mcp_zero_prompt_hash
@@ -258,7 +264,7 @@ class UnifiedHkMcpZeroRunner:
     def __init__(
         self,
         *,
-        output_dir: Path,
+        output_dir: Optional[Path] = None,
         split: str = "development",
         smoke: bool = False,
         ids: Optional[Sequence[str]] = None,
@@ -275,9 +281,15 @@ class UnifiedHkMcpZeroRunner:
         root: Optional[Path] = None,
         allow_hkex_download: bool = False,
         json_mode: Optional[bool] = None,
+        embedding_cache_dir: Optional[Path | str] = None,
+        require_complete_index: bool = False,
     ):
         self.root = root or repo_root()
-        self.output_dir = Path(output_dir)
+        self.output_dir = (
+            Path(output_dir)
+            if output_dir is not None
+            else Path(self.root) / "outputs" / "_mcp_zero_index_ops"
+        )
         self.split = split
         self.smoke = bool(smoke)
         self.ids = list(ids) if ids else None
@@ -297,6 +309,10 @@ class UnifiedHkMcpZeroRunner:
             self.json_mode = bool(self.config.get("json_mode", False))
         else:
             self.json_mode = bool(json_mode)
+        self.embedding_cache_dir = resolve_embedding_cache_dir(
+            self.root, embedding_cache_dir
+        )
+        self.require_complete_index = bool(require_complete_index)
         self.temperature = float(self.config.get("temperature", 0.0))
         self.max_tokens = int(self.config.get("max_tokens", 1024))
         self.limits = dict(self.config.get("limits") or {})
@@ -596,6 +612,8 @@ class UnifiedHkMcpZeroRunner:
             "method_identity": frozen_method_identity(),
             "method_identity_sha256": method_identity_sha256(),
             "embedding_cache_namespace": CACHE_NAMESPACE,
+            "embedding_cache_dir": str(self.embedding_cache_dir),
+            "require_complete_index": self.require_complete_index,
             "embedding_index": None,
             "run_status": "dry_run" if self.dry_run else ("mock" if self.mock else "running"),
             "fidelity_note": FIDELITY_NAME,
@@ -618,11 +636,152 @@ class UnifiedHkMcpZeroRunner:
         }
         return {"items": tasks, "run_metadata": redact_secrets(meta)}
 
+    def _retrieval_index_kwargs(self) -> Dict[str, Any]:
+        use_summary = bool(self.retrieval.get("use_summary", True))
+        return {
+            "use_summary": use_summary,
+            "catalog_fingerprint": catalog_fingerprint(
+                self.bundle.stats, self.bundle.source_catalogs
+            ),
+            "score_mode": str(
+                self.retrieval.get("score_mode", SCORE_OFFICIAL_COMBINED)
+            ),
+            "server_top_k": int(
+                self.retrieval.get("server_top_k", DEFAULT_SERVER_TOP_K)
+            ),
+            "tool_top_k": int(self.retrieval.get("tool_top_k", DEFAULT_TOOL_TOP_K)),
+            "similarity_threshold": float(
+                self.retrieval.get(
+                    "similarity_threshold", DEFAULT_SIMILARITY_THRESHOLD
+                )
+            ),
+        }
+
+    def embedding_model_name(self) -> str:
+        return str(
+            (self.emb_meta or {}).get("model")
+            or self.config.get("embedding_model")
+            or "text-embedding-3-small"
+        )
+
+    def index_status_report(self) -> Dict[str, Any]:
+        """Offline shared-cache status (no embedding / LLM network calls)."""
+        kwargs = self._retrieval_index_kwargs()
+        status = table_status(
+            self.catalog,
+            model_name=self.embedding_model_name(),
+            cache_dir=self.embedding_cache_dir,
+            **kwargs,
+        )
+        status["shared_cache"] = True
+        status["default_shared_cache_dir"] = str(default_shared_cache_dir(self.root))
+        status["output_dir"] = str(self.output_dir)
+        status["note"] = (
+            "Catalog embedding index is shared under the worktree cache and is "
+            "independent of output_dir. Partial checkpoints are never treated as complete."
+        )
+        return status
+
+    def _embedding_index_report_from_table(self, table: Any) -> Dict[str, Any]:
+        cache_path = table.cache_path
+        cache_file_sha = None
+        vector_count = None
+        vector_dimension = None
+        if cache_path and Path(cache_path).is_file():
+            cache_file_sha = file_sha256(Path(cache_path))
+            try:
+                payload = json.loads(Path(cache_path).read_text(encoding="utf-8"))
+                vectors = payload.get("vectors") or {}
+                if isinstance(vectors, dict):
+                    vector_count = len(vectors)
+                    dims = {len(v) for v in vectors.values() if isinstance(v, list)}
+                    if len(dims) == 1:
+                        vector_dimension = next(iter(dims))
+            except (json.JSONDecodeError, OSError, TypeError, ValueError):
+                pass
+        return {
+            "namespace": CACHE_NAMESPACE,
+            "identity": table.identity,
+            "identity_sha256": table.identity_sha256,
+            "cache_dir": str(self.embedding_cache_dir),
+            "cache_path": cache_path,
+            "cache_file_sha256": cache_file_sha,
+            "cache_reused": table.cache_reused,
+            "index_action": table.index_action,
+            "build_calls": table.build_calls,
+            "build_tokens": table.build_tokens,
+            "build_latency_ms": table.build_latency_ms,
+            "complete": bool(table.complete),
+            "embedding_model": table.model_name,
+            "vector_count": vector_count if vector_count is not None else table.size(),
+            "vector_dimension": vector_dimension,
+            "shared_cache": True,
+            "query_time_note": (
+                "build_calls/tokens are catalog-index only; query-time embedding "
+                "usage is recorded per task after counters reset."
+            ),
+        }
+
+    def build_index_only(self) -> Dict[str, Any]:
+        """Explicit catalog-index build/resume into the shared cache."""
+        if self.dry_run:
+            raise RuntimeError("build_index_only is incompatible with dry-run.")
+        if self.mock:
+            backend: Any = DeterministicHashEmbeddingBackend()
+            model_name = "text-embedding-3-small"
+        else:
+            backend = OpenAICompatibleEmbeddingBackend(
+                base_url=os.environ["EMBEDDING_BASE_URL"],
+                api_key=os.environ["EMBEDDING_API_KEY"],
+                model=os.environ["EMBEDDING_MODEL"],
+            )
+            model_name = os.environ["EMBEDDING_MODEL"]
+        embedder = CountingEmbedder(backend, model_name=model_name)
+        kwargs = self._retrieval_index_kwargs()
+        table = build_embedding_table(
+            self.catalog,
+            embedder,
+            cache_dir=self.embedding_cache_dir,
+            **kwargs,
+        )
+        report = self._embedding_index_report_from_table(table)
+        self.embedding_index_report = report
+        return report
+
     def build_agent(self) -> McpZeroAgent:
         if self.dry_run:
             raise RuntimeError("build_agent must not be called during dry-run.")
 
         use_summary = bool(self.retrieval.get("use_summary", True))
+        kwargs = self._retrieval_index_kwargs()
+        model_name = self.embedding_model_name()
+
+        # Formal path: require a complete shared index BEFORE any paid clients.
+        if self.require_complete_index and not self.mock:
+            try:
+                table = load_complete_table(
+                    self.catalog,
+                    model_name=model_name,
+                    cache_dir=self.embedding_cache_dir,
+                    **kwargs,
+                )
+            except IncompleteEmbeddingTableError as exc:
+                status = self.index_status_report()
+                raise IncompleteEmbeddingTableError(
+                    "Formal MCP-Zero run refused: complete shared embedding index "
+                    "required (--require-complete-index). "
+                    f"cache_dir={self.embedding_cache_dir} "
+                    f"identity_sha256={status.get('identity_sha256')} "
+                    f"complete={status.get('complete')} "
+                    f"partial={status.get('partial_completed_count')}/"
+                    f"{status.get('total')}. "
+                    "Build or install the index offline first "
+                    "(--build-index-only or verified shared-cache install). "
+                    f"Detail: {exc}"
+                ) from exc
+        else:
+            table = None
+
         if self.mock:
             llm: Any = _mock_scripted_llm()
             backend: Any = DeterministicHashEmbeddingBackend()
@@ -657,44 +816,21 @@ class UnifiedHkMcpZeroRunner:
             or (self.emb_meta or {}).get("model")
             or "text-embedding-3-small",
         )
-        cache_dir = self.output_dir / ".cache" / CACHE_NAMESPACE
-        server_top_k = int(self.retrieval.get("server_top_k", DEFAULT_SERVER_TOP_K))
-        tool_top_k = int(self.retrieval.get("tool_top_k", DEFAULT_TOOL_TOP_K))
-        score_mode = str(self.retrieval.get("score_mode", SCORE_OFFICIAL_COMBINED))
-        similarity_threshold = float(
-            self.retrieval.get("similarity_threshold", DEFAULT_SIMILARITY_THRESHOLD)
-        )
-        catalog_fp = catalog_fingerprint(self.bundle.stats, self.bundle.source_catalogs)
-        table = build_embedding_table(
-            self.catalog,
-            embedder,
-            cache_dir=cache_dir,
-            use_summary=use_summary,
-            catalog_fingerprint=catalog_fp,
-            score_mode=score_mode,
-            server_top_k=server_top_k,
-            tool_top_k=tool_top_k,
-            similarity_threshold=similarity_threshold,
-        )
+        if table is None:
+            # Mock / explicit non-require path may build or reuse shared cache.
+            table = build_embedding_table(
+                self.catalog,
+                embedder,
+                cache_dir=self.embedding_cache_dir,
+                **kwargs,
+            )
         if not table.complete:
             raise RuntimeError(
                 "Real MCP-Zero run requires a complete embedding index. "
                 f"index_action={table.index_action}."
             )
-        self.embedding_index_report = {
-            "namespace": CACHE_NAMESPACE,
-            "identity": table.identity,
-            "identity_sha256": table.identity_sha256,
-            "cache_path": table.cache_path,
-            "cache_reused": table.cache_reused,
-            "index_action": table.index_action,
-            "build_calls": table.build_calls,
-            "build_tokens": table.build_tokens,
-            "build_latency_ms": table.build_latency_ms,
-            "complete": True,
-            "embedding_model": table.model_name,
-        }
-        # Reset query-time counters after table build (build tokens tracked in table).
+        self.embedding_index_report = self._embedding_index_report_from_table(table)
+        # Reset query-time counters after table load/build (index cost is separate).
         embedder.calls = 0
         embedder.tokens = 0
         router = HierarchicalRouter(
@@ -1084,6 +1220,12 @@ class UnifiedHkMcpZeroRunner:
         atomic_write_json(self.output_dir / "grading_summary.json", grading_summary)
 
     def run(self) -> Dict[str, Any]:
+        invalidated = self.output_dir / "INVALIDATED.md"
+        if invalidated.exists() and not self.dry_run:
+            raise RuntimeError(
+                "Refusing to run or resume an invalidated MCP-Zero output directory: "
+                f"{self.output_dir}. See INVALIDATED.md. Use a new output-dir."
+            )
         prepared = self.prepare()
         items: List[Dict[str, Any]] = prepared["items"]
         run_meta = prepared["run_metadata"]

@@ -592,6 +592,7 @@ def test_resume_prefix_and_max_tasks_semantics(tmp_path: Path):
     assert "max_tasks" not in MCP_ZERO_RESUME_IDENTITY_KEYS
     assert "max_tasks_semantics" in MCP_ZERO_RESUME_IDENTITY_KEYS
     out = tmp_path / "prefix"
+    emb_cache = tmp_path / "shared_emb" / "mcp_zero_hk_v1"
     meta = UnifiedHkMcpZeroRunner(
         output_dir=out,
         split="development",
@@ -600,6 +601,7 @@ def test_resume_prefix_and_max_tasks_semantics(tmp_path: Path):
         mock=True,
         allow_dirty=True,
         root=ROOT,
+        embedding_cache_dir=emb_cache,
     ).run()
     assert meta["max_tasks_semantics"] == MAX_TASKS_SEMANTICS
     assert meta["max_tasks_in_resume_identity"] is False
@@ -609,6 +611,8 @@ def test_resume_prefix_and_max_tasks_semantics(tmp_path: Path):
     assert index["namespace"] == "mcp_zero_hk_v1"
     assert index["cache_reused"] is False
     assert "operation_embeddings" not in index["cache_path"]
+    assert str(index["cache_path"]).startswith(str(emb_cache))
+    assert not (out / ".cache").exists()
 
     extended = dict(meta)
     extended["question_ids"] = list(meta["question_ids"]) + ["later-task"]
@@ -629,6 +633,7 @@ def test_resume_prefix_and_max_tasks_semantics(tmp_path: Path):
         mock=True,
         allow_dirty=True,
         root=ROOT,
+        embedding_cache_dir=emb_cache,
     ).run()
     assert meta2["question_count"] == 2
     assert meta2["embedding_index"]["cache_reused"] is True
