@@ -1,6 +1,6 @@
 {
   "audit_version": "mcp_free_final_audit_v1",
-  "generated_at": "2026-11-06T06:07:36.984322+00:00",
+  "generated_at": "2026-11-06T06:18:12.497117+00:00",
   "run_dir": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-hk-mcp-free/outputs/hk_unified_exploratory155_mcp_free_live_v1",
   "condition": "mcp_free",
   "execution_backend": "none",
@@ -16,8 +16,9 @@
   "exploratory_manifest_hash": "f2257e3de89189c5d5784e3f58824c10928294d9454bcf68b3d061dca37f92c5",
   "metrics": {
     "n_tasks": 155,
-    "strict_accuracy": 0.12258064516129032,
-    "strict_accuracy_note": "correct_confirmed / 155; manual_required and incorrect count as not correct",
+    "correct": 20,
+    "strict_accuracy": 0.12903225806451613,
+    "strict_accuracy_note": "final correct / 155 including human-confirmed manual items",
     "auto_gradable_count": 154,
     "auto_graded_correct": 19,
     "auto_gradable_accuracy": 0.12337662337662338,
@@ -25,8 +26,10 @@
     "manual_required_ids": [
       "fin_cf_022"
     ],
-    "overall_accuracy": null,
-    "overall_accuracy_note": "null until manual_required items are human-confirmed",
+    "manual_confirmed_count": 1,
+    "manual_pending_ids": [],
+    "overall_accuracy": 0.12903225806451613,
+    "overall_accuracy_note": "computed after human confirmation of manual_required items",
     "conservative_lower_bound_accuracy": 0.12258064516129032,
     "unavailable_rate": 0.9225806451612903,
     "answered_rate": 0.05806451612903226,
@@ -66,17 +69,80 @@
       "failed": 1
     },
     "error_taxonomy_counts": {
-      "correct": 16,
+      "correct": 17,
       "unavailable_when_answerable": 118,
       "clarification_error": 1,
-      "manual_required": 1,
       "hallucinated_exact_value": 12,
       "incorrect_answer": 3,
       "parse_evaluation_failure": 1,
       "unavailable_correct": 3
     },
     "grader_version": "deterministic_v1.2",
-    "grading_version": "hk_unified_grading_v1.2"
+    "grading_version": "hk_unified_grading_v1.2",
+    "human_grades_applied": [
+      "fin_cf_022"
+    ],
+    "final_accuracy_by_domain": {
+      "cross_domain": {
+        "correct": 0,
+        "n": 25,
+        "final_accuracy": 0.0
+      },
+      "financial": {
+        "correct": 8,
+        "n": 60,
+        "final_accuracy": 0.13333333333333333
+      },
+      "market": {
+        "correct": 4,
+        "n": 35,
+        "final_accuracy": 0.11428571428571428
+      },
+      "news": {
+        "correct": 8,
+        "n": 35,
+        "final_accuracy": 0.22857142857142856
+      }
+    },
+    "final_accuracy_by_difficulty": {
+      "D1": {
+        "correct": 1,
+        "n": 35,
+        "final_accuracy": 0.02857142857142857
+      },
+      "D2": {
+        "correct": 2,
+        "n": 24,
+        "final_accuracy": 0.08333333333333333
+      },
+      "D3": {
+        "correct": 1,
+        "n": 42,
+        "final_accuracy": 0.023809523809523808
+      },
+      "D4": {
+        "correct": 5,
+        "n": 28,
+        "final_accuracy": 0.17857142857142858
+      },
+      "D5": {
+        "correct": 11,
+        "n": 26,
+        "final_accuracy": 0.4230769230769231
+      }
+    },
+    "final_accuracy_by_origin": {
+      "development": {
+        "correct": 10,
+        "n": 70,
+        "final_accuracy": 0.14285714285714285
+      },
+      "previously_reserved": {
+        "correct": 10,
+        "n": 85,
+        "final_accuracy": 0.11764705882352941
+      }
+    }
   },
   "tool_invariant_check": {
     "ok": true,

@@ -395,6 +395,191 @@ def _write_csv(path: Path, rows: Sequence[Dict[str, Any]], fieldnames: Sequence[
     fsync_file(path)
 
 
+def _parse_human_flag(value: Any) -> Optional[int]:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if text == "" or text.lower() in {"none", "null", "nan"}:
+        return None
+    if text.lower() in {"1", "true", "yes", "y"}:
+        return 1
+    if text.lower() in {"0", "false", "no", "n"}:
+        return 0
+    try:
+        return int(text)
+    except Exception:
+        return None
+
+
+def load_human_grades(paths: Sequence[Path]) -> Dict[str, Dict[str, Any]]:
+    """Load human confirmations from JSON and/or manual_review_queue.csv.
+
+    Does not modify raw predictions. Later paths override earlier ones.
+    """
+    out: Dict[str, Dict[str, Any]] = {}
+    for path in paths:
+        if path is None or not Path(path).exists():
+            continue
+        path = Path(path)
+        if path.suffix.lower() == ".json":
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            rows = payload.get("grades") if isinstance(payload, dict) else payload
+            if isinstance(payload, dict) and isinstance(payload.get("by_task_id"), dict):
+                rows = [
+                    {"task_id": tid, **(grade or {})}
+                    for tid, grade in payload["by_task_id"].items()
+                ]
+            if not isinstance(rows, list):
+                continue
+            for row in rows:
+                tid = str(row.get("task_id") or "").strip()
+                if not tid:
+                    continue
+                out[tid] = {
+                    "human_confirmed_answer_correct": _parse_human_flag(
+                        row.get("human_confirmed_answer_correct")
+                    ),
+                    "human_confirmed_overall_task_success": _parse_human_flag(
+                        row.get("human_confirmed_overall_task_success")
+                    ),
+                    "human_notes": row.get("human_notes") or "",
+                    "source_file": path.name,
+                }
+        elif path.suffix.lower() == ".csv":
+            with path.open("r", encoding="utf-8", newline="") as handle:
+                for row in csv.DictReader(handle):
+                    tid = str(row.get("task_id") or "").strip()
+                    if not tid:
+                        continue
+                    ans = _parse_human_flag(row.get("human_confirmed_answer_correct"))
+                    overall = _parse_human_flag(
+                        row.get("human_confirmed_overall_task_success")
+                    )
+                    notes = row.get("human_notes") or ""
+                    if ans is None and overall is None and not str(notes).strip():
+                        continue
+                    out[tid] = {
+                        "human_confirmed_answer_correct": ans,
+                        "human_confirmed_overall_task_success": overall,
+                        "human_notes": notes,
+                        "source_file": path.name,
+                    }
+    return out
+
+
+def apply_human_grades(
+    rows: List[Dict[str, Any]], human_grades: Dict[str, Dict[str, Any]]
+) -> None:
+    """Annotate rows in-place with final_* fields from human confirmations."""
+    for row in rows:
+        tid = str(row.get("task_id") or row.get("id") or "")
+        human = human_grades.get(tid) or {}
+        row["human_confirmed_answer_correct"] = human.get(
+            "human_confirmed_answer_correct"
+        )
+        row["human_confirmed_overall_task_success"] = human.get(
+            "human_confirmed_overall_task_success"
+        )
+        row["human_notes"] = human.get("human_notes") or ""
+
+        auto_status = row.get("auto_grade_status")
+        auto_correct = row.get("answer_correct")
+        human_ans = human.get("human_confirmed_answer_correct")
+        human_overall = human.get("human_confirmed_overall_task_success")
+
+        if auto_status == "manual_required" and human_ans is not None:
+            final_correct = bool(int(human_ans) == 1)
+        elif auto_correct is True:
+            final_correct = True
+        else:
+            final_correct = False
+
+        if human_overall is not None:
+            final_overall = int(human_overall)
+        elif auto_status == "manual_required" and human_ans is not None:
+            final_overall = int(human_ans)
+        elif auto_correct is True:
+            final_overall = 1
+        else:
+            final_overall = 0
+
+        row["final_answer_correct"] = final_correct
+        row["final_overall_task_success"] = final_overall
+
+        # Taxonomy: confirmed manual success becomes correct; parse failures stay.
+        if str(row.get("error") or "").startswith("parse_error"):
+            row["error_taxonomy"] = "parse_evaluation_failure"
+        elif auto_status == "manual_required" and human_ans is not None:
+            row["error_taxonomy"] = "correct" if final_correct else "incorrect_answer"
+
+
+def summarize_final_group(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+    n = len(rows)
+    if n == 0:
+        return {
+            "task_count": 0,
+            "correct": 0,
+            "final_accuracy": None,
+            "auto_gradable_count": 0,
+            "auto_graded_correct": 0,
+            "answer_accuracy": None,
+            "tool_metrics": TOOL_NA,
+        }
+    correct = sum(1 for r in rows if r.get("final_answer_correct") is True)
+    auto = [r for r in rows if r.get("auto_grade_status") == "graded"]
+    auto_correct = [r for r in auto if r.get("answer_correct") is True]
+    return {
+        "task_count": n,
+        "correct": correct,
+        "final_accuracy": correct / n,
+        "auto_gradable_count": len(auto),
+        "auto_graded_correct": len(auto_correct),
+        "answer_accuracy": (len(auto_correct) / len(auto)) if auto else None,
+        "tool_metrics": TOOL_NA,
+        "tool_calls": 0,
+        "embedding_calls": 0,
+        "resolver_calls": 0,
+        "real_mcp_executions": 0,
+    }
+
+
+def build_final_grouped_metrics(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+    out: Dict[str, Any] = {"overall": summarize_final_group(rows)}
+    for key in (
+        "domain",
+        "project_difficulty",
+        "source_split",
+        "answerability_class",
+        "company",
+    ):
+        buckets: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        for row in rows:
+            val = row.get(key)
+            name = "null" if val is None or val == "" else str(val)
+            buckets[name].append(row)
+        out[key] = {
+            name: summarize_final_group(group_rows)
+            for name, group_rows in sorted(buckets.items())
+        }
+    if out.get("project_difficulty"):
+        out["D1_D5"] = out["project_difficulty"]
+    dev_rows = [
+        r
+        for r in rows
+        if r.get("source_split") == "development"
+        or r.get("previously_reserved") is False
+    ]
+    reserved_rows = [
+        r
+        for r in rows
+        if r.get("source_split") == "previously_reserved"
+        or r.get("previously_reserved") is True
+    ]
+    out["development_origin"] = summarize_final_group(dev_rows)
+    out["previously_reserved_origin"] = summarize_final_group(reserved_rows)
+    return out
+
+
 def _md_escape(text: Any) -> str:
     return str(text).replace("|", "\\|")
 
@@ -416,12 +601,15 @@ def build_audit_report_md(summary: Dict[str, Any]) -> str:
         "",
         "## Accuracy",
         "",
-        f"- Strict accuracy (denominator 155): `{m.get('strict_accuracy')}`",
+        f"- Correct (final): `{m.get('correct')}/{m.get('n_tasks')}`",
+        f"- Strict / overall accuracy (denominator 155): `{m.get('strict_accuracy')}` / `{m.get('overall_accuracy')}`",
         f"- Auto-gradable accuracy (denominator 154): `{m.get('auto_gradable_accuracy')}`",
         f"- Auto correct / auto gradable: `{m.get('auto_graded_correct')}/{m.get('auto_gradable_count')}`",
-        f"- Manual required: `{m.get('manual_required_count')}`",
-        f"- Overall accuracy (manual pending → null): `{m.get('overall_accuracy')}`",
-        f"- Conservative lower bound correct_confirmed/155: `{m.get('conservative_lower_bound_accuracy')}`",
+        f"- Manual required: `{m.get('manual_required_count')}` (confirmed `{m.get('manual_confirmed_count')}`)",
+        f"- Conservative lower bound (auto-only correct/155): `{m.get('conservative_lower_bound_accuracy')}`",
+        f"- Financial final: `{((m.get('final_accuracy_by_domain') or {}).get('financial') or {})}`",
+        f"- D2 final: `{((m.get('final_accuracy_by_difficulty') or {}).get('D2') or {})}`",
+        f"- Development-origin final: `{((m.get('final_accuracy_by_origin') or {}).get('development') or {})}`",
         "",
         "## Status / failure rates",
         "",
@@ -476,6 +664,7 @@ def run_mcp_free_final_audit(
     *,
     audit_outdir: Optional[Path] = None,
     docs_mirror: Optional[Path] = None,
+    human_grades_file: Optional[Path] = None,
 ) -> Dict[str, Any]:
     run_dir = Path(run_dir)
     out_dir = Path(audit_outdir) if audit_outdir else run_dir / "final_audit_mcp_free_v1"
@@ -669,12 +858,48 @@ def run_mcp_free_final_audit(
             }
         )
 
-    # --- Formal metrics (frozen grades; 155 / 154 denominators) ---
+    # --- Load / apply human grades (audit-only; never writes raw predictions) ---
+    human_grade_paths: List[Path] = []
+    if human_grades_file is not None:
+        human_grade_paths.append(Path(human_grades_file))
+    if docs_mirror is not None:
+        human_grade_paths.extend(
+            [
+                Path(docs_mirror) / "human_grades.json",
+                Path(docs_mirror) / "manual_review_queue.csv",
+            ]
+        )
+    human_grade_paths.extend(
+        [
+            out_dir / "human_grades.json",
+            out_dir / "manual_review_queue.csv",
+            run_dir / "final_audit_mcp_free_v1" / "human_grades.json",
+            run_dir / "final_audit_mcp_free_v1" / "manual_review_queue.csv",
+        ]
+    )
+    human_grades = load_human_grades(human_grade_paths)
+    apply_human_grades(audited_rows, human_grades)
+
+    # Refresh taxonomy rows after human application.
+    for tax_row, audited in zip(taxonomy_rows, audited_rows):
+        tax_row["error_taxonomy"] = audited.get("error_taxonomy")
+        tax_row["final_answer_correct"] = audited.get("final_answer_correct")
+        tax_row["final_overall_task_success"] = audited.get(
+            "final_overall_task_success"
+        )
+        tax_row["human_confirmed_answer_correct"] = audited.get(
+            "human_confirmed_answer_correct"
+        )
+
+    # --- Formal metrics (frozen grades + optional human confirmation) ---
     n = len(audited_rows)
     auto = [r for r in audited_rows if r.get("auto_grade_status") == "graded"]
     manual = [r for r in audited_rows if r.get("auto_grade_status") == "manual_required"]
     auto_correct = [r for r in auto if r.get("answer_correct") is True]
-    confirmed_correct = [r for r in audited_rows if r.get("answer_correct") is True]
+    auto_only_correct = [r for r in audited_rows if r.get("answer_correct") is True]
+    final_correct_rows = [
+        r for r in audited_rows if r.get("final_answer_correct") is True
+    ]
     parse_fail = [
         r
         for r in audited_rows
@@ -724,58 +949,47 @@ def run_mcp_free_final_audit(
         f"{EXPECTED_HOST}; USD cost not estimated."
     )
 
-    manual_complete = all(
-        str(r.get("overall_task_success_0_or_1") or r.get("manual_overall_task_success") or "")
-        .strip()
-        not in {"", "None", "null"}
+    manual_pending = [
+        r
         for r in manual
-    ) if manual else True
-    overall_accuracy = None
-    if manual_complete and not manual:
-        overall_accuracy = len(confirmed_correct) / n if n else None
-    elif manual_complete and manual:
-        # If manual fields filled, would compute; currently expected null.
-        vals = []
-        for r in audited_rows:
-            raw = r.get("overall_task_success_0_or_1")
-            if raw in ("", None):
-                raw = r.get("manual_overall_task_success")
-            if raw in ("", None) and r.get("answer_correct") is True:
-                vals.append(1)
-            elif raw in ("", None) and r.get("answer_correct") is False:
-                vals.append(0)
-            elif raw in ("", None):
-                overall_accuracy = None
-                vals = []
-                break
-            else:
-                try:
-                    vals.append(int(raw))
-                except Exception:
-                    overall_accuracy = None
-                    vals = []
-                    break
-        if vals and len(vals) == n:
-            overall_accuracy = sum(vals) / n
+        if r.get("human_confirmed_answer_correct") is None
+        or r.get("human_confirmed_overall_task_success") is None
+    ]
+    if manual_pending:
+        overall_accuracy = None
+        overall_note = "null until manual_required items are human-confirmed"
+    else:
+        overall_accuracy = (
+            sum(int(r.get("final_overall_task_success") or 0) for r in audited_rows) / n
+            if n
+            else None
+        )
+        overall_note = (
+            "computed after human confirmation of manual_required items"
+            if manual
+            else "no manual_required items; equals auto-confirmed correct/155"
+        )
 
     metrics = {
         "n_tasks": n,
-        "strict_accuracy": len(confirmed_correct) / n,  # treats non-True as not correct
+        "correct": len(final_correct_rows),
+        "strict_accuracy": len(final_correct_rows) / n if n else None,
         "strict_accuracy_note": (
-            "correct_confirmed / 155; manual_required and incorrect count as not correct"
+            "final correct / 155 after human confirmation "
+            "(manual_required unresolved still count as not correct)"
+            if manual_pending
+            else "final correct / 155 including human-confirmed manual items"
         ),
         "auto_gradable_count": len(auto),
         "auto_graded_correct": len(auto_correct),
         "auto_gradable_accuracy": (len(auto_correct) / len(auto)) if auto else None,
         "manual_required_count": len(manual),
         "manual_required_ids": [r.get("task_id") for r in manual],
+        "manual_confirmed_count": len(manual) - len(manual_pending),
+        "manual_pending_ids": [r.get("task_id") for r in manual_pending],
         "overall_accuracy": overall_accuracy,
-        "overall_accuracy_note": (
-            "null until manual_required items are human-confirmed"
-            if manual and overall_accuracy is None
-            else "computed after manual fields"
-        ),
-        "conservative_lower_bound_accuracy": len(confirmed_correct) / n,
+        "overall_accuracy_note": overall_note,
+        "conservative_lower_bound_accuracy": len(auto_only_correct) / n if n else None,
         "unavailable_rate": unavailable / n,
         "answered_rate": answered / n,
         "clarification_rate": clarification / n,
@@ -815,9 +1029,58 @@ def run_mcp_free_final_audit(
         ),
         "grader_version": GRADER_VERSION,
         "grading_version": GRADING_VERSION,
+        "human_grades_applied": sorted(human_grades.keys()),
+        "final_accuracy_by_domain": {},
+        "final_accuracy_by_difficulty": {},
+        "final_accuracy_by_origin": {},
     }
 
-    grouped = build_mcp_free_grouped_aggregates(audited_rows)
+    grouped_auto = build_mcp_free_grouped_aggregates(audited_rows)
+    grouped_final = build_final_grouped_metrics(audited_rows)
+    grouped = {
+        "final": grouped_final,
+        "auto": grouped_auto,
+        "note": (
+            "Use grouped.final.* for post-human-confirmation reporting; "
+            "grouped.auto.* retains auto-gradable-only answer_accuracy."
+        ),
+    }
+    metrics["final_accuracy_by_domain"] = {
+        k: {
+            "correct": v.get("correct"),
+            "n": v.get("task_count"),
+            "final_accuracy": v.get("final_accuracy"),
+        }
+        for k, v in (grouped_final.get("domain") or {}).items()
+    }
+    metrics["final_accuracy_by_difficulty"] = {
+        k: {
+            "correct": v.get("correct"),
+            "n": v.get("task_count"),
+            "final_accuracy": v.get("final_accuracy"),
+        }
+        for k, v in (grouped_final.get("D1_D5") or {}).items()
+    }
+    metrics["final_accuracy_by_origin"] = {
+        "development": {
+            "correct": (grouped_final.get("development_origin") or {}).get("correct"),
+            "n": (grouped_final.get("development_origin") or {}).get("task_count"),
+            "final_accuracy": (grouped_final.get("development_origin") or {}).get(
+                "final_accuracy"
+            ),
+        },
+        "previously_reserved": {
+            "correct": (grouped_final.get("previously_reserved_origin") or {}).get(
+                "correct"
+            ),
+            "n": (grouped_final.get("previously_reserved_origin") or {}).get(
+                "task_count"
+            ),
+            "final_accuracy": (
+                grouped_final.get("previously_reserved_origin") or {}
+            ).get("final_accuracy"),
+        },
+    }
 
     # Unique parse-error report
     parse_failures = [p for p in parse_audits if p.get("is_parse_failure")]
@@ -830,14 +1093,24 @@ def run_mcp_free_final_audit(
             )
         else:
             primary_parse["formal_treatment"] = "incorrect_evaluation_failure"
+    # Parse failures remain incorrect / evaluation_failure even after human round.
+    if primary_parse is not None:
+        primary_parse["formal_treatment"] = (
+            primary_parse.get("formal_treatment")
+            or "incorrect_evaluation_failure"
+        )
+        if "incorrect" not in str(primary_parse["formal_treatment"]):
+            primary_parse["formal_treatment"] = "incorrect_evaluation_failure"
 
-    # Manual review queue
+    # Manual review queue (preserve human confirmations)
     manual_queue: List[Dict[str, Any]] = []
     for r in audited_rows:
         if r.get("auto_grade_status") != "manual_required" and not str(
             r.get("error") or ""
         ).startswith("parse_error"):
             continue
+        human_ans = r.get("human_confirmed_answer_correct")
+        human_overall = r.get("human_confirmed_overall_task_success")
         manual_queue.append(
             {
                 "task_id": r.get("task_id"),
@@ -854,9 +1127,15 @@ def run_mcp_free_final_audit(
                 "question": r.get("question"),
                 "final_answer": r.get("final_answer"),
                 "error_taxonomy": r.get("error_taxonomy"),
-                "human_confirmed_answer_correct": "",
-                "human_confirmed_overall_task_success": "",
-                "human_notes": "",
+                "human_confirmed_answer_correct": (
+                    "" if human_ans is None else str(int(human_ans))
+                ),
+                "human_confirmed_overall_task_success": (
+                    "" if human_overall is None else str(int(human_overall))
+                ),
+                "human_notes": r.get("human_notes") or "",
+                "final_answer_correct": r.get("final_answer_correct"),
+                "final_overall_task_success": r.get("final_overall_task_success"),
                 "queue_reason": (
                     "parse_evaluation_failure"
                     if str(r.get("error") or "").startswith("parse_error")
@@ -882,6 +1161,10 @@ def run_mcp_free_final_audit(
         "answer_correct",
         "auto_grade_reason",
         "error_taxonomy",
+        "human_confirmed_answer_correct",
+        "human_confirmed_overall_task_success",
+        "final_answer_correct",
+        "final_overall_task_success",
         "operation_precision",
         "operation_recall",
         "operation_f1",
@@ -988,8 +1271,46 @@ def run_mcp_free_final_audit(
             "human_confirmed_answer_correct",
             "human_confirmed_overall_task_success",
             "human_notes",
+            "final_answer_correct",
+            "final_overall_task_success",
         ],
     )
+
+    # Persist canonical human grades (do not clobber richer existing notes if same).
+    human_grades_payload = {
+        "audit_version": AUDIT_VERSION,
+        "note": (
+            "Human confirmation only; does not modify raw predictions.jsonl. "
+            "fin_ht_030 remains incorrect/evaluation_failure and is not re-run."
+        ),
+        "by_task_id": {
+            tid: {
+                "human_confirmed_answer_correct": grade.get(
+                    "human_confirmed_answer_correct"
+                ),
+                "human_confirmed_overall_task_success": grade.get(
+                    "human_confirmed_overall_task_success"
+                ),
+                "human_notes": grade.get("human_notes") or "",
+            }
+            for tid, grade in sorted(human_grades.items())
+        },
+    }
+    # Also include any in-memory grades from audited rows (authoritative after apply).
+    for r in audited_rows:
+        tid = str(r.get("task_id") or "")
+        if r.get("human_confirmed_answer_correct") is None and not (
+            r.get("human_notes") or ""
+        ).strip():
+            continue
+        human_grades_payload["by_task_id"][tid] = {
+            "human_confirmed_answer_correct": r.get("human_confirmed_answer_correct"),
+            "human_confirmed_overall_task_success": r.get(
+                "human_confirmed_overall_task_success"
+            ),
+            "human_notes": r.get("human_notes") or "",
+        }
+    atomic_write_json(out_dir / "human_grades.json", human_grades_payload)
 
     with (out_dir / "error_taxonomy.jsonl").open("w", encoding="utf-8") as handle:
         for row in taxonomy_rows:
@@ -1049,8 +1370,11 @@ def run_mcp_free_final_audit(
             "error_taxonomy.jsonl",
             "raw_artifact_hashes.json",
             "parse_error_detail.json",
+            "human_grades.json",
         ):
             src = out_dir / name
+            if not src.exists():
+                continue
             dst = docs_mirror / name
             dst.write_bytes(src.read_bytes())
             fsync_file(dst)

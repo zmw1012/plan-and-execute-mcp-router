@@ -151,3 +151,51 @@ def test_mcp_free_audit_preserves_raw_hashes_and_no_rerun(
     parse = summary["parse_error_audit"]
     assert parse["task_id"] == "fin_ht_030"
     assert "llm" not in str(parse.get("recovery_method") or "").lower()
+
+
+def test_human_grade_confirmation_updates_final_accuracy(
+    require_mcp_free_live, tmp_path: Path
+):
+    before = {name: sha256_file(LIVE / name) for name in RAW_FILES}
+    grades = tmp_path / "human_grades.json"
+    grades.write_text(
+        json.dumps(
+            {
+                "by_task_id": {
+                    "fin_cf_022": {
+                        "human_confirmed_answer_correct": 1,
+                        "human_confirmed_overall_task_success": 1,
+                        "human_notes": "Correct; FY2026 covers 1 Apr 2025–31 Mar 2026.",
+                    }
+                }
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    out = tmp_path / "audit_human"
+    result = run_mcp_free_final_audit(
+        LIVE,
+        audit_outdir=out,
+        docs_mirror=tmp_path / "docs_human",
+        human_grades_file=grades,
+    )
+    after = {name: sha256_file(LIVE / name) for name in RAW_FILES}
+    assert before == after
+    metrics = result["metrics"]
+    assert metrics["correct"] == 20
+    assert metrics["overall_accuracy"] == pytest.approx(20 / 155)
+    assert metrics["auto_graded_correct"] == 19
+    assert metrics["auto_gradable_accuracy"] == pytest.approx(19 / 154)
+    assert metrics["final_accuracy_by_domain"]["financial"]["correct"] == 8
+    assert metrics["final_accuracy_by_domain"]["financial"]["n"] == 60
+    assert metrics["final_accuracy_by_difficulty"]["D2"]["correct"] == 2
+    assert metrics["final_accuracy_by_difficulty"]["D2"]["n"] == 24
+    assert metrics["final_accuracy_by_origin"]["development"]["correct"] == 10
+    assert metrics["final_accuracy_by_origin"]["development"]["n"] == 70
+    # Parse failure remains incorrect / evaluation failure.
+    assert result["parse_error_task_id"] == "fin_ht_030"
+    queue = (out / "manual_review_queue.csv").read_text(encoding="utf-8")
+    assert "fin_cf_022" in queue and ",1,1," in queue.replace("\r", "")
+    assert "parse_evaluation_failure" in queue

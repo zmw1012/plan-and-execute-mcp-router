@@ -52,6 +52,11 @@ def parse_args() -> argparse.Namespace:
         default=str(ROOT / "docs" / "hk_unified_mcp_free_final_audit_v1"),
         help="Tracked docs mirror directory (set empty to skip)",
     )
+    p.add_argument(
+        "--human-grades",
+        default=None,
+        help="Optional human_grades.json path (audit-only; does not modify raw predictions)",
+    )
     return p.parse_args()
 
 
@@ -66,11 +71,17 @@ def main() -> None:
         docs_mirror = Path(args.docs_mirror)
         if not docs_mirror.is_absolute():
             docs_mirror = (ROOT / docs_mirror).resolve()
+    human_grades = None
+    if args.human_grades:
+        human_grades = Path(args.human_grades)
+        if not human_grades.is_absolute():
+            human_grades = (ROOT / human_grades).resolve()
 
     result = run_mcp_free_final_audit(
         run_dir,
         audit_outdir=out_dir,
         docs_mirror=docs_mirror,
+        human_grades_file=human_grades,
     )
     result["auditor_worktree_head"] = _git_head(ROOT)
     print("MCP-FREE FINAL AUDIT V1 OK")

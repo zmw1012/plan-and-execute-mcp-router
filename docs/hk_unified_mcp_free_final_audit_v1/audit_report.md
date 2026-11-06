@@ -1,7 +1,7 @@
 # HK-155 MCP-Free Final Audit v1
 
 - Audit version: `mcp_free_final_audit_v1`
-- Generated (UTC): `2026-11-06T06:07:36.984322+00:00`
+- Generated (UTC): `2026-11-06T06:18:12.497117+00:00`
 - Run dir: `/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-hk-mcp-free/outputs/hk_unified_exploratory155_mcp_free_live_v1`
 - Condition: `mcp_free` / execution_backend=`none`
 - Provider: `openai_compatible`
@@ -11,12 +11,15 @@
 
 ## Accuracy
 
-- Strict accuracy (denominator 155): `0.12258064516129032`
+- Correct (final): `20/155`
+- Strict / overall accuracy (denominator 155): `0.12903225806451613` / `0.12903225806451613`
 - Auto-gradable accuracy (denominator 154): `0.12337662337662338`
 - Auto correct / auto gradable: `19/154`
-- Manual required: `1`
-- Overall accuracy (manual pending → null): `None`
-- Conservative lower bound correct_confirmed/155: `0.12258064516129032`
+- Manual required: `1` (confirmed `1`)
+- Conservative lower bound (auto-only correct/155): `0.12258064516129032`
+- Financial final: `{'correct': 8, 'n': 60, 'final_accuracy': 0.13333333333333333}`
+- D2 final: `{'correct': 2, 'n': 24, 'final_accuracy': 0.08333333333333333}`
+- Development-origin final: `{'correct': 10, 'n': 70, 'final_accuracy': 0.14285714285714285}`
 
 ## Status / failure rates
 
