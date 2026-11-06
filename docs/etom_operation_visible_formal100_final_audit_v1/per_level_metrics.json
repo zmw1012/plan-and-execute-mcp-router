@@ -1,5 +1,13 @@
 {
   "definition_source": "data/etom/raw/eval/eval.py and graph_evaluator.py at the pinned ETOM commit, via hk_equity_mcp.etom.evaluator",
+  "l4_locked_strict_labels": {
+    "official_union_node_set_em": "3/20 = 0.150",
+    "efs_covering_node_set": "5/20 = 0.250",
+    "complete_route_success": "5/20 = 0.250",
+    "cross_server_dependency_correctness": "6/20 = 0.300",
+    "mean_f1": 0.385,
+    "note": "0.300 is cross-server dependency correctness only. Do not label 0.300 as EFS-covering node-set."
+  },
   "l2_em_using_nonfirst_equivalent": 0,
   "l2_equal_function_sets": {
     "singleton_steps": 13,

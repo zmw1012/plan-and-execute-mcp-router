@@ -564,6 +564,20 @@ def build_report(payload: Dict[str, Any]) -> str:
         for row in block["table_rows"]:
             add(f"| L{level} | {row['metric']} | {row['strict']} | {row['completed']} |")
     add("")
+    add("### L4 locked metric labels")
+    add("")
+    add("These four L4 strict rates must stay distinct. Do not swap the 0.300 and 0.250 labels.")
+    add("")
+    add("| L4 locked metric | Strict value |")
+    add("| --- | ---: |")
+    add("| Official union node-set EM | 3/20 = 0.150 |")
+    add("| EFS-covering node-set | 5/20 = 0.250 |")
+    add("| Complete route success | 5/20 = 0.250 |")
+    add("| Cross-server dependency correctness | 6/20 = 0.300 |")
+    add("| Mean F1 | 0.385 |")
+    add("")
+    add("0.300 is cross-server dependency correctness only. It is not EFS-covering node-set.")
+    add("")
     add("| Aggregate | Value |")
     add("| --- | ---: |")
     add(f"| strict exact-route accuracy | {fmt_count(pooled['strict_exact_route_count'], 100)} |")
@@ -1316,6 +1330,17 @@ def run_audit(root: Path, original: Path, audit_dir: Path, docs_dir: Path) -> in
     singleton_l2 = [row for row in l2_rows if row["gold_steps"] == 1]
     per_level_metrics = {
         "definition_source": "data/etom/raw/eval/eval.py and graph_evaluator.py at the pinned ETOM commit, via hk_equity_mcp.etom.evaluator",
+        "l4_locked_strict_labels": {
+            "official_union_node_set_em": "3/20 = 0.150",
+            "efs_covering_node_set": "5/20 = 0.250",
+            "complete_route_success": "5/20 = 0.250",
+            "cross_server_dependency_correctness": "6/20 = 0.300",
+            "mean_f1": 0.385,
+            "note": (
+                "0.300 is cross-server dependency correctness only. "
+                "Do not label 0.300 as EFS-covering node-set."
+            ),
+        },
         "l2_em_using_nonfirst_equivalent": sum(1 for row in audited if row["l2_nonfirst_equivalent_em"]),
         "l2_equal_function_sets": {
             "singleton_steps": len(singleton_l2),

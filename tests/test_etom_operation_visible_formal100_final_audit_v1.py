@@ -102,6 +102,33 @@ def test_final_audit_preserves_raw_predictions_and_terminal_counts(audit):
     primaries = [row["primary_error"] for row in taxonomy]
     assert primaries.count(None) == 66
     assert all(isinstance(item, str) and item for item in primaries if item is not None)
+
+    l4 = metrics["per_level"]["L4"]
+    locked = metrics["l4_locked_strict_labels"]
+    assert locked["official_union_node_set_em"] == "3/20 = 0.150"
+    assert locked["efs_covering_node_set"] == "5/20 = 0.250"
+    assert locked["complete_route_success"] == "5/20 = 0.250"
+    assert locked["cross_server_dependency_correctness"] == "6/20 = 0.300"
+    assert locked["mean_f1"] == 0.385
+    assert l4["node_set_exact_match_strict"] == "3/20 = 0.150"
+    assert l4["efs_covering_node_set_strict"] == "5/20 = 0.250"
+    assert l4["complete_route_success_strict"] == "5/20 = 0.250"
+    assert l4["cross_server_dependency_strict_text"] == "6/20 = 0.300"
+    assert abs(float(l4["f1_strict"]) - 0.385) < 1e-3
+    by_metric = {row["metric"]: row["strict"] for row in l4["table_rows"]}
+    assert by_metric["Node Set Exact Match (official union)"] == "3/20 = 0.150"
+    assert by_metric["EFS-covering node set"] == "5/20 = 0.250"
+    assert by_metric["Complete route success"] == "5/20 = 0.250"
+    assert by_metric["Cross-server dependency correctness"] == "6/20 = 0.300"
+    assert by_metric["F1"] == "0.385"
+    assert by_metric["EFS-covering node set"] != "6/20 = 0.300"
+    report = (DOCS / "audit_report.md").read_text(encoding="utf-8")
+    assert "| Official union node-set EM | 3/20 = 0.150 |" in report
+    assert "| EFS-covering node-set | 5/20 = 0.250 |" in report
+    assert "| Cross-server dependency correctness | 6/20 = 0.300 |" in report
+    assert "0.300 is cross-server dependency correctness only" in report
+    assert "EFS-covering node set | 6/20 = 0.300" not in report
+
     for name in (
         "error_taxonomy.jsonl",
         "error_summary.json",

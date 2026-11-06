@@ -75,6 +75,20 @@ Denominator policy:
 | L5 | Exact Rejection Match | 19/20 = 0.950 | 19/20 = 0.950 |
 | L5 | False-positive tool selection rate | 1/20 = 0.050 | 1/20 = 0.050 |
 
+### L4 locked metric labels
+
+These four L4 strict rates must stay distinct. Do not swap the 0.300 and 0.250 labels.
+
+| L4 locked metric | Strict value |
+| --- | ---: |
+| Official union node-set EM | 3/20 = 0.150 |
+| EFS-covering node-set | 5/20 = 0.250 |
+| Complete route success | 5/20 = 0.250 |
+| Cross-server dependency correctness | 6/20 = 0.300 |
+| Mean F1 | 0.385 |
+
+0.300 is cross-server dependency correctness only. It is not EFS-covering node-set.
+
 | Aggregate | Value |
 | --- | ---: |
 | strict exact-route accuracy | 66/100 = 0.660 |
