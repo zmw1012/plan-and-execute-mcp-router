@@ -50,6 +50,15 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Optional override for audit output directory",
     )
+    p.add_argument(
+        "--manual-decisions",
+        default=None,
+        help=(
+            "Path to immutable human decision CSV "
+            "(task_id,answer_correct,evidence_correct,overall_task_success,notes). "
+            "Never overwritten by this runner. Required to emit final_* artifacts."
+        ),
+    )
     return p.parse_args()
 
 
@@ -59,10 +68,14 @@ def main() -> None:
     if not run_dir.is_absolute():
         run_dir = (ROOT / run_dir).resolve()
     out_dir = Path(args.out_dir).resolve() if args.out_dir else None
+    decisions = Path(args.manual_decisions) if args.manual_decisions else None
+    if decisions is not None and not decisions.is_absolute():
+        decisions = (ROOT / decisions).resolve()
     result = run_final_audit(
         run_dir,
         baseline_git_commit=args.baseline_git_commit,
         audit_outdir=out_dir,
+        manual_decisions_path=decisions,
     )
     result["auditor_worktree_head"] = _git_head(ROOT)
     print("FINAL AUDIT V2 OK")

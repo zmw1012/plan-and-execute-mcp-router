@@ -1,0 +1,9 @@
+task_id,answer_correct,evidence_correct,overall_task_success,notes
+fin_cf_022,1,,0,Answer correct; evidence N/A; extra non-gold operation prevents strict success
+mkt_dev_003,1,,1,Correct labeled OHLC and exact tool set
+mkt_dev_007,1,,1,Correct unadjusted and qfq values and exact tool set
+mkt_ht_004,1,,1,Correct labeled OHLC and exact tool set
+mkt_ht_006,1,,1,Correct unadjusted and hfq values and exact tool set
+mkt_ht_008,1,,0,Core identity answer correct but over-selected operations and had failed invocation
+mkt_ht_016,1,,1,Correct MA5 and return and exact tool set
+xd_ht_003,1,,0,Core cross-domain answer correct but selected an extra non-gold operation
