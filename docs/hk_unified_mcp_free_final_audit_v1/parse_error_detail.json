@@ -1,0 +1,63 @@
+{
+  "parse_failures": [
+    {
+      "task_id": "fin_ht_030",
+      "domain": "financial",
+      "run_status": "failed",
+      "run_error": "parse_error:JSONDecodeError",
+      "is_parse_failure": true,
+      "raw_response_saved": true,
+      "error_stage": "parse",
+      "turns": [
+        {
+          "turn": 1,
+          "parse_repair": false,
+          "recorded_parse_error": "JSONDecodeError",
+          "content_len": 0,
+          "content_saved": true,
+          "ok": false,
+          "method": null,
+          "error": "empty_content",
+          "predicted_status": null,
+          "final_answer_preview": ""
+        },
+        {
+          "turn": 2,
+          "parse_repair": true,
+          "recorded_parse_error": "JSONDecodeError",
+          "content_len": 208,
+          "content_saved": true,
+          "ok": true,
+          "method": "truncated_completed_fields",
+          "error": null,
+          "predicted_status": "answered",
+          "final_answer_preview": "Alibaba reported revenue of RMB 495,453 million for the six months ended 30 September 2025, on a US GAAP basis (unaudited)."
+        }
+      ],
+      "offline_recoverable": true,
+      "recovery_method": "truncated_completed_fields",
+      "recovered_predicted_status": "answered",
+      "recovered_final_answer": "Alibaba reported revenue of RMB 495,453 million for the six months ended 30 September 2025, on a US GAAP basis (unaudited).",
+      "needs_manual_scoring": false,
+      "formal_treatment_if_unrecoverable": "incorrect_evaluation_failure",
+      "formal_treatment": "incorrect_evaluation_failure_formal;offline_parser_delta_reported_only"
+    }
+  ],
+  "parser_delta": [
+    {
+      "task_id": "fin_ht_030",
+      "baseline_auto_grade_status": "graded",
+      "baseline_answer_correct": false,
+      "recovered_auto_grade_status": "graded",
+      "recovered_answer_correct": false,
+      "recovery_method": "truncated_completed_fields",
+      "answer_correct_changed": false
+    }
+  ],
+  "parser_rules": [
+    "json.loads after optional markdown fence strip",
+    "truncated_completed_fields: extract completed status+final_answer quotes only",
+    "never invent missing characters; never call LLM",
+    "same rules applied to all 155 tasks' saved trace contents"
+  ]
+}

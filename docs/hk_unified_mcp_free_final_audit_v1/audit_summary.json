@@ -1,0 +1,164 @@
+{
+  "audit_version": "mcp_free_final_audit_v1",
+  "generated_at": "2026-11-06T06:07:36.984322+00:00",
+  "run_dir": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-hk-mcp-free/outputs/hk_unified_exploratory155_mcp_free_live_v1",
+  "condition": "mcp_free",
+  "execution_backend": "none",
+  "generation_provider": "openai_compatible",
+  "provider_host": "api.zhizengzeng.com",
+  "generation_model": "deepseek-v4.1-flash",
+  "catalog_fingerprint": null,
+  "catalog_fingerprint_note": "none — MCP-Free has no operation catalog",
+  "embedding_model": null,
+  "system_prompt_hash": "89f91313ed782f85a388d0e212438f376876ed03b039e43b92fc5760b73bc5dc",
+  "questions_identity_hash": "0c078b977a8d275ed3dc4a2486184305dd59da295da0d491c24fd386372f300e",
+  "run_order_hash": "14aa3c253eea155b038b70fe11b8a69ee51331b5599790bb2827e72d4e321254",
+  "exploratory_manifest_hash": "f2257e3de89189c5d5784e3f58824c10928294d9454bcf68b3d061dca37f92c5",
+  "metrics": {
+    "n_tasks": 155,
+    "strict_accuracy": 0.12258064516129032,
+    "strict_accuracy_note": "correct_confirmed / 155; manual_required and incorrect count as not correct",
+    "auto_gradable_count": 154,
+    "auto_graded_correct": 19,
+    "auto_gradable_accuracy": 0.12337662337662338,
+    "manual_required_count": 1,
+    "manual_required_ids": [
+      "fin_cf_022"
+    ],
+    "overall_accuracy": null,
+    "overall_accuracy_note": "null until manual_required items are human-confirmed",
+    "conservative_lower_bound_accuracy": 0.12258064516129032,
+    "unavailable_rate": 0.9225806451612903,
+    "answered_rate": 0.05806451612903226,
+    "clarification_rate": 0.01935483870967742,
+    "hallucinated_exact_value_rate": 0.08387096774193549,
+    "hallucinated_exact_value_count": 13,
+    "parse_failure_count": 1,
+    "parse_failure_rate": 0.0064516129032258064,
+    "total_input_tokens": 36682,
+    "total_output_tokens": 42451,
+    "total_tokens": 79133,
+    "total_llm_calls": 157,
+    "mean_latency_ms": 3865.1640258064517,
+    "median_latency_ms": 3415.284,
+    "p95_latency_ms": 5937.596499999998,
+    "estimated_usd_cost": null,
+    "estimated_usd_cost_note": "No frozen provider price table for openai_compatible/api.zhizengzeng.com; USD cost not estimated.",
+    "cost_summary_echo": {
+      "total_input_tokens": 36682,
+      "total_output_tokens": 42451,
+      "total_tokens": 79133,
+      "total_llm_calls": 157,
+      "mean_latency_ms": 3865.1640258064517
+    },
+    "tool_metrics": "N/A",
+    "tool_calls": 0,
+    "embedding_calls": 0,
+    "resolver_calls": 0,
+    "real_mcp_executions": 0,
+    "predicted_status_counts": {
+      "answered": 9,
+      "unavailable": 143,
+      "clarification_needed": 3
+    },
+    "result_status_counts": {
+      "full": 154,
+      "failed": 1
+    },
+    "error_taxonomy_counts": {
+      "correct": 16,
+      "unavailable_when_answerable": 118,
+      "clarification_error": 1,
+      "manual_required": 1,
+      "hallucinated_exact_value": 12,
+      "incorrect_answer": 3,
+      "parse_evaluation_failure": 1,
+      "unavailable_correct": 3
+    },
+    "grader_version": "deterministic_v1.2",
+    "grading_version": "hk_unified_grading_v1.2"
+  },
+  "tool_invariant_check": {
+    "ok": true,
+    "violations": [],
+    "violation_count": 0,
+    "tool_metrics": "N/A",
+    "embedding_calls": 0,
+    "resolver_calls": 0,
+    "real_mcp_executions": 0,
+    "tool_calls": 0
+  },
+  "parse_error_audit": {
+    "task_id": "fin_ht_030",
+    "domain": "financial",
+    "run_status": "failed",
+    "run_error": "parse_error:JSONDecodeError",
+    "is_parse_failure": true,
+    "raw_response_saved": true,
+    "error_stage": "parse",
+    "turns": [
+      {
+        "turn": 1,
+        "parse_repair": false,
+        "recorded_parse_error": "JSONDecodeError",
+        "content_len": 0,
+        "content_saved": true,
+        "ok": false,
+        "method": null,
+        "error": "empty_content",
+        "predicted_status": null,
+        "final_answer_preview": ""
+      },
+      {
+        "turn": 2,
+        "parse_repair": true,
+        "recorded_parse_error": "JSONDecodeError",
+        "content_len": 208,
+        "content_saved": true,
+        "ok": true,
+        "method": "truncated_completed_fields",
+        "error": null,
+        "predicted_status": "answered",
+        "final_answer_preview": "Alibaba reported revenue of RMB 495,453 million for the six months ended 30 September 2025, on a US GAAP basis (unaudited)."
+      }
+    ],
+    "offline_recoverable": true,
+    "recovery_method": "truncated_completed_fields",
+    "recovered_predicted_status": "answered",
+    "recovered_final_answer": "Alibaba reported revenue of RMB 495,453 million for the six months ended 30 September 2025, on a US GAAP basis (unaudited).",
+    "needs_manual_scoring": false,
+    "formal_treatment_if_unrecoverable": "incorrect_evaluation_failure",
+    "formal_treatment": "incorrect_evaluation_failure_formal;offline_parser_delta_reported_only"
+  },
+  "parse_error_task_id": "fin_ht_030",
+  "parse_error_count": 1,
+  "parser_delta": {
+    "n_changed_answer_correct": 0,
+    "rows": [
+      {
+        "task_id": "fin_ht_030",
+        "baseline_auto_grade_status": "graded",
+        "baseline_answer_correct": false,
+        "recovered_auto_grade_status": "graded",
+        "recovered_answer_correct": false,
+        "recovery_method": "truncated_completed_fields",
+        "answer_correct_changed": false
+      }
+    ],
+    "note": "Offline deterministic parser applied to saved trace contents only; formal metrics use frozen predictions grades (no raw mutation)."
+  },
+  "grading_summary": {
+    "n": 155,
+    "auto_gradable_count": 154,
+    "auto_graded_correct": 19,
+    "auto_graded_accuracy": 0.12337662337662338,
+    "manual_required_count": 1,
+    "overall_accuracy": null,
+    "overall_accuracy_note": "overall accuracy only after manual grading fields are completed",
+    "grader_version": "deterministic_v1.2",
+    "grading_version": "hk_unified_grading_v1.2"
+  },
+  "no_llm_embedding_mcp": true,
+  "raw_predictions_modified": false,
+  "tasks_rerun": false
+}
