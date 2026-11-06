@@ -9,6 +9,7 @@ import pytest
 
 from hk_equity_mcp.experiment.unified_evaluator import EVALUATOR_VERSION
 from hk_equity_mcp.experiment.unified_mcp_zero_runner import (
+    MAX_TASKS_SEMANTICS,
     MCP_ZERO_RESUME_IDENTITY_KEYS,
     UnifiedHkMcpZeroRunner,
     assert_resume_compatible_mcp_zero,
@@ -277,3 +278,222 @@ def test_agent_never_selects_blocked_even_if_requested(tmp_path: Path):
     assert invoke_events[0]["result"]["success"] is False
     assert invoke_events[0]["result"]["error_type"] == "not_retrieved"
     gateway.close()
+
+
+def test_method_identity_is_frozen_before_results():
+    from hk_equity_mcp.mcp_zero import (
+        ABLATION_POLICY,
+        OFFICIAL_TOP_SERVERS,
+        OFFICIAL_TOP_TOOLS,
+        assert_frozen_config,
+        frozen_method_identity,
+        method_identity_sha256,
+    )
+
+    ident = frozen_method_identity()
+    assert ident["server_top_k"] == 3
+    assert ident["tool_top_k"] == 5
+    assert ident["paper_official_server_top_k"] == OFFICIAL_TOP_SERVERS == 5
+    assert ident["paper_official_tool_top_k"] == OFFICIAL_TOP_TOOLS == 3
+    assert ident["topk_provenance"] == "etom_pinned_adaptation"
+    assert ident["frozen_before_hk155_real_results"] is True
+    assert "must not replace" in ABLATION_POLICY
+    assert ident["generation_model"] == "deepseek-v4.1-flash"
+    assert ident["embedding_model"] == "text-embedding-3-small"
+    assert ident["temperature"] == 0.0
+    assert ident["max_tokens"] == 1024
+    assert ident["max_llm_turns"] == 8
+    assert ident["evaluator"] == EVALUATOR_VERSION == "hk_unified_evaluator_v1.2"
+    assert ident["tie_break"] == ["-score", "server_id", "tool_name", "operation_id"]
+    assert method_identity_sha256() == method_identity_sha256()
+    assert len(method_identity_sha256()) == 64
+    assert_frozen_config(load_mcp_zero_config(root=ROOT))
+    fidelity = (ROOT / "docs" / "mcp_zero_fidelity_audit.md").read_text(encoding="utf-8")
+    assert "Adapted default" in fidelity
+    assert "not the paper's original exact configuration" in fidelity
+    assert "independent ablation" in fidelity
+    assert "Official exact configuration: server_top_k=3" not in fidelity
+
+
+def test_embedding_cache_identity_and_namespace(tmp_path: Path):
+    from hk_equity_mcp.mcp_zero.embedding import (
+        CACHE_NAMESPACE,
+        CacheNamespaceError,
+        IncompleteEmbeddingTableError,
+        build_embedding_table,
+        embedding_cache_identity,
+        load_complete_table,
+        table_paths,
+    )
+    from hk_equity_mcp.mcp_zero.embedding import CountingEmbedder
+    from hk_equity_mcp.operation_resolver.retrieval import DeterministicHashEmbeddingBackend
+
+    bundle = build_unified_catalog(root=ROOT)
+    catalog = build_hk_metadata(bundle)
+    metadata_hash = catalog.fingerprint()
+    catalog_fp = "unified-catalog-fingerprint"
+    base = dict(
+        embedding_model="text-embedding-3-small",
+        catalog_fingerprint=catalog_fp,
+        metadata_hash=metadata_hash,
+        score_mode="official_combined",
+        server_top_k=3,
+        tool_top_k=5,
+        similarity_threshold=0.0,
+        use_summary=True,
+    )
+    ident = embedding_cache_identity(**base)
+    other = embedding_cache_identity(**{**base, "server_top_k": 5, "tool_top_k": 3})
+    cache = tmp_path / CACHE_NAMESPACE
+    path_a, _, digest_a = table_paths(cache, ident)
+    path_b, _, digest_b = table_paths(cache, other)
+    assert path_a != path_b
+    assert digest_a != digest_b
+    assert ident["namespace"] == CACHE_NAMESPACE
+    assert "operation_embeddings" not in str(path_a)
+    with pytest.raises(CacheNamespaceError):
+        table_paths(tmp_path / "operation_embeddings", ident)
+
+    embedder = CountingEmbedder(
+        DeterministicHashEmbeddingBackend(), model_name="text-embedding-3-small"
+    )
+    missing = tmp_path / "missing"
+    with pytest.raises(IncompleteEmbeddingTableError):
+        load_complete_table(
+            catalog,
+            model_name="text-embedding-3-small",
+            cache_dir=missing,
+            use_summary=True,
+            catalog_fingerprint=catalog_fp,
+        )
+
+    table = build_embedding_table(
+        catalog,
+        embedder,
+        cache_dir=cache,
+        use_summary=True,
+        catalog_fingerprint=catalog_fp,
+        batch_size=8,
+    )
+    assert table.complete is True
+    assert table.cache_reused is False
+    assert table.index_action == "build"
+    assert table.build_calls > 0
+    assert table.build_tokens > 0
+    assert table.build_latency_ms >= 0
+    first_calls = table.build_calls
+
+    reused = build_embedding_table(
+        catalog,
+        embedder,
+        cache_dir=cache,
+        use_summary=True,
+        catalog_fingerprint=catalog_fp,
+        batch_size=8,
+    )
+    assert reused.cache_reused is True
+    assert reused.index_action == "reuse"
+    assert reused.build_calls == 0
+    assert embedder.calls == first_calls
+
+    # Partial resume must not re-embed keys already checkpointed.
+    partial_dir = tmp_path / "partial_case"
+    embedder2 = CountingEmbedder(
+        DeterministicHashEmbeddingBackend(), model_name="text-embedding-3-small"
+    )
+    from hk_equity_mcp.mcp_zero.embedding import _units
+
+    units = _units(catalog, True)
+    final, partial, _ = table_paths(partial_dir, ident)
+    partial_dir.mkdir()
+    kept = units[0]
+    vec = embedder2.embed([kept[1]])[0]
+    partial.write_text(
+        json.dumps({"k": kept[0], "v": vec}) + "\n{not-json",
+        encoding="utf-8",
+    )
+    embedder2.calls = 0
+    embedder2.tokens = 0
+    resumed = build_embedding_table(
+        catalog,
+        embedder2,
+        cache_dir=partial_dir,
+        use_summary=True,
+        catalog_fingerprint=catalog_fp,
+        batch_size=1000,
+    )
+    assert resumed.index_action == "resume_partial"
+    assert resumed.complete is True
+    assert resumed.build_calls == 1
+    assert final.exists()
+    assert not partial.exists()
+
+    foreign = tmp_path / "foreign"
+    foreign.mkdir()
+    foreign_final, _, _ = table_paths(foreign, ident)
+    foreign_final.write_text(
+        json.dumps({"namespace": "etom_catalog", "complete": True, "vectors": {}}),
+        encoding="utf-8",
+    )
+    with pytest.raises(CacheNamespaceError):
+        build_embedding_table(
+            catalog,
+            CountingEmbedder(
+                DeterministicHashEmbeddingBackend(),
+                model_name="text-embedding-3-small",
+            ),
+            cache_dir=foreign,
+            catalog_fingerprint=catalog_fp,
+        )
+
+
+def test_resume_prefix_and_max_tasks_semantics(tmp_path: Path):
+    assert "max_tasks" not in MCP_ZERO_RESUME_IDENTITY_KEYS
+    assert "max_tasks_semantics" in MCP_ZERO_RESUME_IDENTITY_KEYS
+    out = tmp_path / "prefix"
+    meta = UnifiedHkMcpZeroRunner(
+        output_dir=out,
+        split="development",
+        smoke=True,
+        max_tasks=1,
+        mock=True,
+        allow_dirty=True,
+        root=ROOT,
+    ).run()
+    assert meta["max_tasks_semantics"] == MAX_TASKS_SEMANTICS
+    assert meta["max_tasks_in_resume_identity"] is False
+    assert meta["max_tasks"] == 1
+    index = meta["embedding_index"]
+    assert index["complete"] is True
+    assert index["namespace"] == "mcp_zero_hk_v1"
+    assert index["cache_reused"] is False
+    assert "operation_embeddings" not in index["cache_path"]
+
+    extended = dict(meta)
+    extended["question_ids"] = list(meta["question_ids"]) + ["later-task"]
+    extended["max_tasks"] = 2
+    assert_resume_compatible_mcp_zero(meta, extended)
+
+    shrunk = dict(meta)
+    shrunk["question_ids"] = []
+    with pytest.raises(RuntimeError, match="cumulative prefix"):
+        assert_resume_compatible_mcp_zero(meta, shrunk)
+
+    meta2 = UnifiedHkMcpZeroRunner(
+        output_dir=out,
+        split="development",
+        smoke=True,
+        max_tasks=2,
+        resume=True,
+        mock=True,
+        allow_dirty=True,
+        root=ROOT,
+    ).run()
+    assert meta2["question_count"] == 2
+    assert meta2["embedding_index"]["cache_reused"] is True
+    assert meta2["embedding_index"]["index_action"] == "reuse"
+    preds = (out / "predictions.jsonl").read_text(encoding="utf-8").strip().splitlines()
+    assert len(preds) == 2
+    cost = json.loads((out / "cost_summary.json").read_text(encoding="utf-8"))
+    assert "embedding_index_cache_reused" in cost
+    assert cost["embedding_index_cache_reused"] is True

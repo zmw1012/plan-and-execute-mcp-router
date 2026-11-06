@@ -272,11 +272,29 @@ def postprocess_run_dir(
         "total_tokens": sum(
             int((r.get("tokens") or {}).get("total_tokens") or 0) for r in enriched
         ),
-        "total_llm_calls": sum(int(r.get("llm_calls") or 0) for r in enriched),
-        "total_real_mcp_executions": sum(
-            int(r.get("real_mcp_execution_count") or 0) for r in enriched
-        ),
-        "mean_latency_ms": summary.get("mean_latency_ms"),
+            "total_llm_calls": sum(int(r.get("llm_calls") or 0) for r in enriched),
+            "total_embedding_calls": sum(
+                int(r.get("embedding_calls") or 0) for r in enriched
+            ),
+            "total_embedding_tokens": sum(
+                int(r.get("embedding_tokens") or 0) for r in enriched
+            ),
+            "total_real_mcp_executions": sum(
+                int(r.get("real_mcp_execution_count") or 0) for r in enriched
+            ),
+            "mean_latency_ms": summary.get("mean_latency_ms"),
+            "mean_retrieval_latency_ms": (
+                sum(float(r.get("retrieval_latency_ms") or 0) for r in enriched)
+                / len(enriched)
+                if enriched
+                else None
+            ),
+            "mean_generation_latency_ms": (
+                sum(float(r.get("generation_latency_ms") or 0) for r in enriched)
+                / len(enriched)
+                if enriched
+                else None
+            ),
         "postprocessed": True,
         "note": "Token totals only; USD cost requires provider price table.",
     }
@@ -299,6 +317,18 @@ def postprocess_run_dir(
                     "retrieved_candidates": r.get("retrieved_candidates"),
                     "predicted_operations": r.get("predicted_operations"),
                     "gold_operations": r.get("gold_operations"),
+                    "active_tool_request": r.get("active_tool_request"),
+                    "retrieved_servers": r.get("retrieved_servers"),
+                    "retrieved_tools": r.get("retrieved_tools"),
+                    "selected_operations": r.get("selected_operations"),
+                    "invoked_operations": r.get("invoked_operations"),
+                    "extension_rounds": r.get("extension_rounds"),
+                    "termination_reason": r.get("termination_reason"),
+                    "retrieval_latency_ms": r.get("retrieval_latency_ms"),
+                    "generation_latency_ms": r.get("generation_latency_ms"),
+                    "embedding_calls": r.get("embedding_calls"),
+                    "embedding_tokens": r.get("embedding_tokens"),
+                    "llm_calls": r.get("llm_calls"),
                 }
                 for r in enriched
             ],

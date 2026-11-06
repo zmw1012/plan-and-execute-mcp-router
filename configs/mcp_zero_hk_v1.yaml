@@ -16,7 +16,11 @@ dataset_manifest: benchmarks/manifests/hk_unified_dataset_v1.json
 smoke_manifest: benchmarks/smoke/hk_unified_dev_smoke_8_v1.json
 
 retrieval:
-  # ETOM MCP0 pinned defaults (eval.py / utils); official matcher used 5/3.
+  # FROZEN before any HK-155 real result.
+  # Paper / official matcher default is server_top_k=5, tool_top_k=3.
+  # This baseline keeps the ETOM pinned adaptation 3/5.
+  # Do not retune these from HK-155 outcomes. A 5/3 run is an independent
+  # ablation and must not replace this baseline.
   server_top_k: 3
   tool_top_k: 5
   similarity_threshold: 0.0

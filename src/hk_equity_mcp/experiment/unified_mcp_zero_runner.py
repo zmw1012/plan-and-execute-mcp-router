@@ -71,9 +71,16 @@ from hk_equity_mcp.mcp_zero import (
     DEFAULT_SIMILARITY_THRESHOLD,
     DEFAULT_TOOL_TOP_K,
     FIDELITY_NAME,
+    assert_frozen_config,
+    frozen_method_identity,
+    method_identity_sha256,
 )
 from hk_equity_mcp.mcp_zero.agent import McpZeroAgent
-from hk_equity_mcp.mcp_zero.embedding import CountingEmbedder, build_embedding_table
+from hk_equity_mcp.mcp_zero.embedding import (
+    CACHE_NAMESPACE,
+    CountingEmbedder,
+    build_embedding_table,
+)
 from hk_equity_mcp.mcp_zero.metadata import build_hk_metadata
 from hk_equity_mcp.mcp_zero.prompt import HK_MCP_ZERO_SYSTEM_PROMPT, mcp_zero_prompt_hash
 from hk_equity_mcp.mcp_zero.router import HierarchicalRouter
@@ -88,12 +95,19 @@ from hk_equity_mcp.real_mcp.unified_gateway import (
     UnifiedRealMcpGateway,
 )
 
+# max_tasks is intentionally absent: it is the cumulative locked-order prefix
+# (20, then 50, then 100, then 155) and must be allowed to grow on resume.
+MAX_TASKS_SEMANTICS = "cumulative_locked_order_prefix"
+
 MCP_ZERO_RESUME_IDENTITY_KEYS = RESUME_IDENTITY_KEYS + (
     "server_top_k",
     "tool_top_k",
     "score_mode",
     "max_extension_rounds",
     "similarity_threshold",
+    "method_identity_sha256",
+    "max_tasks_semantics",
+    "embedding_cache_namespace",
 )
 
 
@@ -289,6 +303,7 @@ class UnifiedHkMcpZeroRunner:
         )
         self._exploratory_manifest: Optional[Dict[str, Any]] = None
         self._exploratory_run_order: Optional[Dict[str, Any]] = None
+        self.embedding_index_report: Optional[Dict[str, Any]] = None
 
     def _load_tasks(self) -> List[Dict[str, Any]]:
         heldout_status = assert_heldout_unlocked(
@@ -324,6 +339,7 @@ class UnifiedHkMcpZeroRunner:
                 "Commit changes first, or pass --allow-dirty explicitly."
             )
 
+        assert_frozen_config(self.config)
         for banned in BANNED_PROMPT_SUBSTRINGS:
             if banned in self.system_prompt:
                 raise RuntimeError(f"MCP-Zero system prompt unexpectedly contains {banned}")
@@ -524,7 +540,13 @@ class UnifiedHkMcpZeroRunner:
             "resume": self.resume,
             "allow_dirty": self.allow_dirty,
             "max_tasks": self.max_tasks,
+            "max_tasks_semantics": MAX_TASKS_SEMANTICS,
+            "max_tasks_in_resume_identity": False,
             "ids": self.ids,
+            "method_identity": frozen_method_identity(),
+            "method_identity_sha256": method_identity_sha256(),
+            "embedding_cache_namespace": CACHE_NAMESPACE,
+            "embedding_index": None,
             "run_status": "dry_run" if self.dry_run else ("mock" if self.mock else "running"),
             "fidelity_note": FIDELITY_NAME,
             "config_path": "configs/mcp_zero_hk_v1.yaml",
@@ -585,14 +607,43 @@ class UnifiedHkMcpZeroRunner:
             or (self.emb_meta or {}).get("model")
             or "text-embedding-3-small",
         )
-        cache_dir = self.output_dir / ".cache" / "mcp_zero_embeddings"
-        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_dir = self.output_dir / ".cache" / CACHE_NAMESPACE
+        server_top_k = int(self.retrieval.get("server_top_k", DEFAULT_SERVER_TOP_K))
+        tool_top_k = int(self.retrieval.get("tool_top_k", DEFAULT_TOOL_TOP_K))
+        score_mode = str(self.retrieval.get("score_mode", SCORE_OFFICIAL_COMBINED))
+        similarity_threshold = float(
+            self.retrieval.get("similarity_threshold", DEFAULT_SIMILARITY_THRESHOLD)
+        )
+        catalog_fp = catalog_fingerprint(self.bundle.stats, self.bundle.source_catalogs)
         table = build_embedding_table(
             self.catalog,
             embedder,
             cache_dir=cache_dir,
             use_summary=use_summary,
+            catalog_fingerprint=catalog_fp,
+            score_mode=score_mode,
+            server_top_k=server_top_k,
+            tool_top_k=tool_top_k,
+            similarity_threshold=similarity_threshold,
         )
+        if not table.complete:
+            raise RuntimeError(
+                "Real MCP-Zero run requires a complete embedding index. "
+                f"index_action={table.index_action}."
+            )
+        self.embedding_index_report = {
+            "namespace": CACHE_NAMESPACE,
+            "identity": table.identity,
+            "identity_sha256": table.identity_sha256,
+            "cache_path": table.cache_path,
+            "cache_reused": table.cache_reused,
+            "index_action": table.index_action,
+            "build_calls": table.build_calls,
+            "build_tokens": table.build_tokens,
+            "build_latency_ms": table.build_latency_ms,
+            "complete": True,
+            "embedding_model": table.model_name,
+        }
         # Reset query-time counters after table build (build tokens tracked in table).
         embedder.calls = 0
         embedder.tokens = 0
@@ -854,7 +905,25 @@ class UnifiedHkMcpZeroRunner:
                 else None
             ),
             "mock": self.mock,
-            "note": "Token totals only; USD cost requires provider price table.",
+            "embedding_index_build_calls": (run_meta.get("embedding_index") or {}).get(
+                "build_calls"
+            ),
+            "embedding_index_build_tokens": (run_meta.get("embedding_index") or {}).get(
+                "build_tokens"
+            ),
+            "embedding_index_build_latency_ms": (
+                run_meta.get("embedding_index") or {}
+            ).get("build_latency_ms"),
+            "embedding_index_cache_reused": (run_meta.get("embedding_index") or {}).get(
+                "cache_reused"
+            ),
+            "embedding_index_action": (run_meta.get("embedding_index") or {}).get(
+                "index_action"
+            ),
+            "embedding_cache_namespace": CACHE_NAMESPACE,
+            "note": "Token totals only; USD cost requires provider price table. "
+            "embedding_calls on each task are query-time. Index build calls, "
+            "tokens, latency, and cache_reused are the embedding_index_* fields.",
         }
         atomic_write_json(self.output_dir / "cost_summary.json", cost)
         atomic_write_json(
@@ -964,6 +1033,8 @@ class UnifiedHkMcpZeroRunner:
 
         try:
             agent = self.build_agent()
+            run_meta["embedding_index"] = self.embedding_index_report
+            atomic_write_json(meta_path, run_meta)
             done = already_done_ids(predictions_path) if self.resume else set()
             if self.resume and predictions_path.exists():
                 done |= {
@@ -1024,11 +1095,15 @@ class UnifiedHkMcpZeroRunner:
                     row["error"] = type(exc).__name__
                 append_jsonl(predictions_path, row)
                 predictions_by_id[qid] = row
+                run_meta["completed_count"] = len(predictions_by_id)
+                run_meta["last_completed_task_id"] = qid
+                run_meta["run_status"] = "mock_running" if self.mock else "running"
                 self._write_side_artifacts(
                     items=items,
                     predictions_by_id=predictions_by_id,
                     run_meta=run_meta,
                 )
+                atomic_write_json(meta_path, run_meta)
 
             run_meta["run_status"] = "completed"
             run_meta["completed_at"] = datetime.now(timezone.utc).isoformat()
@@ -1051,6 +1126,16 @@ def assert_resume_compatible_mcp_zero(
             mismatches.append(
                 f"{key}: existing={existing.get(key)!r} current={current.get(key)!r}"
             )
+    old_ids = existing.get("question_ids")
+    new_ids = current.get("question_ids")
+    if not isinstance(old_ids, list) or not isinstance(new_ids, list):
+        mismatches.append("question_ids: missing on existing or current metadata")
+    elif new_ids[: len(old_ids)] != old_ids:
+        mismatches.append(
+            "question_ids: current list is not a cumulative prefix extension of "
+            f"the previous run (previous={len(old_ids)} current={len(new_ids)}). "
+            "max_tasks is the cumulative locked-order target, not a count of new tasks."
+        )
     if mismatches:
         raise RuntimeError(
             "Resume refused: MCP-Zero experiment identity mismatch:\n"
