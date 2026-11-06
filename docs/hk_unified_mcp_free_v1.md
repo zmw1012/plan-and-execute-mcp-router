@@ -9,11 +9,14 @@ Worktree: `../hk-equity-mcp-agent-hk-mcp-free`
 |---|---|
 | `condition` | `mcp_free` |
 | `execution_backend` | `none` |
+| Generation provider | `openai_compatible` (OpenAI-compatible relay; **not** Aliyun Token Plan) |
+| Provider host | `api.zhizengzeng.com` |
 | Model | `deepseek-v4.1-flash` |
 | Temperature | `0` |
 | Max tokens | `1024` |
 | JSON mode | `true` |
 | Dataset | Same exploratory HK-155 as Operation-Visible |
+| Formal env | `../hk-equity-mcp-agent/.env.relay-v41` |
 
 ## MCP-Free invariants
 
@@ -75,8 +78,9 @@ Tool-related fields are explicitly `N/A` / zero (not vacuous tool-success).
 - `--max-tasks N` keeps the first N of that ordered list.
 - With `--resume`, already-completed task IDs in `predictions.jsonl` are skipped.
 - Expanding `20 → 50 → 100 → 155` with `--resume` only runs the not-yet-done suffix.
-- `max_tasks` is **not** part of resume identity (model / prompt / question /
-  run-order / temperature / max_tokens / split hashes are).
+- `max_tasks` is **not** part of resume identity. Resume identity **does** lock
+  provider / provider host / model / prompt / question / run-order /
+  temperature / max_tokens / split (prevents mid-run provider switching).
 
 ## Offline dry-run / mock
 
@@ -101,11 +105,15 @@ coverage and present in the exploratory manifest:
 
 `fin_cf_001,mkt_dev_003,xd_dev_007`
 
+Required env keys in `.env.relay-v41` (no Aliyun Token Plan):
+
+- `LLM_PROVIDER=openai_compatible`
+- `LLM_MODEL=deepseek-v4.1-flash`
+- `LLM_BASE_URL` host = `api.zhizengzeng.com`
+
 ```bash
 PYTHON="../hk-equity-mcp-agent/.venv-aktools-discovery/bin/python"
-# Prefer a generation env whose LLM_MODEL is exactly deepseek-v4.1-flash.
-# Do not default to exhausted Aliyun token-plan; see audit notes.
-ENV_GEN="../hk-equity-mcp-agent/.env.relay"   # verify model id before use
+ENV_GEN="../hk-equity-mcp-agent/.env.relay-v41"
 SMOKE=outputs/hk_unified_mcp_free_real_smoke3_v1
 
 PYTHONPATH=src "$PYTHON" scripts/run_hk_unified_mcp_free_experiment.py \
@@ -121,7 +129,7 @@ No `--embedding-env-file`. First smoke start has **no** `--resume`.
 
 ```bash
 PYTHON="../hk-equity-mcp-agent/.venv-aktools-discovery/bin/python"
-ENV_GEN="../hk-equity-mcp-agent/.env.relay"   # verify model id before use
+ENV_GEN="../hk-equity-mcp-agent/.env.relay-v41"
 LIVE=outputs/hk_unified_exploratory155_mcp_free_live_v1
 
 # First formal batch — NO --resume, dedicated live dir (not dry-run)

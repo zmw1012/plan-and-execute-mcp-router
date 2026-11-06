@@ -1,7 +1,7 @@
 # Unified HK MCP-Free closed-book baseline (Financial + Market + News + Cross-domain)
 condition: mcp_free
 execution_backend: none
-generation_provider: aliyun
+generation_provider: openai_compatible
 generation_model: deepseek-v4.1-flash
 temperature: 0.0
 max_tokens: 1024

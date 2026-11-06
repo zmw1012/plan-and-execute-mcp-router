@@ -64,7 +64,10 @@ from hk_equity_mcp.experiment.unified_schema import (
 RESUME_IDENTITY_KEYS = (
     "condition",
     "execution_backend",
+    "generation_provider",
     "generation_model",
+    "generation_base_url_host",
+    "provider_host",
     "dataset_split",
     "system_prompt_hash",
     "questions_identity_hash",
@@ -75,6 +78,9 @@ RESUME_IDENTITY_KEYS = (
     "run_order_hash",
     "retirement_policy_version",
 )
+
+DEFAULT_GENERATION_PROVIDER = "openai_compatible"
+DEFAULT_GENERATION_MODEL = "deepseek-v4.1-flash"
 
 # Formal live default. Dry-run / real-smoke MUST use separate directories.
 DEFAULT_OUTPUT_DIR = "outputs/hk_unified_exploratory155_mcp_free_live_v1"
@@ -106,8 +112,8 @@ def load_mcp_free_config(
             "temperature": 0.0,
             "max_tokens": 1024,
             "json_mode": True,
-            "generation_model": "deepseek-v4.1-flash",
-            "generation_provider": "aliyun",
+            "generation_model": DEFAULT_GENERATION_MODEL,
+            "generation_provider": DEFAULT_GENERATION_PROVIDER,
             "limits": {"bounded_retry": 1, "timeout_sec": 120},
         }
     with cfg_path.open("r", encoding="utf-8") as handle:
@@ -260,13 +266,20 @@ class UnifiedHkMcpFreeRunner:
         if self.max_tasks is not None:
             tasks = tasks[: max(0, int(self.max_tasks))]
 
+        expected_model = str(
+            self.config.get("generation_model") or DEFAULT_GENERATION_MODEL
+        )
+        expected_provider = str(
+            self.config.get("generation_provider") or DEFAULT_GENERATION_PROVIDER
+        )
+
         if self.mock or self.dry_run:
             try:
                 self.gen_meta = load_generation_profile(self.root, self.env_file)
             except FileNotFoundError:
                 self.gen_meta = {
-                    "provider": "aliyun",
-                    "model": "deepseek-v4.1-flash",
+                    "provider": expected_provider,
+                    "model": expected_model,
                     "profile_file": None,
                     "base_url": None,
                 }
@@ -278,23 +291,31 @@ class UnifiedHkMcpFreeRunner:
         else:
             self.gen_meta = load_generation_profile(self.root, self.env_file)
 
-        expected_model = str(
-            self.config.get("generation_model") or "deepseek-v4.1-flash"
-        )
-        expected_provider = str(self.config.get("generation_provider") or "aliyun")
         if not self.mock:
-            actual_model = self.gen_meta.get("model") or os.environ.get("LLM_MODEL")
-            actual_provider = self.gen_meta.get("provider") or os.environ.get(
-                "LLM_PROVIDER"
-            )
-            if actual_model and actual_model != expected_model:
+            actual_model = (
+                self.gen_meta.get("model") or os.environ.get("LLM_MODEL") or ""
+            ).strip()
+            actual_provider = (
+                self.gen_meta.get("provider") or os.environ.get("LLM_PROVIDER") or ""
+            ).strip()
+            if not actual_provider:
                 raise RuntimeError(
-                    f"generation model mismatch: expected {expected_model}, got {actual_model}"
+                    "Missing LLM_PROVIDER (fail-closed). "
+                    f"MCP-Free formal runs require LLM_PROVIDER={expected_provider}."
                 )
-            if actual_provider and actual_provider != expected_provider:
+            if actual_provider != expected_provider:
                 raise RuntimeError(
                     f"generation provider mismatch: expected {expected_provider}, "
                     f"got {actual_provider}"
+                )
+            if not actual_model:
+                raise RuntimeError(
+                    "Missing LLM_MODEL (fail-closed). "
+                    f"MCP-Free formal runs require LLM_MODEL={expected_model}."
+                )
+            if actual_model != expected_model:
+                raise RuntimeError(
+                    f"generation model mismatch: expected {expected_model}, got {actual_model}"
                 )
 
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -376,6 +397,8 @@ class UnifiedHkMcpFreeRunner:
             "generation_model": self.gen_meta.get("model") or expected_model,
             "generation_profile_file": self.gen_meta.get("profile_file"),
             "generation_base_url_host": gen_host,
+            # Explicit split recording: adapter provider vs network host.
+            "provider_host": gen_host,
             "embedding_model": None,
             "embedding_profile_file": None,
             "embedding_base_url_host": None,
@@ -426,7 +449,10 @@ class UnifiedHkMcpFreeRunner:
                 base_url=os.environ["LLM_BASE_URL"],
                 api_key=os.environ["LLM_API_KEY"],
                 model=os.environ["LLM_MODEL"],
-                provider=os.environ.get("LLM_PROVIDER") or "openai_compatible",
+                provider=os.environ.get("LLM_PROVIDER")
+                or str(
+                    self.config.get("generation_provider") or DEFAULT_GENERATION_PROVIDER
+                ),
                 json_mode=self.json_mode,
             )
         bounded = int((self.limits or {}).get("bounded_retry", 1))

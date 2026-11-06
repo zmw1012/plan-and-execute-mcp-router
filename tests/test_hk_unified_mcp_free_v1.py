@@ -230,7 +230,10 @@ def test_resume_identity_excludes_max_tasks(tmp_path: Path):
     base = {
         "condition": "mcp_free",
         "execution_backend": "none",
+        "generation_provider": "openai_compatible",
         "generation_model": "deepseek-v4.1-flash",
+        "generation_base_url_host": "api.zhizengzeng.com",
+        "provider_host": "api.zhizengzeng.com",
         "dataset_split": "exploratory_all",
         "system_prompt_hash": unified_mcp_free_prompt_hash(),
         "questions_identity_hash": qh,
@@ -246,6 +249,13 @@ def test_resume_identity_excludes_max_tasks(tmp_path: Path):
     expanded["max_tasks"] = 50
     assert "max_tasks" not in RESUME_IDENTITY_KEYS
     assert "questions_identity_hash" in RESUME_IDENTITY_KEYS
+    for key in (
+        "generation_provider",
+        "generation_model",
+        "generation_base_url_host",
+        "provider_host",
+    ):
+        assert key in RESUME_IDENTITY_KEYS
     assert_resume_compatible_mcp_free(base, expanded)
     bad = dict(expanded)
     bad["system_prompt_hash"] = "other"
@@ -255,6 +265,15 @@ def test_resume_identity_excludes_max_tasks(tmp_path: Path):
     bad_q["questions_identity_hash"] = "b" * 64
     with pytest.raises(RuntimeError, match="questions_identity_hash"):
         assert_resume_compatible_mcp_free(base, bad_q)
+    bad_provider = dict(expanded)
+    bad_provider["generation_provider"] = "aliyun"
+    with pytest.raises(RuntimeError, match="generation_provider"):
+        assert_resume_compatible_mcp_free(base, bad_provider)
+    bad_host = dict(expanded)
+    bad_host["provider_host"] = "token-plan.cn-beijing.maas.aliyuncs.com"
+    bad_host["generation_base_url_host"] = "token-plan.cn-beijing.maas.aliyuncs.com"
+    with pytest.raises(RuntimeError, match="provider_host|generation_base_url_host"):
+        assert_resume_compatible_mcp_free(base, bad_host)
 
 
 def test_max_tasks_does_not_change_questions_identity_hash(tmp_path: Path):
@@ -350,6 +369,8 @@ def test_dry_run_exploratory(tmp_path: Path):
     ).run()
     assert meta["condition"] == "mcp_free"
     assert meta["execution_backend"] == "none"
+    assert meta["generation_provider"] == "openai_compatible"
+    assert meta["generation_model"] == "deepseek-v4.1-flash"
     assert meta["question_count"] == 155
     assert meta["domain_counts"] == {
         "financial": 60,
@@ -365,6 +386,130 @@ def test_dry_run_exploratory(tmp_path: Path):
     assert meta["exploratory_manifest_hash"] == ov["exploratory_manifest_hash"]
     assert meta["run_order_hash"] == ov["run_order_hash"]
     assert (out / "run_metadata.json").exists()
+
+
+def _write_gen_env(path: Path, *, provider: str, model: str, host: str) -> Path:
+    path.write_text(
+        "\n".join(
+            [
+                f"LLM_PROVIDER={provider}",
+                f"LLM_BASE_URL=https://{host}/v1",
+                "LLM_API_KEY=test-key-not-for-network",
+                f"LLM_MODEL={model}",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def test_openai_compatible_relay_profile_accepted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    for key in (
+        "LLM_PROVIDER",
+        "LLM_BASE_URL",
+        "LLM_API_KEY",
+        "LLM_MODEL",
+        "ENV_FILE",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    env = _write_gen_env(
+        tmp_path / ".env.relay-v41",
+        provider="openai_compatible",
+        model="deepseek-v4.1-flash",
+        host="api.zhizengzeng.com",
+    )
+    meta = UnifiedHkMcpFreeRunner(
+        output_dir=tmp_path / "relay_ok",
+        split="exploratory_all",
+        confirm_retire_heldout=True,
+        dry_run=True,
+        allow_dirty=True,
+        env_file=str(env),
+        root=ROOT,
+    ).run()
+    assert meta["generation_provider"] == "openai_compatible"
+    assert meta["generation_model"] == "deepseek-v4.1-flash"
+    assert meta["generation_base_url_host"] == "api.zhizengzeng.com"
+    assert meta["provider_host"] == "api.zhizengzeng.com"
+    blob = json.dumps(meta, ensure_ascii=False)
+    assert "test-key-not-for-network" not in blob
+    assert "API_KEY" not in blob
+
+
+def test_aliyun_profile_rejected_under_openai_compatible_config(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    for key in ("LLM_PROVIDER", "LLM_BASE_URL", "LLM_API_KEY", "LLM_MODEL", "ENV_FILE"):
+        monkeypatch.delenv(key, raising=False)
+    env = _write_gen_env(
+        tmp_path / ".env.aliyun",
+        provider="aliyun",
+        model="deepseek-v4.1-flash",
+        host="token-plan.cn-beijing.maas.aliyuncs.com",
+    )
+    with pytest.raises(RuntimeError, match="provider mismatch"):
+        UnifiedHkMcpFreeRunner(
+            output_dir=tmp_path / "aliyun_reject",
+            split="exploratory_all",
+            confirm_retire_heldout=True,
+            dry_run=True,
+            allow_dirty=True,
+            env_file=str(env),
+            root=ROOT,
+        ).run()
+
+
+def test_missing_llm_provider_fail_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    for key in ("LLM_PROVIDER", "LLM_BASE_URL", "LLM_API_KEY", "LLM_MODEL", "ENV_FILE"):
+        monkeypatch.delenv(key, raising=False)
+    env = tmp_path / ".env.missing-provider"
+    env.write_text(
+        "\n".join(
+            [
+                "LLM_BASE_URL=https://api.zhizengzeng.com/v1",
+                "LLM_API_KEY=test-key-not-for-network",
+                "LLM_MODEL=deepseek-v4.1-flash",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(RuntimeError, match="LLM_PROVIDER"):
+        UnifiedHkMcpFreeRunner(
+            output_dir=tmp_path / "missing_provider",
+            split="exploratory_all",
+            confirm_retire_heldout=True,
+            dry_run=True,
+            allow_dirty=True,
+            env_file=str(env),
+            root=ROOT,
+        ).run()
+
+
+def test_model_mismatch_rejected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    for key in ("LLM_PROVIDER", "LLM_BASE_URL", "LLM_API_KEY", "LLM_MODEL", "ENV_FILE"):
+        monkeypatch.delenv(key, raising=False)
+    env = _write_gen_env(
+        tmp_path / ".env.bad-model",
+        provider="openai_compatible",
+        model="deepseek-flash",
+        host="api.zhizengzeng.com",
+    )
+    with pytest.raises(RuntimeError, match="model mismatch"):
+        UnifiedHkMcpFreeRunner(
+            output_dir=tmp_path / "bad_model",
+            split="exploratory_all",
+            confirm_retire_heldout=True,
+            dry_run=True,
+            allow_dirty=True,
+            env_file=str(env),
+            root=ROOT,
+        ).run()
 
 
 def test_mock_prefix_and_resume(tmp_path: Path):
