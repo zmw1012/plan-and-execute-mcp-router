@@ -1,0 +1,41 @@
+{
+  "dataset_split": "fixture_mini",
+  "sample_size": 5,
+  "seed": 0,
+  "ordered_task_ids": [
+    "L1-q1",
+    "L2-q1",
+    "L3-q1",
+    "L4-q1",
+    "L5-q1"
+  ],
+  "ordered_task_ids_sha256": "68158a764ce3cd5b92f2f8f88b15445fb8725d9ce41b160716183bc9057e0956",
+  "tasks": [
+    {
+      "task_id": "L1-q1",
+      "level": 1,
+      "query_id": 1
+    },
+    {
+      "task_id": "L2-q1",
+      "level": 2,
+      "query_id": 1
+    },
+    {
+      "task_id": "L3-q1",
+      "level": 3,
+      "query_id": 1
+    },
+    {
+      "task_id": "L4-q1",
+      "level": 4,
+      "query_id": 1
+    },
+    {
+      "task_id": "L5-q1",
+      "level": 5,
+      "query_id": 1
+    }
+  ],
+  "sample_sha256": "fixture"
+}

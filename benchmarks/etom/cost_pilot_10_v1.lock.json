@@ -1,0 +1,222 @@
+{
+  "dataset_split": "cost_pilot",
+  "exclude_from_final_etom_sample": true,
+  "seed": 5018,
+  "sampler": "seeded_weighted_server_coverage_v1",
+  "max_tasks": 10,
+  "quotas": {
+    "L1": 2,
+    "L2": 2,
+    "L3": 2,
+    "L4": 2,
+    "L5": 2
+  },
+  "constraints": {
+    "L3_at_least_one_single_server_sequential_dependency": true,
+    "L4_at_least_one_cross_server_dependency": true,
+    "L5_official_infeasible_only": true,
+    "server_coverage": "seeded weights prefer servers not yet selected"
+  },
+  "task_ids": [
+    "L1-q185",
+    "L1-q233",
+    "L2-q522",
+    "L2-q732",
+    "L3-q37",
+    "L3-q105",
+    "L4-q91",
+    "L4-q13",
+    "L5-q31",
+    "L5-q66"
+  ],
+  "tasks": [
+    {
+      "task_id": "L1-q185",
+      "level": 1,
+      "query_id": 185,
+      "source_file": "data/queries/level_1.json",
+      "dataset_split": "cost_pilot",
+      "exclude_from_final_etom_sample": true,
+      "server_names": [
+        "Excel MCP Server"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "query_sha256": "0009e145b56e26cb4861dae35a634c91ad2f9b5f32353a4c867c44bc798aa967",
+      "ground_truth_sha256": "82570fad6398f7b46fbdf7367cf85abed6a39839185779f52b391b6c31712bb6"
+    },
+    {
+      "task_id": "L1-q233",
+      "level": 1,
+      "query_id": 233,
+      "source_file": "data/queries/level_1.json",
+      "dataset_split": "cost_pilot",
+      "exclude_from_final_etom_sample": true,
+      "server_names": [
+        "QASE MCP Server"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "query_sha256": "f16e4b61dc03617f245b79dd449a809d328a5ac8b0a2c6a48eda96209083d28a",
+      "ground_truth_sha256": "76948d2a93c6e997ba31da381c3417d40b3eded78dff0ae79ea7b028b250d3e0"
+    },
+    {
+      "task_id": "L2-q522",
+      "level": 2,
+      "query_id": 522,
+      "source_file": "data/queries/level_2.json",
+      "dataset_split": "cost_pilot",
+      "exclude_from_final_etom_sample": true,
+      "server_names": [
+        "MindManager MCP Server"
+      ],
+      "step_count": 1,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "query_sha256": "251cc2e18af481b7e36a76eabf7439797722c79188a1481dbb576f1831d9ebe3",
+      "ground_truth_sha256": "c1320e17ed37b04df1379678121dad531ebf40dc1fb67efd81363d6a3dce0687"
+    },
+    {
+      "task_id": "L2-q732",
+      "level": 2,
+      "query_id": 732,
+      "source_file": "data/queries/level_2.json",
+      "dataset_split": "cost_pilot",
+      "exclude_from_final_etom_sample": true,
+      "server_names": [
+        "Build Agents with Needle MCP Server",
+        "Vectorize MCP Server",
+        "docs-mcp"
+      ],
+      "step_count": 3,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "query_sha256": "cb4a1930ab80f896c26492efb048bec3d779cb8e9e8b8369a88b56de5374f0d4",
+      "ground_truth_sha256": "50ab5a8bcb34d0750383fa300545da27c4f744fd19d493626ea7b45e2faf3e8c"
+    },
+    {
+      "task_id": "L3-q37",
+      "level": 3,
+      "query_id": 37,
+      "source_file": "data/queries/level_3.json",
+      "dataset_split": "cost_pilot",
+      "exclude_from_final_etom_sample": true,
+      "server_names": [
+        "NPM Sentinel MCP"
+      ],
+      "step_count": 6,
+      "has_dependency": true,
+      "single_server_sequential": true,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "query_sha256": "b6d8857847fabc511db414f2db4fe3b538559ff3558387788da2b842b56e9de5",
+      "ground_truth_sha256": "c07d6639455f0276ab42629e5255c1a9df35072f72bdee12726f33de6a7618f0"
+    },
+    {
+      "task_id": "L3-q105",
+      "level": 3,
+      "query_id": 105,
+      "source_file": "data/queries/level_3.json",
+      "dataset_split": "cost_pilot",
+      "exclude_from_final_etom_sample": true,
+      "server_names": [
+        "Obsidian Local REST API MCP Server"
+      ],
+      "step_count": 4,
+      "has_dependency": true,
+      "single_server_sequential": true,
+      "cross_server_dependency": false,
+      "infeasible": false,
+      "query_sha256": "59c0f4152684f8fb06e1538e30d229074e9ea8f74ccc21c02c2c71eba9fc5269",
+      "ground_truth_sha256": "3b3057447ef2f81659139441a8b37eb44641cea0419a1bc18a36bccb028c807f"
+    },
+    {
+      "task_id": "L4-q91",
+      "level": 4,
+      "query_id": 91,
+      "source_file": "data/queries/level_4.json",
+      "dataset_split": "cost_pilot",
+      "exclude_from_final_etom_sample": true,
+      "server_names": [
+        "Hugeicons MCP Server",
+        "Obsidian Local REST API MCP Server"
+      ],
+      "step_count": 3,
+      "has_dependency": true,
+      "single_server_sequential": false,
+      "cross_server_dependency": true,
+      "infeasible": false,
+      "query_sha256": "55480582084870901b897b5417c37b9046e47839611613691905a35f41231d9a",
+      "ground_truth_sha256": "0b66ed3bd013b73f63301a0d156bdc25ea67bb17b73adffa42a6b8256c87767e"
+    },
+    {
+      "task_id": "L4-q13",
+      "level": 4,
+      "query_id": 13,
+      "source_file": "data/queries/level_4.json",
+      "dataset_split": "cost_pilot",
+      "exclude_from_final_etom_sample": true,
+      "server_names": [
+        "Fetch MCP Server",
+        "Fetcher MCP",
+        "Hiworks Mail MCP",
+        "MCP Access Template",
+        "Markdown Downloader MCP Server",
+        "ReviewWebsite.com - MCP Server",
+        "ScrapeGraph MCP Server",
+        "mcp-server-fetch-python",
+        "pure.md MCP server"
+      ],
+      "step_count": 2,
+      "has_dependency": true,
+      "single_server_sequential": false,
+      "cross_server_dependency": true,
+      "infeasible": false,
+      "query_sha256": "88322f915f4892bce636ef3df6a9862058bb2f286626991222280efa60920b01",
+      "ground_truth_sha256": "ff8e723c9c01b79ae0ec8552b75b9a0ad9e18464154761cea9d46bca4203dc88"
+    },
+    {
+      "task_id": "L5-q31",
+      "level": 5,
+      "query_id": 31,
+      "source_file": "data/queries/level_5.json",
+      "dataset_split": "cost_pilot",
+      "exclude_from_final_etom_sample": true,
+      "server_names": [],
+      "step_count": 0,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": true,
+      "query_sha256": "88a0ed53efdcf9c667440168a56f04c20c5388f159fb6f87851cd6b5c6faf57d",
+      "ground_truth_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "task_id": "L5-q66",
+      "level": 5,
+      "query_id": 66,
+      "source_file": "data/queries/level_5.json",
+      "dataset_split": "cost_pilot",
+      "exclude_from_final_etom_sample": true,
+      "server_names": [],
+      "step_count": 0,
+      "has_dependency": false,
+      "single_server_sequential": false,
+      "cross_server_dependency": false,
+      "infeasible": true,
+      "query_sha256": "6a58a808c502261deb42e114e843597e7092ae1c69cc27fe1009abe583dfa1fd",
+      "ground_truth_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  ],
+  "note": "These ids are a cost pilot only. Final 100/200 ETOM samples must exclude every task_id in this file."
+}

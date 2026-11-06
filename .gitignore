@@ -47,3 +47,8 @@ results/
 # Large or local data dumps (keep mock/ and .gitkeep)
 data/raw/
 data/private/
+data/etom/raw/
+data/etom/derived/
+data/etom/cache/
+.cache/etom_embeddings/
+.cache/mcp_zero_etom_v1/

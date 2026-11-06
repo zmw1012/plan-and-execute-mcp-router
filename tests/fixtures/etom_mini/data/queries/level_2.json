@@ -1,0 +1,18 @@
+[
+  {
+    "query_id": 1,
+    "query": "Search either the web or notes",
+    "ground_truth_tools": [
+      [
+        {
+          "server_name": "Alpha Search MCP",
+          "tool_name": "search"
+        },
+        {
+          "server_name": "Beta Notes MCP Server",
+          "tool_name": "search"
+        }
+      ]
+    ]
+  }
+]

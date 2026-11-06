@@ -1,0 +1,7 @@
+[
+  {
+    "query_id": 1,
+    "query": "Teleport to Mars tomorrow",
+    "ground_truth_tools": []
+  }
+]

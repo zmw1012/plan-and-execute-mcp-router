@@ -124,9 +124,9 @@ def assert_mcp_zero_cache_dir(cache_dir: Path) -> Path:
     return Path(cache_dir)
 
 
-def default_shared_cache_dir(root: Path) -> Path:
+def default_shared_cache_dir(root: Path, namespace: str = CACHE_NAMESPACE) -> Path:
     """Worktree-shared catalog index cache (independent of output_dir)."""
-    return assert_mcp_zero_cache_dir(Path(root) / ".cache" / CACHE_NAMESPACE)
+    return assert_mcp_zero_cache_dir(Path(root) / ".cache" / str(namespace))
 
 
 def resolve_embedding_cache_dir(
@@ -166,6 +166,7 @@ def embedding_cache_identity(
     tool_top_k: int = 5,
     similarity_threshold: float = 0.0,
     use_summary: bool = True,
+    namespace: str = CACHE_NAMESPACE,
 ) -> Dict[str, Any]:
     """Identity of one server/tool embedding index.
 
@@ -173,7 +174,7 @@ def embedding_cache_identity(
     server/tool metadata hash, and scoring config all match.
     """
     return {
-        "namespace": CACHE_NAMESPACE,
+        "namespace": str(namespace),
         "embedding_model": str(embedding_model),
         "catalog_fingerprint": str(catalog_fingerprint),
         "metadata_hash": str(metadata_hash),
@@ -247,8 +248,9 @@ def _payload_matches(
         _vector_dimension(vectors)
     except IncompleteEmbeddingTableError:
         return False
+    expected_ns = str(identity.get("namespace") or CACHE_NAMESPACE)
     return (
-        payload.get("namespace") == CACHE_NAMESPACE
+        payload.get("namespace") == expected_ns
         and payload.get("identity") == identity
         and payload.get("identity_sha256") == identity_digest(identity)
         and payload.get("model") == identity["embedding_model"]
@@ -268,9 +270,11 @@ def verify_complete_index_payload(
     """Fail-closed verification of an on-disk complete index payload."""
     if not isinstance(payload, dict):
         raise IncompleteEmbeddingTableError("Index payload is not an object.")
-    if payload.get("namespace") != CACHE_NAMESPACE:
+    expected_ns = str(identity.get("namespace") or CACHE_NAMESPACE)
+    if payload.get("namespace") != expected_ns:
         raise CacheNamespaceError(
-            f"Foreign/missing namespace on index: {payload.get('namespace')!r}"
+            f"Foreign/missing namespace on index: {payload.get('namespace')!r} "
+            f"(expected {expected_ns!r})"
         )
     if not bool(payload.get("complete")):
         raise IncompleteEmbeddingTableError(
@@ -308,7 +312,7 @@ def verify_complete_index_payload(
     if dim is None or dim <= 0:
         raise IncompleteEmbeddingTableError("Index has no usable vectors.")
     return {
-        "namespace": CACHE_NAMESPACE,
+        "namespace": expected_ns,
         "identity": identity,
         "identity_sha256": digest,
         "vector_count": len(vectors),
@@ -331,6 +335,7 @@ def install_verified_index(
     similarity_threshold: float = 0.0,
     use_summary: bool = True,
     expected_identity_sha256: Optional[str] = None,
+    namespace: str = CACHE_NAMESPACE,
 ) -> Dict[str, Any]:
     """Offline copy of a verified complete index into the shared cache.
 
@@ -355,6 +360,7 @@ def install_verified_index(
         tool_top_k=tool_top_k,
         similarity_threshold=similarity_threshold,
         use_summary=use_summary,
+        namespace=namespace,
     )
     expected = {k for k, _ in _units(catalog, use_summary)}
     verified = verify_complete_index_payload(
@@ -435,6 +441,7 @@ def table_status(
     server_top_k: int = 3,
     tool_top_k: int = 5,
     similarity_threshold: float = 0.0,
+    namespace: str = CACHE_NAMESPACE,
 ) -> Dict[str, Any]:
     """Offline status of the final cache + partial checkpoint (no network)."""
     metadata_hash = catalog.fingerprint()
@@ -447,6 +454,7 @@ def table_status(
         tool_top_k=tool_top_k,
         similarity_threshold=similarity_threshold,
         use_summary=use_summary,
+        namespace=namespace,
     )
     final, partial, digest = table_paths(cache_dir, identity)
     expected = {k for k, _ in _units(catalog, use_summary)}
@@ -462,7 +470,8 @@ def table_status(
             payload = json.loads(final.read_text(encoding="utf-8"))
             vectors = payload.get("vectors") or {}
             final_count = len(vectors) if isinstance(vectors, dict) else 0
-            if payload.get("namespace") not in {None, CACHE_NAMESPACE}:
+            expected_ns = str(identity.get("namespace") or CACHE_NAMESPACE)
+            if payload.get("namespace") not in {None, expected_ns}:
                 foreign_final = True
             final_complete = _payload_matches(payload, identity, expected)
             if final_complete and isinstance(vectors, dict):
@@ -475,7 +484,7 @@ def table_status(
             damaged_final = True
     partial_vectors = _read_partial(partial, expected) if partial.exists() else {}
     return {
-        "namespace": CACHE_NAMESPACE,
+        "namespace": str(identity.get("namespace") or CACHE_NAMESPACE),
         "model": model_name,
         "identity": identity,
         "identity_sha256": digest,
@@ -516,6 +525,7 @@ def load_complete_table(
     server_top_k: int = 3,
     tool_top_k: int = 5,
     similarity_threshold: float = 0.0,
+    namespace: str = CACHE_NAMESPACE,
 ) -> EmbeddingTable:
     status = table_status(
         catalog,
@@ -527,6 +537,7 @@ def load_complete_table(
         server_top_k=server_top_k,
         tool_top_k=tool_top_k,
         similarity_threshold=similarity_threshold,
+        namespace=namespace,
     )
     if status["foreign_final"]:
         raise CacheNamespaceError(
@@ -579,6 +590,7 @@ def build_embedding_table(
     server_top_k: int = 3,
     tool_top_k: int = 5,
     similarity_threshold: float = 0.0,
+    namespace: str = CACHE_NAMESPACE,
 ) -> EmbeddingTable:
     """Embed servers + tools.
 
@@ -597,6 +609,7 @@ def build_embedding_table(
         tool_top_k=tool_top_k,
         similarity_threshold=similarity_threshold,
         use_summary=use_summary,
+        namespace=namespace,
     )
     units = _units(catalog, use_summary)
     expected = {k for k, _ in units}
@@ -617,6 +630,7 @@ def build_embedding_table(
             server_top_k=server_top_k,
             tool_top_k=tool_top_k,
             similarity_threshold=similarity_threshold,
+            namespace=namespace,
         )
         if status["foreign_final"]:
             raise CacheNamespaceError(
@@ -634,6 +648,7 @@ def build_embedding_table(
                 server_top_k=server_top_k,
                 tool_top_k=tool_top_k,
                 similarity_threshold=similarity_threshold,
+                namespace=namespace,
             )
         vectors = _read_partial(partial, expected)
         if vectors:
@@ -678,12 +693,13 @@ def build_embedding_table(
                 raise CacheNamespaceError(
                     f"Refusing to overwrite unreadable cache file {final}."
                 ) from exc
-            if existing.get("namespace") not in {None, CACHE_NAMESPACE}:
+            expected_ns = str(identity.get("namespace") or CACHE_NAMESPACE)
+            if existing.get("namespace") not in {None, expected_ns}:
                 raise CacheNamespaceError(
                     f"Refusing to overwrite foreign cache file {final}."
                 )
             if (
-                existing.get("namespace") == CACHE_NAMESPACE
+                existing.get("namespace") == expected_ns
                 and existing.get("identity_sha256") not in {None, table.identity_sha256}
             ):
                 raise CacheNamespaceError(
@@ -693,7 +709,7 @@ def build_embedding_table(
         tmp.write_text(
             json.dumps(
                 {
-                    "namespace": CACHE_NAMESPACE,
+                    "namespace": str(identity.get("namespace") or CACHE_NAMESPACE),
                     "identity": identity,
                     "identity_sha256": table.identity_sha256,
                     "model": model_name,

@@ -1,0 +1,20 @@
+[
+  {
+    "query_id": 1,
+    "query": "List notes then read one",
+    "ground_truth_tools": [
+      {
+        "server_name": "Beta Notes MCP Server",
+        "tool_name": "list_notes",
+        "dependencies": []
+      },
+      {
+        "server_name": "Beta Notes MCP Server",
+        "tool_name": "read_note",
+        "dependencies": [
+          0
+        ]
+      }
+    ]
+  }
+]
