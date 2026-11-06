@@ -899,6 +899,18 @@ def grade_task(item: Dict[str, Any], row: Dict[str, Any]) -> Dict[str, Any]:
         **_empty_component_fields(),
     }
 
+    # Hard fail: incomplete agent trajectories must not auto-grade correct.
+    if str(row.get("status") or "").lower() == "failed":
+        if "exact_tool_set" in row:
+            base["tool_selection_correct"] = bool(row.get("exact_tool_set"))
+        return {
+            **base,
+            "auto_grade_status": "graded",
+            "answer_correct": False,
+            "reason": "status_failed",
+            "overall_task_success": False,
+        }
+
     # Optional tool-selection signal (separate from answer_correct).
     if "exact_tool_set" in row:
         base["tool_selection_correct"] = bool(row.get("exact_tool_set"))

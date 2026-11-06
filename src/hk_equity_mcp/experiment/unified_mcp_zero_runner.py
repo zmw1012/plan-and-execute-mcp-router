@@ -274,7 +274,7 @@ class UnifiedHkMcpZeroRunner:
         config: Optional[Dict[str, Any]] = None,
         root: Optional[Path] = None,
         allow_hkex_download: bool = False,
-        json_mode: bool = True,
+        json_mode: Optional[bool] = None,
     ):
         self.root = root or repo_root()
         self.output_dir = Path(output_dir)
@@ -292,7 +292,11 @@ class UnifiedHkMcpZeroRunner:
         self.embedding_env_file = embedding_env_file
         self.config = config or load_mcp_zero_config(root=self.root)
         self.allow_hkex_download = allow_hkex_download
-        self.json_mode = json_mode
+        # MCP-Zero default: false (raw ATR legal). Explicit arg overrides config.
+        if json_mode is None:
+            self.json_mode = bool(self.config.get("json_mode", False))
+        else:
+            self.json_mode = bool(json_mode)
         self.temperature = float(self.config.get("temperature", 0.0))
         self.max_tokens = int(self.config.get("max_tokens", 1024))
         self.limits = dict(self.config.get("limits") or {})
@@ -531,6 +535,7 @@ class UnifiedHkMcpZeroRunner:
             "generation_profile_file": self.gen_meta.get("profile_file"),
             # Always record provider/host/model in run + resume identity.
             "generation_base_url_host": gen_host or expected_host,
+            "provider_host": gen_host or expected_host,
             "runtime_env_identity": frozen_runtime_env_identity(),
             "provider_metadata_note": (
                 "generation_provider/host are runtime env adapter pins. "
@@ -543,6 +548,12 @@ class UnifiedHkMcpZeroRunner:
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
             "json_mode": self.json_mode,
+            "json_mode_note": (
+                "MCP-Zero disables provider forced JSON mode so raw "
+                "<tool_assistant> ATR turns remain legal."
+                if not self.json_mode
+                else "WARNING: json_mode=true conflicts with raw ATR protocol."
+            ),
             "server_top_k": server_top_k,
             "tool_top_k": tool_top_k,
             "score_mode": score_mode,
@@ -553,6 +564,7 @@ class UnifiedHkMcpZeroRunner:
             "limits": self.limits,
             "system_prompt_hash": prompt_h,
             "system_prompt": self.system_prompt,
+            "method_card_hash": method_identity_sha256(),
             "catalog_fingerprint": fingerprint,
             "mcp_zero_catalog_fingerprint": self.catalog.fingerprint(),
             "catalog_stats": {
@@ -750,6 +762,11 @@ class UnifiedHkMcpZeroRunner:
             "debug_traceback_file": result.get("debug_traceback_file"),
             "protocol_repair_count": result.get("protocol_repair_count", 0),
             "parse_repair_count": result.get("parse_repair_count", 0),
+            "repair_count": result.get("repair_count"),
+            "valid_turn_count": result.get("valid_turn_count"),
+            "total_turn_count": result.get("total_turn_count"),
+            "terminal_contract_valid": result.get("terminal_contract_valid"),
+            "task_protocol_success": result.get("task_protocol_success"),
             "final_answer": result.get("final_answer"),
             "predicted_status": result.get("predicted_status"),
             "answerability_class": item.get("answerability_class"),
@@ -1213,7 +1230,23 @@ class UnifiedHkMcpZeroRunner:
                     )
                 append_jsonl(predictions_path, row)
                 predictions_by_id[qid] = row
-                run_meta["completed_count"] = len(predictions_by_id)
+                processed = len(predictions_by_id)
+                full_n = sum(
+                    1
+                    for r in predictions_by_id.values()
+                    if str(r.get("status") or "") == "full"
+                )
+                failed_n = sum(
+                    1
+                    for r in predictions_by_id.values()
+                    if str(r.get("status") or "") == "failed"
+                )
+                # completed_count kept as processed alias for resume compatibility.
+                run_meta["completed_count"] = processed
+                run_meta["processed_count"] = processed
+                run_meta["full_count"] = full_n
+                run_meta["completed_success_count"] = full_n
+                run_meta["failed_count"] = failed_n
                 run_meta["last_completed_task_id"] = qid
                 run_meta["run_status"] = "mock_running" if self.mock else "running"
                 self._write_side_artifacts(
@@ -1223,6 +1256,22 @@ class UnifiedHkMcpZeroRunner:
                 )
                 atomic_write_json(meta_path, run_meta)
 
+            processed = len(predictions_by_id)
+            full_n = sum(
+                1
+                for r in predictions_by_id.values()
+                if str(r.get("status") or "") == "full"
+            )
+            failed_n = sum(
+                1
+                for r in predictions_by_id.values()
+                if str(r.get("status") or "") == "failed"
+            )
+            run_meta["completed_count"] = processed
+            run_meta["processed_count"] = processed
+            run_meta["full_count"] = full_n
+            run_meta["completed_success_count"] = full_n
+            run_meta["failed_count"] = failed_n
             run_meta["run_status"] = "completed"
             run_meta["completed_at"] = datetime.now(timezone.utc).isoformat()
             if self._gateway is not None:

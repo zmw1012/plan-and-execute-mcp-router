@@ -98,7 +98,8 @@ def main() -> None:
         config=cfg,
         root=ROOT,
         allow_hkex_download=args.allow_hkex_download,
-        json_mode=True,
+        # ATR requires raw text; default false. Config may override.
+        json_mode=bool(cfg.get("json_mode", False)),
     )
     runner.run()
 

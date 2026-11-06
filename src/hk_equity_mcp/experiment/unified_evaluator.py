@@ -337,6 +337,39 @@ def evaluate_task(
     evidence = extract_evidence_from_answer(
         result.get("final_answer_obj")
     ) or extract_evidence_from_answer(result.get("final_answer"))
+    repair_count = int(result.get("repair_count") or 0)
+    if not repair_count:
+        repair_count = int(result.get("protocol_repair_count") or 0) + int(
+            result.get("parse_repair_count") or count_parse_repairs(trace)
+        )
+    total_turn_count = int(result.get("total_turn_count") or result.get("llm_calls") or 0)
+    valid_turn_count = result.get("valid_turn_count")
+    if valid_turn_count is None:
+        valid_turn_count = sum(
+            1
+            for e in trace
+            if e.get("type") == "llm_turn" and e.get("turn_valid") is True
+        )
+    terminal_contract_valid = result.get("terminal_contract_valid")
+    if terminal_contract_valid is None:
+        terminal_contract_valid = (
+            result.get("status") == "full"
+            and isinstance(result.get("final_answer_obj"), dict)
+            and result.get("final_answer_obj", {}).get("status") is not None
+        )
+    task_protocol_success = result.get("task_protocol_success")
+    if task_protocol_success is None:
+        task_protocol_success = bool(
+            terminal_contract_valid
+            and result.get("status") == "full"
+            and not result.get("error")
+        )
+    # Task-level protocol success must be false on max_llm_turns / failed runs
+    # even when gateway invoke-level protocol_success flags are all True.
+    if str(result.get("status") or "") == "failed":
+        task_protocol_success = False
+        terminal_contract_valid = False
+
     out = {
         "predicted_operations": predicted_ops,
         "retrieved_candidates": extract_retrieved_candidates(trace),
@@ -359,7 +392,15 @@ def evaluate_task(
         "graph_dependency_accuracy": graph_acc,
         "wrong_tool_rate": round(wrong, 6),
         "refusal_correctness": refusal,
-        "parse_repair_count": count_parse_repairs(trace),
+        "parse_repair_count": int(
+            result.get("parse_repair_count") or count_parse_repairs(trace)
+        ),
+        "protocol_repair_count": int(result.get("protocol_repair_count") or 0),
+        "repair_count": repair_count,
+        "valid_turn_count": int(valid_turn_count or 0),
+        "total_turn_count": total_turn_count,
+        "terminal_contract_valid": bool(terminal_contract_valid),
+        "task_protocol_success": bool(task_protocol_success),
         "real_mcp_execution_count": len(invoke_records),
         "input_tokens": tokens.get("input_tokens"),
         "output_tokens": tokens.get("output_tokens"),
@@ -409,13 +450,41 @@ def summarize_predictions(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
         if err_key is not None:
             error_counts[err_key] = error_counts.get(err_key, 0) + 1
 
+    attempt_rows = [
+        r for r in rows if int(r.get("real_mcp_execution_count") or 0) > 0
+    ]
+    successful_invocations = sum(
+        int(r.get("successful_invocation_count") or 0) for r in rows
+    )
+    total_invocations = sum(int(r.get("real_mcp_execution_count") or 0) for r in rows)
+    zero_invocation_failed = sum(
+        1
+        for r in rows
+        if str(r.get("status") or "") == "failed"
+        and int(r.get("real_mcp_execution_count") or 0) == 0
+    )
+    inv_conditioned_success = (
+        sum(1 for r in attempt_rows if r.get("all_tool_invocations_successful"))
+        / len(attempt_rows)
+        if attempt_rows
+        else None
+    )
+    task_protocol_rate = (
+        sum(1 for r in rows if r.get("task_protocol_success")) / len(rows)
+    )
+
     return {
         "n": len(rows),
+        "processed_count": len(rows),
+        "full_count": result_status_counts.get("full", 0),
+        "completed_success_count": result_status_counts.get("full", 0),
+        "failed_count": result_status_counts.get("failed", 0),
         "mean_operation_f1": _avg("operation_f1"),
         "mean_operation_precision": _avg("operation_precision"),
         "mean_operation_recall": _avg("operation_recall"),
         "exact_tool_set_rate": sum(1 for r in rows if r.get("exact_tool_set"))
         / len(rows),
+        # Compatibility: vacuous True on zero-invocation tasks still included.
         "all_tool_invocations_successful_rate": sum(
             1 for r in rows if r.get("all_tool_invocations_successful")
         )
@@ -424,12 +493,37 @@ def summarize_predictions(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
             1 for r in rows if r.get("tool_execution_success")
         )
         / len(rows),
+        "invocation_attempt_task_count": len(attempt_rows),
+        "invocation_conditioned_task_success_rate": (
+            round(inv_conditioned_success, 6)
+            if inv_conditioned_success is not None
+            else None
+        ),
+        "successful_invocations": successful_invocations,
+        "total_invocations": total_invocations,
+        "zero_invocation_failed_task_count": zero_invocation_failed,
         "recovered_after_tool_error_rate": sum(
             1 for r in rows if r.get("recovered_after_tool_error")
         )
         / len(rows),
-        "mean_wrong_tool_rate": _avg("wrong_tool_rate"),
+        # Invoke-transport protocol average (may be high even when task failed).
         "mean_protocol_success_rate": _avg("protocol_success_rate"),
+        # Task-level protocol contract (False on max_llm_turns / failed).
+        "task_protocol_success_rate": round(task_protocol_rate, 6),
+        "mean_valid_turn_rate": (
+            None
+            if not any(isinstance(r.get("total_turn_count"), (int, float)) for r in rows)
+            else (
+                sum(float(r.get("valid_turn_count") or 0) for r in rows)
+                / max(sum(float(r.get("total_turn_count") or 0) for r in rows), 1.0)
+            )
+        ),
+        "mean_repair_count": _avg("repair_count"),
+        "terminal_contract_valid_rate": round(
+            sum(1 for r in rows if r.get("terminal_contract_valid")) / len(rows),
+            6,
+        ),
+        "mean_wrong_tool_rate": _avg("wrong_tool_rate"),
         "mean_latency_ms": _avg("latency_ms"),
         "mean_llm_calls": _avg("llm_calls"),
         "mean_total_tokens": _avg("total_tokens"),
@@ -439,7 +533,10 @@ def summarize_predictions(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
         "note": (
             "error_counts only include non-empty error/error_type; "
             "result_status_counts are independent (full is not an error). "
-            "tool_execution_success == all_tool_invocations_successful."
+            "tool_execution_success == all_tool_invocations_successful "
+            "(vacuous True when zero invocations). Prefer "
+            "invocation_conditioned_task_success_rate and "
+            "task_protocol_success_rate for formal reporting."
         ),
     }
 

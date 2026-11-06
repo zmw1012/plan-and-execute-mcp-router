@@ -13,7 +13,9 @@ generation_model: deepseek-v4.1-flash
 embedding_model: text-embedding-3-small
 temperature: 0.0
 max_tokens: 1024
-json_mode: true
+# MCP-Zero requires raw <tool_assistant> ATR turns. Forced provider JSON mode
+# makes ATR illegal and causes empty-action repair loops (smoke4_v2 failure mode).
+json_mode: false
 dataset_split: development
 dataset_manifest: benchmarks/manifests/hk_unified_dataset_v1.json
 smoke_manifest: benchmarks/smoke/hk_unified_dev_smoke_8_v1.json

@@ -113,9 +113,11 @@ The four smoke ids are unchanged HK-155 development-source items:
 A real `--split exploratory_all` run writes `retirement_effective=true` into that output directory. These four ids do not include previously reserved questions. The formal 155 directory is separate. Frozen JSONL is not modified.
 
 ```bash
-# Real smoke v2 (after protocol/runner hardening). Do NOT overwrite smoke4_v1.
-# smoke4_v1 is marked invalidated_engineering_smoke_due_to_runner_protocol_defects.
+# Real smoke v3 (after ATR/json_mode protocol correction). Do NOT overwrite v1/v2.
+# v1: invalidated_engineering_smoke_due_to_runner_protocol_defects
+# v2: invalidated_engineering_smoke_due_to_atr_json_mode_protocol_conflict
 # Requires .env.relay-v41 with LLM_PROVIDER=openai_compatible.
+# json_mode must be false so raw <tool_assistant> ATR turns are legal.
 PYTHONPATH=src "$PY" scripts/run_hk_unified_mcp_zero_experiment.py \
   --split exploratory_all \
   --confirm-retire-heldout \
@@ -123,7 +125,7 @@ PYTHONPATH=src "$PY" scripts/run_hk_unified_mcp_zero_experiment.py \
   --allow-hkex-download \
   --env-file "$GEN_ENV" \
   --embedding-env-file "$EMB_ENV" \
-  --output-dir outputs/hk_unified_mcp_zero_real_smoke4_v2
+  --output-dir outputs/hk_unified_mcp_zero_real_smoke4_v3
 
 # Continuous full HK-155. First process has no --resume.
 PYTHONPATH=src "$PY" scripts/run_hk_unified_mcp_zero_experiment.py \

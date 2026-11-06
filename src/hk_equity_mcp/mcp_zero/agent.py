@@ -31,19 +31,74 @@ from hk_equity_mcp.mcp_zero.router import HierarchicalRouter
 from hk_equity_mcp.mcp_zero.schemas import McpZeroTrace, ToolHit
 from hk_equity_mcp.real_mcp.unified_gateway import UnifiedRealMcpGateway
 
-PROTOCOL_REPAIR_MESSAGE = (
-    "Invalid empty action. Your previous JSON had empty tool_calls and a null "
-    "final_answer. You must choose exactly one of:\n"
-    "1. Emit a <tool_assistant> Active Tool Request;\n"
-    "2. Call invoke_api on a previously retrieved operation_id;\n"
-    "3. Submit a valid final_answer object (answered / clarification_needed / "
-    "unavailable).\n"
-    "Do not end the turn with thought-only JSON."
+ATR_EXAMPLE = (
+    "<tool_assistant>\n"
+    "server: [brief server/platform description]\n"
+    "tool: [brief operation type + target]\n"
+    "</tool_assistant>"
+)
+
+INVOKE_EXAMPLE = (
+    '{"thought":"...","tool_calls":[{"name":"invoke_api","arguments":'
+    '{"operation_id":"<retrieved_id>","arguments":{}}}],"final_answer":null}'
+)
+
+FINAL_EXAMPLE = (
+    '{"thought":"...","tool_calls":[],"final_answer":{"status":"answered|'
+    'clarification_needed|unavailable","final_answer":"...","reasoning_brief":"...",'
+    '"evidence":[]}}'
 )
 
 
-def _parse_agent_json(content: str) -> Dict[str, Any]:
-    text = content.strip()
+def build_protocol_repair_message(*, available_operation_ids: List[str]) -> str:
+    """State-aware repair: show the minimal legal formats for the current turn."""
+    lines = [
+        "Invalid empty or malformed action. Choose exactly ONE legal response:",
+        "",
+        "A) Active Tool Request (raw text tags; do NOT wrap in JSON):",
+        ATR_EXAMPLE,
+        "",
+    ]
+    if available_operation_ids:
+        lines.extend(
+            [
+                "B) JSON invoke on a retrieved operation_id:",
+                INVOKE_EXAMPLE,
+                "Available operation_ids now: "
+                + json.dumps(sorted(available_operation_ids), ensure_ascii=False),
+                "",
+                "C) JSON final answer:",
+                FINAL_EXAMPLE,
+                "",
+                "If candidates are insufficient after tools, emit A (extension ATR).",
+            ]
+        )
+    else:
+        lines.extend(
+            [
+                "No operations retrieved yet — prefer A (Active Tool Request).",
+                "If you must refuse without tools, use C:",
+                FINAL_EXAMPLE,
+            ]
+        )
+    lines.append(
+        "Empty tool_calls with null final_answer is never a valid end."
+    )
+    return "\n".join(lines)
+
+
+def build_parse_repair_message(*, available_operation_ids: List[str]) -> str:
+    return (
+        "Your previous response was neither a valid <tool_assistant> block nor "
+        "valid action/final JSON. Reply with exactly one of the formats below.\n\n"
+        + build_protocol_repair_message(
+            available_operation_ids=available_operation_ids
+        )
+    )
+
+
+def _strip_code_fence(text: str) -> str:
+    text = text.strip()
     if text.startswith("```"):
         lines = text.splitlines()
         if lines and lines[0].startswith("```"):
@@ -51,7 +106,15 @@ def _parse_agent_json(content: str) -> Dict[str, Any]:
         if lines and lines[-1].startswith("```"):
             lines = lines[:-1]
         text = "\n".join(lines).strip()
+    return text
+
+
+def _parse_agent_json(content: str) -> Dict[str, Any]:
+    text = _strip_code_fence(content)
     parsed = json.loads(text)
+    # Some providers wrap a single object in a one-element array.
+    if isinstance(parsed, list) and len(parsed) == 1 and isinstance(parsed[0], dict):
+        parsed = parsed[0]
     if not isinstance(parsed, dict):
         raise ValueError("Agent JSON must be an object")
     return parsed
@@ -59,6 +122,27 @@ def _parse_agent_json(content: str) -> Dict[str, Any]:
 
 def _is_valid_final_answer_object(value: Any) -> bool:
     return isinstance(value, dict) and value.get("status") is not None
+
+
+def _classify_turn_validity(
+    *,
+    atr: bool,
+    parsed: Optional[Dict[str, Any]],
+    parse_error: bool,
+    protocol_repair: bool,
+) -> bool:
+    if atr:
+        return True
+    if parse_error or protocol_repair:
+        return False
+    if not isinstance(parsed, dict):
+        return False
+    tool_calls = parsed.get("tool_calls") or []
+    if not isinstance(tool_calls, list):
+        tool_calls = []
+    if tool_calls:
+        return True
+    return _is_valid_final_answer_object(parsed.get("final_answer"))
 
 
 def _safe_error_message(exc: BaseException, *, limit: int = 500) -> str:
@@ -174,6 +258,7 @@ class McpZeroAgent:
         failure_stage: Optional[str] = None
         parse_repair_count = 0
         protocol_repair_count = 0
+        valid_turn_count = 0
         debug_traceback_file: Optional[str] = None
 
         try:
@@ -202,29 +287,43 @@ class McpZeroAgent:
                 usage = llm_resp.get("usage") or {}
                 total_in += int(usage.get("input_tokens") or 0)
                 total_out += int(usage.get("output_tokens") or 0)
-                content = llm_resp["content"]
-                if not isinstance(content, str):
-                    content = str(content or "")
-                messages.append({"role": "assistant", "content": content})
+                content = llm_resp.get("content")
+                # Always persist auditable raw content (never drop to empty silently).
+                if content is None:
+                    raw_content = ""
+                    event_note = "null_content"
+                elif isinstance(content, str):
+                    raw_content = content
+                    event_note = None
+                else:
+                    raw_content = str(content)
+                    event_note = "non_string_content"
+                messages.append({"role": "assistant", "content": raw_content})
                 event: Dict[str, Any] = {
                     "type": "llm_turn",
                     "turn": turn,
-                    "content": content,
+                    "content": raw_content,
+                    "raw_content": raw_content,
                     "usage": usage,
                     "latency_ms": llm_resp.get("latency_ms"),
                     "provider": llm_resp.get("provider"),
                     "model": llm_resp.get("model"),
                 }
+                if event_note:
+                    event["content_note"] = event_note
 
                 failure_stage = "active_tool_request_parse"
+                # Parser order: ATR first, then JSON action/final.
                 request = parse_active_tool_request(
-                    content,
+                    raw_content,
                     round_index=len(mcp_trace.rounds),
                     source="extension" if extension.initial_done else "llm",
                 )
                 if request is not None:
+                    valid_turn_count += 1
                     decision = extension.decide(request)
                     event["active_tool_request"] = request.to_dict()
+                    event["turn_valid"] = True
                     event["extension_decision"] = {
                         "allow": decision.allow,
                         "reason": decision.reason,
@@ -310,18 +409,17 @@ class McpZeroAgent:
 
                 failure_stage = "agent_json_parse"
                 try:
-                    parsed = _parse_agent_json(content)
+                    parsed = _parse_agent_json(raw_content)
                 except Exception as exc:  # noqa: BLE001
                     event["parse_error"] = type(exc).__name__
+                    event["turn_valid"] = False
                     trace.append(event)
                     parse_repair_count += 1
                     messages.append(
                         {
                             "role": "user",
-                            "content": (
-                                "Your previous response was neither a valid "
-                                "<tool_assistant> block nor valid JSON. Reply again "
-                                "with the required format only."
+                            "content": build_parse_repair_message(
+                                available_operation_ids=list(available.keys())
                             ),
                         }
                     )
@@ -335,9 +433,11 @@ class McpZeroAgent:
                     "tool_calls": tool_calls,
                     "final_answer": parsed.get("final_answer"),
                 }
-                trace.append(event)
 
                 if _is_valid_final_answer_object(parsed.get("final_answer")) and not tool_calls:
+                    event["turn_valid"] = True
+                    valid_turn_count += 1
+                    trace.append(event)
                     final_payload = parsed.get("final_answer")
                     status = "full"
                     extension.mark_model_proceeded()
@@ -348,8 +448,21 @@ class McpZeroAgent:
                     # Empty action: thought-only / null final_answer → protocol repair.
                     protocol_repair_count += 1
                     event["protocol_repair"] = True
-                    messages.append({"role": "user", "content": PROTOCOL_REPAIR_MESSAGE})
+                    event["turn_valid"] = False
+                    trace.append(event)
+                    messages.append(
+                        {
+                            "role": "user",
+                            "content": build_protocol_repair_message(
+                                available_operation_ids=list(available.keys())
+                            ),
+                        }
+                    )
                     continue
+
+                event["turn_valid"] = True
+                valid_turn_count += 1
+                trace.append(event)
 
                 failure_stage = "invoke_api"
                 observations = self._execute_invokes(
@@ -435,6 +548,14 @@ class McpZeroAgent:
         emb_end = self.router.embedder.snapshot()
         embedding_calls = max(0, int(emb_end["calls"]) - int(emb_start["calls"]))
         embedding_tokens = max(0, int(emb_end["tokens"]) - int(emb_start["tokens"]))
+        terminal_contract_valid = status == "full" and _is_valid_final_answer_object(
+            final_payload
+        )
+        repair_count = int(protocol_repair_count) + int(parse_repair_count)
+        total_turn_count = int(llm_calls)
+        task_protocol_success = bool(
+            terminal_contract_valid and status == "full" and error is None
+        )
         return {
             "question": question,
             "architecture": "mcp_zero",
@@ -447,6 +568,11 @@ class McpZeroAgent:
             "predicted_status": predicted_status,
             "status": status,
             "llm_calls": llm_calls,
+            "total_turn_count": total_turn_count,
+            "valid_turn_count": valid_turn_count,
+            "repair_count": repair_count,
+            "terminal_contract_valid": terminal_contract_valid,
+            "task_protocol_success": task_protocol_success,
             "tokens": {
                 "input_tokens": total_in,
                 "output_tokens": total_out,

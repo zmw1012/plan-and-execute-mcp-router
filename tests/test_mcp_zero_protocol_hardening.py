@@ -14,7 +14,7 @@ from hk_equity_mcp.mcp_zero.active_request import (
     format_active_tool_request,
     parse_active_tool_request,
 )
-from hk_equity_mcp.mcp_zero.agent import PROTOCOL_REPAIR_MESSAGE, McpZeroAgent
+from hk_equity_mcp.mcp_zero.agent import build_protocol_repair_message, McpZeroAgent
 from hk_equity_mcp.mcp_zero.embedding import CountingEmbedder, build_embedding_table
 from hk_equity_mcp.mcp_zero.metadata import build_hk_metadata
 from hk_equity_mcp.mcp_zero.prompt import mcp_zero_prompt_hash
@@ -227,8 +227,9 @@ def test_thought_only_json_triggers_protocol_repair(tmp_path: Path):
     assert result["protocol_repair_count"] >= 1
     assert result["status"] == "full"
     assert result["predicted_status"] == "unavailable"
-    # Repair feedback was appended into the conversation (visible via second turn succeeding).
-    assert PROTOCOL_REPAIR_MESSAGE.splitlines()[0] in PROTOCOL_REPAIR_MESSAGE
+    repair = build_protocol_repair_message(available_operation_ids=[])
+    assert "Active Tool Request" in repair
+    assert "<tool_assistant>" in repair
     gateway.close()
 
 
