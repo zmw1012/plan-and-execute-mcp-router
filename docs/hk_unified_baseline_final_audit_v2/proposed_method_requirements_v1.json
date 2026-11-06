@@ -1,0 +1,41 @@
+{
+  "note": "Derived only from taxonomy rates; no task-id rules.",
+  "requirements": [
+    {
+      "requirement": "Explicit evidence-chain planning",
+      "supported_by_primary_category": "agent_selection",
+      "primary_rate": 0.05161290322580645,
+      "rationale": "Gold ops are often retrieved but not selected as a complete set; planning over evidence chains is supported."
+    },
+    {
+      "requirement": "Calculation/synthesis verification",
+      "supported_by_primary_category": "answer_synthesis_calculation",
+      "primary_rate": 0.03870967741935484,
+      "rationale": "Tool results succeed but final numeric/unit synthesis fails."
+    },
+    {
+      "requirement": "Feasibility and temporal-policy gate",
+      "supported_by_primary_category": "feasibility_refusal",
+      "primary_rate": 0.14193548387096774,
+      "rationale": "Refusal tasks are answered with substitutes or live/cutoff violations."
+    },
+    {
+      "requirement": "Structured evidence compression",
+      "supported_by_primary_category": "resource_limit",
+      "primary_rate": 0.14838709677419354,
+      "rationale": "max_llm_turns / reformulations / invocations dominate hard failures; compression/dedup can reduce budget burn."
+    },
+    {
+      "requirement": "Operation deduplication",
+      "supported_by_primary_category": "resource_limit",
+      "primary_rate": 0.14838709677419354,
+      "rationale": "Repeated find/describe/invoke under budget caps is a supported weakness."
+    },
+    {
+      "requirement": "Refusal validation",
+      "supported_by_primary_category": "feasibility_refusal",
+      "primary_rate": 0.14193548387096774,
+      "rationale": "Capability-gap / blocked-provider items need post-answer refusal validation."
+    }
+  ]
+}

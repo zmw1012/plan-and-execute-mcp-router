@@ -22,7 +22,7 @@ import hashlib
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
-EVALUATOR_VERSION = "hk_unified_evaluator_v1.1"
+EVALUATOR_VERSION = "hk_unified_evaluator_v1.2"
 EVALUATOR_MODULE_PATH = Path(__file__).resolve()
 
 

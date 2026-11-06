@@ -1,0 +1,95 @@
+{
+  "taxonomy_version": "error_taxonomy_v1",
+  "n": 155,
+  "primary_counts": {
+    "retrieval": 1,
+    "agent_selection": 8,
+    "description_argument_grounding": 0,
+    "dependency_order": 0,
+    "tool_execution": 0,
+    "answer_synthesis_calculation": 6,
+    "feasibility_refusal": 22,
+    "resource_limit": 23,
+    "evaluation_failure": 1,
+    "success": 94
+  },
+  "primary_rates": {
+    "retrieval": 0.0064516129032258064,
+    "agent_selection": 0.05161290322580645,
+    "description_argument_grounding": 0.0,
+    "dependency_order": 0.0,
+    "tool_execution": 0.0,
+    "answer_synthesis_calculation": 0.03870967741935484,
+    "feasibility_refusal": 0.14193548387096774,
+    "resource_limit": 0.14838709677419354,
+    "evaluation_failure": 0.0064516129032258064,
+    "success": 0.6064516129032258
+  },
+  "secondary_counts": {
+    "agent_selection": 46,
+    "answer_synthesis_calculation": 9,
+    "retrieval": 3,
+    "tool_execution": 20,
+    "resource_limit": 2
+  },
+  "by_domain": {
+    "financial": {
+      "success": 27,
+      "answer_synthesis_calculation": 2,
+      "agent_selection": 5,
+      "resource_limit": 15,
+      "evaluation_failure": 1,
+      "retrieval": 1,
+      "feasibility_refusal": 9
+    },
+    "market": {
+      "success": 26,
+      "resource_limit": 3,
+      "feasibility_refusal": 6
+    },
+    "news": {
+      "success": 25,
+      "answer_synthesis_calculation": 3,
+      "resource_limit": 2,
+      "feasibility_refusal": 5
+    },
+    "cross_domain": {
+      "resource_limit": 3,
+      "success": 16,
+      "answer_synthesis_calculation": 1,
+      "agent_selection": 3,
+      "feasibility_refusal": 2
+    }
+  },
+  "by_project_difficulty": {
+    "D1": {
+      "success": 27,
+      "answer_synthesis_calculation": 2,
+      "agent_selection": 2,
+      "resource_limit": 4
+    },
+    "D2": {
+      "resource_limit": 4,
+      "success": 17,
+      "evaluation_failure": 1,
+      "agent_selection": 2
+    },
+    "D3": {
+      "success": 29,
+      "answer_synthesis_calculation": 4,
+      "resource_limit": 6,
+      "agent_selection": 2,
+      "retrieval": 1
+    },
+    "D4": {
+      "agent_selection": 2,
+      "success": 14,
+      "resource_limit": 9,
+      "feasibility_refusal": 3
+    },
+    "D5": {
+      "feasibility_refusal": 19,
+      "success": 7
+    }
+  }
+}

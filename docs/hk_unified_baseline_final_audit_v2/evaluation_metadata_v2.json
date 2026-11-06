@@ -1,0 +1,82 @@
+{
+  "audit_version": "final_audit_v2",
+  "audit_timestamp": "2026-11-04T15:32:45.625532+00:00",
+  "baseline_git_commit": "39bd31b651deb1d064942ee5c6f5e9068946ac15",
+  "baseline_branch_expected": "feature/unified-hk-operation-visible-runner-v1",
+  "evaluator_version": "hk_unified_evaluator_v1.2",
+  "grader_version": "deterministic_v1.2",
+  "grading_version": "hk_unified_grading_v1.2",
+  "taxonomy_version": "error_taxonomy_v1",
+  "evaluator_source_sha256": "e10f510aa86e1bab2ee899b8a68715af602ae3a8296cdb18ed17fb8e5ef14c71",
+  "grader_source_sha256": "2e1ae2d451435f85d4108f895f0e828743e826d9312819dc3c3e3a9d218c16ad",
+  "taxonomy_source_sha256": "0994ee8b18529a6a2e80b5f59f280ea1c6691b2acd0877184ea371521795e092",
+  "audit_source_sha256": "97d744ff32a5f683c92dd40790292f86f3dee8441cbf41642c801ff8a4617e77",
+  "raw_sha256": {
+    "predictions.jsonl": "e273d25a41470ca1fcdaa979469a2c18de1c0bf5eade46e969e33c42526cb50c",
+    "run_metadata.json": "c164c3af206b072ba42d76b808aa076ec4b3868ebe33099a8576209b6cfaf4b8",
+    "per_task_metrics.csv": "783a9cd4c7ef567dbc658445a0fa9db3673a9d4a02c8ad546f96cf976b9c80e9",
+    "manual_grading.csv": "e46f04c708dc040e9b61bc5c0f99b706596ff445d99d64568bf4a40902894d25",
+    "retrieval_analysis.json": "aee1da3519d9056aacd96a2cc60fc54deab61d1ba5663a43e57177deed99e7f1"
+  },
+  "raw_inputs_immutable": true,
+  "question_count": 155,
+  "run_status": "completed",
+  "generation_model": "deepseek-v4.1-flash",
+  "system_prompt_hash": "9674844a98c9f438ae02d19572f173a7cdc27e1c365ed27dd39ea7e0963eec1b",
+  "catalog_fingerprint": "unique=42|runtime=39|namespaced=54|cross_domain:a21a0cdf6c73|financial:18634ccfb733|market:2b201872c109|news:9121e9b7ca8d",
+  "domain_counts": {
+    "financial": 60,
+    "market": 35,
+    "news": 35,
+    "cross_domain": 25
+  },
+  "provider_segments": {
+    "tasks_1_65": "Aliyun token-plan host (token-plan.cn-beijing.maas.aliyuncs.com)",
+    "tasks_66_155": "api.zhizengzeng.com relay",
+    "requested_model_id": "deepseek-v4.1-flash",
+    "interpretation_constraint": "tasks 1–65: Aliyun token-plan host; tasks 66–155: api.zhizengzeng.com relay; requested model id is deepseek-v4.1-flash for both. Difficulty mix differs by segment, so accuracy gaps must NOT be interpreted as a provider effect."
+  },
+  "v11_manual_required_check": {
+    "expected": [
+      "mkt_dev_003",
+      "xd_ht_003",
+      "mkt_ht_004",
+      "mkt_dev_007",
+      "mkt_ht_006",
+      "mkt_ht_008",
+      "fin_cf_022",
+      "mkt_ht_016"
+    ],
+    "actual": [
+      "fin_cf_022",
+      "mkt_dev_003",
+      "mkt_dev_007",
+      "mkt_ht_004",
+      "mkt_ht_006",
+      "mkt_ht_008",
+      "mkt_ht_016",
+      "xd_ht_003"
+    ],
+    "match": true
+  },
+  "offline_guarantees": {
+    "llm_calls": 0,
+    "embedding_calls": 0,
+    "mcp_calls": 0,
+    "paid_api_calls": 0,
+    "predictions_modified": false,
+    "gold_modified": false,
+    "prompt_modified": false,
+    "catalog_modified": false
+  },
+  "evaluator": {
+    "evaluator_version": "hk_unified_evaluator_v1.2",
+    "evaluator_source_sha256": "e10f510aa86e1bab2ee899b8a68715af602ae3a8296cdb18ed17fb8e5ef14c71",
+    "evaluator_module": "unified_evaluator.py"
+  },
+  "grading": {
+    "grader_version": "deterministic_v1.2",
+    "grading_version": "hk_unified_grading_v1.2"
+  },
+  "output_dir": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-hk-unified/outputs/hk_unified_exploratory155_operation_visible_v1/final_audit_v2"
+}
