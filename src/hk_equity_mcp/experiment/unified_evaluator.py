@@ -96,7 +96,8 @@ def extract_retrieved_candidates(trace: Sequence[Dict[str, Any]]) -> List[Dict[s
     for event in trace or []:
         if event.get("type") != "tool_result":
             continue
-        if event.get("name") != "find_operations":
+        # Operation-Visible: find_operations; MCP-Zero: mcp_zero_retrieve.
+        if event.get("name") not in {"find_operations", "mcp_zero_retrieve"}:
             continue
         result = event.get("result") or {}
         for cand in result.get("candidates") or []:
@@ -106,6 +107,10 @@ def extract_retrieved_candidates(trace: Sequence[Dict[str, Any]]) -> List[Dict[s
                     "score": cand.get("score"),
                     "cosine": cand.get("cosine"),
                     "lexical": cand.get("lexical"),
+                    "server_score": cand.get("server_score"),
+                    "tool_score": cand.get("tool_score"),
+                    "rank": cand.get("rank"),
+                    "server_id": cand.get("server_id"),
                     "query": result.get("query"),
                 }
             )
