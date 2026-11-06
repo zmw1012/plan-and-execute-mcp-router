@@ -113,7 +113,8 @@ The four smoke ids are unchanged HK-155 development-source items:
 A real `--split exploratory_all` run writes `retirement_effective=true` into that output directory. These four ids do not include previously reserved questions. The formal 155 directory is separate. Frozen JSONL is not modified.
 
 ```bash
-# Real smoke. Do not point this at the formal 155 directory.
+# Real smoke v2 (after protocol/runner hardening). Do NOT overwrite smoke4_v1.
+# smoke4_v1 is marked invalidated_engineering_smoke_due_to_runner_protocol_defects.
 # Requires .env.relay-v41 with LLM_PROVIDER=openai_compatible.
 PYTHONPATH=src "$PY" scripts/run_hk_unified_mcp_zero_experiment.py \
   --split exploratory_all \
@@ -122,7 +123,7 @@ PYTHONPATH=src "$PY" scripts/run_hk_unified_mcp_zero_experiment.py \
   --allow-hkex-download \
   --env-file "$GEN_ENV" \
   --embedding-env-file "$EMB_ENV" \
-  --output-dir outputs/hk_unified_mcp_zero_real_smoke4_v1
+  --output-dir outputs/hk_unified_mcp_zero_real_smoke4_v2
 
 # Continuous full HK-155. First process has no --resume.
 PYTHONPATH=src "$PY" scripts/run_hk_unified_mcp_zero_experiment.py \
@@ -174,8 +175,21 @@ Extra MCP-Zero fields on predictions / retrieval analysis:
 - `active_tool_request`
 - `retrieved_servers` / ranks / scores
 - `retrieved_tools` / ranks / scores
-- `selected_operations` / `invoked_operations`
+- `selected_operations` / `invalid_selections` / `invoked_operations` / `successful_invoked_operations`
 - `extension_rounds` / `termination_reason`
-- `llm_calls` / embedding calls+tokens
+- `llm_calls` / embedding calls+tokens (per-task query-time deltas)
 - `retrieval_latency_ms` / `generation_latency_ms`
+- `error_type` / `error_message` / `failure_stage` / `protocol_repair_count`
 - index build calls, tokens, latency, and `cache_reused` on `run_metadata.json` (`embedding_index`) and `cost_summary.json`
+
+### Tool / retrieval field semantics (comparable to Operation-Visible)
+
+| Field | Meaning |
+|---|---|
+| `retrieved_tools` | All HierarchicalRouter Top-K candidates. Use for **retrieval Recall@K** only. |
+| `selected_operations` | `operation_id`s the model explicitly chose in `invoke_api` tool_calls. Formal **tool-selection** precision/recall/F1 should use this set (or the OV-compatible `predicted_operations` derived from invoke_api in the trace). Never auto-copy retrieved candidates into selected. |
+| `invoked_operations` | Selected ops that passed basic validation and were submitted to the Gateway. |
+| `successful_invoked_operations` | Invoked ops where Gateway returned success. |
+| `invalid_selections` | `invoke_api` requests for ops not in the retrieved set (`invoked=0`). |
+
+Operation-Visible `operation_precision` / `operation_recall` / `operation_f1` continue to use invoke_api order from the trace (`extract_predicted_operations`), which aligns with `invoked_operations` / successful selection — not with raw retrieval candidates.

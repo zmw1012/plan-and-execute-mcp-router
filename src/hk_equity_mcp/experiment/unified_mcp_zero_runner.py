@@ -10,6 +10,7 @@ from __future__ import annotations
 import csv
 import json
 import os
+import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
@@ -700,6 +701,7 @@ class UnifiedHkMcpZeroRunner:
             ),
             use_summary=use_summary,
         )
+        debug_dir = self.output_dir / "debug_tracebacks"
         return McpZeroAgent(
             llm=llm,
             router=router,
@@ -713,6 +715,7 @@ class UnifiedHkMcpZeroRunner:
             temperature=self.temperature,
             max_tokens=self.max_tokens,
             system_prompt=self.system_prompt,
+            debug_dir=debug_dir,
         )
 
     def close(self) -> None:
@@ -741,6 +744,12 @@ class UnifiedHkMcpZeroRunner:
             "question": item["question"],
             "status": result.get("status"),
             "error": result.get("error"),
+            "error_type": result.get("error_type"),
+            "error_message": result.get("error_message"),
+            "failure_stage": result.get("failure_stage"),
+            "debug_traceback_file": result.get("debug_traceback_file"),
+            "protocol_repair_count": result.get("protocol_repair_count", 0),
+            "parse_repair_count": result.get("parse_repair_count", 0),
             "final_answer": result.get("final_answer"),
             "predicted_status": result.get("predicted_status"),
             "answerability_class": item.get("answerability_class"),
@@ -754,6 +763,8 @@ class UnifiedHkMcpZeroRunner:
             "tokens": tokens,
             "embedding_calls": result.get("embedding_calls"),
             "embedding_tokens": result.get("embedding_tokens"),
+            "retrieval_embedding_calls": result.get("retrieval_embedding_calls"),
+            "retrieval_embedding_tokens": result.get("retrieval_embedding_tokens"),
             "latency_ms": result.get("latency_ms"),
             "generation_latency_ms": result.get("generation_latency_ms"),
             "retrieval_latency_ms": result.get("retrieval_latency_ms"),
@@ -769,7 +780,11 @@ class UnifiedHkMcpZeroRunner:
             "retrieved_servers": result.get("retrieved_servers"),
             "retrieved_tools": result.get("retrieved_tools"),
             "selected_operations": result.get("selected_operations"),
+            "invalid_selections": result.get("invalid_selections"),
             "invoked_operations": result.get("invoked_operations"),
+            "successful_invoked_operations": result.get(
+                "successful_invoked_operations"
+            ),
             "extension_rounds": result.get("extension_rounds"),
             "number_of_extension_rounds": result.get("number_of_extension_rounds"),
             "termination_reason": result.get("termination_reason"),
@@ -970,6 +985,27 @@ class UnifiedHkMcpZeroRunner:
                 "server_top_k": run_meta.get("server_top_k"),
                 "tool_top_k": run_meta.get("tool_top_k"),
                 "score_mode": run_meta.get("score_mode"),
+                "field_definitions": {
+                    "retrieved_tools": (
+                        "All HierarchicalRouter Top-K candidates. Retrieval "
+                        "Recall@K only — not tool-selection precision."
+                    ),
+                    "selected_operations": (
+                        "operation_ids explicitly requested via invoke_api "
+                        "tool_calls. Must not auto-include retrieved candidates. "
+                        "Comparable to Operation-Visible selection metrics."
+                    ),
+                    "invoked_operations": (
+                        "Selected ops that passed validation and were submitted "
+                        "to the Gateway."
+                    ),
+                    "successful_invoked_operations": (
+                        "Invoked ops where Gateway returned success."
+                    ),
+                    "invalid_selections": (
+                        "invoke_api requests for ops not in the retrieved set."
+                    ),
+                },
                 "per_task": [
                     {
                         "task_id": r["task_id"],
@@ -978,7 +1014,11 @@ class UnifiedHkMcpZeroRunner:
                         "retrieved_tools": r.get("retrieved_tools"),
                         "retrieved_candidates": r.get("retrieved_candidates"),
                         "selected_operations": r.get("selected_operations"),
+                        "invalid_selections": r.get("invalid_selections"),
                         "invoked_operations": r.get("invoked_operations"),
+                        "successful_invoked_operations": r.get(
+                            "successful_invoked_operations"
+                        ),
                         "predicted_operations": r.get("predicted_operations"),
                         "gold_operations": r.get("gold_operations"),
                         "extension_rounds": r.get("extension_rounds"),
@@ -1102,9 +1142,43 @@ class UnifiedHkMcpZeroRunner:
                 print(f"[{index:02d}/{len(items)}] {qid}", flush=True)
                 try:
                     # Model receives ONLY the question string (no gold leakage).
-                    result = agent.run(item["question"])
+                    result = agent.run(item["question"], task_label=qid)
                     row = self._build_prediction_row(item, result)
                 except Exception as exc:  # noqa: BLE001
+                    # Last-resort stub if agent fails to return structured failure.
+                    safe_msg = redact_secrets(str(exc) or type(exc).__name__)
+                    if not isinstance(safe_msg, str):
+                        safe_msg = type(exc).__name__
+                    for needle in ("api_key", "authorization", "bearer ", "sk-"):
+                        if needle in safe_msg.lower():
+                            safe_msg = type(exc).__name__
+                            break
+                    debug_name = None
+                    try:
+                        dbg_dir = self.output_dir / "debug_tracebacks"
+                        dbg_dir.mkdir(parents=True, exist_ok=True)
+                        safe_qid = "".join(
+                            ch if ch.isalnum() or ch in "-_" else "_" for ch in qid
+                        )[:80]
+                        dbg_path = dbg_dir / f"{safe_qid}_runner_traceback.txt"
+                        payload = redact_secrets(
+                            {
+                                "task_id": qid,
+                                "failure_stage": "runner_agent_run",
+                                "error_type": type(exc).__name__,
+                                "error_message": safe_msg[:500],
+                                "traceback": traceback.format_exc().replace(
+                                    str(Path.home()), "~"
+                                ),
+                            }
+                        )
+                        dbg_path.write_text(
+                            json.dumps(payload, ensure_ascii=False, indent=2),
+                            encoding="utf-8",
+                        )
+                        debug_name = dbg_path.name
+                    except Exception:  # noqa: BLE001
+                        debug_name = None
                     row = self._build_prediction_row(
                         item,
                         {
@@ -1127,9 +1201,16 @@ class UnifiedHkMcpZeroRunner:
                                 "embedding_model": run_meta.get("embedding_model"),
                             },
                             "error": type(exc).__name__,
+                            "error_type": type(exc).__name__,
+                            "error_message": safe_msg[:500],
+                            "failure_stage": "runner_agent_run",
+                            "debug_traceback_file": debug_name,
+                            "selected_operations": [],
+                            "invalid_selections": [],
+                            "invoked_operations": [],
+                            "successful_invoked_operations": [],
                         },
                     )
-                    row["error"] = type(exc).__name__
                 append_jsonl(predictions_path, row)
                 predictions_by_id[qid] = row
                 run_meta["completed_count"] = len(predictions_by_id)

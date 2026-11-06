@@ -96,7 +96,13 @@ class OpenAICompatibleChatClient(LLMClient):
         choices = body.get("choices") or []
         if not choices:
             raise RuntimeError("LLM response missing choices.")
-        content = choices[0].get("message", {}).get("content") or ""
+        # message may be explicitly null; dict.get("message", {}) still returns None.
+        message = choices[0].get("message")
+        if not isinstance(message, dict):
+            message = {}
+        content = message.get("content") or ""
+        if not isinstance(content, str):
+            content = str(content)
         usage = body.get("usage") or {}
         in_tok = int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
         out_tok = int(usage.get("completion_tokens") or usage.get("output_tokens") or 0)

@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 import time
+import traceback
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 from hk_equity_mcp.agent.llm_client import LLMClient
@@ -16,6 +18,7 @@ from hk_equity_mcp.experiment.normalize import (
     agent_completion_to_fallback,
     normalize_final_payload,
 )
+from hk_equity_mcp.experiment.runner import redact_secrets
 from hk_equity_mcp.mcp_zero.active_request import parse_active_tool_request
 from hk_equity_mcp.mcp_zero.extension import (
     TERMINATION_MAX_LLM_TURNS,
@@ -28,6 +31,16 @@ from hk_equity_mcp.mcp_zero.router import HierarchicalRouter
 from hk_equity_mcp.mcp_zero.schemas import McpZeroTrace, ToolHit
 from hk_equity_mcp.real_mcp.unified_gateway import UnifiedRealMcpGateway
 
+PROTOCOL_REPAIR_MESSAGE = (
+    "Invalid empty action. Your previous JSON had empty tool_calls and a null "
+    "final_answer. You must choose exactly one of:\n"
+    "1. Emit a <tool_assistant> Active Tool Request;\n"
+    "2. Call invoke_api on a previously retrieved operation_id;\n"
+    "3. Submit a valid final_answer object (answered / clarification_needed / "
+    "unavailable).\n"
+    "Do not end the turn with thought-only JSON."
+)
+
 
 def _parse_agent_json(content: str) -> Dict[str, Any]:
     text = content.strip()
@@ -38,7 +51,61 @@ def _parse_agent_json(content: str) -> Dict[str, Any]:
         if lines and lines[-1].startswith("```"):
             lines = lines[:-1]
         text = "\n".join(lines).strip()
-    return json.loads(text)
+    parsed = json.loads(text)
+    if not isinstance(parsed, dict):
+        raise ValueError("Agent JSON must be an object")
+    return parsed
+
+
+def _is_valid_final_answer_object(value: Any) -> bool:
+    return isinstance(value, dict) and value.get("status") is not None
+
+
+def _safe_error_message(exc: BaseException, *, limit: int = 500) -> str:
+    text = str(exc) or type(exc).__name__
+    redacted = redact_secrets(text)
+    if not isinstance(redacted, str):
+        redacted = str(redacted)
+    for needle in ("api_key", "authorization", "bearer ", "sk-"):
+        if needle in redacted.lower():
+            return type(exc).__name__
+    return redacted[:limit]
+
+
+def _write_debug_traceback(
+    *,
+    debug_dir: Optional[Path],
+    task_label: str,
+    stage: str,
+    exc: BaseException,
+    trace: List[Dict[str, Any]],
+) -> Optional[str]:
+    if debug_dir is None:
+        return None
+    debug_dir = Path(debug_dir)
+    debug_dir.mkdir(parents=True, exist_ok=True)
+    safe_name = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in task_label)[
+        :80
+    ] or "task"
+    path = debug_dir / f"{safe_name}_traceback.txt"
+    tb = traceback.format_exc()
+    payload = redact_secrets(
+        {
+            "task_label": task_label,
+            "failure_stage": stage,
+            "error_type": type(exc).__name__,
+            "error_message": _safe_error_message(exc),
+            "traceback": tb,
+            "partial_trace_event_types": [
+                e.get("type") or e.get("name") for e in trace[-20:]
+            ],
+        }
+    )
+    text = json.dumps(payload, ensure_ascii=False, indent=2)
+    # Strip absolute home/workspace secret-looking paths from traceback text.
+    text = text.replace(str(Path.home()), "~")
+    path.write_text(text, encoding="utf-8")
+    return str(path.name)
 
 
 class McpZeroAgent:
@@ -57,6 +124,8 @@ class McpZeroAgent:
         temperature: float = 0.0,
         max_tokens: int = 1024,
         system_prompt: Optional[str] = None,
+        debug_dir: Optional[Path] = None,
+        task_label: str = "task",
     ):
         self.llm = llm
         self.router = router
@@ -68,10 +137,15 @@ class McpZeroAgent:
         self.temperature = float(temperature)
         self.max_tokens = int(max_tokens)
         self.system_prompt = system_prompt or HK_MCP_ZERO_SYSTEM_PROMPT
+        self.debug_dir = Path(debug_dir) if debug_dir else None
+        self.task_label = task_label
 
-    def run(self, question: str) -> Dict[str, Any]:
+    def run(self, question: str, *, task_label: Optional[str] = None) -> Dict[str, Any]:
+        if task_label:
+            self.task_label = task_label
         started = time.perf_counter()
         deadline = started + self.timeout_sec
+        emb_start = self.router.embedder.snapshot()
         messages: List[Dict[str, str]] = [
             {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": question},
@@ -81,226 +155,274 @@ class McpZeroAgent:
         extension = ExtensionController(max_extension_rounds=self.max_extension_rounds)
         available: Dict[str, ToolHit] = {}
         selected_operations: List[str] = []
+        invalid_selections: List[str] = []
+        invoked_operations: List[str] = []
+        successful_invoked_operations: List[str] = []
         invoke_calls = 0
         llm_calls = 0
         total_in = 0
         total_out = 0
         generation_latency_ms = 0.0
         retrieval_latency_ms = 0.0
-        embedding_calls = 0
-        embedding_tokens = 0
+        retrieval_embedding_calls = 0
+        retrieval_embedding_tokens = 0
         final_payload: Any = None
         status = "failed"
         error: Optional[str] = None
+        error_type: Optional[str] = None
+        error_message: Optional[str] = None
+        failure_stage: Optional[str] = None
         parse_repair_count = 0
+        protocol_repair_count = 0
+        debug_traceback_file: Optional[str] = None
 
-        for turn in range(1, self.max_llm_turns + 1):
-            if time.perf_counter() > deadline:
-                status = "failed"
-                final_payload = {
-                    "status": "unavailable",
-                    "final_answer": "Timed out before completing the request.",
-                    "reasoning_brief": "timeout",
-                    "evidence": [],
+        try:
+            for turn in range(1, self.max_llm_turns + 1):
+                if time.perf_counter() > deadline:
+                    status = "failed"
+                    final_payload = {
+                        "status": "unavailable",
+                        "final_answer": "Timed out before completing the request.",
+                        "reasoning_brief": "timeout",
+                        "evidence": [],
+                    }
+                    error = "timeout"
+                    error_type = "timeout"
+                    failure_stage = "timeout"
+                    extension.finalize_trace(mcp_trace, reason=TERMINATION_TIMEOUT)
+                    break
+
+                failure_stage = "llm_complete"
+                t0 = time.perf_counter()
+                llm_resp = self.llm.complete(
+                    messages, temperature=self.temperature, max_tokens=self.max_tokens
+                )
+                generation_latency_ms += (time.perf_counter() - t0) * 1000.0
+                llm_calls += 1
+                usage = llm_resp.get("usage") or {}
+                total_in += int(usage.get("input_tokens") or 0)
+                total_out += int(usage.get("output_tokens") or 0)
+                content = llm_resp["content"]
+                if not isinstance(content, str):
+                    content = str(content or "")
+                messages.append({"role": "assistant", "content": content})
+                event: Dict[str, Any] = {
+                    "type": "llm_turn",
+                    "turn": turn,
+                    "content": content,
+                    "usage": usage,
+                    "latency_ms": llm_resp.get("latency_ms"),
+                    "provider": llm_resp.get("provider"),
+                    "model": llm_resp.get("model"),
                 }
-                error = "timeout"
-                extension.finalize_trace(mcp_trace, reason=TERMINATION_TIMEOUT)
-                break
 
-            t0 = time.perf_counter()
-            llm_resp = self.llm.complete(
-                messages, temperature=self.temperature, max_tokens=self.max_tokens
-            )
-            generation_latency_ms += (time.perf_counter() - t0) * 1000.0
-            llm_calls += 1
-            usage = llm_resp.get("usage") or {}
-            total_in += int(usage.get("input_tokens") or 0)
-            total_out += int(usage.get("output_tokens") or 0)
-            content = llm_resp["content"]
-            messages.append({"role": "assistant", "content": content})
-            event: Dict[str, Any] = {
-                "type": "llm_turn",
-                "turn": turn,
-                "content": content,
-                "usage": usage,
-                "latency_ms": llm_resp.get("latency_ms"),
-                "provider": llm_resp.get("provider"),
-                "model": llm_resp.get("model"),
-            }
+                failure_stage = "active_tool_request_parse"
+                request = parse_active_tool_request(
+                    content,
+                    round_index=len(mcp_trace.rounds),
+                    source="extension" if extension.initial_done else "llm",
+                )
+                if request is not None:
+                    decision = extension.decide(request)
+                    event["active_tool_request"] = request.to_dict()
+                    event["extension_decision"] = {
+                        "allow": decision.allow,
+                        "reason": decision.reason,
+                        "is_extension": decision.is_extension,
+                    }
+                    trace.append(event)
+                    if not decision.allow:
+                        messages.append(
+                            {
+                                "role": "user",
+                                "content": (
+                                    "Active Tool Request rejected by extension policy "
+                                    f"({decision.reason}). Continue with currently "
+                                    "available operations, invoke_api, or final_answer JSON."
+                                ),
+                            }
+                        )
+                        continue
 
-            # Prefer Active Tool Request when present (even if JSON also appears).
-            request = parse_active_tool_request(
-                content,
-                round_index=len(mcp_trace.rounds),
-                source="extension" if extension.initial_done else "llm",
-            )
-            if request is not None:
-                decision = extension.decide(request)
-                event["active_tool_request"] = request.to_dict()
-                event["extension_decision"] = {
-                    "allow": decision.allow,
-                    "reason": decision.reason,
-                    "is_extension": decision.is_extension,
-                }
-                trace.append(event)
-                if not decision.allow:
+                    failure_stage = "hierarchical_retrieve"
+                    round_ = self.router.retrieve(
+                        request,
+                        exclude_operation_ids=extension.already_seen_ops(),
+                        is_extension=decision.is_extension,
+                    )
+                    round_ = extension.commit_round(round_)
+                    mcp_trace.rounds.append(round_)
+                    retrieval_latency_ms += float(round_.latency_ms)
+                    retrieval_embedding_calls += int(round_.embedding_calls)
+                    retrieval_embedding_tokens += int(round_.embedding_tokens)
+
+                    for hit in round_.tools:
+                        available[hit.operation_id] = hit
+
+                    retrieve_event = {
+                        "type": "tool_result",
+                        "name": "mcp_zero_retrieve",
+                        "arguments": {
+                            "server": request.server,
+                            "tool": request.tool,
+                            "round_index": round_.round_index,
+                            "is_extension": round_.is_extension,
+                        },
+                        "result": {
+                            "query": request.tool,
+                            "servers": [s.to_dict() for s in round_.servers],
+                            "candidates": [
+                                {
+                                    "operation_id": t.operation_id,
+                                    "server_id": t.server_id,
+                                    "tool_name": t.tool_name,
+                                    "score": t.final_score,
+                                    "server_score": t.server_score,
+                                    "tool_score": t.tool_score,
+                                    "rank": t.rank,
+                                }
+                                for t in round_.tools
+                            ],
+                            "new_operation_ids": list(round_.new_operation_ids),
+                            "stop_reason": round_.stop_reason,
+                        },
+                        "parallel": False,
+                    }
+                    trace.append(retrieve_event)
                     messages.append(
                         {
                             "role": "user",
                             "content": (
-                                "Active Tool Request rejected by extension policy "
-                                f"({decision.reason}). Continue with currently "
-                                "available operations, invoke_api, or final_answer JSON."
+                                "Hierarchical retrieval result "
+                                f"(round={round_.round_index}, extension={round_.is_extension}, "
+                                f"stop_reason={round_.stop_reason}):\n"
+                                + self.router.format_tools_for_prompt(round_.tools)
+                                + "\n\nAvailable operation_ids now: "
+                                + json.dumps(
+                                    sorted(available.keys()), ensure_ascii=False
+                                )
+                                + "\nRespond with invoke_api JSON, a refined "
+                                "<tool_assistant> request, or final_answer JSON."
                             ),
                         }
                     )
                     continue
 
-                round_ = self.router.retrieve(
-                    request,
-                    exclude_operation_ids=extension.already_seen_ops(),
-                    is_extension=decision.is_extension,
-                )
-                round_ = extension.commit_round(round_)
-                mcp_trace.rounds.append(round_)
-                retrieval_latency_ms += float(round_.latency_ms)
-                embedding_calls += int(round_.embedding_calls)
-                embedding_tokens += int(round_.embedding_tokens)
+                failure_stage = "agent_json_parse"
+                try:
+                    parsed = _parse_agent_json(content)
+                except Exception as exc:  # noqa: BLE001
+                    event["parse_error"] = type(exc).__name__
+                    trace.append(event)
+                    parse_repair_count += 1
+                    messages.append(
+                        {
+                            "role": "user",
+                            "content": (
+                                "Your previous response was neither a valid "
+                                "<tool_assistant> block nor valid JSON. Reply again "
+                                "with the required format only."
+                            ),
+                        }
+                    )
+                    continue
 
-                for hit in round_.tools:
-                    available[hit.operation_id] = hit
-                    if hit.operation_id not in selected_operations:
-                        selected_operations.append(hit.operation_id)
-
-                retrieve_event = {
-                    "type": "tool_result",
-                    "name": "mcp_zero_retrieve",
-                    "arguments": {
-                        "server": request.server,
-                        "tool": request.tool,
-                        "round_index": round_.round_index,
-                        "is_extension": round_.is_extension,
-                    },
-                    "result": {
-                        "query": request.tool,
-                        "servers": [s.to_dict() for s in round_.servers],
-                        "candidates": [
-                            {
-                                "operation_id": t.operation_id,
-                                "server_id": t.server_id,
-                                "tool_name": t.tool_name,
-                                "score": t.final_score,
-                                "server_score": t.server_score,
-                                "tool_score": t.tool_score,
-                                "rank": t.rank,
-                            }
-                            for t in round_.tools
-                        ],
-                        "new_operation_ids": list(round_.new_operation_ids),
-                        "stop_reason": round_.stop_reason,
-                    },
-                    "parallel": False,
+                tool_calls = parsed.get("tool_calls") or []
+                if not isinstance(tool_calls, list):
+                    tool_calls = []
+                event["parsed"] = {
+                    "thought": parsed.get("thought"),
+                    "tool_calls": tool_calls,
+                    "final_answer": parsed.get("final_answer"),
                 }
-                trace.append(retrieve_event)
-                messages.append(
-                    {
-                        "role": "user",
-                        "content": (
-                            "Hierarchical retrieval result "
-                            f"(round={round_.round_index}, extension={round_.is_extension}, "
-                            f"stop_reason={round_.stop_reason}):\n"
-                            + self.router.format_tools_for_prompt(round_.tools)
-                            + "\n\nAvailable operation_ids now: "
-                            + json.dumps(sorted(available.keys()), ensure_ascii=False)
-                            + "\nRespond with invoke_api JSON, a refined "
-                            "<tool_assistant> request, or final_answer JSON."
-                        ),
-                    }
-                )
-                continue
-
-            # Otherwise treat as JSON action / answer.
-            try:
-                parsed = _parse_agent_json(content)
-            except Exception as exc:  # noqa: BLE001
-                event["parse_error"] = type(exc).__name__
                 trace.append(event)
-                parse_repair_count += 1
+
+                if _is_valid_final_answer_object(parsed.get("final_answer")) and not tool_calls:
+                    final_payload = parsed.get("final_answer")
+                    status = "full"
+                    extension.mark_model_proceeded()
+                    extension.finalize_trace(mcp_trace, reason=TERMINATION_TASK_COMPLETE)
+                    break
+
+                if not tool_calls:
+                    # Empty action: thought-only / null final_answer → protocol repair.
+                    protocol_repair_count += 1
+                    event["protocol_repair"] = True
+                    messages.append({"role": "user", "content": PROTOCOL_REPAIR_MESSAGE})
+                    continue
+
+                failure_stage = "invoke_api"
+                observations = self._execute_invokes(
+                    tool_calls,
+                    available=available,
+                    invoke_calls=invoke_calls,
+                    selected_operations=selected_operations,
+                    invalid_selections=invalid_selections,
+                    invoked_operations=invoked_operations,
+                    successful_invoked_operations=successful_invoked_operations,
+                )
+                invoke_calls = observations["invoke_calls"]
+                for obs in observations["results"]:
+                    trace.append(obs)
+                extension.mark_model_proceeded()
                 messages.append(
                     {
                         "role": "user",
-                        "content": (
-                            "Your previous response was neither a valid "
-                            "<tool_assistant> block nor valid JSON. Reply again "
-                            "with the required format only."
-                        ),
+                        "content": "Tool results (visible):\n"
+                        + json.dumps(observations["results"], ensure_ascii=False),
                     }
                 )
-                continue
-
-            tool_calls = parsed.get("tool_calls") or []
-            event["parsed"] = {
-                "thought": parsed.get("thought"),
-                "tool_calls": tool_calls,
-                "final_answer": parsed.get("final_answer"),
-            }
-            trace.append(event)
-
-            if parsed.get("final_answer") is not None and not tool_calls:
-                final_payload = parsed.get("final_answer")
-                status = "full"
-                extension.mark_model_proceeded()
-                extension.finalize_trace(mcp_trace, reason=TERMINATION_TASK_COMPLETE)
-                break
-
-            if not tool_calls:
-                final_payload = parsed.get("final_answer") or {
-                    "status": "unavailable",
-                    "final_answer": "No tool calls and no answer.",
-                    "reasoning_brief": "",
-                    "evidence": [],
-                }
-                status = "partial"
-                extension.mark_model_proceeded()
-                extension.finalize_trace(mcp_trace)
-                break
-
-            observations = self._execute_invokes(
-                tool_calls, available=available, invoke_calls=invoke_calls
+                if invoke_calls > self.max_invocations:
+                    final_payload = {
+                        "status": "unavailable",
+                        "final_answer": "Exceeded max invocations.",
+                        "reasoning_brief": "",
+                        "evidence": [],
+                    }
+                    status = "failed"
+                    error = "max_invocations"
+                    error_type = "max_invocations"
+                    failure_stage = "max_invocations"
+                    extension.finalize_trace(mcp_trace)
+                    break
+            else:
+                if final_payload is None:
+                    final_payload = {
+                        "status": "unavailable",
+                        "final_answer": (
+                            "Reached max LLM turns without a valid final_answer."
+                        ),
+                        "reasoning_brief": "",
+                        "evidence": [],
+                    }
+                    status = "failed"
+                    error = "max_llm_turns"
+                    error_type = "max_llm_turns"
+                    failure_stage = "max_llm_turns"
+                    extension.finalize_trace(
+                        mcp_trace, reason=TERMINATION_MAX_LLM_TURNS
+                    )
+        except Exception as exc:  # noqa: BLE001
+            status = "failed"
+            error = type(exc).__name__
+            error_type = type(exc).__name__
+            error_message = _safe_error_message(exc)
+            failure_stage = failure_stage or "agent_run"
+            debug_traceback_file = _write_debug_traceback(
+                debug_dir=self.debug_dir,
+                task_label=self.task_label,
+                stage=failure_stage,
+                exc=exc,
+                trace=trace,
             )
-            invoke_calls = observations["invoke_calls"]
-            for obs in observations["results"]:
-                trace.append(obs)
-            extension.mark_model_proceeded()
-            messages.append(
-                {
-                    "role": "user",
-                    "content": "Tool results (visible):\n"
-                    + json.dumps(observations["results"], ensure_ascii=False),
-                }
-            )
-            if invoke_calls > self.max_invocations:
-                final_payload = {
-                    "status": "unavailable",
-                    "final_answer": "Exceeded max invocations.",
-                    "reasoning_brief": "",
-                    "evidence": [],
-                }
-                status = "failed"
-                error = "max_invocations"
-                extension.finalize_trace(mcp_trace)
-                break
-        else:
             if final_payload is None:
                 final_payload = {
                     "status": "unavailable",
-                    "final_answer": "Reached max LLM turns without a final answer.",
-                    "reasoning_brief": "",
+                    "final_answer": "Agent failed before producing a final answer.",
+                    "reasoning_brief": error_type,
                     "evidence": [],
                 }
-                status = "failed"
-                error = "max_llm_turns"
-                extension.finalize_trace(mcp_trace, reason=TERMINATION_MAX_LLM_TURNS)
+            extension.finalize_trace(mcp_trace)
 
         if mcp_trace.termination_reason is None:
             extension.finalize_trace(mcp_trace)
@@ -310,8 +432,9 @@ class McpZeroAgent:
             fallback_status=agent_completion_to_fallback(status),
         )
         latency_ms = (time.perf_counter() - started) * 1000.0
-        # Query-time embedding counters from the shared CountingEmbedder.
-        emb_snap = self.router.embedder.snapshot()
+        emb_end = self.router.embedder.snapshot()
+        embedding_calls = max(0, int(emb_end["calls"]) - int(emb_start["calls"]))
+        embedding_tokens = max(0, int(emb_end["tokens"]) - int(emb_start["tokens"]))
         return {
             "question": question,
             "architecture": "mcp_zero",
@@ -338,9 +461,12 @@ class McpZeroAgent:
             "latency_ms": round(latency_ms, 3),
             "generation_latency_ms": round(generation_latency_ms, 3),
             "retrieval_latency_ms": round(retrieval_latency_ms, 3),
-            "embedding_calls": emb_snap["calls"],
-            "embedding_tokens": emb_snap["tokens"],
+            "embedding_calls": embedding_calls,
+            "embedding_tokens": embedding_tokens,
+            "retrieval_embedding_calls": retrieval_embedding_calls,
+            "retrieval_embedding_tokens": retrieval_embedding_tokens,
             "parse_repair_count": parse_repair_count,
+            "protocol_repair_count": protocol_repair_count,
             "provider_metadata": {
                 "llm_provider": getattr(self.llm, "provider", None),
                 "llm_model": getattr(self.llm, "model", None),
@@ -348,18 +474,19 @@ class McpZeroAgent:
             },
             "trace": trace,
             "error": error,
-            # MCP-Zero-specific visible fields
+            "error_type": error_type,
+            "error_message": error_message,
+            "failure_stage": failure_stage if status == "failed" else None,
+            "debug_traceback_file": debug_traceback_file,
             "active_tool_request": mcp_trace.active_requests(),
             "retrieved_servers": mcp_trace.retrieved_servers(),
             "retrieved_tools": mcp_trace.retrieved_tools(),
             "expanded_servers": mcp_trace.expanded_servers(),
             "expanded_tools": mcp_trace.expanded_tools(),
             "selected_operations": list(selected_operations),
-            "invoked_operations": [
-                e.get("arguments", {}).get("operation_id")
-                for e in trace
-                if e.get("type") == "tool_result" and e.get("name") == "invoke_api"
-            ],
+            "invalid_selections": list(invalid_selections),
+            "invoked_operations": list(invoked_operations),
+            "successful_invoked_operations": list(successful_invoked_operations),
             "extension_rounds": [r.to_dict() for r in mcp_trace.extension_rounds],
             "number_of_extension_rounds": mcp_trace.number_of_extension_rounds,
             "termination_reason": mcp_trace.termination_reason,
@@ -373,6 +500,10 @@ class McpZeroAgent:
         *,
         available: Dict[str, ToolHit],
         invoke_calls: int,
+        selected_operations: List[str],
+        invalid_selections: List[str],
+        invoked_operations: List[str],
+        successful_invoked_operations: List[str],
     ) -> Dict[str, Any]:
         results: List[Dict[str, Any]] = []
         allowed: Set[str] = set(available)
@@ -400,7 +531,13 @@ class McpZeroAgent:
                 continue
             oid = args.get("operation_id")
             call_args = args.get("arguments") or {}
-            if not oid or oid not in allowed:
+            if oid:
+                oid_s = str(oid)
+                if oid_s not in selected_operations:
+                    selected_operations.append(oid_s)
+            if not oid or str(oid) not in allowed:
+                if oid:
+                    invalid_selections.append(str(oid))
                 results.append(
                     {
                         "type": "tool_result",
@@ -419,11 +556,16 @@ class McpZeroAgent:
                 )
                 continue
             # Gateway enforces blocked / unknown fail-closed.
+            oid_s = str(oid)
             invoke_calls += 1
-            mcp_result = self.gateway.invoke(str(oid), dict(call_args))
+            invoked_operations.append(oid_s)
+            mcp_result = self.gateway.invoke(oid_s, dict(call_args))
+            success = bool(mcp_result.success)
+            if success and oid_s not in successful_invoked_operations:
+                successful_invoked_operations.append(oid_s)
             payload = {
-                "success": bool(mcp_result.success),
-                "operation_id": oid,
+                "success": success,
+                "operation_id": oid_s,
                 "server_id": getattr(mcp_result, "server_id", None),
                 "normalized": getattr(mcp_result, "normalized", None),
                 "evidence": getattr(mcp_result, "evidence", None),
@@ -438,7 +580,7 @@ class McpZeroAgent:
                 {
                     "type": "tool_result",
                     "name": "invoke_api",
-                    "arguments": {"operation_id": oid, "arguments": call_args},
+                    "arguments": {"operation_id": oid_s, "arguments": call_args},
                     "parallel": False,
                     "result": payload,
                 }
