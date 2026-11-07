@@ -1,13 +1,12 @@
 {
   "taxonomy_version": "mcp_zero_error_taxonomy_v1",
   "primary_counts": {
-    "success": 89,
+    "success": 90,
     "method_resource_limit_failure": 22,
     "incomplete_tool_chain": 8,
     "answer_synthesis_failure": 3,
     "retrieval_failure": 10,
     "mcp_tool_execution_failure": 7,
-    "evaluation_manual_required": 1,
     "llm_provider_transport_failure": 3,
     "feasibility_refusal_failure": 12
   },

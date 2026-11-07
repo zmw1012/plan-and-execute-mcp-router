@@ -18,7 +18,7 @@
       "auto_gradable": 59,
       "auto_correct": 23,
       "auto_accuracy": 0.3898305084745763,
-      "strict_answer_accuracy": 0.38333333333333336,
+      "strict_answer_accuracy": 0.4,
       "exact_tool_set_rate": 0.16666666666666666,
       "mean_operation_f1": 0.44401158333333335
     },
@@ -64,7 +64,7 @@
       "auto_gradable": 23,
       "auto_correct": 15,
       "auto_accuracy": 0.6521739130434783,
-      "strict_answer_accuracy": 0.625,
+      "strict_answer_accuracy": 0.6666666666666666,
       "exact_tool_set_rate": 0.4583333333333333,
       "mean_operation_f1": 0.7443452916666666
     },
@@ -110,7 +110,7 @@
       "auto_gradable": 69,
       "auto_correct": 37,
       "auto_accuracy": 0.5362318840579711,
-      "strict_answer_accuracy": 0.5285714285714286,
+      "strict_answer_accuracy": 0.5428571428571428,
       "exact_tool_set_rate": 0.42857142857142855,
       "mean_operation_f1": 0.5920181571428571
     },
@@ -189,7 +189,7 @@
       "auto_gradable": 95,
       "auto_correct": 77,
       "auto_accuracy": 0.8105263157894737,
-      "strict_answer_accuracy": 0.8020833333333334,
+      "strict_answer_accuracy": 0.8125,
       "exact_tool_set_rate": 0.6875,
       "mean_operation_f1": 0.86932871875
     }
@@ -202,7 +202,7 @@
       "auto_gradable": 46,
       "auto_correct": 27,
       "auto_accuracy": 0.5869565217391305,
-      "strict_answer_accuracy": 0.574468085106383,
+      "strict_answer_accuracy": 0.5957446808510638,
       "exact_tool_set_rate": 0.425531914893617,
       "mean_operation_f1": 0.6267984042553192
     },
@@ -248,7 +248,7 @@
       "auto_gradable": 59,
       "auto_correct": 23,
       "auto_accuracy": 0.3898305084745763,
-      "strict_answer_accuracy": 0.38333333333333336,
+      "strict_answer_accuracy": 0.4,
       "exact_tool_set_rate": 0.16666666666666666,
       "mean_operation_f1": 0.44401158333333335
     },
@@ -338,7 +338,7 @@
       "auto_gradable": 129,
       "auto_correct": 89,
       "auto_accuracy": 0.689922480620155,
-      "strict_answer_accuracy": 0.6846153846153846,
+      "strict_answer_accuracy": 0.6923076923076923,
       "exact_tool_set_rate": 0.5076923076923077,
       "mean_operation_f1": 0.6554090538461539
     }
@@ -351,7 +351,7 @@
       "auto_gradable": 69,
       "auto_correct": 37,
       "auto_accuracy": 0.5362318840579711,
-      "strict_answer_accuracy": 0.5285714285714286,
+      "strict_answer_accuracy": 0.5428571428571428,
       "exact_tool_set_rate": 0.42857142857142855,
       "mean_operation_f1": 0.5920181571428571
     },

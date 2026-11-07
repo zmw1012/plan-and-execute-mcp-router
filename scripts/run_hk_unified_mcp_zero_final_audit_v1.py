@@ -57,6 +57,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Skip writing docs mirror",
     )
+    p.add_argument(
+        "--human-grades",
+        default=None,
+        help="Optional path to sealed human_grades.json (offline only)",
+    )
     return p.parse_args()
 
 
@@ -71,11 +76,13 @@ def main() -> None:
         docs = Path(args.docs_mirror)
         if not docs.is_absolute():
             docs = (ROOT / docs).resolve()
+    human = Path(args.human_grades).resolve() if args.human_grades else None
     result = run_mcp_zero_final_audit(
         run_dir,
         root=ROOT,
         audit_outdir=out_dir,
         docs_mirror_dir=docs,
+        human_grades_path=human,
     )
     result["auditor_worktree_head"] = _git_head(ROOT)
     print("MCP-ZERO FINAL AUDIT V1 OK")

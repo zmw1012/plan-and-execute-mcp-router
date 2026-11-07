@@ -1,14 +1,19 @@
 {
   "mcp_free_final_accuracy": 0.129032,
   "flat_final_accuracy": 0.567742,
+  "flat_reported_strict_answer_or_overall": 0.5483870967741935,
   "flat_tokens": 9464124,
   "flat_mcp_executions": 572,
   "flat_exact_tool_set_approx": 0.232,
   "flat_operation_f1_approx": 0.573,
-  "mcp_zero_strict_answer_accuracy": 0.5741935483870968,
+  "mcp_zero_final_answer_accuracy": 0.5806451612903226,
+  "mcp_zero_strict_answer_accuracy": 0.5806451612903226,
+  "mcp_zero_strict_overall_task_success": 0.36774193548387096,
+  "mcp_zero_common_strict_answer_success": 0.5806451612903226,
   "mcp_zero_tokens": 4050513,
   "mcp_zero_mcp_executions": 332,
   "mcp_zero_exact_tool_set_rate": 0.43870967741935485,
   "mcp_zero_mean_operation_f1": 0.6414811935483871,
-  "note": "Descriptive only; no statistical significance claims."
+  "strict_overall_comparability_label": "condition-specific",
+  "note": "Descriptive only; no statistical significance claims. Do not compare MCP-Zero strict_overall_task_success to Flat 85/155 in the same column; use common_strict_answer_success."
 }

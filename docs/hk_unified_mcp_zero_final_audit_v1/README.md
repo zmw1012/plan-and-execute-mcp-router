@@ -10,4 +10,4 @@ PYTHONPATH=src python3 scripts/run_hk_unified_mcp_zero_final_audit_v1.py \
 ```
 
 Does not modify raw predictions. No LLM/Embedding/MCP calls.
-Manual review: fill `human_grades.json` / `manual_review_queue.csv` for `fin_cf_022` only after independent human grading.
+`human_grades.json` for `fin_cf_022` is sealed after independent MCP-Zero human review. `strict_overall_task_success` is **condition-specific**; use `common_strict_answer_success` for cross-baseline columns.

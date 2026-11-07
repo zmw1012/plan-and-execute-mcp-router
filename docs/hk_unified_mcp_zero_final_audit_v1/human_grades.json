@@ -2,15 +2,17 @@
   "condition": "mcp_zero",
   "grader_version": "deterministic_v1.2",
   "grading_version": "hk_unified_grading_v1.2",
+  "sealed": true,
+  "source_path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero/docs/hk_unified_mcp_zero_final_audit_v1/human_grades.json",
   "tasks": {
     "fin_cf_022": {
-      "answer_correct": null,
-      "evidence_correct": null,
-      "overall_task_success": null,
-      "notes": "",
-      "graded_by": "",
-      "graded_at": ""
+      "answer_correct": true,
+      "evidence_correct": true,
+      "overall_task_success": true,
+      "notes": "The answer correctly states that Alibaba FY2026 covers 2025-04-01 through 2026-03-31 and correctly explains that FY2026 follows Alibaba's 31 March fiscal year-end rather than the calendar year ending 2026-12-31. Evidence is directly supported by successful calls to aktools.stock_hk_company_profile_em (年结日=03-31) and ah_disclosure.search_annual_report (FISCAL YEAR 2026 ANNUAL REPORT). The terminal answer is complete and protocol-valid.",
+      "graded_by": "independent_human_reviewer",
+      "graded_at": "2026-11-07T19:38:00+08:00"
     }
   },
-  "note": "Fill only after independent human review for this condition."
+  "note": "Sealed after independent MCP-Zero human review."
 }

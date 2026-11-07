@@ -1,5 +1,5 @@
 {
   "first20_strict_answer_accuracy": 0.75,
-  "full155_strict_answer_accuracy": 0.5741935483870968,
+  "full155_strict_answer_accuracy": 0.5806451612903226,
   "interpretation": "Locked-order prefix composition differs from the full 155 mix; do not interpret the gap as model degradation."
 }

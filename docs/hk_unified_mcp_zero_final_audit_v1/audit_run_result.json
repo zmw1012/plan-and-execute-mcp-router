@@ -5,7 +5,13 @@
   "manual_required": [
     "fin_cf_022"
   ],
-  "strict_answer_accuracy": 0.5741935483870968,
+  "human_grades_applied": [
+    "fin_cf_022"
+  ],
+  "final_answer_accuracy": 0.5806451612903226,
+  "strict_answer_accuracy": 0.5806451612903226,
+  "strict_overall_task_success": 0.36774193548387096,
+  "common_strict_answer_success": 0.5806451612903226,
   "auto_graded_accuracy": 0.577922077922078,
-  "content_fingerprint": "ea8d5cfeebd160086dd50231cf2b099171712e42273aa6bbc6b222dfa3baefea"
+  "content_fingerprint": "028d8867cd365a99799c20525359de3c34218efa218a1fe31f854087d1a1063c"
 }

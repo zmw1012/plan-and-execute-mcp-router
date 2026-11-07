@@ -88,10 +88,34 @@ RAW_FILES = (
 
 MCP_FREE_FINAL_ACCURACY = 0.129032  # 20/155
 FLAT_FINAL_ACCURACY = 0.567742  # 88/155
+FLAT_STRICT_ANSWER_OR_OVERALL = 85 / 155  # Flat reported identical rates
 FLAT_TOKENS = 9464124
 FLAT_MCP_EXECS = 572
 FLAT_EXACT_TOOL_SET = 0.232
 FLAT_OP_F1 = 0.573
+
+# MCP-Zero condition-specific strict overall (do not silently change).
+STRICT_OVERALL_FORMULA = (
+    "status == 'full' AND answer_correct IS True AND "
+    "tool_selection_correct IS True AND "
+    "all_tool_invocations_successful IS True; "
+    "denominator = 155; failed/partial forced incorrect; "
+    "does NOT require evidence_correct or terminal_contract_valid; "
+    "human overall_task_success does NOT override this conjunction"
+)
+COMMON_STRICT_ANSWER_SUCCESS_FORMULA = (
+    "status == 'full' AND answer_correct IS True; "
+    "failed/partial forced incorrect; denominator = 155; "
+    "cross-baseline comparable answer+completion metric"
+)
+STRICT_ANSWER_FORMULA = (
+    "answer_correct IS True over all 155 tasks; "
+    "failed forced False; human grades applied for manual_required"
+)
+FINAL_ANSWER_FORMULA = (
+    "count(answer_correct IS True) / 155 after human grades for manual_required; "
+    "failed forced incorrect; auto-only rate remains auto_graded_accuracy"
+)
 
 
 def sha256_file(path: Path) -> str:
@@ -192,6 +216,86 @@ def load_reference_answer(root: Path, task_id: str) -> Optional[str]:
     return None
 
 
+def _human_task_filled(task: Dict[str, Any]) -> bool:
+    return task.get("answer_correct") is not None
+
+
+def load_human_grades(
+    *candidates: Optional[Path],
+) -> Tuple[Dict[str, Dict[str, Any]], Optional[Path]]:
+    """Load first filled human_grades.json among candidates (offline only)."""
+    for path in candidates:
+        if path is None:
+            continue
+        p = Path(path)
+        if not p.is_file():
+            continue
+        blob = json.loads(p.read_text(encoding="utf-8"))
+        tasks = blob.get("tasks") or {}
+        filled = {
+            tid: dict(rec)
+            for tid, rec in tasks.items()
+            if isinstance(rec, dict) and _human_task_filled(rec)
+        }
+        if filled:
+            return filled, p
+    return {}, None
+
+
+def apply_human_grade(
+    grade: Dict[str, Any],
+    human: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Overlay human confirmation onto auto grade without mutating raw preds."""
+    if not human or not _human_task_filled(human):
+        return grade
+    out = dict(grade)
+    out["answer_correct"] = bool(human.get("answer_correct"))
+    if human.get("evidence_correct") is not None:
+        out["evidence_correct"] = bool(human.get("evidence_correct"))
+    if human.get("overall_task_success") is not None:
+        out["human_confirmed_overall_task_success"] = bool(
+            human.get("overall_task_success")
+        )
+        # Keep grader overall_task_success aligned with human for provenance;
+        # MCP-Zero strict_overall formula does not use this field.
+        out["overall_task_success"] = bool(human.get("overall_task_success"))
+    out["human_grade_applied"] = True
+    notes = str(human.get("notes") or "").strip()
+    reason = str(out.get("reason") or "")
+    out["reason"] = (
+        f"{reason};human_confirmed" if reason else "human_confirmed"
+    )
+    if notes:
+        out["human_notes"] = notes
+    return out
+
+
+def compute_strict_overall_task_success(
+    *,
+    status: str,
+    answer_correct: Any,
+    tool_selection_correct: Any,
+    all_tool_invocations_successful: Any,
+) -> bool:
+    """MCP-Zero condition-specific conjunction (formula frozen)."""
+    return bool(
+        status == "full"
+        and answer_correct is True
+        and tool_selection_correct is True
+        and bool(all_tool_invocations_successful)
+    )
+
+
+def compute_common_strict_answer_success(
+    *,
+    status: str,
+    answer_correct: Any,
+) -> bool:
+    """Cross-baseline comparable: valid full terminal + answer correct."""
+    return bool(status == "full" and answer_correct is True)
+
+
 def classify_mcp_zero_primary(
     row: Dict[str, Any],
     *,
@@ -224,7 +328,7 @@ def classify_mcp_zero_primary(
         "robustness",
     }
 
-    if auto_status == "manual_required":
+    if auto_status == "manual_required" and not grade.get("human_grade_applied"):
         return {
             "mcp_zero_primary_error": "evaluation_manual_required",
             "mcp_zero_secondary_errors": [],
@@ -542,6 +646,9 @@ def render_markdown_report(ctx: Dict[str, Any]) -> str:
     res = ctx["resources"]
     tool = ctx["tool_retrieval_protocol"]
     tax = ctx["mcp_zero_error_taxonomy"]
+    defs = ctx.get("metric_definitions") or {}
+    comp = ctx.get("cross_condition_comparability") or {}
+    human_prov = ctx.get("human_grade_provenance") or {}
     lines: List[str] = []
     lines.append("# HK-155 MCP-Zero Final Audit v1")
     lines.append("")
@@ -566,16 +673,61 @@ def render_markdown_report(ctx: Dict[str, Any]) -> str:
     lines.append(f"- auto_gradable_count=`{g['auto_gradable_count']}`")
     lines.append(f"- auto_graded_correct=`{g['auto_graded_correct']}`")
     lines.append(f"- auto_graded_accuracy=`{g['auto_graded_accuracy']}`")
-    lines.append(f"- final_answer_accuracy (auto)=`{s['final_answer_accuracy']}`")
-    lines.append(f"- strict_answer_accuracy /155=`{s['strict_answer_accuracy']}`")
-    lines.append(f"- strict_overall_task_success /155=`{s['strict_overall_task_success']}`")
-    lines.append(f"- manual_required_count=`{g['manual_required_count']}` (fin_cf_022 queue)")
+    lines.append(
+        f"- final_answer_correct / final_answer_accuracy=`{s.get('final_answer_correct')}`/"
+        f"`{s['final_answer_accuracy']}`"
+    )
+    lines.append(
+        f"- strict_answer_correct / strict_answer_accuracy=`{s.get('strict_answer_correct')}`/"
+        f"`{s['strict_answer_accuracy']}`"
+    )
+    lines.append(
+        f"- strict_overall_task_success_n / rate=`{s.get('strict_overall_task_success_n')}`/"
+        f"`{s['strict_overall_task_success']}` "
+        f"(**condition-specific**; {comp.get('strict_overall_comparability_label', '')})"
+    )
+    lines.append(
+        f"- common_strict_answer_success_n / rate=`{s.get('common_strict_answer_success_n')}`/"
+        f"`{s.get('common_strict_answer_success')}` "
+        f"(cross-baseline comparable)"
+    )
+    lines.append(f"- manual_required_count=`{g['manual_required_count']}` (fin_cf_022)")
+    lines.append(f"- human_grades_applied=`{human_prov.get('tasks_applied')}`")
+    lines.append("")
+    lines.append("## Metric formulas")
+    for key in (
+        "final_answer_accuracy",
+        "strict_answer_accuracy",
+        "strict_overall_task_success",
+        "common_strict_answer_success",
+    ):
+        block = defs.get(key) or {}
+        lines.append(f"- `{key}`: {block.get('formula')}")
+    lines.append("")
+    lines.append("## Cross-condition comparability vs Flat")
+    lines.append(
+        f"- Flat final answer accuracy=`{FLAT_FINAL_ACCURACY}` (88/155); "
+        f"Flat reported strict answer/overall=`{FLAT_STRICT_ANSWER_OR_OVERALL}` (85/155)"
+    )
+    lines.append(
+        f"- MCP-Zero `strict_overall_task_success` vs Flat: "
+        f"**{comp.get('strict_overall_comparability_label')}** — "
+        f"{comp.get('strict_overall_reason')}"
+    )
+    lines.append(
+        "- Use `common_strict_answer_success` for same-column cross-baseline comparison."
+    )
     lines.append("")
     lines.append("## Descriptive baseline comparison (not significance-tested)")
     lines.append(
         f"- MCP-Zero strict answer accuracy ≈ `{s['strict_answer_accuracy']:.4%}` "
         f"vs MCP-Free `{MCP_FREE_FINAL_ACCURACY:.4%}` (20/155) "
         f"vs Flat `{FLAT_FINAL_ACCURACY:.4%}` (88/155)"
+    )
+    lines.append(
+        f"- MCP-Zero common_strict_answer_success ≈ "
+        f"`{(s.get('common_strict_answer_success') or 0):.4%}` "
+        f"(do not put MCP-Zero strict_overall next to Flat 85/155)"
     )
     lines.append(
         f"- MCP-Zero tokens=`{res['total_tokens']}` vs Flat `{FLAT_TOKENS}`; "
@@ -615,10 +767,12 @@ def render_markdown_report(ctx: Dict[str, Any]) -> str:
     for name, count in tax["failed_raw_error_counts"].items():
         lines.append(f"- `{name}`: {count}")
     lines.append("")
-    lines.append("## Manual review")
+    lines.append("## Manual review / human grade provenance")
     lines.append("- Only `fin_cf_022` is manual_required under grader v1.2.")
-    lines.append("- See `manual_review_queue.csv` / `human_grades.json` (human fields blank).")
-    lines.append("- Do **not** copy MCP-Free/Flat human grades for this condition.")
+    lines.append(f"- human_grades_source=`{human_prov.get('source_path')}`")
+    lines.append(f"- tasks_applied=`{human_prov.get('tasks_applied')}`")
+    lines.append(f"- sealed=`{human_prov.get('sealed')}`")
+    lines.append("- Independent MCP-Zero review; not copied from MCP-Free/Flat.")
     lines.append("")
     lines.append("## Resources")
     lines.append(f"- tokens in/out/total=`{res['total_input_tokens']}`/`{res['total_output_tokens']}`/`{res['total_tokens']}`")
@@ -649,6 +803,7 @@ def run_mcp_zero_final_audit(
     root: Optional[Path] = None,
     audit_outdir: Optional[Path] = None,
     docs_mirror_dir: Optional[Path] = None,
+    human_grades_path: Optional[Path] = None,
 ) -> Dict[str, Any]:
     run_dir = Path(run_dir)
     if root is None:
@@ -659,6 +814,7 @@ def run_mcp_zero_final_audit(
         root = Path(root)
     out_dir = Path(audit_outdir) if audit_outdir else run_dir / "final_audit_mcp_zero_v1"
     out_dir.mkdir(parents=True, exist_ok=True)
+    docs_mirror = Path(docs_mirror_dir) if docs_mirror_dir is not None else None
 
     pre = fingerprint_raw_artifacts(run_dir)
     atomic_write_json(out_dir / "raw_artifact_fingerprints_pre.json", pre)
@@ -677,6 +833,12 @@ def run_mcp_zero_final_audit(
     run_order = load_run_order(root)
     identity = validate_run_identity(
         predictions=predictions, run_meta=run_meta, run_order=run_order, root=root
+    )
+
+    human_by_id, human_source = load_human_grades(
+        Path(human_grades_path) if human_grades_path else None,
+        out_dir / "human_grades.json",
+        (docs_mirror / "human_grades.json") if docs_mirror else None,
     )
 
     enriched: List[Dict[str, Any]] = []
@@ -707,22 +869,33 @@ def run_mcp_zero_final_audit(
                 "reason": grade.get("reason") or "status_failed",
                 "overall_task_success": False,
             }
-        grades.append(grade)
         tid = str(merged.get("task_id") or merged.get("id"))
+        grade = apply_human_grade(grade, human_by_id.get(tid))
+        grades.append(grade)
         grades_by_id[tid] = grade
         merged["auto_grade_status"] = grade.get("auto_grade_status")
         merged["answer_correct"] = grade.get("answer_correct")
         merged["auto_grade_reason"] = grade.get("reason")
         merged["tool_selection_correct"] = grade.get("tool_selection_correct")
         merged["overall_task_success"] = grade.get("overall_task_success")
+        merged["human_grade_applied"] = bool(grade.get("human_grade_applied"))
+        merged["human_confirmed_overall_task_success"] = grade.get(
+            "human_confirmed_overall_task_success"
+        )
         merged["task_order_index"] = idx
-        # Strict labels (manual_required counts as incorrect until human grades).
+        # Strict labels (manual_required incorrect until human grades applied).
         merged["strict_answer_correct"] = bool(grade.get("answer_correct") is True)
-        merged["strict_overall_task_success"] = bool(
-            merged.get("status") == "full"
-            and grade.get("answer_correct") is True
-            and grade.get("tool_selection_correct") is True
-            and bool(merged.get("all_tool_invocations_successful", False))
+        merged["strict_overall_task_success"] = compute_strict_overall_task_success(
+            status=str(merged.get("status") or ""),
+            answer_correct=grade.get("answer_correct"),
+            tool_selection_correct=grade.get("tool_selection_correct"),
+            all_tool_invocations_successful=merged.get(
+                "all_tool_invocations_successful", False
+            ),
+        )
+        merged["common_strict_answer_success"] = compute_common_strict_answer_success(
+            status=str(merged.get("status") or ""),
+            answer_correct=grade.get("answer_correct"),
         )
 
         mz = classify_mcp_zero_primary(merged, grade=grade)
@@ -757,6 +930,11 @@ def run_mcp_zero_final_audit(
                 "answer_correct": grade.get("answer_correct"),
                 "strict_answer_correct": merged.get("strict_answer_correct"),
                 "strict_overall_task_success": merged.get("strict_overall_task_success"),
+                "common_strict_answer_success": merged.get(
+                    "common_strict_answer_success"
+                ),
+                "human_grade_applied": merged.get("human_grade_applied"),
+                "tool_selection_correct": grade.get("tool_selection_correct"),
                 "auto_grade_reason": grade.get("reason"),
                 "operation_precision": merged.get("operation_precision"),
                 "operation_recall": merged.get("operation_recall"),
@@ -828,35 +1006,43 @@ def run_mcp_zero_final_audit(
     grouped = build_grouped_aggregates(enriched)
 
     auto = [g for g in grades if g.get("auto_grade_status") == "graded"]
+    # Auto accuracy: graded tasks only (manual_required excluded even after human).
     auto_correct = [g for g in auto if g.get("answer_correct") is True]
     strict_correct_n = sum(1 for r in enriched if r.get("strict_answer_correct"))
     strict_overall_n = sum(1 for r in enriched if r.get("strict_overall_task_success"))
+    common_strict_n = sum(
+        1 for r in enriched if r.get("common_strict_answer_success")
+    )
+    final_correct_n = strict_correct_n  # after human grades, same effective answer set
+    manual_ids = sorted(
+        tid
+        for tid, g in grades_by_id.items()
+        if g.get("auto_grade_status") == "manual_required"
+    )
+    human_applied_ids = sorted(
+        tid for tid, g in grades_by_id.items() if g.get("human_grade_applied")
+    )
     strict_metrics = {
         "n": EXPECTED_N,
         "auto_gradable_count": len(auto),
         "auto_graded_correct": len(auto_correct),
         "auto_graded_accuracy": (len(auto_correct) / len(auto)) if auto else None,
-        "final_answer_accuracy": (len(auto_correct) / len(auto)) if auto else None,
-        "final_answer_accuracy_note": (
-            "Equals auto_graded_accuracy over auto-gradable tasks; "
-            "failed tasks are forced incorrect; manual_required excluded from auto."
-        ),
+        "final_answer_correct": final_correct_n,
+        "final_answer_accuracy": final_correct_n / EXPECTED_N,
+        "final_answer_accuracy_note": FINAL_ANSWER_FORMULA,
+        "strict_answer_correct": strict_correct_n,
         "strict_answer_accuracy": strict_correct_n / EXPECTED_N,
-        "strict_answer_accuracy_note": (
-            "answer_correct is True over all 155 tasks; failed forced False; "
-            "manual_required treated as incorrect until human confirmation."
-        ),
+        "strict_answer_accuracy_note": STRICT_ANSWER_FORMULA,
+        "strict_overall_task_success_n": strict_overall_n,
         "strict_overall_task_success": strict_overall_n / EXPECTED_N,
-        "strict_overall_task_success_note": (
-            "status=full AND answer_correct AND tool_selection_correct AND "
-            "all_tool_invocations_successful; denominator 155."
-        ),
+        "strict_overall_task_success_note": STRICT_OVERALL_FORMULA,
+        "strict_overall_comparability_label": "condition-specific",
+        "common_strict_answer_success_n": common_strict_n,
+        "common_strict_answer_success": common_strict_n / EXPECTED_N,
+        "common_strict_answer_success_note": COMMON_STRICT_ANSWER_SUCCESS_FORMULA,
         "manual_required_count": grading_summary.get("manual_required_count"),
-        "manual_required_task_ids": sorted(
-            tid
-            for tid, g in grades_by_id.items()
-            if g.get("auto_grade_status") == "manual_required"
-        ),
+        "manual_required_task_ids": manual_ids,
+        "human_grades_applied_task_ids": human_applied_ids,
     }
 
     grouped_strict = {
@@ -905,12 +1091,12 @@ def run_mcp_zero_final_audit(
     }
 
     # Manual queue: only current manual_required (expected fin_cf_022).
-    manual_ids = strict_metrics["manual_required_task_ids"]
     manual_queue: List[Dict[str, Any]] = []
     for tid in manual_ids:
         row = next(r for r in enriched if r["task_id"] == tid)
         ref = load_reference_answer(root, tid) or row.get("reference_answer") or ""
         evidence = row.get("evidence") or row.get("citations") or []
+        human = human_by_id.get(tid) or {}
         manual_queue.append(
             {
                 "task_id": tid,
@@ -932,10 +1118,22 @@ def run_mcp_zero_final_audit(
                 "evidence_excerpt": json.dumps(evidence, ensure_ascii=False)[:4000],
                 "auto_grade_status": grades_by_id[tid].get("auto_grade_status"),
                 "auto_grade_reason": grades_by_id[tid].get("reason"),
-                "human_confirmed_answer_correct": "",
-                "human_confirmed_evidence_correct": "",
-                "human_confirmed_overall_task_success": "",
-                "human_notes": "",
+                "human_confirmed_answer_correct": (
+                    ""
+                    if human.get("answer_correct") is None
+                    else int(bool(human.get("answer_correct")))
+                ),
+                "human_confirmed_evidence_correct": (
+                    ""
+                    if human.get("evidence_correct") is None
+                    else int(bool(human.get("evidence_correct")))
+                ),
+                "human_confirmed_overall_task_success": (
+                    ""
+                    if human.get("overall_task_success") is None
+                    else int(bool(human.get("overall_task_success")))
+                ),
+                "human_notes": human.get("notes") or "",
                 "note": (
                     "Do not copy MCP-Free or Flat human grades; grade this "
                     "condition independently."
@@ -943,22 +1141,110 @@ def run_mcp_zero_final_audit(
             }
         )
 
-    human_grades_template = {
+    human_grades_out: Dict[str, Any] = {
         "condition": "mcp_zero",
         "grader_version": GRADER_VERSION,
         "grading_version": GRADING_VERSION,
+        "sealed": bool(human_applied_ids),
+        "source_path": str(human_source) if human_source else None,
         "tasks": {
-            tid: {
-                "answer_correct": None,
-                "evidence_correct": None,
-                "overall_task_success": None,
-                "notes": "",
-                "graded_by": "",
-                "graded_at": "",
-            }
+            tid: (
+                {
+                    **human_by_id[tid],
+                    "answer_correct": bool(human_by_id[tid]["answer_correct"]),
+                    "evidence_correct": (
+                        None
+                        if human_by_id[tid].get("evidence_correct") is None
+                        else bool(human_by_id[tid].get("evidence_correct"))
+                    ),
+                    "overall_task_success": (
+                        None
+                        if human_by_id[tid].get("overall_task_success") is None
+                        else bool(human_by_id[tid].get("overall_task_success"))
+                    ),
+                }
+                if tid in human_by_id
+                else {
+                    "answer_correct": None,
+                    "evidence_correct": None,
+                    "overall_task_success": None,
+                    "notes": "",
+                    "graded_by": "",
+                    "graded_at": "",
+                }
+            )
             for tid in manual_ids
         },
-        "note": "Fill only after independent human review for this condition.",
+        "note": (
+            "Sealed after independent MCP-Zero human review."
+            if human_applied_ids
+            else "Fill only after independent human review for this condition."
+        ),
+    }
+
+    metric_definitions = {
+        "final_answer_accuracy": {
+            "formula": FINAL_ANSWER_FORMULA,
+            "numerator_field": "final_answer_correct",
+            "denominator": EXPECTED_N,
+        },
+        "strict_answer_accuracy": {
+            "formula": STRICT_ANSWER_FORMULA,
+            "numerator_field": "strict_answer_correct",
+            "denominator": EXPECTED_N,
+        },
+        "strict_overall_task_success": {
+            "formula": STRICT_OVERALL_FORMULA,
+            "numerator_field": "strict_overall_task_success_n",
+            "denominator": EXPECTED_N,
+            "requires": [
+                "status=full",
+                "answer_correct",
+                "tool_selection_correct",
+                "all_tool_invocations_successful",
+            ],
+            "does_not_require": [
+                "evidence_correct",
+                "terminal_contract_valid",
+                "human_confirmed_overall_task_success",
+            ],
+            "comparability_label": "condition-specific",
+        },
+        "common_strict_answer_success": {
+            "formula": COMMON_STRICT_ANSWER_SUCCESS_FORMULA,
+            "numerator_field": "common_strict_answer_success_n",
+            "denominator": EXPECTED_N,
+            "comparability_label": "cross-baseline-comparable",
+        },
+    }
+    cross_condition_comparability = {
+        "flat_final_answer_accuracy": FLAT_FINAL_ACCURACY,
+        "flat_final_answer_accuracy_fraction": "88/155",
+        "flat_reported_strict_answer_or_overall": FLAT_STRICT_ANSWER_OR_OVERALL,
+        "flat_reported_strict_answer_or_overall_fraction": "85/155",
+        "flat_note": (
+            "Flat audit reported identical strict-answer and strict-overall rates "
+            "(85/155), i.e. an answer-centric closure — not the MCP-Zero "
+            "tool_selection∧execution conjunction."
+        ),
+        "mcp_zero_strict_overall_formula": STRICT_OVERALL_FORMULA,
+        "strict_overall_comparability_label": "condition-specific",
+        "strict_overall_reason": (
+            "MCP-Zero strict_overall_task_success additionally requires "
+            "tool_selection_correct and all_tool_invocations_successful; "
+            "Flat's published 85/155 matches an answer-level rate, so the two "
+            "must not share a comparison column."
+        ),
+        "common_metric_for_cross_baseline": "common_strict_answer_success",
+        "common_strict_answer_success_formula": COMMON_STRICT_ANSWER_SUCCESS_FORMULA,
+    }
+    human_grade_provenance = {
+        "source_path": str(human_source) if human_source else None,
+        "tasks_applied": human_applied_ids,
+        "sealed": bool(human_applied_ids),
+        "condition": "mcp_zero",
+        "independent_review": True,
+        "copied_from_other_condition": False,
     }
 
     first20 = enriched[:20]
@@ -975,16 +1261,29 @@ def run_mcp_zero_final_audit(
     descriptive_baselines = {
         "mcp_free_final_accuracy": MCP_FREE_FINAL_ACCURACY,
         "flat_final_accuracy": FLAT_FINAL_ACCURACY,
+        "flat_reported_strict_answer_or_overall": FLAT_STRICT_ANSWER_OR_OVERALL,
         "flat_tokens": FLAT_TOKENS,
         "flat_mcp_executions": FLAT_MCP_EXECS,
         "flat_exact_tool_set_approx": FLAT_EXACT_TOOL_SET,
         "flat_operation_f1_approx": FLAT_OP_F1,
+        "mcp_zero_final_answer_accuracy": strict_metrics["final_answer_accuracy"],
         "mcp_zero_strict_answer_accuracy": strict_metrics["strict_answer_accuracy"],
+        "mcp_zero_strict_overall_task_success": strict_metrics[
+            "strict_overall_task_success"
+        ],
+        "mcp_zero_common_strict_answer_success": strict_metrics[
+            "common_strict_answer_success"
+        ],
         "mcp_zero_tokens": resources["total_tokens"],
         "mcp_zero_mcp_executions": resources["total_real_mcp_executions"],
         "mcp_zero_exact_tool_set_rate": tool_metrics["exact_tool_set_rate"],
         "mcp_zero_mean_operation_f1": tool_metrics["mean_operation_f1"],
-        "note": "Descriptive only; no statistical significance claims.",
+        "strict_overall_comparability_label": "condition-specific",
+        "note": (
+            "Descriptive only; no statistical significance claims. "
+            "Do not compare MCP-Zero strict_overall_task_success to Flat 85/155 "
+            "in the same column; use common_strict_answer_success."
+        ),
     }
 
     ctx = {
@@ -1003,6 +1302,9 @@ def run_mcp_zero_final_audit(
         "unified_error_taxonomy": unified_tax,
         "sample_composition_note": sample_note,
         "descriptive_baselines": descriptive_baselines,
+        "metric_definitions": metric_definitions,
+        "cross_condition_comparability": cross_condition_comparability,
+        "human_grade_provenance": human_grade_provenance,
         "evaluator": evaluator_identity(),
         "grader": grading_identity(),
         "unified_taxonomy_version": TAXONOMY_VERSION,
@@ -1018,9 +1320,19 @@ def run_mcp_zero_final_audit(
         "grader": grading_identity(),
         "expected_prompt_hash": EXPECTED_PROMPT_HASH,
         "expected_method_hash": EXPECTED_METHOD_HASH,
+        "human_grade_provenance": human_grade_provenance,
+        "metric_definitions": metric_definitions,
+        "cross_condition_comparability": cross_condition_comparability,
     })
     atomic_write_json(out_dir / "grading_summary.json", {**grading_summary, **strict_metrics})
     atomic_write_json(out_dir / "strict_metrics.json", strict_metrics)
+    atomic_write_json(out_dir / "metric_definitions.json", metric_definitions)
+    atomic_write_json(
+        out_dir / "cross_condition_comparability.json", cross_condition_comparability
+    )
+    atomic_write_json(
+        out_dir / "human_grade_provenance.json", human_grade_provenance
+    )
     atomic_write_json(out_dir / "grouped_strict_metrics.json", grouped_strict)
     atomic_write_json(out_dir / "grouped_aggregates.json", grouped)
     atomic_write_json(out_dir / "tool_retrieval_protocol_metrics.json", tool_metrics)
@@ -1029,13 +1341,17 @@ def run_mcp_zero_final_audit(
     atomic_write_json(out_dir / "unified_error_taxonomy_summary.json", unified_tax)
     atomic_write_json(out_dir / "sample_composition_note.json", sample_note)
     atomic_write_json(out_dir / "descriptive_baseline_comparison.json", descriptive_baselines)
-    atomic_write_json(out_dir / "human_grades.json", human_grades_template)
+    atomic_write_json(out_dir / "human_grades.json", human_grades_out)
     atomic_write_json(out_dir / "audit_run_result.json", {
         "ok": True,
         "audit_version": AUDIT_VERSION,
         "n": EXPECTED_N,
         "manual_required": manual_ids,
+        "human_grades_applied": human_applied_ids,
+        "final_answer_accuracy": strict_metrics["final_answer_accuracy"],
         "strict_answer_accuracy": strict_metrics["strict_answer_accuracy"],
+        "strict_overall_task_success": strict_metrics["strict_overall_task_success"],
+        "common_strict_answer_success": strict_metrics["common_strict_answer_success"],
         "auto_graded_accuracy": grading_summary.get("auto_graded_accuracy"),
         "content_fingerprint": _content_fingerprint(
             {
@@ -1049,6 +1365,7 @@ def run_mcp_zero_final_audit(
                         "task_protocol_success_rate",
                     )
                 },
+                "human": human_applied_ids,
             }
         ),
     })
@@ -1079,13 +1396,15 @@ def run_mcp_zero_final_audit(
         {"pre": pre, "post": post, "unchanged": True},
     )
 
-    if docs_mirror_dir is not None:
-        docs_mirror_dir = Path(docs_mirror_dir)
-        docs_mirror_dir.mkdir(parents=True, exist_ok=True)
+    if docs_mirror is not None:
+        docs_mirror.mkdir(parents=True, exist_ok=True)
         for name in (
             "report.md",
             "grading_summary.json",
             "strict_metrics.json",
+            "metric_definitions.json",
+            "cross_condition_comparability.json",
+            "human_grade_provenance.json",
             "grouped_strict_metrics.json",
             "tool_retrieval_protocol_metrics.json",
             "resource_summary.json",
@@ -1102,8 +1421,8 @@ def run_mcp_zero_final_audit(
         ):
             src = out_dir / name
             if src.exists():
-                (docs_mirror_dir / name).write_bytes(src.read_bytes())
-        (docs_mirror_dir / "README.md").write_text(
+                (docs_mirror / name).write_bytes(src.read_bytes())
+        (docs_mirror / "README.md").write_text(
             "# HK-155 MCP-Zero Final Audit v1\n\n"
             "Offline mirror of `outputs/hk_unified_mcp_zero_exploratory155_v2/"
             "final_audit_mcp_zero_v1/`.\n\n"
@@ -1113,8 +1432,10 @@ def run_mcp_zero_final_audit(
             "  --run-dir outputs/hk_unified_mcp_zero_exploratory155_v2\n"
             "```\n\n"
             "Does not modify raw predictions. No LLM/Embedding/MCP calls.\n"
-            "Manual review: fill `human_grades.json` / `manual_review_queue.csv` "
-            "for `fin_cf_022` only after independent human grading.\n",
+            "`human_grades.json` for `fin_cf_022` is sealed after independent "
+            "MCP-Zero human review. "
+            "`strict_overall_task_success` is **condition-specific**; use "
+            "`common_strict_answer_success` for cross-baseline columns.\n",
             encoding="utf-8",
         )
 
@@ -1123,9 +1444,13 @@ def run_mcp_zero_final_audit(
         "audit_version": AUDIT_VERSION,
         "out_dir": str(out_dir),
         "raw_sha256": {k: v["sha256"] for k, v in pre.items()},
+        "final_answer_accuracy": strict_metrics["final_answer_accuracy"],
         "strict_answer_accuracy": strict_metrics["strict_answer_accuracy"],
+        "strict_overall_task_success": strict_metrics["strict_overall_task_success"],
+        "common_strict_answer_success": strict_metrics["common_strict_answer_success"],
         "auto_graded_accuracy": grading_summary.get("auto_graded_accuracy"),
         "manual_required": manual_ids,
+        "human_grades_applied": human_applied_ids,
         "failed_n": mz_tax["failed_n"],
         "raw_unchanged": True,
     }
