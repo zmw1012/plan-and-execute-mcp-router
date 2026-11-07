@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import http.client
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
@@ -13,6 +14,7 @@ from hk_equity_mcp.mcp_zero.embedding import (
     CountingEmbedder,
     IncompleteEmbeddingTableError,
     build_embedding_table,
+    table_paths,
     table_status,
 )
 from hk_equity_mcp.mcp_zero_etom import (
@@ -398,3 +400,246 @@ def test_index_status_partial_fields(tmp_path, fixture_catalog):
     assert status["expected_units"] == status["total"]
     assert status["identity_sha256"]
     assert status["vector_dim"] == 8
+
+
+def _patch_embed_once_failures(backend, monkeypatch, failures):
+    seq = list(failures)
+    attempts = {"n": 0}
+
+    def _once(texts):
+        attempts["n"] += 1
+        if seq:
+            raise seq.pop(0)
+        return [[0.1] * 4 for _ in texts]
+
+    monkeypatch.setattr(backend, "_embed_once", _once)
+    return attempts
+
+
+def test_remote_disconnected_then_success(monkeypatch):
+    monkeypatch.setattr(
+        "hk_equity_mcp.operation_resolver.retrieval.time.sleep", lambda s: None
+    )
+    backend = OpenAICompatibleEmbeddingBackend(
+        base_url="https://example.invalid/v1",
+        api_key="test-key-not-real",
+        model="text-embedding-3-small",
+        max_retries=3,
+        retry_backoff_seconds=[1, 2, 4],
+    )
+    attempts = _patch_embed_once_failures(
+        backend, monkeypatch, [http.client.RemoteDisconnected("closed")]
+    )
+    assert len(backend.embed(["a"])) == 1
+    assert attempts["n"] == 2
+    assert backend.retry_count == 1
+
+
+def test_incomplete_read_then_success(monkeypatch):
+    monkeypatch.setattr(
+        "hk_equity_mcp.operation_resolver.retrieval.time.sleep", lambda s: None
+    )
+    backend = OpenAICompatibleEmbeddingBackend(
+        base_url="https://example.invalid/v1",
+        api_key="test-key-not-real",
+        model="text-embedding-3-small",
+        max_retries=3,
+        retry_backoff_seconds=[0, 0, 0],
+    )
+    attempts = _patch_embed_once_failures(
+        backend, monkeypatch, [http.client.IncompleteRead(b"partial")]
+    )
+    assert len(backend.embed(["q"])) == 1
+    assert attempts["n"] == 2
+    assert backend.retry_count == 1
+
+
+def test_connection_reset_then_success(monkeypatch):
+    monkeypatch.setattr(
+        "hk_equity_mcp.operation_resolver.retrieval.time.sleep", lambda s: None
+    )
+    backend = OpenAICompatibleEmbeddingBackend(
+        base_url="https://example.invalid/v1",
+        api_key="test-key-not-real",
+        model="text-embedding-3-small",
+        max_retries=3,
+        retry_backoff_seconds=[0, 0, 0],
+    )
+    attempts = _patch_embed_once_failures(
+        backend, monkeypatch, [ConnectionResetError("reset")]
+    )
+    assert len(backend.embed(["q"])) == 1
+    assert attempts["n"] == 2
+    assert backend.retry_count == 1
+
+
+def test_disconnect_exhausted_fail_closed(monkeypatch):
+    monkeypatch.setattr(
+        "hk_equity_mcp.operation_resolver.retrieval.time.sleep", lambda s: None
+    )
+    backend = OpenAICompatibleEmbeddingBackend(
+        base_url="https://example.invalid/v1",
+        api_key="test-key-not-real",
+        model="text-embedding-3-small",
+        max_retries=3,
+        retry_backoff_seconds=[1, 2, 4],
+    )
+    attempts = _patch_embed_once_failures(
+        backend,
+        monkeypatch,
+        [
+            http.client.RemoteDisconnected("1"),
+            http.client.RemoteDisconnected("2"),
+            http.client.RemoteDisconnected("3"),
+            http.client.RemoteDisconnected("4"),
+        ],
+    )
+    with pytest.raises(RuntimeError, match="RemoteDisconnected"):
+        backend.embed(["q"])
+    assert attempts["n"] == 4  # attempt 1/4 ... 4/4 then fail closed
+    assert backend.retry_count == 3
+
+
+def test_disconnect_does_not_checkpoint_until_success(tmp_path, fixture_catalog):
+    events: List[Dict[str, Any]] = []
+    backend = _ScriptedBackend(
+        failures=[http.client.RemoteDisconnected("mid-batch")],
+    )
+    embedder = CountingEmbedder(backend, model_name="text-embedding-3-small")
+    table = build_embedding_table(
+        fixture_catalog,
+        embedder,
+        cache_dir=tmp_path,
+        use_summary=True,
+        catalog_fingerprint=fixture_catalog.fingerprint(),
+        namespace=EMBEDDING_NAMESPACE,
+        batch_size=32,
+        event_callback=events.append,
+    )
+    assert table.complete
+    assert table.build_retries >= 1
+    # Only successful batches produce checkpoints; one batch for 16-unit fixture.
+    checkpoints = [e for e in events if e.get("event") == "checkpoint"]
+    assert len(checkpoints) == 1
+    assert checkpoints[0]["completed"] == 16
+
+
+def _seed_partial_352(tmp_path, fixture_catalog, units, completed: int = 352):
+    import hk_equity_mcp.mcp_zero.embedding as emb_mod
+
+    identity_probe = emb_mod.embedding_cache_identity(
+        embedding_model="text-embedding-3-small",
+        catalog_fingerprint=fixture_catalog.fingerprint(),
+        metadata_hash=fixture_catalog.fingerprint(),
+        score_mode="official_combined",
+        server_top_k=3,
+        tool_top_k=5,
+        similarity_threshold=0.0,
+        use_summary=True,
+        namespace=EMBEDDING_NAMESPACE,
+    )
+    _final, partial, _digest = table_paths(tmp_path, identity_probe)
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    with partial.open("w", encoding="utf-8") as handle:
+        for key, _text in units[:completed]:
+            handle.write(json.dumps({"k": key, "v": [0.01] * 8}) + "\n")
+        handle.flush()
+    return partial
+
+
+def test_failed_next_batch_leaves_352_partial_untouched(
+    tmp_path, fixture_catalog, monkeypatch
+):
+    """RemoteDisconnected exhausted: no append beyond the existing 352 lines."""
+    import hk_equity_mcp.mcp_zero.embedding as emb_mod
+
+    total = 384
+    completed = 352
+    units = [(f"t:unit_{i:04d}", f"text-{i}") for i in range(total)]
+    monkeypatch.setattr(emb_mod, "_units", lambda catalog, use_summary: list(units))
+    partial = _seed_partial_352(tmp_path, fixture_catalog, units, completed)
+    before = partial.read_bytes()
+    assert before.count(b"\n") == completed
+
+    backend = _ScriptedBackend(
+        failures=[
+            http.client.RemoteDisconnected("1"),
+            http.client.RemoteDisconnected("2"),
+            http.client.RemoteDisconnected("3"),
+            http.client.RemoteDisconnected("4"),
+        ],
+    )
+    embedder = CountingEmbedder(backend, model_name="text-embedding-3-small")
+    with pytest.raises(http.client.RemoteDisconnected):
+        build_embedding_table(
+            fixture_catalog,
+            embedder,
+            cache_dir=tmp_path,
+            use_summary=True,
+            catalog_fingerprint=fixture_catalog.fingerprint(),
+            namespace=EMBEDDING_NAMESPACE,
+            score_mode="official_combined",
+            server_top_k=3,
+            tool_top_k=5,
+            similarity_threshold=0.0,
+            batch_size=32,
+        )
+    after = partial.read_bytes()
+    assert after == before
+    assert after.count(b"\n") == completed
+    assert embedder.calls == 0
+
+
+def test_resume_skips_352_completed_units(tmp_path, fixture_catalog, monkeypatch):
+    """Simulate formal index resume: 352 done, next batch 353-384 only."""
+    import hk_equity_mcp.mcp_zero.embedding as emb_mod
+
+    total = 384
+    completed = 352
+    batch = 32
+    units = [(f"t:unit_{i:04d}", f"text-{i}") for i in range(total)]
+    monkeypatch.setattr(emb_mod, "_units", lambda catalog, use_summary: list(units))
+    partial = _seed_partial_352(tmp_path, fixture_catalog, units, completed)
+    assert partial.read_bytes().count(b"\n") == completed
+
+    requested_keys: List[str] = []
+    backend = _ScriptedBackend(
+        failures=[http.client.RemoteDisconnected("first next-batch")],
+    )
+    real = backend.embed
+
+    def track(texts):
+        start = completed + len(requested_keys)
+        chunk = units[start : start + len(texts)]
+        requested_keys.extend([k for k, _ in chunk])
+        return real(texts)
+
+    backend.embed = track  # type: ignore[method-assign]
+    events: List[Dict[str, Any]] = []
+    embedder = CountingEmbedder(backend, model_name="text-embedding-3-small")
+    table = build_embedding_table(
+        fixture_catalog,
+        embedder,
+        cache_dir=tmp_path,
+        use_summary=True,
+        catalog_fingerprint=fixture_catalog.fingerprint(),
+        namespace=EMBEDDING_NAMESPACE,
+        score_mode="official_combined",
+        server_top_k=3,
+        tool_top_k=5,
+        similarity_threshold=0.0,
+        batch_size=batch,
+        event_callback=events.append,
+    )
+    assert table.complete
+    assert table.index_action == "resume_partial"
+    assert any(
+        e.get("event") == "resume" and e.get("completed") == completed for e in events
+    )
+    assert requested_keys == [k for k, _ in units[completed:]]
+    assert len(requested_keys) == batch
+    assert requested_keys[0] == f"t:unit_{completed:04d}"
+    assert requested_keys[-1] == f"t:unit_{total - 1:04d}"
+    assert set(requested_keys).isdisjoint({k for k, _ in units[:completed]})
+    assert backend.retry_count >= 1
+    assert not partial.exists()

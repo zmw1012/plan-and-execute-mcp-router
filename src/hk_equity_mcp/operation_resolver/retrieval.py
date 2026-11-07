@@ -7,11 +7,13 @@ Ranking formula and non-embedding behavior follow the paper.
 from __future__ import annotations
 
 import hashlib
+import http.client
 import json
 import math
 import os
 import re
 import socket
+import ssl
 import time
 import urllib.error
 import urllib.request
@@ -91,13 +93,46 @@ class EmbeddingBackend(ABC):
 
 _RETRYABLE_HTTP = frozenset({429, 500, 502, 503, 504})
 
+# Transient transport disconnects (index-build retries only). Not a blanket RuntimeError policy.
+_RETRYABLE_DISCONNECT = (
+    http.client.RemoteDisconnected,
+    http.client.IncompleteRead,
+    ConnectionResetError,
+    ConnectionAbortedError,
+    BrokenPipeError,
+)
+_SSL_INTERRUPT_MARKERS = (
+    "eof",
+    "unexpected_eof",
+    "connection reset",
+    "broken pipe",
+    "connection aborted",
+    "syscall",
+)
+_RETRYABLE_TYPE_NAMES = (
+    "RemoteDisconnected",
+    "IncompleteRead",
+    "ConnectionResetError",
+    "ConnectionAbortedError",
+    "BrokenPipeError",
+)
+
+
+def _is_ssl_connection_interrupt(exc: BaseException) -> bool:
+    """True only for SSL failures that look like mid-connection EOF/reset."""
+    if not isinstance(exc, ssl.SSLError):
+        return False
+    text = str(exc).lower()
+    return any(marker in text for marker in _SSL_INTERRUPT_MARKERS)
+
 
 class OpenAICompatibleEmbeddingBackend(EmbeddingBackend):
     """Relay/OpenAI-compatible embeddings. Fails clearly on missing config or HTTP errors.
 
-    Optional transport retries (TimeoutError / URLError / 429 / 5xx) are for index
-    builds only. Defaults keep historical single-shot behaviour (max_retries=0).
-    Never logs API keys or response bodies. Never falls back to lexical/mock.
+    Optional transport retries (TimeoutError / URLError / disconnect / 429 / 5xx)
+    are for index builds only. Defaults keep historical single-shot behaviour
+    (max_retries=0). Never logs API keys or response bodies. Never falls back to
+    lexical/mock.
     """
 
     def __init__(
@@ -176,6 +211,16 @@ class OpenAICompatibleEmbeddingBackend(EmbeddingBackend):
                 f"Embedding request failed for model {self.model_name}: TimeoutError. "
                 "No lexical-only fallback."
             ) from exc
+        except _RETRYABLE_DISCONNECT:
+            # Preserve concrete disconnect types for the retry classifier.
+            raise
+        except ssl.SSLError as exc:
+            if _is_ssl_connection_interrupt(exc):
+                raise
+            raise RuntimeError(
+                f"Embedding request failed for model {self.model_name}: SSLError. "
+                "No lexical-only fallback."
+            ) from exc
         except urllib.error.URLError as exc:
             raise urllib.error.URLError(
                 f"Embedding request failed for model {self.model_name}: URLError. "
@@ -202,9 +247,21 @@ class OpenAICompatibleEmbeddingBackend(EmbeddingBackend):
     def _is_retryable(exc: BaseException) -> bool:
         if isinstance(exc, (TimeoutError, socket.timeout)):
             return True
+        if isinstance(exc, _RETRYABLE_DISCONNECT):
+            return True
+        if _is_ssl_connection_interrupt(exc):
+            return True
         if isinstance(exc, urllib.error.HTTPError):
             return int(exc.code) in _RETRYABLE_HTTP
         if isinstance(exc, urllib.error.URLError):
+            # URLError often wraps ConnectionResetError / SSL EOF as .reason.
+            reason = getattr(exc, "reason", None)
+            if isinstance(reason, BaseException) and (
+                isinstance(reason, _RETRYABLE_DISCONNECT)
+                or _is_ssl_connection_interrupt(reason)
+                or isinstance(reason, (TimeoutError, socket.timeout))
+            ):
+                return True
             return True
         if isinstance(exc, RuntimeError):
             text = str(exc)
@@ -216,9 +273,22 @@ class OpenAICompatibleEmbeddingBackend(EmbeddingBackend):
                 return True
             if "URLError" in text:
                 return True
+            # Named disconnect wrappers only — never a blanket RuntimeError retry.
+            if any(name in text for name in _RETRYABLE_TYPE_NAMES):
+                return True
+            if "SSLError" in text and any(
+                marker in text.lower() for marker in _SSL_INTERRUPT_MARKERS
+            ):
+                return True
             # Non-429 HTTP 4xx messages are not retryable.
             if "HTTP 4" in text:
                 return False
+            cause = exc.__cause__
+            if isinstance(cause, BaseException) and cause is not exc:
+                if isinstance(cause, _RETRYABLE_DISCONNECT) or _is_ssl_connection_interrupt(
+                    cause
+                ):
+                    return True
         return False
 
     def embed(self, texts: List[str]) -> List[List[float]]:
