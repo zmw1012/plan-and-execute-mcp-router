@@ -1,0 +1,41 @@
+{
+  "taxonomy_version": "flat_error_taxonomy_v1",
+  "categories": [
+    "success",
+    "resource_limit_max_invocations",
+    "resource_limit_max_llm_turns",
+    "protocol_or_parse_failure",
+    "wrong_tool_selection",
+    "redundant_tool_selection",
+    "incomplete_tool_chain",
+    "argument_error",
+    "dependency_error",
+    "tool_execution_failure",
+    "answer_synthesis",
+    "refusal_or_feasibility_error",
+    "evidence_failure",
+    "evaluation_failure"
+  ],
+  "primary_counts": {
+    "success": 84,
+    "incomplete_tool_chain": 3,
+    "resource_limit_max_invocations": 34,
+    "redundant_tool_selection": 7,
+    "answer_synthesis": 3,
+    "protocol_or_parse_failure": 1,
+    "evaluation_failure": 1,
+    "refusal_or_feasibility_error": 19,
+    "resource_limit_max_llm_turns": 2,
+    "wrong_tool_selection": 1
+  },
+  "notes": [
+    "max_invocations / max_llm_turns take priority over answer errors.",
+    "Redundant vs missing gold tools are separated.",
+    "Tool execution failure ≠ wrong tool selection.",
+    "No task_id special-case rules.",
+    "Retrieval metrics are N/A for Flat."
+  ],
+  "max_invocations_financial_note": "Financial accounts for most max_invocations failures; full 39-tool exposure + multi-step filing paths likely drive over-selection and repeated invokes before a final answer.",
+  "should_refuse_zero_note": "should_refuse_or_clarify auto accuracy is 0/6 under frozen grades: agents often answered with tools or refused without matching gold refusal contract (answer_correct False even when refusal_correctness is 1.0 on some rows).",
+  "evidence_answerable_note": "evidence_answerable accuracy is low: multi-doc chains + max_invocations and synthesis failures dominate."
+}

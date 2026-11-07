@@ -1,0 +1,105 @@
+{
+  "evaluator": {
+    "evaluator_version": "hk_unified_evaluator_v1.2",
+    "evaluator_source_sha256": "22d526d48d6f913c8ce9a0c14f17608a474582892f61fd6c93fea6c005fd7ddb",
+    "evaluator_module": "unified_evaluator.py"
+  },
+  "grading": {
+    "grader_version": "deterministic_v1.2",
+    "grading_version": "hk_unified_grading_v1.2"
+  },
+  "audit_version": "flat_final_audit_v1",
+  "taxonomy_version": "flat_error_taxonomy_v1",
+  "flat_prompt_rules_hash": "0085453b545af9cedc916a154d49115be16925263b7f7f5f840724d7c7f463a4",
+  "run_identity_checks": {
+    "condition": {
+      "expected": "flat",
+      "actual": "flat",
+      "ok": true
+    },
+    "architecture": {
+      "expected": "flat_all_tools",
+      "actual": "flat_all_tools",
+      "ok": true
+    },
+    "execution_backend": {
+      "expected": "real_mcp",
+      "actual": "real_mcp",
+      "ok": true
+    },
+    "generation_provider": {
+      "expected": "openai_compatible",
+      "actual": "openai_compatible",
+      "ok": true
+    },
+    "provider_host": {
+      "expected": "api.zhizengzeng.com",
+      "actual": "api.zhizengzeng.com",
+      "ok": true
+    },
+    "generation_model": {
+      "expected": "deepseek-v4.1-flash",
+      "actual": "deepseek-v4.1-flash",
+      "ok": true
+    },
+    "embedding_enabled": {
+      "expected": false,
+      "actual": false,
+      "ok": true
+    },
+    "retrieval_enabled": {
+      "expected": false,
+      "actual": false,
+      "ok": true
+    },
+    "system_prompt_hash": {
+      "expected": "fdecb85f16b506c6ed0e5e2c8b2c248929bd7342c68d11a2e6ac7f604ed1198c",
+      "actual": "fdecb85f16b506c6ed0e5e2c8b2c248929bd7342c68d11a2e6ac7f604ed1198c",
+      "ok": true
+    },
+    "git_commit": {
+      "expected": "9c4c904311d72c78ea169c1ac9e452966366ca66",
+      "actual": "9c4c904311d72c78ea169c1ac9e452966366ca66",
+      "ok": true
+    },
+    "git_dirty": {
+      "expected": false,
+      "actual": false,
+      "ok": true
+    },
+    "run_status": {
+      "expected": "completed",
+      "actual": "completed",
+      "ok": true
+    },
+    "question_count": {
+      "expected": 155,
+      "actual": 155,
+      "ok": true
+    },
+    "exploratory_manifest_hash": {
+      "expected": "f2257e3de89189c5d5784e3f58824c10928294d9454bcf68b3d061dca37f92c5",
+      "actual": "f2257e3de89189c5d5784e3f58824c10928294d9454bcf68b3d061dca37f92c5",
+      "ok": true
+    },
+    "run_order_hash": {
+      "expected": "14aa3c253eea155b038b70fe11b8a69ee51331b5599790bb2827e72d4e321254",
+      "actual": "14aa3c253eea155b038b70fe11b8a69ee51331b5599790bb2827e72d4e321254",
+      "ok": true
+    },
+    "schema_bundle_sha256": {
+      "expected": "1e2181d01c2a60e74f026dbeb249d96019a3a52e1e343bb3526e4f914555bc53",
+      "actual": "1e2181d01c2a60e74f026dbeb249d96019a3a52e1e343bb3526e4f914555bc53",
+      "ok": true
+    },
+    "action_mapping_fingerprint": {
+      "expected": "1381662c108561c7a24920e8dd07e063ebf15d092aa1f47adb2cd89d5b0d850a",
+      "actual": "1381662c108561c7a24920e8dd07e063ebf15d092aa1f47adb2cd89d5b0d850a",
+      "ok": true
+    },
+    "catalog_fingerprint": {
+      "actual": "unique=42|runtime=39|namespaced=54|cross_domain:a21a0cdf6c73|financial:18634ccfb733|market:2b201872c109|news:9121e9b7ca8d",
+      "ok": true
+    }
+  }
+}

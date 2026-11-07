@@ -1,0 +1,1711 @@
+{
+  "overall": {
+    "task_count": 155,
+    "auto_gradable_count": 154,
+    "auto_graded_correct": 87,
+    "auto_accuracy": 0.564935064935065,
+    "manual_required_count": 1,
+    "manual_task_ids": [
+      "fin_cf_022"
+    ],
+    "strict_answer_correct_count": 84,
+    "strict_answer_accuracy": 0.5419354838709678,
+    "exact_tool_set_rate": 0.23225806451612904,
+    "mean_operation_precision": 0.5116897225806452,
+    "mean_operation_recall": 0.729032264516129,
+    "mean_operation_f1": 0.5731674645161291,
+    "mean_wrong_tool_rate": 0.4560522129032258,
+    "all_tool_invocations_successful_rate": 0.5870967741935483,
+    "recovered_after_tool_error_rate": 0.16129032258064516,
+    "mean_llm_calls": 2.967741935483871,
+    "mean_real_mcp_execution_count": 3.6903225806451614,
+    "mean_latency_ms": 25185.31666451613,
+    "total_llm_calls": 460,
+    "total_real_mcp_executions": 572,
+    "total_embedding_calls": 0,
+    "total_retrieval_calls": 0,
+    "status_counts": {
+      "full": 118,
+      "failed": 36,
+      "partial": 1
+    },
+    "error_counts": {
+      "max_invocations": 34,
+      "max_llm_turns": 2
+    },
+    "primary_error_counts": {
+      "success": 84,
+      "incomplete_tool_chain": 3,
+      "resource_limit_max_invocations": 34,
+      "redundant_tool_selection": 7,
+      "answer_synthesis": 3,
+      "protocol_or_parse_failure": 1,
+      "evaluation_failure": 1,
+      "refusal_or_feasibility_error": 19,
+      "resource_limit_max_llm_turns": 2,
+      "wrong_tool_selection": 1
+    },
+    "retrieval_metrics": "N/A"
+  },
+  "domain": {
+    "cross_domain": {
+      "task_count": 25,
+      "auto_gradable_count": 25,
+      "auto_graded_correct": 14,
+      "auto_accuracy": 0.56,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 14,
+      "strict_answer_accuracy": 0.56,
+      "exact_tool_set_rate": 0.24,
+      "mean_operation_precision": 0.59704768,
+      "mean_operation_recall": 0.83333336,
+      "mean_operation_f1": 0.67984132,
+      "mean_wrong_tool_rate": 0.36295232,
+      "all_tool_invocations_successful_rate": 0.68,
+      "recovered_after_tool_error_rate": 0.16,
+      "mean_llm_calls": 2.8,
+      "mean_real_mcp_execution_count": 3.84,
+      "mean_latency_ms": 26642.65456,
+      "total_llm_calls": 70,
+      "total_real_mcp_executions": 96,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 21,
+        "partial": 1,
+        "failed": 3
+      },
+      "error_counts": {
+        "max_invocations": 3
+      },
+      "primary_error_counts": {
+        "incomplete_tool_chain": 1,
+        "success": 14,
+        "redundant_tool_selection": 3,
+        "protocol_or_parse_failure": 1,
+        "resource_limit_max_invocations": 3,
+        "refusal_or_feasibility_error": 3
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "financial": {
+      "task_count": 60,
+      "auto_gradable_count": 59,
+      "auto_graded_correct": 18,
+      "auto_accuracy": 0.3050847457627119,
+      "manual_required_count": 1,
+      "manual_task_ids": [
+        "fin_cf_022"
+      ],
+      "strict_answer_correct_count": 15,
+      "strict_answer_accuracy": 0.25,
+      "exact_tool_set_rate": 0.016666666666666666,
+      "mean_operation_precision": 0.3100397166666667,
+      "mean_operation_recall": 0.58944445,
+      "mean_operation_f1": 0.3736274,
+      "mean_wrong_tool_rate": 0.6566269499999999,
+      "all_tool_invocations_successful_rate": 0.36666666666666664,
+      "recovered_after_tool_error_rate": 0.15,
+      "mean_llm_calls": 3.35,
+      "mean_real_mcp_execution_count": 5.566666666666666,
+      "mean_latency_ms": 28667.37198333333,
+      "total_llm_calls": 201,
+      "total_real_mcp_executions": 334,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 30,
+        "failed": 30
+      },
+      "error_counts": {
+        "max_invocations": 30
+      },
+      "primary_error_counts": {
+        "success": 15,
+        "resource_limit_max_invocations": 30,
+        "redundant_tool_selection": 3,
+        "evaluation_failure": 1,
+        "incomplete_tool_chain": 2,
+        "wrong_tool_selection": 1,
+        "refusal_or_feasibility_error": 8
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "market": {
+      "task_count": 35,
+      "auto_gradable_count": 35,
+      "auto_graded_correct": 26,
+      "auto_accuracy": 0.7428571428571429,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 26,
+      "strict_answer_accuracy": 0.7428571428571429,
+      "exact_tool_set_rate": 0.5714285714285714,
+      "mean_operation_precision": 0.7238095142857143,
+      "mean_operation_recall": 0.8857142857142857,
+      "mean_operation_f1": 0.7761905714285714,
+      "mean_wrong_tool_rate": 0.2761904857142857,
+      "all_tool_invocations_successful_rate": 0.8285714285714286,
+      "recovered_after_tool_error_rate": 0.05714285714285714,
+      "mean_llm_calls": 2.6285714285714286,
+      "mean_real_mcp_execution_count": 1.6,
+      "mean_latency_ms": 25251.5004,
+      "total_llm_calls": 92,
+      "total_real_mcp_executions": 56,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 33,
+        "failed": 2
+      },
+      "error_counts": {
+        "max_llm_turns": 2
+      },
+      "primary_error_counts": {
+        "success": 26,
+        "redundant_tool_selection": 1,
+        "resource_limit_max_llm_turns": 2,
+        "refusal_or_feasibility_error": 6
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "news": {
+      "task_count": 35,
+      "auto_gradable_count": 35,
+      "auto_graded_correct": 29,
+      "auto_accuracy": 0.8285714285714286,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 29,
+      "strict_answer_accuracy": 0.8285714285714286,
+      "exact_tool_set_rate": 0.2571428571428571,
+      "mean_operation_precision": 0.5842856857142857,
+      "mean_operation_recall": 0.7371428571428572,
+      "mean_operation_f1": 0.6360174285714285,
+      "mean_wrong_tool_rate": 0.35857145714285715,
+      "all_tool_invocations_successful_rate": 0.6571428571428571,
+      "recovered_after_tool_error_rate": 0.2857142857142857,
+      "mean_llm_calls": 2.7714285714285714,
+      "mean_real_mcp_execution_count": 2.4571428571428573,
+      "mean_latency_ms": 18108.9396,
+      "total_llm_calls": 97,
+      "total_real_mcp_executions": 86,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 34,
+        "failed": 1
+      },
+      "error_counts": {
+        "max_invocations": 1
+      },
+      "primary_error_counts": {
+        "success": 29,
+        "answer_synthesis": 3,
+        "resource_limit_max_invocations": 1,
+        "refusal_or_feasibility_error": 2
+      },
+      "retrieval_metrics": "N/A"
+    }
+  },
+  "project_difficulty": {
+    "D1": {
+      "task_count": 35,
+      "auto_gradable_count": 35,
+      "auto_graded_correct": 23,
+      "auto_accuracy": 0.6571428571428571,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 23,
+      "strict_answer_accuracy": 0.6571428571428571,
+      "exact_tool_set_rate": 0.34285714285714286,
+      "mean_operation_precision": 0.6111564857142857,
+      "mean_operation_recall": 0.9304762000000001,
+      "mean_operation_f1": 0.6918512571428572,
+      "mean_wrong_tool_rate": 0.3888435142857143,
+      "all_tool_invocations_successful_rate": 0.6285714285714286,
+      "recovered_after_tool_error_rate": 0.08571428571428572,
+      "mean_llm_calls": 2.7142857142857144,
+      "mean_real_mcp_execution_count": 3.6285714285714286,
+      "mean_latency_ms": 19143.257514285717,
+      "total_llm_calls": 95,
+      "total_real_mcp_executions": 127,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 25,
+        "failed": 10
+      },
+      "error_counts": {
+        "max_invocations": 10
+      },
+      "primary_error_counts": {
+        "success": 23,
+        "resource_limit_max_invocations": 10,
+        "redundant_tool_selection": 1,
+        "answer_synthesis": 1
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "D2": {
+      "task_count": 24,
+      "auto_gradable_count": 23,
+      "auto_graded_correct": 15,
+      "auto_accuracy": 0.6521739130434783,
+      "manual_required_count": 1,
+      "manual_task_ids": [
+        "fin_cf_022"
+      ],
+      "strict_answer_correct_count": 15,
+      "strict_answer_accuracy": 0.625,
+      "exact_tool_set_rate": 0.16666666666666666,
+      "mean_operation_precision": 0.5451389166666667,
+      "mean_operation_recall": 0.838888875,
+      "mean_operation_f1": 0.6293320833333333,
+      "mean_wrong_tool_rate": 0.4548610833333333,
+      "all_tool_invocations_successful_rate": 0.5416666666666666,
+      "recovered_after_tool_error_rate": 0.125,
+      "mean_llm_calls": 2.9166666666666665,
+      "mean_real_mcp_execution_count": 4.0,
+      "mean_latency_ms": 24242.777166666667,
+      "total_llm_calls": 70,
+      "total_real_mcp_executions": 96,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 18,
+        "failed": 6
+      },
+      "error_counts": {
+        "max_invocations": 6
+      },
+      "primary_error_counts": {
+        "incomplete_tool_chain": 2,
+        "success": 15,
+        "evaluation_failure": 1,
+        "resource_limit_max_invocations": 6
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "D3": {
+      "task_count": 42,
+      "auto_gradable_count": 42,
+      "auto_graded_correct": 27,
+      "auto_accuracy": 0.6428571428571429,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 27,
+      "strict_answer_accuracy": 0.6428571428571429,
+      "exact_tool_set_rate": 0.23809523809523808,
+      "mean_operation_precision": 0.6256235952380953,
+      "mean_operation_recall": 0.8523809523809524,
+      "mean_operation_f1": 0.6914279285714285,
+      "mean_wrong_tool_rate": 0.3505668809523809,
+      "all_tool_invocations_successful_rate": 0.5,
+      "recovered_after_tool_error_rate": 0.3333333333333333,
+      "mean_llm_calls": 3.4047619047619047,
+      "mean_real_mcp_execution_count": 3.9285714285714284,
+      "mean_latency_ms": 29571.77157142857,
+      "total_llm_calls": 143,
+      "total_real_mcp_executions": 165,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 36,
+        "partial": 1,
+        "failed": 5
+      },
+      "error_counts": {
+        "max_invocations": 5
+      },
+      "primary_error_counts": {
+        "success": 27,
+        "redundant_tool_selection": 5,
+        "protocol_or_parse_failure": 1,
+        "resource_limit_max_invocations": 5,
+        "answer_synthesis": 2,
+        "incomplete_tool_chain": 1,
+        "wrong_tool_selection": 1
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "D4": {
+      "task_count": 28,
+      "auto_gradable_count": 28,
+      "auto_graded_correct": 12,
+      "auto_accuracy": 0.42857142857142855,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 12,
+      "strict_answer_accuracy": 0.42857142857142855,
+      "exact_tool_set_rate": 0.25,
+      "mean_operation_precision": 0.4932823214285714,
+      "mean_operation_recall": 0.6845238214285715,
+      "mean_operation_f1": 0.5529363928571429,
+      "mean_wrong_tool_rate": 0.3638605357142857,
+      "all_tool_invocations_successful_rate": 0.6071428571428571,
+      "recovered_after_tool_error_rate": 0.03571428571428571,
+      "mean_llm_calls": 2.9285714285714284,
+      "mean_real_mcp_execution_count": 3.607142857142857,
+      "mean_latency_ms": 27842.534714285714,
+      "total_llm_calls": 82,
+      "total_real_mcp_executions": 101,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 16,
+        "failed": 12
+      },
+      "error_counts": {
+        "max_llm_turns": 2,
+        "max_invocations": 10
+      },
+      "primary_error_counts": {
+        "redundant_tool_selection": 1,
+        "success": 12,
+        "refusal_or_feasibility_error": 3,
+        "resource_limit_max_llm_turns": 2,
+        "resource_limit_max_invocations": 10
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "D5": {
+      "task_count": 26,
+      "auto_gradable_count": 26,
+      "auto_graded_correct": 10,
+      "auto_accuracy": 0.38461538461538464,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 7,
+      "strict_answer_accuracy": 0.2692307692307692,
+      "exact_tool_set_rate": 0.11538461538461539,
+      "mean_operation_precision": 0.18269230769230768,
+      "mean_operation_recall": 0.20512823076923076,
+      "mean_operation_f1": 0.19230773076923077,
+      "mean_wrong_tool_rate": 0.8173076923076923,
+      "all_tool_invocations_successful_rate": 0.6923076923076923,
+      "recovered_after_tool_error_rate": 0.15384615384615385,
+      "mean_llm_calls": 2.6923076923076925,
+      "mean_real_mcp_execution_count": 3.1923076923076925,
+      "mean_latency_ms": 24241.46307692308,
+      "total_llm_calls": 70,
+      "total_real_mcp_executions": 83,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 23,
+        "failed": 3
+      },
+      "error_counts": {
+        "max_invocations": 3
+      },
+      "primary_error_counts": {
+        "refusal_or_feasibility_error": 16,
+        "success": 7,
+        "resource_limit_max_invocations": 3
+      },
+      "retrieval_metrics": "N/A"
+    }
+  },
+  "answerability_class": {
+    "capability_gap": {
+      "task_count": 5,
+      "auto_gradable_count": 5,
+      "auto_graded_correct": 5,
+      "auto_accuracy": 1.0,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 5,
+      "strict_answer_accuracy": 1.0,
+      "exact_tool_set_rate": 0.0,
+      "mean_operation_precision": 0.0,
+      "mean_operation_recall": 0.0,
+      "mean_operation_f1": 0.0,
+      "mean_wrong_tool_rate": 1.0,
+      "all_tool_invocations_successful_rate": 1.0,
+      "recovered_after_tool_error_rate": 0.0,
+      "mean_llm_calls": 2.0,
+      "mean_real_mcp_execution_count": 1.0,
+      "mean_latency_ms": 14089.6872,
+      "total_llm_calls": 10,
+      "total_real_mcp_executions": 5,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 5
+      },
+      "error_counts": {},
+      "primary_error_counts": {
+        "success": 5
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "evidence_answerable": {
+      "task_count": 29,
+      "auto_gradable_count": 29,
+      "auto_graded_correct": 3,
+      "auto_accuracy": 0.10344827586206896,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 3,
+      "strict_answer_accuracy": 0.10344827586206896,
+      "exact_tool_set_rate": 0.0,
+      "mean_operation_precision": 0.39458131034482763,
+      "mean_operation_recall": 0.6448275862068965,
+      "mean_operation_f1": 0.4516756896551724,
+      "mean_wrong_tool_rate": 0.5709359310344827,
+      "all_tool_invocations_successful_rate": 0.13793103448275862,
+      "recovered_after_tool_error_rate": 0.13793103448275862,
+      "mean_llm_calls": 3.7241379310344827,
+      "mean_real_mcp_execution_count": 6.689655172413793,
+      "mean_latency_ms": 30390.928965517243,
+      "total_llm_calls": 108,
+      "total_real_mcp_executions": 194,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "failed": 23,
+        "full": 6
+      },
+      "error_counts": {
+        "max_invocations": 23
+      },
+      "primary_error_counts": {
+        "resource_limit_max_invocations": 23,
+        "success": 3,
+        "incomplete_tool_chain": 2,
+        "redundant_tool_selection": 1
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "intentionally_infeasible": {
+      "task_count": 11,
+      "auto_gradable_count": 11,
+      "auto_graded_correct": 3,
+      "auto_accuracy": 0.2727272727272727,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 0,
+      "strict_answer_accuracy": 0.0,
+      "exact_tool_set_rate": 0.0,
+      "mean_operation_precision": 0.0,
+      "mean_operation_recall": 0.0,
+      "mean_operation_f1": 0.0,
+      "mean_wrong_tool_rate": 1.0,
+      "all_tool_invocations_successful_rate": 0.6363636363636364,
+      "recovered_after_tool_error_rate": 0.18181818181818182,
+      "mean_llm_calls": 3.0,
+      "mean_real_mcp_execution_count": 4.909090909090909,
+      "mean_latency_ms": 26863.741181818183,
+      "total_llm_calls": 33,
+      "total_real_mcp_executions": 54,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 8,
+        "failed": 3
+      },
+      "error_counts": {
+        "max_invocations": 3
+      },
+      "primary_error_counts": {
+        "refusal_or_feasibility_error": 8,
+        "resource_limit_max_invocations": 3
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "robustness": {
+      "task_count": 8,
+      "auto_gradable_count": 8,
+      "auto_graded_correct": 3,
+      "auto_accuracy": 0.375,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 3,
+      "strict_answer_accuracy": 0.375,
+      "exact_tool_set_rate": 0.0,
+      "mean_operation_precision": 0.25,
+      "mean_operation_recall": 0.41666675,
+      "mean_operation_f1": 0.309524,
+      "mean_wrong_tool_rate": 0.375,
+      "all_tool_invocations_successful_rate": 0.625,
+      "recovered_after_tool_error_rate": 0.125,
+      "mean_llm_calls": 2.25,
+      "mean_real_mcp_execution_count": 1.75,
+      "mean_latency_ms": 19251.877875,
+      "total_llm_calls": 18,
+      "total_real_mcp_executions": 14,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 8
+      },
+      "error_counts": {},
+      "primary_error_counts": {
+        "refusal_or_feasibility_error": 5,
+        "success": 3
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "should_refuse_or_clarify": {
+      "task_count": 6,
+      "auto_gradable_count": 6,
+      "auto_graded_correct": 0,
+      "auto_accuracy": 0.0,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 0,
+      "strict_answer_accuracy": 0.0,
+      "exact_tool_set_rate": 0.3333333333333333,
+      "mean_operation_precision": 0.3333333333333333,
+      "mean_operation_recall": 0.3333333333333333,
+      "mean_operation_f1": 0.3333333333333333,
+      "mean_wrong_tool_rate": 0.6666666666666666,
+      "all_tool_invocations_successful_rate": 0.6666666666666666,
+      "recovered_after_tool_error_rate": 0.16666666666666666,
+      "mean_llm_calls": 1.6666666666666667,
+      "mean_real_mcp_execution_count": 1.3333333333333333,
+      "mean_latency_ms": 13126.471,
+      "total_llm_calls": 10,
+      "total_real_mcp_executions": 8,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 6
+      },
+      "error_counts": {},
+      "primary_error_counts": {
+        "refusal_or_feasibility_error": 6
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "structured_answerable": {
+      "task_count": 96,
+      "auto_gradable_count": 95,
+      "auto_graded_correct": 73,
+      "auto_accuracy": 0.7684210526315789,
+      "manual_required_count": 1,
+      "manual_task_ids": [
+        "fin_cf_022"
+      ],
+      "strict_answer_correct_count": 73,
+      "strict_answer_accuracy": 0.7604166666666666,
+      "exact_tool_set_rate": 0.3541666666666667,
+      "mean_operation_precision": 0.66530259375,
+      "mean_operation_recall": 0.9267361145833334,
+      "mean_operation_f1": 0.7423559375000001,
+      "mean_wrong_tool_rate": 0.3242807395833333,
+      "all_tool_invocations_successful_rate": 0.6875,
+      "recovered_after_tool_error_rate": 0.17708333333333334,
+      "mean_llm_calls": 2.9270833333333335,
+      "mean_real_mcp_execution_count": 3.09375,
+      "mean_latency_ms": 25246.496927083335,
+      "total_llm_calls": 281,
+      "total_real_mcp_executions": 297,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 85,
+        "failed": 10,
+        "partial": 1
+      },
+      "error_counts": {
+        "max_invocations": 8,
+        "max_llm_turns": 2
+      },
+      "primary_error_counts": {
+        "success": 73,
+        "incomplete_tool_chain": 1,
+        "resource_limit_max_invocations": 8,
+        "redundant_tool_selection": 6,
+        "answer_synthesis": 3,
+        "protocol_or_parse_failure": 1,
+        "evaluation_failure": 1,
+        "resource_limit_max_llm_turns": 2,
+        "wrong_tool_selection": 1
+      },
+      "retrieval_metrics": "N/A"
+    }
+  },
+  "domain_combination": {
+    "financial": {
+      "task_count": 60,
+      "auto_gradable_count": 59,
+      "auto_graded_correct": 18,
+      "auto_accuracy": 0.3050847457627119,
+      "manual_required_count": 1,
+      "manual_task_ids": [
+        "fin_cf_022"
+      ],
+      "strict_answer_correct_count": 15,
+      "strict_answer_accuracy": 0.25,
+      "exact_tool_set_rate": 0.016666666666666666,
+      "mean_operation_precision": 0.3100397166666667,
+      "mean_operation_recall": 0.58944445,
+      "mean_operation_f1": 0.3736274,
+      "mean_wrong_tool_rate": 0.6566269499999999,
+      "all_tool_invocations_successful_rate": 0.36666666666666664,
+      "recovered_after_tool_error_rate": 0.15,
+      "mean_llm_calls": 3.35,
+      "mean_real_mcp_execution_count": 5.566666666666666,
+      "mean_latency_ms": 28667.37198333333,
+      "total_llm_calls": 201,
+      "total_real_mcp_executions": 334,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 30,
+        "failed": 30
+      },
+      "error_counts": {
+        "max_invocations": 30
+      },
+      "primary_error_counts": {
+        "success": 15,
+        "resource_limit_max_invocations": 30,
+        "redundant_tool_selection": 3,
+        "evaluation_failure": 1,
+        "incomplete_tool_chain": 2,
+        "wrong_tool_selection": 1,
+        "refusal_or_feasibility_error": 8
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "financial+market": {
+      "task_count": 7,
+      "auto_gradable_count": 7,
+      "auto_graded_correct": 4,
+      "auto_accuracy": 0.5714285714285714,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 4,
+      "strict_answer_accuracy": 0.5714285714285714,
+      "exact_tool_set_rate": 0.0,
+      "mean_operation_precision": 0.484694,
+      "mean_operation_recall": 0.8571428571428571,
+      "mean_operation_f1": 0.6126984285714286,
+      "mean_wrong_tool_rate": 0.515306,
+      "all_tool_invocations_successful_rate": 0.7142857142857143,
+      "recovered_after_tool_error_rate": 0.14285714285714285,
+      "mean_llm_calls": 2.5714285714285716,
+      "mean_real_mcp_execution_count": 4.285714285714286,
+      "mean_latency_ms": 22524.48642857143,
+      "total_llm_calls": 18,
+      "total_real_mcp_executions": 30,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 5,
+        "partial": 1,
+        "failed": 1
+      },
+      "error_counts": {
+        "max_invocations": 1
+      },
+      "primary_error_counts": {
+        "success": 4,
+        "redundant_tool_selection": 1,
+        "protocol_or_parse_failure": 1,
+        "resource_limit_max_invocations": 1
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "financial+market+news": {
+      "task_count": 5,
+      "auto_gradable_count": 5,
+      "auto_graded_correct": 2,
+      "auto_accuracy": 0.4,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 2,
+      "strict_answer_accuracy": 0.4,
+      "exact_tool_set_rate": 0.2,
+      "mean_operation_precision": 0.67,
+      "mean_operation_recall": 0.8666668,
+      "mean_operation_f1": 0.7500002,
+      "mean_wrong_tool_rate": 0.32999999999999996,
+      "all_tool_invocations_successful_rate": 0.6,
+      "recovered_after_tool_error_rate": 0.2,
+      "mean_llm_calls": 3.8,
+      "mean_real_mcp_execution_count": 4.2,
+      "mean_latency_ms": 42541.2508,
+      "total_llm_calls": 19,
+      "total_real_mcp_executions": 21,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 5
+      },
+      "error_counts": {},
+      "primary_error_counts": {
+        "redundant_tool_selection": 1,
+        "refusal_or_feasibility_error": 2,
+        "success": 2
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "financial+news": {
+      "task_count": 7,
+      "auto_gradable_count": 7,
+      "auto_graded_correct": 3,
+      "auto_accuracy": 0.42857142857142855,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 3,
+      "strict_answer_accuracy": 0.42857142857142855,
+      "exact_tool_set_rate": 0.42857142857142855,
+      "mean_operation_precision": 0.6214285714285713,
+      "mean_operation_recall": 0.7857142857142857,
+      "mean_operation_f1": 0.670068,
+      "mean_wrong_tool_rate": 0.37857142857142856,
+      "all_tool_invocations_successful_rate": 0.5714285714285714,
+      "recovered_after_tool_error_rate": 0.14285714285714285,
+      "mean_llm_calls": 2.5714285714285716,
+      "mean_real_mcp_execution_count": 4.285714285714286,
+      "mean_latency_ms": 23443.067714285713,
+      "total_llm_calls": 18,
+      "total_real_mcp_executions": 30,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 5,
+        "failed": 2
+      },
+      "error_counts": {
+        "max_invocations": 2
+      },
+      "primary_error_counts": {
+        "incomplete_tool_chain": 1,
+        "success": 3,
+        "redundant_tool_selection": 1,
+        "resource_limit_max_invocations": 2
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "market": {
+      "task_count": 35,
+      "auto_gradable_count": 35,
+      "auto_graded_correct": 26,
+      "auto_accuracy": 0.7428571428571429,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 26,
+      "strict_answer_accuracy": 0.7428571428571429,
+      "exact_tool_set_rate": 0.5714285714285714,
+      "mean_operation_precision": 0.7238095142857143,
+      "mean_operation_recall": 0.8857142857142857,
+      "mean_operation_f1": 0.7761905714285714,
+      "mean_wrong_tool_rate": 0.2761904857142857,
+      "all_tool_invocations_successful_rate": 0.8285714285714286,
+      "recovered_after_tool_error_rate": 0.05714285714285714,
+      "mean_llm_calls": 2.6285714285714286,
+      "mean_real_mcp_execution_count": 1.6,
+      "mean_latency_ms": 25251.5004,
+      "total_llm_calls": 92,
+      "total_real_mcp_executions": 56,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 33,
+        "failed": 2
+      },
+      "error_counts": {
+        "max_llm_turns": 2
+      },
+      "primary_error_counts": {
+        "success": 26,
+        "redundant_tool_selection": 1,
+        "resource_limit_max_llm_turns": 2,
+        "refusal_or_feasibility_error": 6
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "market+news": {
+      "task_count": 6,
+      "auto_gradable_count": 6,
+      "auto_graded_correct": 5,
+      "auto_accuracy": 0.8333333333333334,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 5,
+      "strict_answer_accuracy": 0.8333333333333334,
+      "exact_tool_set_rate": 0.3333333333333333,
+      "mean_operation_precision": 0.6388889999999999,
+      "mean_operation_recall": 0.8333333333333334,
+      "mean_operation_f1": 0.7111111666666666,
+      "mean_wrong_tool_rate": 0.19444433333333333,
+      "all_tool_invocations_successful_rate": 0.8333333333333334,
+      "recovered_after_tool_error_rate": 0.16666666666666666,
+      "mean_llm_calls": 2.5,
+      "mean_real_mcp_execution_count": 2.5,
+      "mean_latency_ms": 21931.205166666667,
+      "total_llm_calls": 15,
+      "total_real_mcp_executions": 15,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 6
+      },
+      "error_counts": {},
+      "primary_error_counts": {
+        "success": 5,
+        "refusal_or_feasibility_error": 1
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "news": {
+      "task_count": 35,
+      "auto_gradable_count": 35,
+      "auto_graded_correct": 29,
+      "auto_accuracy": 0.8285714285714286,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 29,
+      "strict_answer_accuracy": 0.8285714285714286,
+      "exact_tool_set_rate": 0.2571428571428571,
+      "mean_operation_precision": 0.5842856857142857,
+      "mean_operation_recall": 0.7371428571428572,
+      "mean_operation_f1": 0.6360174285714285,
+      "mean_wrong_tool_rate": 0.35857145714285715,
+      "all_tool_invocations_successful_rate": 0.6571428571428571,
+      "recovered_after_tool_error_rate": 0.2857142857142857,
+      "mean_llm_calls": 2.7714285714285714,
+      "mean_real_mcp_execution_count": 2.4571428571428573,
+      "mean_latency_ms": 18108.9396,
+      "total_llm_calls": 97,
+      "total_real_mcp_executions": 86,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 34,
+        "failed": 1
+      },
+      "error_counts": {
+        "max_invocations": 1
+      },
+      "primary_error_counts": {
+        "success": 29,
+        "answer_synthesis": 3,
+        "resource_limit_max_invocations": 1,
+        "refusal_or_feasibility_error": 2
+      },
+      "retrieval_metrics": "N/A"
+    }
+  },
+  "company": {
+    "Alibaba": {
+      "task_count": 47,
+      "auto_gradable_count": 46,
+      "auto_graded_correct": 29,
+      "auto_accuracy": 0.6304347826086957,
+      "manual_required_count": 1,
+      "manual_task_ids": [
+        "fin_cf_022"
+      ],
+      "strict_answer_correct_count": 26,
+      "strict_answer_accuracy": 0.5531914893617021,
+      "exact_tool_set_rate": 0.19148936170212766,
+      "mean_operation_precision": 0.49812565957446814,
+      "mean_operation_recall": 0.7691489361702127,
+      "mean_operation_f1": 0.5777947659574468,
+      "mean_wrong_tool_rate": 0.4805977446808511,
+      "all_tool_invocations_successful_rate": 0.7021276595744681,
+      "recovered_after_tool_error_rate": 0.1276595744680851,
+      "mean_llm_calls": 2.5319148936170213,
+      "mean_real_mcp_execution_count": 3.6595744680851063,
+      "mean_latency_ms": 20283.393787234043,
+      "total_llm_calls": 119,
+      "total_real_mcp_executions": 172,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 37,
+        "failed": 10
+      },
+      "error_counts": {
+        "max_invocations": 10
+      },
+      "primary_error_counts": {
+        "success": 26,
+        "resource_limit_max_invocations": 10,
+        "redundant_tool_selection": 5,
+        "answer_synthesis": 1,
+        "evaluation_failure": 1,
+        "refusal_or_feasibility_error": 4
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "HSBC": {
+      "task_count": 49,
+      "auto_gradable_count": 49,
+      "auto_graded_correct": 20,
+      "auto_accuracy": 0.40816326530612246,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 20,
+      "strict_answer_accuracy": 0.40816326530612246,
+      "exact_tool_set_rate": 0.14285714285714285,
+      "mean_operation_precision": 0.4881924285714286,
+      "mean_operation_recall": 0.6853741632653061,
+      "mean_operation_f1": 0.5412397551020408,
+      "mean_wrong_tool_rate": 0.4709912448979592,
+      "all_tool_invocations_successful_rate": 0.46938775510204084,
+      "recovered_after_tool_error_rate": 0.1836734693877551,
+      "mean_llm_calls": 3.4489795918367347,
+      "mean_real_mcp_execution_count": 4.183673469387755,
+      "mean_latency_ms": 28033.776551020408,
+      "total_llm_calls": 169,
+      "total_real_mcp_executions": 205,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 33,
+        "failed": 15,
+        "partial": 1
+      },
+      "error_counts": {
+        "max_invocations": 14,
+        "max_llm_turns": 1
+      },
+      "primary_error_counts": {
+        "incomplete_tool_chain": 3,
+        "success": 20,
+        "resource_limit_max_invocations": 14,
+        "answer_synthesis": 2,
+        "protocol_or_parse_failure": 1,
+        "redundant_tool_selection": 2,
+        "refusal_or_feasibility_error": 6,
+        "resource_limit_max_llm_turns": 1
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "HSI": {
+      "task_count": 5,
+      "auto_gradable_count": 5,
+      "auto_graded_correct": 4,
+      "auto_accuracy": 0.8,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 4,
+      "strict_answer_accuracy": 0.8,
+      "exact_tool_set_rate": 0.6,
+      "mean_operation_precision": 0.8,
+      "mean_operation_recall": 1.0,
+      "mean_operation_f1": 0.8666668,
+      "mean_wrong_tool_rate": 0.2,
+      "all_tool_invocations_successful_rate": 0.6,
+      "recovered_after_tool_error_rate": 0.2,
+      "mean_llm_calls": 2.2,
+      "mean_real_mcp_execution_count": 1.8,
+      "mean_latency_ms": 30463.6516,
+      "total_llm_calls": 11,
+      "total_real_mcp_executions": 9,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 5
+      },
+      "error_counts": {},
+      "primary_error_counts": {
+        "success": 4,
+        "refusal_or_feasibility_error": 1
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "Tencent": {
+      "task_count": 54,
+      "auto_gradable_count": 54,
+      "auto_graded_correct": 34,
+      "auto_accuracy": 0.6296296296296297,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 34,
+      "strict_answer_accuracy": 0.6296296296296297,
+      "exact_tool_set_rate": 0.3148148148148148,
+      "mean_operation_precision": 0.5181217037037037,
+      "mean_operation_recall": 0.7086419814814815,
+      "mean_operation_f1": 0.5709355740740741,
+      "mean_wrong_tool_rate": 0.44484125925925927,
+      "all_tool_invocations_successful_rate": 0.5925925925925926,
+      "recovered_after_tool_error_rate": 0.16666666666666666,
+      "mean_llm_calls": 2.9814814814814814,
+      "mean_real_mcp_execution_count": 3.4444444444444446,
+      "mean_latency_ms": 26378.35677777778,
+      "total_llm_calls": 161,
+      "total_real_mcp_executions": 186,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 43,
+        "failed": 11
+      },
+      "error_counts": {
+        "max_invocations": 10,
+        "max_llm_turns": 1
+      },
+      "primary_error_counts": {
+        "success": 34,
+        "resource_limit_max_invocations": 10,
+        "resource_limit_max_llm_turns": 1,
+        "refusal_or_feasibility_error": 8,
+        "wrong_tool_selection": 1
+      },
+      "retrieval_metrics": "N/A"
+    }
+  },
+  "source_split": {
+    "development": {
+      "task_count": 70,
+      "auto_gradable_count": 69,
+      "auto_graded_correct": 35,
+      "auto_accuracy": 0.5072463768115942,
+      "manual_required_count": 1,
+      "manual_task_ids": [
+        "fin_cf_022"
+      ],
+      "strict_answer_correct_count": 34,
+      "strict_answer_accuracy": 0.4857142857142857,
+      "exact_tool_set_rate": 0.24285714285714285,
+      "mean_operation_precision": 0.49112247142857146,
+      "mean_operation_recall": 0.7538095285714286,
+      "mean_operation_f1": 0.5610637428571429,
+      "mean_wrong_tool_rate": 0.46602038571428567,
+      "all_tool_invocations_successful_rate": 0.6,
+      "recovered_after_tool_error_rate": 0.1,
+      "mean_llm_calls": 3.0142857142857142,
+      "mean_real_mcp_execution_count": 3.842857142857143,
+      "mean_latency_ms": 24768.472714285715,
+      "total_llm_calls": 211,
+      "total_real_mcp_executions": 269,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 50,
+        "failed": 20
+      },
+      "error_counts": {
+        "max_invocations": 19,
+        "max_llm_turns": 1
+      },
+      "primary_error_counts": {
+        "success": 34,
+        "resource_limit_max_invocations": 19,
+        "redundant_tool_selection": 5,
+        "evaluation_failure": 1,
+        "answer_synthesis": 1,
+        "refusal_or_feasibility_error": 8,
+        "incomplete_tool_chain": 1,
+        "resource_limit_max_llm_turns": 1
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "previously_reserved": {
+      "task_count": 85,
+      "auto_gradable_count": 85,
+      "auto_graded_correct": 52,
+      "auto_accuracy": 0.611764705882353,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 50,
+      "strict_answer_accuracy": 0.5882352941176471,
+      "exact_tool_set_rate": 0.2235294117647059,
+      "mean_operation_precision": 0.5286274588235295,
+      "mean_operation_recall": 0.7086274588235294,
+      "mean_operation_f1": 0.5831352352941177,
+      "mean_wrong_tool_rate": 0.4478431294117647,
+      "all_tool_invocations_successful_rate": 0.5764705882352941,
+      "recovered_after_tool_error_rate": 0.21176470588235294,
+      "mean_llm_calls": 2.929411764705882,
+      "mean_real_mcp_execution_count": 3.5647058823529414,
+      "mean_latency_ms": 25528.599917647058,
+      "total_llm_calls": 249,
+      "total_real_mcp_executions": 303,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 68,
+        "failed": 16,
+        "partial": 1
+      },
+      "error_counts": {
+        "max_invocations": 15,
+        "max_llm_turns": 1
+      },
+      "primary_error_counts": {
+        "success": 50,
+        "incomplete_tool_chain": 2,
+        "resource_limit_max_invocations": 15,
+        "answer_synthesis": 2,
+        "protocol_or_parse_failure": 1,
+        "redundant_tool_selection": 2,
+        "refusal_or_feasibility_error": 11,
+        "resource_limit_max_llm_turns": 1,
+        "wrong_tool_selection": 1
+      },
+      "retrieval_metrics": "N/A"
+    }
+  },
+  "status": {
+    "failed": {
+      "task_count": 36,
+      "auto_gradable_count": 36,
+      "auto_graded_correct": 3,
+      "auto_accuracy": 0.08333333333333333,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 0,
+      "strict_answer_accuracy": 0.0,
+      "exact_tool_set_rate": 0.05555555555555555,
+      "mean_operation_precision": 0.3665344166666667,
+      "mean_operation_recall": 0.6402777777777778,
+      "mean_operation_f1": 0.4333163611111111,
+      "mean_wrong_tool_rate": 0.6334655833333334,
+      "all_tool_invocations_successful_rate": 0.19444444444444445,
+      "recovered_after_tool_error_rate": 0.0,
+      "mean_llm_calls": 3.638888888888889,
+      "mean_real_mcp_execution_count": 6.916666666666667,
+      "mean_latency_ms": 30150.222944444446,
+      "total_llm_calls": 131,
+      "total_real_mcp_executions": 249,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "failed": 36
+      },
+      "error_counts": {
+        "max_invocations": 34,
+        "max_llm_turns": 2
+      },
+      "primary_error_counts": {
+        "resource_limit_max_invocations": 34,
+        "resource_limit_max_llm_turns": 2
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "full": {
+      "task_count": 118,
+      "auto_gradable_count": 117,
+      "auto_graded_correct": 84,
+      "auto_accuracy": 0.717948717948718,
+      "manual_required_count": 1,
+      "manual_task_ids": [
+        "fin_cf_022"
+      ],
+      "strict_answer_correct_count": 84,
+      "strict_answer_accuracy": 0.711864406779661,
+      "exact_tool_set_rate": 0.288135593220339,
+      "mean_operation_precision": 0.5581921016949153,
+      "mean_operation_recall": 0.7580508559322033,
+      "mean_operation_f1": 0.6178663983050848,
+      "mean_wrong_tool_rate": 0.39943501694915257,
+      "all_tool_invocations_successful_rate": 0.711864406779661,
+      "recovered_after_tool_error_rate": 0.2033898305084746,
+      "mean_llm_calls": 2.76271186440678,
+      "mean_real_mcp_execution_count": 2.6864406779661016,
+      "mean_latency_ms": 23635.117474576273,
+      "total_llm_calls": 326,
+      "total_real_mcp_executions": 317,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 118
+      },
+      "error_counts": {},
+      "primary_error_counts": {
+        "success": 84,
+        "incomplete_tool_chain": 3,
+        "redundant_tool_selection": 7,
+        "answer_synthesis": 3,
+        "evaluation_failure": 1,
+        "refusal_or_feasibility_error": 19,
+        "wrong_tool_selection": 1
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "partial": {
+      "task_count": 1,
+      "auto_gradable_count": 1,
+      "auto_graded_correct": 0,
+      "auto_accuracy": 0.0,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 0,
+      "strict_answer_accuracy": 0.0,
+      "exact_tool_set_rate": 0.0,
+      "mean_operation_precision": 0.25,
+      "mean_operation_recall": 0.5,
+      "mean_operation_f1": 0.333333,
+      "mean_wrong_tool_rate": 0.75,
+      "all_tool_invocations_successful_rate": 0.0,
+      "recovered_after_tool_error_rate": 1.0,
+      "mean_llm_calls": 3.0,
+      "mean_real_mcp_execution_count": 6.0,
+      "mean_latency_ms": 29372.195,
+      "total_llm_calls": 3,
+      "total_real_mcp_executions": 6,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "partial": 1
+      },
+      "error_counts": {},
+      "primary_error_counts": {
+        "protocol_or_parse_failure": 1
+      },
+      "retrieval_metrics": "N/A"
+    }
+  },
+  "primary_error_category": {
+    "answer_synthesis": {
+      "task_count": 3,
+      "auto_gradable_count": 3,
+      "auto_graded_correct": 0,
+      "auto_accuracy": 0.0,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 0,
+      "strict_answer_accuracy": 0.0,
+      "exact_tool_set_rate": 1.0,
+      "mean_operation_precision": 1.0,
+      "mean_operation_recall": 1.0,
+      "mean_operation_f1": 1.0,
+      "mean_wrong_tool_rate": 0.0,
+      "all_tool_invocations_successful_rate": 1.0,
+      "recovered_after_tool_error_rate": 0.0,
+      "mean_llm_calls": 2.0,
+      "mean_real_mcp_execution_count": 1.0,
+      "mean_latency_ms": 12783.559666666668,
+      "total_llm_calls": 6,
+      "total_real_mcp_executions": 3,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 3
+      },
+      "error_counts": {},
+      "primary_error_counts": {
+        "answer_synthesis": 3
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "evaluation_failure": {
+      "task_count": 1,
+      "auto_gradable_count": 0,
+      "auto_graded_correct": 0,
+      "auto_accuracy": null,
+      "manual_required_count": 1,
+      "manual_task_ids": [
+        "fin_cf_022"
+      ],
+      "strict_answer_correct_count": 0,
+      "strict_answer_accuracy": 0.0,
+      "exact_tool_set_rate": 0.0,
+      "mean_operation_precision": 0.4,
+      "mean_operation_recall": 1.0,
+      "mean_operation_f1": 0.571429,
+      "mean_wrong_tool_rate": 0.6,
+      "all_tool_invocations_successful_rate": 0.0,
+      "recovered_after_tool_error_rate": 0.0,
+      "mean_llm_calls": 4.0,
+      "mean_real_mcp_execution_count": 5.0,
+      "mean_latency_ms": 29065.318,
+      "total_llm_calls": 4,
+      "total_real_mcp_executions": 5,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 1
+      },
+      "error_counts": {},
+      "primary_error_counts": {
+        "evaluation_failure": 1
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "incomplete_tool_chain": {
+      "task_count": 3,
+      "auto_gradable_count": 3,
+      "auto_graded_correct": 0,
+      "auto_accuracy": 0.0,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 0,
+      "strict_answer_accuracy": 0.0,
+      "exact_tool_set_rate": 0.0,
+      "mean_operation_precision": 0.5,
+      "mean_operation_recall": 0.4666666666666666,
+      "mean_operation_f1": 0.4666666666666666,
+      "mean_wrong_tool_rate": 0.5,
+      "all_tool_invocations_successful_rate": 0.3333333333333333,
+      "recovered_after_tool_error_rate": 0.3333333333333333,
+      "mean_llm_calls": 4.0,
+      "mean_real_mcp_execution_count": 4.0,
+      "mean_latency_ms": 33378.418333333335,
+      "total_llm_calls": 12,
+      "total_real_mcp_executions": 12,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 3
+      },
+      "error_counts": {},
+      "primary_error_counts": {
+        "incomplete_tool_chain": 3
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "protocol_or_parse_failure": {
+      "task_count": 1,
+      "auto_gradable_count": 1,
+      "auto_graded_correct": 0,
+      "auto_accuracy": 0.0,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 0,
+      "strict_answer_accuracy": 0.0,
+      "exact_tool_set_rate": 0.0,
+      "mean_operation_precision": 0.25,
+      "mean_operation_recall": 0.5,
+      "mean_operation_f1": 0.333333,
+      "mean_wrong_tool_rate": 0.75,
+      "all_tool_invocations_successful_rate": 0.0,
+      "recovered_after_tool_error_rate": 1.0,
+      "mean_llm_calls": 3.0,
+      "mean_real_mcp_execution_count": 6.0,
+      "mean_latency_ms": 29372.195,
+      "total_llm_calls": 3,
+      "total_real_mcp_executions": 6,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "partial": 1
+      },
+      "error_counts": {},
+      "primary_error_counts": {
+        "protocol_or_parse_failure": 1
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "redundant_tool_selection": {
+      "task_count": 7,
+      "auto_gradable_count": 7,
+      "auto_graded_correct": 0,
+      "auto_accuracy": 0.0,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 0,
+      "strict_answer_accuracy": 0.0,
+      "exact_tool_set_rate": 0.0,
+      "mean_operation_precision": 0.504762,
+      "mean_operation_recall": 1.0,
+      "mean_operation_f1": 0.6554422857142858,
+      "mean_wrong_tool_rate": 0.495238,
+      "all_tool_invocations_successful_rate": 0.8571428571428571,
+      "recovered_after_tool_error_rate": 0.14285714285714285,
+      "mean_llm_calls": 3.0,
+      "mean_real_mcp_execution_count": 4.0,
+      "mean_latency_ms": 26936.053571428572,
+      "total_llm_calls": 21,
+      "total_real_mcp_executions": 28,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 7
+      },
+      "error_counts": {},
+      "primary_error_counts": {
+        "redundant_tool_selection": 7
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "refusal_or_feasibility_error": {
+      "task_count": 19,
+      "auto_gradable_count": 19,
+      "auto_graded_correct": 0,
+      "auto_accuracy": 0.0,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 0,
+      "strict_answer_accuracy": 0.0,
+      "exact_tool_set_rate": 0.10526315789473684,
+      "mean_operation_precision": 0.18421052631578946,
+      "mean_operation_recall": 0.2280702105263158,
+      "mean_operation_f1": 0.20050131578947367,
+      "mean_wrong_tool_rate": 0.7105263157894737,
+      "all_tool_invocations_successful_rate": 0.6842105263157895,
+      "recovered_after_tool_error_rate": 0.21052631578947367,
+      "mean_llm_calls": 2.5789473684210527,
+      "mean_real_mcp_execution_count": 2.6315789473684212,
+      "mean_latency_ms": 22858.625368421053,
+      "total_llm_calls": 49,
+      "total_real_mcp_executions": 50,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 19
+      },
+      "error_counts": {},
+      "primary_error_counts": {
+        "refusal_or_feasibility_error": 19
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "resource_limit_max_invocations": {
+      "task_count": 34,
+      "auto_gradable_count": 34,
+      "auto_graded_correct": 3,
+      "auto_accuracy": 0.08823529411764706,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 0,
+      "strict_answer_accuracy": 0.0,
+      "exact_tool_set_rate": 0.0,
+      "mean_operation_precision": 0.3292717352941177,
+      "mean_operation_recall": 0.6191176470588236,
+      "mean_operation_f1": 0.3999820294117647,
+      "mean_wrong_tool_rate": 0.6707282647058823,
+      "all_tool_invocations_successful_rate": 0.14705882352941177,
+      "recovered_after_tool_error_rate": 0.0,
+      "mean_llm_calls": 3.3823529411764706,
+      "mean_real_mcp_execution_count": 7.264705882352941,
+      "mean_latency_ms": 27106.707000000002,
+      "total_llm_calls": 115,
+      "total_real_mcp_executions": 247,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "failed": 34
+      },
+      "error_counts": {
+        "max_invocations": 34
+      },
+      "primary_error_counts": {
+        "resource_limit_max_invocations": 34
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "resource_limit_max_llm_turns": {
+      "task_count": 2,
+      "auto_gradable_count": 2,
+      "auto_graded_correct": 0,
+      "auto_accuracy": 0.0,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 0,
+      "strict_answer_accuracy": 0.0,
+      "exact_tool_set_rate": 1.0,
+      "mean_operation_precision": 1.0,
+      "mean_operation_recall": 1.0,
+      "mean_operation_f1": 1.0,
+      "mean_wrong_tool_rate": 0.0,
+      "all_tool_invocations_successful_rate": 1.0,
+      "recovered_after_tool_error_rate": 0.0,
+      "mean_llm_calls": 8.0,
+      "mean_real_mcp_execution_count": 1.0,
+      "mean_latency_ms": 81889.994,
+      "total_llm_calls": 16,
+      "total_real_mcp_executions": 2,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "failed": 2
+      },
+      "error_counts": {
+        "max_llm_turns": 2
+      },
+      "primary_error_counts": {
+        "resource_limit_max_llm_turns": 2
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "success": {
+      "task_count": 84,
+      "auto_gradable_count": 84,
+      "auto_graded_correct": 84,
+      "auto_accuracy": 1.0,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 84,
+      "strict_answer_accuracy": 1.0,
+      "exact_tool_set_rate": 0.34523809523809523,
+      "mean_operation_precision": 0.6420635,
+      "mean_operation_recall": 0.8656746071428572,
+      "mean_operation_f1": 0.7087998214285715,
+      "mean_wrong_tool_rate": 0.3222222142857143,
+      "all_tool_invocations_successful_rate": 0.7142857142857143,
+      "recovered_after_tool_error_rate": 0.21428571428571427,
+      "mean_llm_calls": 2.7142857142857144,
+      "mean_real_mcp_execution_count": 2.5714285714285716,
+      "mean_latency_ms": 22855.662345238095,
+      "total_llm_calls": 228,
+      "total_real_mcp_executions": 216,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 84
+      },
+      "error_counts": {},
+      "primary_error_counts": {
+        "success": 84
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "wrong_tool_selection": {
+      "task_count": 1,
+      "auto_gradable_count": 1,
+      "auto_graded_correct": 0,
+      "auto_accuracy": 0.0,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 0,
+      "strict_answer_accuracy": 0.0,
+      "exact_tool_set_rate": 0.0,
+      "mean_operation_precision": 0.0,
+      "mean_operation_recall": 0.0,
+      "mean_operation_f1": 0.0,
+      "mean_wrong_tool_rate": 1.0,
+      "all_tool_invocations_successful_rate": 1.0,
+      "recovered_after_tool_error_rate": 0.0,
+      "mean_llm_calls": 6.0,
+      "mean_real_mcp_execution_count": 3.0,
+      "mean_latency_ms": 78650.716,
+      "total_llm_calls": 6,
+      "total_real_mcp_executions": 3,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 1
+      },
+      "error_counts": {},
+      "primary_error_counts": {
+        "wrong_tool_selection": 1
+      },
+      "retrieval_metrics": "N/A"
+    }
+  },
+  "development_origin": {
+    "development": {
+      "task_count": 70,
+      "auto_gradable_count": 69,
+      "auto_graded_correct": 35,
+      "auto_accuracy": 0.5072463768115942,
+      "manual_required_count": 1,
+      "manual_task_ids": [
+        "fin_cf_022"
+      ],
+      "strict_answer_correct_count": 34,
+      "strict_answer_accuracy": 0.4857142857142857,
+      "exact_tool_set_rate": 0.24285714285714285,
+      "mean_operation_precision": 0.49112247142857146,
+      "mean_operation_recall": 0.7538095285714286,
+      "mean_operation_f1": 0.5610637428571429,
+      "mean_wrong_tool_rate": 0.46602038571428567,
+      "all_tool_invocations_successful_rate": 0.6,
+      "recovered_after_tool_error_rate": 0.1,
+      "mean_llm_calls": 3.0142857142857142,
+      "mean_real_mcp_execution_count": 3.842857142857143,
+      "mean_latency_ms": 24768.472714285715,
+      "total_llm_calls": 211,
+      "total_real_mcp_executions": 269,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 50,
+        "failed": 20
+      },
+      "error_counts": {
+        "max_invocations": 19,
+        "max_llm_turns": 1
+      },
+      "primary_error_counts": {
+        "success": 34,
+        "resource_limit_max_invocations": 19,
+        "redundant_tool_selection": 5,
+        "evaluation_failure": 1,
+        "answer_synthesis": 1,
+        "refusal_or_feasibility_error": 8,
+        "incomplete_tool_chain": 1,
+        "resource_limit_max_llm_turns": 1
+      },
+      "retrieval_metrics": "N/A"
+    },
+    "previously_reserved": {
+      "task_count": 85,
+      "auto_gradable_count": 85,
+      "auto_graded_correct": 52,
+      "auto_accuracy": 0.611764705882353,
+      "manual_required_count": 0,
+      "manual_task_ids": [],
+      "strict_answer_correct_count": 50,
+      "strict_answer_accuracy": 0.5882352941176471,
+      "exact_tool_set_rate": 0.2235294117647059,
+      "mean_operation_precision": 0.5286274588235295,
+      "mean_operation_recall": 0.7086274588235294,
+      "mean_operation_f1": 0.5831352352941177,
+      "mean_wrong_tool_rate": 0.4478431294117647,
+      "all_tool_invocations_successful_rate": 0.5764705882352941,
+      "recovered_after_tool_error_rate": 0.21176470588235294,
+      "mean_llm_calls": 2.929411764705882,
+      "mean_real_mcp_execution_count": 3.5647058823529414,
+      "mean_latency_ms": 25528.599917647058,
+      "total_llm_calls": 249,
+      "total_real_mcp_executions": 303,
+      "total_embedding_calls": 0,
+      "total_retrieval_calls": 0,
+      "status_counts": {
+        "full": 68,
+        "failed": 16,
+        "partial": 1
+      },
+      "error_counts": {
+        "max_invocations": 15,
+        "max_llm_turns": 1
+      },
+      "primary_error_counts": {
+        "success": 50,
+        "incomplete_tool_chain": 2,
+        "resource_limit_max_invocations": 15,
+        "answer_synthesis": 2,
+        "protocol_or_parse_failure": 1,
+        "redundant_tool_selection": 2,
+        "refusal_or_feasibility_error": 11,
+        "resource_limit_max_llm_turns": 1,
+        "wrong_tool_selection": 1
+      },
+      "retrieval_metrics": "N/A"
+    }
+  },
+  "exact_etom_aligned_subset": {
+    "task_count": 5,
+    "auto_gradable_count": 5,
+    "auto_graded_correct": 5,
+    "auto_accuracy": 1.0,
+    "manual_required_count": 0,
+    "manual_task_ids": [],
+    "strict_answer_correct_count": 5,
+    "strict_answer_accuracy": 1.0,
+    "exact_tool_set_rate": 0.4,
+    "mean_operation_precision": 0.7833334,
+    "mean_operation_recall": 1.0,
+    "mean_operation_f1": 0.864762,
+    "mean_wrong_tool_rate": 0.21666660000000001,
+    "all_tool_invocations_successful_rate": 0.8,
+    "recovered_after_tool_error_rate": 0.2,
+    "mean_llm_calls": 3.4,
+    "mean_real_mcp_execution_count": 3.4,
+    "mean_latency_ms": 33744.422000000006,
+    "total_llm_calls": 17,
+    "total_real_mcp_executions": 17,
+    "total_embedding_calls": 0,
+    "total_retrieval_calls": 0,
+    "status_counts": {
+      "full": 5
+    },
+    "error_counts": {},
+    "primary_error_counts": {
+      "success": 5
+    },
+    "retrieval_metrics": "N/A"
+  }
+}
