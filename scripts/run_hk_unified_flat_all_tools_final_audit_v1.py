@@ -52,6 +52,15 @@ def parse_args() -> argparse.Namespace:
         default=str(ROOT / "docs" / "hk_unified_flat_all_tools_final_audit_v1"),
         help="Tracked docs mirror directory (set empty to skip)",
     )
+    p.add_argument(
+        "--human-grades",
+        action="append",
+        default=None,
+        help=(
+            "Path to human_grades.json (repeatable). Default: discover under "
+            "audit out-dir / docs mirror."
+        ),
+    )
     return p.parse_args()
 
 
@@ -66,11 +75,20 @@ def main() -> None:
         docs_mirror = Path(args.docs_mirror)
         if not docs_mirror.is_absolute():
             docs_mirror = (ROOT / docs_mirror).resolve()
+    human_grades_paths = None
+    if args.human_grades:
+        human_grades_paths = []
+        for raw in args.human_grades:
+            p = Path(raw)
+            if not p.is_absolute():
+                p = (ROOT / p).resolve()
+            human_grades_paths.append(p)
 
     result = run_flat_final_audit(
         run_dir,
         audit_outdir=out_dir,
         docs_mirror=docs_mirror,
+        human_grades_paths=human_grades_paths,
     )
     result["auditor_worktree_head"] = _git_head(ROOT)
     print("FLAT FINAL AUDIT V1 OK")

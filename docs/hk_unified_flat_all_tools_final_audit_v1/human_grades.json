@@ -1,0 +1,14 @@
+{
+  "audit_version": "flat_final_audit_v1",
+  "source": "human_review",
+  "notes": "Human confirmations only. Final scoring reads this file; no task-id hardcode.",
+  "grades": [
+    {
+      "task_id": "fin_cf_022",
+      "human_confirmed_answer_correct": 1,
+      "human_confirmed_evidence_correct": 1,
+      "human_confirmed_overall_success": 1,
+      "reviewer_notes": "The answer exactly matches the frozen reference: Alibaba FY2026 covers 1 April 2025 through 31 March 2026, because Alibaba has a 31 March fiscal year-end and FY2026 is not calendar year 2026. The core claim is supported by two independent profile operations returning 年结日=03-31. The indexed FY2026 Annual Report title/date provides additional corroboration. The failed optional PDF download and redundant operations remain tool-selection/execution errors, but they do not invalidate the answer or the sufficient evidence used for the required fiscal-period discrimination task."
+    }
+  ]
+}

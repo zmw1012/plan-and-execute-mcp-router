@@ -101,5 +101,6 @@
       "actual": "unique=42|runtime=39|namespaced=54|cross_domain:a21a0cdf6c73|financial:18634ccfb733|market:2b201872c109|news:9121e9b7ca8d",
       "ok": true
     }
-  }
+  },
+  "human_grades_applied": true
 }

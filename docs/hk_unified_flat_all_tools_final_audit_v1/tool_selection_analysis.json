@@ -3,8 +3,8 @@
   "exact_tool_set_rate": 0.23225806451612904,
   "mean_operation_precision": 0.5116897225806452,
   "mean_operation_recall": 0.729032264516129,
-  "mean_operation_f1": 0.5731674645161291,
-  "mean_wrong_tool_rate": 0.4560522129032258,
+  "mean_operation_f1": 0.5731674645161287,
+  "mean_wrong_tool_rate": 0.45605221290322584,
   "all_tool_invocations_successful_rate": 0.5870967741935483,
   "recovered_after_tool_error_rate": 0.16129032258064516,
   "redundant_selection_count": 56,
@@ -36,7 +36,7 @@
       "n": 35,
       "exact_tool_set_rate": 0.2571428571428571,
       "total_real_mcp_executions": 86,
-      "mean_wrong_tool_rate": 0.35857145714285715
+      "mean_wrong_tool_rate": 0.3585714571428572
     }
   },
   "by_difficulty": {
