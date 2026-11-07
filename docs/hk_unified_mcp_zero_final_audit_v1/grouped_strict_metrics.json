@@ -1,0 +1,370 @@
+{
+  "by_domain": {
+    "cross_domain": {
+      "n": 25,
+      "full": 20,
+      "failed": 5,
+      "auto_gradable": 25,
+      "auto_correct": 13,
+      "auto_accuracy": 0.52,
+      "strict_answer_accuracy": 0.52,
+      "exact_tool_set_rate": 0.48,
+      "mean_operation_f1": 0.7493333600000001
+    },
+    "financial": {
+      "n": 60,
+      "full": 46,
+      "failed": 14,
+      "auto_gradable": 59,
+      "auto_correct": 23,
+      "auto_accuracy": 0.3898305084745763,
+      "strict_answer_accuracy": 0.38333333333333336,
+      "exact_tool_set_rate": 0.16666666666666666,
+      "mean_operation_f1": 0.44401158333333335
+    },
+    "market": {
+      "n": 35,
+      "full": 32,
+      "failed": 3,
+      "auto_gradable": 35,
+      "auto_correct": 27,
+      "auto_accuracy": 0.7714285714285715,
+      "strict_answer_accuracy": 0.7714285714285715,
+      "exact_tool_set_rate": 0.8285714285714286,
+      "mean_operation_f1": 0.8428571428571429
+    },
+    "news": {
+      "n": 35,
+      "full": 32,
+      "failed": 3,
+      "auto_gradable": 35,
+      "auto_correct": 26,
+      "auto_accuracy": 0.7428571428571429,
+      "strict_answer_accuracy": 0.7428571428571429,
+      "exact_tool_set_rate": 0.4857142857142857,
+      "mean_operation_f1": 0.7015873142857143
+    }
+  },
+  "by_difficulty": {
+    "D1": {
+      "n": 35,
+      "full": 34,
+      "failed": 1,
+      "auto_gradable": 35,
+      "auto_correct": 28,
+      "auto_accuracy": 0.8,
+      "strict_answer_accuracy": 0.8,
+      "exact_tool_set_rate": 0.7428571428571429,
+      "mean_operation_f1": 0.8144898
+    },
+    "D2": {
+      "n": 24,
+      "full": 19,
+      "failed": 5,
+      "auto_gradable": 23,
+      "auto_correct": 15,
+      "auto_accuracy": 0.6521739130434783,
+      "strict_answer_accuracy": 0.625,
+      "exact_tool_set_rate": 0.4583333333333333,
+      "mean_operation_f1": 0.7443452916666666
+    },
+    "D3": {
+      "n": 42,
+      "full": 37,
+      "failed": 5,
+      "auto_gradable": 42,
+      "auto_correct": 28,
+      "auto_accuracy": 0.6666666666666666,
+      "strict_answer_accuracy": 0.6666666666666666,
+      "exact_tool_set_rate": 0.42857142857142855,
+      "mean_operation_f1": 0.762433880952381
+    },
+    "D4": {
+      "n": 28,
+      "full": 18,
+      "failed": 10,
+      "auto_gradable": 28,
+      "auto_correct": 12,
+      "auto_accuracy": 0.42857142857142855,
+      "strict_answer_accuracy": 0.42857142857142855,
+      "exact_tool_set_rate": 0.35714285714285715,
+      "mean_operation_f1": 0.57747375
+    },
+    "D5": {
+      "n": 26,
+      "full": 22,
+      "failed": 4,
+      "auto_gradable": 26,
+      "auto_correct": 6,
+      "auto_accuracy": 0.23076923076923078,
+      "strict_answer_accuracy": 0.23076923076923078,
+      "exact_tool_set_rate": 0.11538461538461539,
+      "mean_operation_f1": 0.1871795
+    }
+  },
+  "by_source_split": {
+    "development": {
+      "n": 70,
+      "full": 61,
+      "failed": 9,
+      "auto_gradable": 69,
+      "auto_correct": 37,
+      "auto_accuracy": 0.5362318840579711,
+      "strict_answer_accuracy": 0.5285714285714286,
+      "exact_tool_set_rate": 0.42857142857142855,
+      "mean_operation_f1": 0.5920181571428571
+    },
+    "previously_reserved": {
+      "n": 85,
+      "full": 69,
+      "failed": 16,
+      "auto_gradable": 85,
+      "auto_correct": 52,
+      "auto_accuracy": 0.611764705882353,
+      "strict_answer_accuracy": 0.611764705882353,
+      "exact_tool_set_rate": 0.4470588235294118,
+      "mean_operation_f1": 0.6822154588235294
+    }
+  },
+  "by_answerability": {
+    "capability_gap": {
+      "n": 5,
+      "full": 5,
+      "failed": 0,
+      "auto_gradable": 5,
+      "auto_correct": 5,
+      "auto_accuracy": 1.0,
+      "strict_answer_accuracy": 1.0,
+      "exact_tool_set_rate": 0.2,
+      "mean_operation_f1": 0.2
+    },
+    "evidence_answerable": {
+      "n": 29,
+      "full": 16,
+      "failed": 13,
+      "auto_gradable": 29,
+      "auto_correct": 6,
+      "auto_accuracy": 0.20689655172413793,
+      "strict_answer_accuracy": 0.20689655172413793,
+      "exact_tool_set_rate": 0.0,
+      "mean_operation_f1": 0.42209289655172416
+    },
+    "intentionally_infeasible": {
+      "n": 11,
+      "full": 10,
+      "failed": 1,
+      "auto_gradable": 11,
+      "auto_correct": 0,
+      "auto_accuracy": 0.0,
+      "strict_answer_accuracy": 0.0,
+      "exact_tool_set_rate": 0.0,
+      "mean_operation_f1": 0.0
+    },
+    "robustness": {
+      "n": 8,
+      "full": 6,
+      "failed": 2,
+      "auto_gradable": 8,
+      "auto_correct": 1,
+      "auto_accuracy": 0.125,
+      "strict_answer_accuracy": 0.125,
+      "exact_tool_set_rate": 0.0,
+      "mean_operation_f1": 0.21666675000000002
+    },
+    "should_refuse_or_clarify": {
+      "n": 6,
+      "full": 5,
+      "failed": 1,
+      "auto_gradable": 6,
+      "auto_correct": 0,
+      "auto_accuracy": 0.0,
+      "strict_answer_accuracy": 0.0,
+      "exact_tool_set_rate": 0.16666666666666666,
+      "mean_operation_f1": 0.16666666666666666
+    },
+    "structured_answerable": {
+      "n": 96,
+      "full": 88,
+      "failed": 8,
+      "auto_gradable": 95,
+      "auto_correct": 77,
+      "auto_accuracy": 0.8105263157894737,
+      "strict_answer_accuracy": 0.8020833333333334,
+      "exact_tool_set_rate": 0.6875,
+      "mean_operation_f1": 0.86932871875
+    }
+  },
+  "by_company": {
+    "Alibaba": {
+      "n": 47,
+      "full": 42,
+      "failed": 5,
+      "auto_gradable": 46,
+      "auto_correct": 27,
+      "auto_accuracy": 0.5869565217391305,
+      "strict_answer_accuracy": 0.574468085106383,
+      "exact_tool_set_rate": 0.425531914893617,
+      "mean_operation_f1": 0.6267984042553192
+    },
+    "HSBC": {
+      "n": 49,
+      "full": 37,
+      "failed": 12,
+      "auto_gradable": 49,
+      "auto_correct": 21,
+      "auto_accuracy": 0.42857142857142855,
+      "strict_answer_accuracy": 0.42857142857142855,
+      "exact_tool_set_rate": 0.32653061224489793,
+      "mean_operation_f1": 0.5743484489795918
+    },
+    "HSI": {
+      "n": 5,
+      "full": 5,
+      "failed": 0,
+      "auto_gradable": 5,
+      "auto_correct": 4,
+      "auto_accuracy": 0.8,
+      "strict_answer_accuracy": 0.8,
+      "exact_tool_set_rate": 1.0,
+      "mean_operation_f1": 1.0
+    },
+    "Tencent": {
+      "n": 54,
+      "full": 46,
+      "failed": 8,
+      "auto_gradable": 54,
+      "auto_correct": 37,
+      "auto_accuracy": 0.6851851851851852,
+      "strict_answer_accuracy": 0.6851851851851852,
+      "exact_tool_set_rate": 0.5,
+      "mean_operation_f1": 0.6819812222222222
+    }
+  },
+  "by_domain_combination": {
+    "financial": {
+      "n": 60,
+      "full": 46,
+      "failed": 14,
+      "auto_gradable": 59,
+      "auto_correct": 23,
+      "auto_accuracy": 0.3898305084745763,
+      "strict_answer_accuracy": 0.38333333333333336,
+      "exact_tool_set_rate": 0.16666666666666666,
+      "mean_operation_f1": 0.44401158333333335
+    },
+    "financial+market": {
+      "n": 7,
+      "full": 6,
+      "failed": 1,
+      "auto_gradable": 7,
+      "auto_correct": 4,
+      "auto_accuracy": 0.5714285714285714,
+      "strict_answer_accuracy": 0.5714285714285714,
+      "exact_tool_set_rate": 0.2857142857142857,
+      "mean_operation_f1": 0.6857142857142857
+    },
+    "financial+market+news": {
+      "n": 5,
+      "full": 2,
+      "failed": 3,
+      "auto_gradable": 5,
+      "auto_correct": 1,
+      "auto_accuracy": 0.2,
+      "strict_answer_accuracy": 0.2,
+      "exact_tool_set_rate": 0.2,
+      "mean_operation_f1": 0.7066668
+    },
+    "financial+news": {
+      "n": 7,
+      "full": 6,
+      "failed": 1,
+      "auto_gradable": 7,
+      "auto_correct": 3,
+      "auto_accuracy": 0.42857142857142855,
+      "strict_answer_accuracy": 0.42857142857142855,
+      "exact_tool_set_rate": 0.5714285714285714,
+      "mean_operation_f1": 0.7714285714285715
+    },
+    "market": {
+      "n": 35,
+      "full": 32,
+      "failed": 3,
+      "auto_gradable": 35,
+      "auto_correct": 27,
+      "auto_accuracy": 0.7714285714285715,
+      "strict_answer_accuracy": 0.7714285714285715,
+      "exact_tool_set_rate": 0.8285714285714286,
+      "mean_operation_f1": 0.8428571428571429
+    },
+    "market+news": {
+      "n": 6,
+      "full": 6,
+      "failed": 0,
+      "auto_gradable": 6,
+      "auto_correct": 5,
+      "auto_accuracy": 0.8333333333333334,
+      "strict_answer_accuracy": 0.8333333333333334,
+      "exact_tool_set_rate": 0.8333333333333334,
+      "mean_operation_f1": 0.8333333333333334
+    },
+    "news": {
+      "n": 35,
+      "full": 32,
+      "failed": 3,
+      "auto_gradable": 35,
+      "auto_correct": 26,
+      "auto_accuracy": 0.7428571428571429,
+      "strict_answer_accuracy": 0.7428571428571429,
+      "exact_tool_set_rate": 0.4857142857142857,
+      "mean_operation_f1": 0.7015873142857143
+    }
+  },
+  "by_status": {
+    "failed": {
+      "n": 25,
+      "full": 0,
+      "failed": 25,
+      "auto_gradable": 25,
+      "auto_correct": 0,
+      "auto_accuracy": 0.0,
+      "strict_answer_accuracy": 0.0,
+      "exact_tool_set_rate": 0.08,
+      "mean_operation_f1": 0.5690563200000001
+    },
+    "full": {
+      "n": 130,
+      "full": 130,
+      "failed": 0,
+      "auto_gradable": 129,
+      "auto_correct": 89,
+      "auto_accuracy": 0.689922480620155,
+      "strict_answer_accuracy": 0.6846153846153846,
+      "exact_tool_set_rate": 0.5076923076923077,
+      "mean_operation_f1": 0.6554090538461539
+    }
+  },
+  "by_previously_reserved": {
+    "development_origin": {
+      "n": 70,
+      "full": 61,
+      "failed": 9,
+      "auto_gradable": 69,
+      "auto_correct": 37,
+      "auto_accuracy": 0.5362318840579711,
+      "strict_answer_accuracy": 0.5285714285714286,
+      "exact_tool_set_rate": 0.42857142857142855,
+      "mean_operation_f1": 0.5920181571428571
+    },
+    "previously_reserved": {
+      "n": 85,
+      "full": 69,
+      "failed": 16,
+      "auto_gradable": 85,
+      "auto_correct": 52,
+      "auto_accuracy": 0.611764705882353,
+      "strict_answer_accuracy": 0.611764705882353,
+      "exact_tool_set_rate": 0.4470588235294118,
+      "mean_operation_f1": 0.6822154588235294
+    }
+  }
+}

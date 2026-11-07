@@ -1,0 +1,47 @@
+{
+  "audit_version": "final_audit_mcp_zero_v1",
+  "identity": {
+    "n": 155,
+    "unique_task_ids": 155,
+    "run_order_match": true,
+    "domain_counts": {
+      "financial": 60,
+      "market": 35,
+      "news": 35,
+      "cross_domain": 25
+    },
+    "status_counts": {
+      "full": 130,
+      "failed": 25
+    },
+    "system_prompt_hash": "0879f47079d8ba345cda167829fa3474375aefd647f92efc139014d7a2885ab8",
+    "method_card_hash": "77cc3b07a4c2b9af00ad3f6bfb7cba59c82084d94b7592f2c820f46f1d3e8d3f",
+    "generation_provider": "openai_compatible",
+    "generation_base_url_host": "api.zhizengzeng.com",
+    "generation_model": "deepseek-v4.1-flash",
+    "embedding_model": "text-embedding-3-small",
+    "git_commit": "1c027c3405d7d70cbdbc82d270a1251969420405",
+    "embedding_index": {
+      "cache_reused": true,
+      "build_calls": 0,
+      "identity_sha256": "5db067b314fc5a20e626ba736119f50703e9255c536379ee2675d175f4cc1e4a",
+      "complete": true
+    },
+    "catalog_stats": {
+      "unique_operation_ids": 42,
+      "runtime_exposed_unique": 39,
+      "mcp_zero_tool_count": 39
+    }
+  },
+  "evaluator": {
+    "evaluator_version": "hk_unified_evaluator_v1.2",
+    "evaluator_source_sha256": "b5b4ac75a6c24469dd336398b7970ea45ff0c3ec64306bdcdad1ac746c554f76",
+    "evaluator_module": "unified_evaluator.py"
+  },
+  "grader": {
+    "grader_version": "deterministic_v1.2",
+    "grading_version": "hk_unified_grading_v1.2"
+  },
+  "expected_prompt_hash": "0879f47079d8ba345cda167829fa3474375aefd647f92efc139014d7a2885ab8",
+  "expected_method_hash": "77cc3b07a4c2b9af00ad3f6bfb7cba59c82084d94b7592f2c820f46f1d3e8d3f"
+}

@@ -1,0 +1,16 @@
+{
+  "condition": "mcp_zero",
+  "grader_version": "deterministic_v1.2",
+  "grading_version": "hk_unified_grading_v1.2",
+  "tasks": {
+    "fin_cf_022": {
+      "answer_correct": null,
+      "evidence_correct": null,
+      "overall_task_success": null,
+      "notes": "",
+      "graded_by": "",
+      "graded_at": ""
+    }
+  },
+  "note": "Fill only after independent human review for this condition."
+}

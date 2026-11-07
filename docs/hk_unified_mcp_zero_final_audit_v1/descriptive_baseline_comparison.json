@@ -1,0 +1,14 @@
+{
+  "mcp_free_final_accuracy": 0.129032,
+  "flat_final_accuracy": 0.567742,
+  "flat_tokens": 9464124,
+  "flat_mcp_executions": 572,
+  "flat_exact_tool_set_approx": 0.232,
+  "flat_operation_f1_approx": 0.573,
+  "mcp_zero_strict_answer_accuracy": 0.5741935483870968,
+  "mcp_zero_tokens": 4050513,
+  "mcp_zero_mcp_executions": 332,
+  "mcp_zero_exact_tool_set_rate": 0.43870967741935485,
+  "mcp_zero_mean_operation_f1": 0.6414811935483871,
+  "note": "Descriptive only; no statistical significance claims."
+}

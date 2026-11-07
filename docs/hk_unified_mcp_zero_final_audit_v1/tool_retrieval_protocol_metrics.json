@@ -1,0 +1,31 @@
+{
+  "exact_tool_set_rate": 0.43870967741935485,
+  "mean_operation_precision": 0.6652688064516129,
+  "mean_operation_recall": 0.646774193548387,
+  "mean_operation_f1": 0.6414811935483871,
+  "mean_wrong_tool_rate": 0.29602151612903227,
+  "mean_retrieved_count": 4.806451612903226,
+  "mean_selected_count": 1.8258064516129033,
+  "mean_invoked_count": 2.141935483870968,
+  "mean_successful_invoked_count": 1.6838709677419355,
+  "tasks_with_invalid_selection": 0,
+  "mean_extension_rounds": 0.36774193548387096,
+  "all_tool_invocations_successful_rate": 0.7806451612903226,
+  "invocation_attempt_task_count": 147,
+  "invocation_conditioned_task_success_rate": 0.7687074829931972,
+  "successful_invocations": 293,
+  "total_invocations": 332,
+  "zero_invocation_failed_task_count": 1,
+  "recovered_after_tool_error_rate": 0.08387096774193549,
+  "mean_protocol_success_rate": 1.0,
+  "task_protocol_success_rate": 0.8387096774193549,
+  "terminal_contract_valid_rate": 0.8387096774193549,
+  "mean_repair_count": 1.0193548387096774,
+  "mean_protocol_repair_count": 0.05161290322580645,
+  "field_definitions": {
+    "retrieved_tools": "Router Top-K candidates (retrieval Recall@K only)",
+    "selected_operations": "Explicit invoke_api operation_ids",
+    "invoked_operations": "Selected ops submitted to Gateway",
+    "successful_invoked_operations": "Gateway-successful ops"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "n": 155,
+  "auto_gradable_count": 154,
+  "auto_graded_correct": 89,
+  "auto_graded_accuracy": 0.577922077922078,
+  "manual_required_count": 1,
+  "overall_accuracy": null,
+  "overall_accuracy_note": "overall accuracy only after manual grading fields are completed",
+  "grader_version": "deterministic_v1.2",
+  "grading_version": "hk_unified_grading_v1.2",
+  "final_answer_accuracy": 0.577922077922078,
+  "final_answer_accuracy_note": "Equals auto_graded_accuracy over auto-gradable tasks; failed tasks are forced incorrect; manual_required excluded from auto.",
+  "strict_answer_accuracy": 0.5741935483870968,
+  "strict_answer_accuracy_note": "answer_correct is True over all 155 tasks; failed forced False; manual_required treated as incorrect until human confirmation.",
+  "strict_overall_task_success": 0.36774193548387096,
+  "strict_overall_task_success_note": "status=full AND answer_correct AND tool_selection_correct AND all_tool_invocations_successful; denominator 155.",
+  "manual_required_task_ids": [
+    "fin_cf_022"
+  ]
+}
