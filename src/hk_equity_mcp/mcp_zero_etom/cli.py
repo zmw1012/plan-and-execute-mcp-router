@@ -17,48 +17,93 @@ def build_parser() -> argparse.ArgumentParser:
     mode.add_argument("--mock", action="store_true")
     mode.add_argument("--preflight", action="store_true")
     mode.add_argument("--index-status", action="store_true")
-    mode.add_argument("--build-index-only", action="store_true")
-    mode.add_argument("--live", action="store_true", help="Disabled in offline construction round")
+    mode.add_argument(
+        "--build-index-only",
+        action="store_true",
+        help="Build/resume shared hierarchical embedding index with the real embedding API",
+    )
+    mode.add_argument(
+        "--live",
+        action="store_true",
+        help="Paid live routing-only run (requires complete index + dual env profiles)",
+    )
     p.add_argument("--output-dir", type=Path, default=None)
-    p.add_argument("--max-tasks", type=int, default=None)
+    p.add_argument(
+        "--max-tasks",
+        type=int,
+        default=None,
+        help="Cumulative locked-order prefix size (not part of resume identity)",
+    )
     p.add_argument("--ids", nargs="*", default=None, help="Debug-only task id filter")
     p.add_argument("--resume", action="store_true")
     p.add_argument("--allow-dirty", action="store_true")
-    p.add_argument("--require-complete-index", action="store_true")
+    p.add_argument(
+        "--require-complete-index",
+        action="store_true",
+        help="Refuse to run/rebuild when the shared index is incomplete (forced on --live)",
+    )
     p.add_argument("--embedding-cache-dir", type=Path, default=None)
     p.add_argument("--etom-source-dir", type=str, default=None)
-    p.add_argument("--etom-fixture-dir", type=str, default=None)
+    p.add_argument(
+        "--etom-fixture-dir",
+        type=str,
+        default=None,
+        help="Offline fixture only (mock/dry-run/preflight/index-status)",
+    )
+    p.add_argument(
+        "--env-file",
+        type=str,
+        default=None,
+        help="Generation env profile (LLM_*). Never prints API keys.",
+    )
+    p.add_argument(
+        "--embedding-env-file",
+        type=str,
+        default=None,
+        help="Embedding env profile (EMBEDDING_*). Never prints API keys.",
+    )
     p.add_argument("--config", type=Path, default=None)
     p.add_argument("--root", type=Path, default=None)
     return p
 
 
+def _resolve_mode(args: argparse.Namespace) -> str:
+    if args.dry_run:
+        return "dry-run"
+    if args.mock:
+        return "mock"
+    if args.preflight:
+        return "preflight"
+    if args.index_status:
+        return "index-status"
+    if args.build_index_only:
+        return "build-index"
+    if args.live:
+        return "live"
+    raise SystemExit("Exactly one mode flag is required.")
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     args = build_parser().parse_args(argv)
     root = Path(args.root) if args.root else Path(__file__).resolve().parents[3]
-    if args.live:
-        raise SystemExit(
-            "Live mode is disabled in this offline construction round. "
-            "Use --mock / --dry-run / --preflight."
-        )
-    if args.dry_run:
-        mode = "dry-run"
-    elif args.mock:
-        mode = "mock"
-    elif args.preflight:
-        mode = "preflight"
-    elif args.index_status:
-        mode = "index-status"
-    elif args.build_index_only:
-        mode = "mock"  # offline deterministic build only
-    else:
-        mode = "dry-run"
+    mode = _resolve_mode(args)
     split = args.split
-    default_out = root / "outputs" / (
-        f"etom_external_{'formal100' if split=='formal100' else 'pilot10'}_mcp_zero_v1"
-        + ("_mock" if mode == "mock" else "_offline")
-    )
+    if mode == "live":
+        default_out = root / "outputs" / (
+            f"etom_external_{'formal100' if split == 'formal100' else 'pilot10'}_mcp_zero_v1"
+        )
+    elif mode == "mock":
+        default_out = root / "outputs" / (
+            f"etom_external_{'formal100' if split == 'formal100' else 'pilot10'}_mcp_zero_v1_mock"
+        )
+    elif mode == "build-index":
+        default_out = root / "outputs" / "_mcp_zero_etom_index_ops"
+    else:
+        default_out = root / "outputs" / (
+            f"etom_external_{'formal100' if split == 'formal100' else 'pilot10'}_mcp_zero_v1_offline"
+        )
     output_dir = Path(args.output_dir) if args.output_dir else default_out
+    require_complete = bool(args.require_complete_index) or mode == "live"
     runner = EtomMcpZeroRunner(
         root,
         output_dir,
@@ -72,9 +117,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         etom_source_dir=args.etom_source_dir,
         fixture_dir=args.etom_fixture_dir,
         embedding_cache_dir=args.embedding_cache_dir,
-        require_complete_index=bool(args.require_complete_index),
-        index_status_only=bool(args.index_status),
-        build_index_only=bool(args.build_index_only),
+        require_complete_index=require_complete,
+        index_status_only=mode == "index-status",
+        build_index_only=mode == "build-index",
+        env_file=args.env_file,
+        embedding_env_file=args.embedding_env_file,
     )
     runner.execute()
     return 0

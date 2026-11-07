@@ -33,6 +33,8 @@ ETOM_RESUME_IDENTITY_KEYS: Tuple[str, ...] = (
     "json_mode",
     "limits",
     "embedding_model",
+    "embedding_provider",
+    "embedding_base_url_host",
     "embedding_cache_namespace",
     "embedding_index_identity_sha256",
     "evaluator_file_sha256s",

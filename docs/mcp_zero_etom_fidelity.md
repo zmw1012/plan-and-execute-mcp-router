@@ -96,12 +96,26 @@ in resume identity.
 Strict denominator keeps failures (score 0). Also emit completed-only
 diagnostic, overall exact route, macro/micro F1, completion/failure rates.
 
+## Live runtime (Terminal only)
+
+`--live` and `--build-index-only` are enabled in code. Cursor must not execute
+them. Use dual env profiles (`--env-file`, `--embedding-env-file`) and
+`--etom-source-dir` pointing at a verified checkout (no symlink).
+
+Shared index: `.cache/mcp_zero_etom_v1/` (~3357 units = 491 server desc + 491
+summary + 2375 tools; expected dim 1536). Pilot-10 and formal-100 share one
+complete registry index. Query embeddings are counted separately from catalog
+build usage. Incomplete indexes fail closed under `--require-complete-index`
+(forced for `--live`).
+
 ## Pilot → formal order
 
-1. `index-status`
-2. `build-index` (paid embeddings; not this round)
-3. cost-pilot 10 smoke
-4. formal-100 batched with `--max-tasks` + `--resume`
+1. `preflight` (offline OK with fixture; paid preflight with real source)
+2. `index-status`
+3. `build-index` (paid embeddings; Terminal)
+4. `index-status` must show `complete=true`
+5. cost-pilot 10 live smoke
+6. formal-100 batched with `--max-tasks` + `--resume`
 
 ## Anti-leakage
 

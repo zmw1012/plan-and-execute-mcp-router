@@ -20,6 +20,7 @@ from hk_equity_mcp.etom.loader import EtomTask, task_from_official
 from hk_equity_mcp.etom.sampler import load_lock, select_locked_tasks
 from hk_equity_mcp.etom.source import (
     EtomSourceError,
+    _git_head,
     file_sha256,
     formal_100_lock_path,
     load_pin,
@@ -67,7 +68,8 @@ def resolve_source_config(
     if fixture_dir:
         if mode not in {"mock", "dry-run", "preflight", "index-status"}:
             raise EtomSourceError(
-                "Fixture source is only allowed for mock/dry-run/preflight/index-status."
+                "Fixture source is only allowed for mock/dry-run/preflight/index-status. "
+                "Live and build-index require a pinned ETOM checkout via --etom-source-dir."
             )
         raw = _refuse_symlink(Path(fixture_dir), label="fixture_dir")
         if not raw.exists():
@@ -122,6 +124,13 @@ def verify_source_config(cfg: EtomSourceConfig) -> Dict[str, Any]:
             f"Pinned ETOM checkout missing at {checkout}. "
             "Run bash scripts/fetch_etom_source.sh or pass --etom-source-dir."
         )
+    head = _git_head(checkout)
+    expected = pin["commit_sha"]
+    if head != expected:
+        raise EtomSourceError(
+            f"ETOM checkout HEAD {head} != pinned commit {expected}. "
+            "Refusing to evaluate a different snapshot."
+        )
     hashes: Dict[str, str] = {}
     for rel, meta in pin["dataset_files"].items():
         path = checkout / rel
@@ -137,6 +146,7 @@ def verify_source_config(cfg: EtomSourceConfig) -> Dict[str, Any]:
         "source_kind": "pinned",
         "pin": pin,
         "checkout": str(checkout),
+        "source_commit": head,
         "sha256": hashes,
         "note": "verified via --etom-source-dir override (no symlink)",
     }
