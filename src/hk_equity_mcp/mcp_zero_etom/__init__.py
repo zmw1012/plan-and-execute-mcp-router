@@ -59,6 +59,51 @@ EXPECTED_HK_METHOD_CARD_SHA256 = (
 FROZEN_ETOM_EVALUATOR = "etom_official_routing_v1"
 FROZEN_ETOM_MAX_TOKENS = 2048
 
+# Catalog index transport only. Never part of routing method-card / prompt hashes.
+FROZEN_EMBEDDING_BUILD: Dict[str, Any] = {
+    "batch_size": 32,
+    "request_timeout_sec": 120,
+    "max_retries": 3,
+    "retry_backoff_seconds": [1, 2, 4],
+}
+
+
+def frozen_embedding_build() -> Dict[str, Any]:
+    """Return a copy of the frozen catalog-index transport knobs."""
+    return {
+        "batch_size": int(FROZEN_EMBEDDING_BUILD["batch_size"]),
+        "request_timeout_sec": int(FROZEN_EMBEDDING_BUILD["request_timeout_sec"]),
+        "max_retries": int(FROZEN_EMBEDDING_BUILD["max_retries"]),
+        "retry_backoff_seconds": list(FROZEN_EMBEDDING_BUILD["retry_backoff_seconds"]),
+    }
+
+
+def assert_embedding_build_config(config: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate optional embedding_build block; defaults to frozen transport."""
+    block = dict(config.get("embedding_build") or {})
+    expected = frozen_embedding_build()
+    if not block:
+        return expected
+    observed = {
+        "batch_size": int(block.get("batch_size")),
+        "request_timeout_sec": int(block.get("request_timeout_sec")),
+        "max_retries": int(block.get("max_retries")),
+        "retry_backoff_seconds": [
+            int(x) for x in list(block.get("retry_backoff_seconds") or [])
+        ],
+    }
+    mismatches = [
+        f"{key}: config={observed[key]!r} frozen={expected[key]!r}"
+        for key in expected
+        if observed[key] != expected[key]
+    ]
+    if mismatches:
+        raise RuntimeError(
+            "MCP-Zero×ETOM embedding_build transport drifted from freeze:\n"
+            + "\n".join(mismatches)
+        )
+    return expected
+
 
 def shared_retrieval_knobs() -> Dict[str, Any]:
     """Routing knobs shared with the HK MCP-Zero method card (no evaluator)."""
@@ -154,6 +199,8 @@ def frozen_etom_runtime_env_identity() -> Dict[str, Any]:
 def assert_frozen_etom_config(config: Dict[str, Any]) -> None:
     ident = frozen_etom_method_identity()
     runtime = frozen_etom_runtime_env_identity()
+    # Transport knobs are validated separately and never enter method identity.
+    assert_embedding_build_config(config)
     retrieval = dict(config.get("retrieval") or {})
     limits = dict(config.get("limits") or {})
     observed = {
@@ -219,6 +266,9 @@ __all__ = [
     "EXPECTED_FORMAL_SAMPLE_SHA256",
     "EXPECTED_ORDERED_IDS_SHA256",
     "EXPECTED_HK_METHOD_CARD_SHA256",
+    "FROZEN_EMBEDDING_BUILD",
+    "frozen_embedding_build",
+    "assert_embedding_build_config",
     "shared_retrieval_knobs",
     "retrieval_method_sha256",
     "assert_shared_knobs_match_hk",

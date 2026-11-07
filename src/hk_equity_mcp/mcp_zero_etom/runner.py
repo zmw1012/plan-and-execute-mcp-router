@@ -44,6 +44,7 @@ from hk_equity_mcp.mcp_zero_etom import (
     EXPERIMENT_FORMAL,
     EXPERIMENT_PILOT,
     EXPECTED_HK_METHOD_CARD_SHA256,
+    assert_embedding_build_config,
     assert_frozen_etom_config,
     assert_shared_knobs_match_hk,
     etom_method_identity_sha256,
@@ -397,8 +398,13 @@ class EtomMcpZeroRunner:
             namespace=EMBEDDING_NAMESPACE,
         )
         # Explicit offline report fields required by the live baseline contract.
-        status["expected_units"] = status["total"]
-        status["completed_units"] = status.get("completed") or status.get("vector_count") or 0
+        status["expected_units"] = int(status.get("expected_units") or status["total"])
+        status["completed_units"] = int(
+            status.get("completed_units")
+            or status.get("completed")
+            or status.get("vector_count")
+            or 0
+        )
         status["units"] = status["total"]
         status["server_units"] = len(self.catalog.servers())
         status["tool_units"] = len(self.catalog)
@@ -409,29 +415,55 @@ class EtomMcpZeroRunner:
             else 0
         )
         status["expected_tool_units"] = len(self.catalog)
+        status["partial_exists"] = bool(status.get("partial_exists"))
         status["cache_reused"] = bool(status.get("cache_reused"))
-        status["build_calls"] = int(status.get("build_calls") or 0)
-        status["build_tokens"] = int(status.get("build_tokens") or 0)
+        # Successful catalog-build accounting only (never inflated by failed retries).
+        status["build_calls"] = int(
+            (self._index_build_report or {}).get("build_calls")
+            or status.get("build_calls")
+            or 0
+        )
+        status["build_tokens"] = int(
+            (self._index_build_report or {}).get("build_tokens")
+            or status.get("build_tokens")
+            or 0
+        )
+        status["retry_count"] = int(
+            (self._index_build_report or {}).get("retry_count")
+            or status.get("retry_count")
+            or 0
+        )
         status["namespace"] = EMBEDDING_NAMESPACE
         status["identity_sha256"] = status.get("identity_sha256")
         status["cache_file_sha256"] = status.get("cache_file_sha256")
-        status["vector_dim"] = status.get("vector_dimension")
+        status["vector_dim"] = status.get("vector_dim") or status.get("vector_dimension")
         status["complete"] = bool(status.get("final_complete") or status.get("complete"))
+        status["final_complete"] = bool(status.get("final_complete") or status["complete"])
         return status
 
-    def _make_embedding_backend(self, *, paid: bool) -> Any:
+    def _embedding_build_cfg(self) -> Dict[str, Any]:
+        return assert_embedding_build_config(self.config)
+
+    def _make_embedding_backend(
+        self, *, paid: bool, for_index_build: bool = False
+    ) -> Any:
         if self._embedding_backend_factory is not None:
             return self._embedding_backend_factory()
         if not paid:
             return DeterministicHashEmbeddingBackend(
                 model_name=str(self.config["embedding_model"])
             )
-        # Real client object (may be constructed in tests via factory injection).
-        return OpenAICompatibleEmbeddingBackend(
-            base_url=os.environ["EMBEDDING_BASE_URL"],
-            api_key=os.environ["EMBEDDING_API_KEY"],
-            model=os.environ["EMBEDDING_MODEL"],
-        )
+        transport = self._embedding_build_cfg() if for_index_build else None
+        kwargs: Dict[str, Any] = {
+            "base_url": os.environ["EMBEDDING_BASE_URL"],
+            "api_key": os.environ["EMBEDDING_API_KEY"],
+            "model": os.environ["EMBEDDING_MODEL"],
+        }
+        if transport is not None:
+            kwargs["timeout_sec"] = float(transport["request_timeout_sec"])
+            kwargs["max_retries"] = int(transport["max_retries"])
+            kwargs["retry_backoff_seconds"] = list(transport["retry_backoff_seconds"])
+        return OpenAICompatibleEmbeddingBackend(**kwargs)
 
     def _make_llm(self, *, paid: bool) -> Any:
         if self._llm_factory is not None:
@@ -493,7 +525,8 @@ class EtomMcpZeroRunner:
         paid = self.mode == "build-index"
         if paid:
             self._load_env_profiles(require=True)
-        backend = self._make_embedding_backend(paid=paid)
+        transport = self._embedding_build_cfg()
+        backend = self._make_embedding_backend(paid=paid, for_index_build=True)
         if paid and not isinstance(backend, OpenAICompatibleEmbeddingBackend):
             # Injected factories in tests may substitute fakes; record class name.
             if self._embedding_backend_factory is None:
@@ -501,6 +534,45 @@ class EtomMcpZeroRunner:
                     "build-index must construct OpenAICompatibleEmbeddingBackend "
                     "(no silent mock fallback)."
                 )
+        # Wire attempt/retry progress without printing secrets or vectors.
+        batch_ctx: Dict[str, Any] = {"start": None, "end": None, "total": None}
+
+        def _on_attempt(info: Dict[str, Any]) -> None:
+            phase = info.get("phase")
+            if phase == "attempt" and batch_ctx["start"] is not None:
+                print(
+                    f"embedding {batch_ctx['start']}-{batch_ctx['end']}/"
+                    f"{batch_ctx['total']} attempt "
+                    f"{info.get('attempt')}/{info.get('max_attempts')}",
+                    flush=True,
+                )
+            elif phase == "retry":
+                print(
+                    f"transient {info.get('error_type')}, retrying in "
+                    f"{info.get('delay_sec')}s",
+                    flush=True,
+                )
+
+        if hasattr(backend, "on_attempt"):
+            backend.on_attempt = _on_attempt
+
+        def _on_event(evt: Dict[str, Any]) -> None:
+            kind = evt.get("event")
+            if kind == "resume":
+                print(
+                    f"index resume {evt.get('completed')}/{evt.get('total')}",
+                    flush=True,
+                )
+            elif kind == "batch_start":
+                batch_ctx["start"] = evt.get("start")
+                batch_ctx["end"] = evt.get("end")
+                batch_ctx["total"] = evt.get("total")
+            elif kind == "checkpoint":
+                print(
+                    f"checkpoint complete {evt.get('completed')}/{evt.get('total')}",
+                    flush=True,
+                )
+
         embedder = CountingEmbedder(
             backend, model_name=str(self.config["embedding_model"])
         )
@@ -516,6 +588,8 @@ class EtomMcpZeroRunner:
             tool_top_k=int(retrieval["tool_top_k"]),
             similarity_threshold=float(retrieval["similarity_threshold"]),
             namespace=EMBEDDING_NAMESPACE,
+            batch_size=int(transport["batch_size"]),
+            event_callback=_on_event,
         )
         report = {
             "index_action": self.table.index_action,
@@ -523,6 +597,7 @@ class EtomMcpZeroRunner:
             "complete": True,
             "build_calls": self.table.build_calls,
             "build_tokens": self.table.build_tokens,
+            "retry_count": int(getattr(self.table, "build_retries", 0) or 0),
             "units": self.table.size(),
             "expected_units": status["expected_units"],
             "namespace": EMBEDDING_NAMESPACE,
@@ -530,6 +605,8 @@ class EtomMcpZeroRunner:
             "cache_reused": bool(self.table.cache_reused),
             "paid_embedding": paid,
             "embedding_backend": type(backend).__name__,
+            # Transport metadata for reproducibility (not method-card).
+            "embedding_build": dict(transport),
         }
         self._index_build_report = report
         return report
@@ -992,9 +1069,13 @@ class EtomMcpZeroRunner:
             _atomic_write_json(self.output_dir / "index_status.json", status)
             print(
                 "INDEX-STATUS "
-                f"complete={status.get('complete')} "
+                f"final_complete={status.get('final_complete')} "
+                f"partial_exists={status.get('partial_exists')} "
                 f"units={status.get('completed_units')}/{status.get('expected_units')} "
                 f"dim={status.get('vector_dim')} "
+                f"retry_count={status.get('retry_count')} "
+                f"calls={status.get('build_calls')} "
+                f"tokens={status.get('build_tokens')} "
                 f"identity={status.get('identity_sha256')}"
             )
             return {"action": "index-status", **status}

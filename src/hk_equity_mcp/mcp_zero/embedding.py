@@ -87,6 +87,7 @@ class EmbeddingTable:
     tool: Dict[str, List[float]] = field(default_factory=dict)
     build_calls: int = 0
     build_tokens: int = 0
+    build_retries: int = 0
     build_latency_ms: float = 0.0
     cache_reused: bool = False
     cache_path: Optional[str] = None
@@ -482,7 +483,13 @@ def table_status(
         except (json.JSONDecodeError, TypeError, ValueError, OSError):
             final_complete = False
             damaged_final = True
-    partial_vectors = _read_partial(partial, expected) if partial.exists() else {}
+    partial_exists = bool(partial.exists())
+    partial_vectors = _read_partial(partial, expected) if partial_exists else {}
+    if vector_dimension is None and partial_vectors:
+        try:
+            vector_dimension = _vector_dimension(partial_vectors)
+        except IncompleteEmbeddingTableError:
+            vector_dimension = None
     return {
         "namespace": str(identity.get("namespace") or CACHE_NAMESPACE),
         "model": model_name,
@@ -491,8 +498,10 @@ def table_status(
         "catalog_fingerprint": identity["catalog_fingerprint"],
         "metadata_hash": metadata_hash,
         "total": len(expected),
+        "expected_units": len(expected),
         "vector_count": final_count if final_complete else len(partial_vectors),
         "vector_dimension": vector_dimension,
+        "vector_dim": vector_dimension,
         "final_cache_path": str(final),
         "final_complete": final_complete,
         "complete": final_complete,
@@ -500,8 +509,10 @@ def table_status(
         "foreign_final": foreign_final,
         "damaged_final": damaged_final,
         "partial_path": str(partial),
+        "partial_exists": partial_exists,
         "partial_completed_count": len(partial_vectors),
         "completed": final_count if final_complete else len(partial_vectors),
+        "completed_units": final_count if final_complete else len(partial_vectors),
         "cache_dir": str(cache_dir),
         "cache_path": str(final),
         "cache_file_sha256": cache_file_sha256,
@@ -511,6 +522,7 @@ def table_status(
         ),
         "build_calls": 0,
         "build_tokens": 0,
+        "retry_count": 0,
     }
 
 
@@ -577,6 +589,33 @@ def load_complete_table(
     return table
 
 
+def _validate_batch_vectors(
+    vecs: List[List[float]],
+    *,
+    expected_n: int,
+    existing_dim: Optional[int],
+) -> int:
+    """Fail closed before any partial append when count/dim is wrong."""
+    if len(vecs) != expected_n:
+        raise IncompleteEmbeddingTableError(
+            "Embedding batch vector count mismatch: "
+            f"got {len(vecs)} expected {expected_n}. Refusing checkpoint."
+        )
+    dims = {len(v) for v in vecs if isinstance(v, list)}
+    if len(dims) != 1:
+        raise IncompleteEmbeddingTableError(
+            f"Embedding batch has inconsistent vector dimensions: {sorted(dims)}"
+        )
+    dim = next(iter(dims))
+    if dim <= 0:
+        raise IncompleteEmbeddingTableError("Embedding batch has empty vectors.")
+    if existing_dim is not None and dim != existing_dim:
+        raise IncompleteEmbeddingTableError(
+            f"Embedding batch dimension {dim} != existing checkpoint dim {existing_dim}."
+        )
+    return dim
+
+
 def build_embedding_table(
     catalog: McpZeroCatalog,
     embedder: CountingEmbedder,
@@ -585,6 +624,7 @@ def build_embedding_table(
     use_summary: bool = True,
     batch_size: int = 64,
     progress: Optional[Callable[[int, int], None]] = None,
+    event_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     catalog_fingerprint: Optional[str] = None,
     score_mode: str = SCORE_OFFICIAL_COMBINED,
     server_top_k: int = 3,
@@ -597,7 +637,14 @@ def build_embedding_table(
     A missing index is an explicit build. A partial checkpoint for the same
     identity is resumed. A complete matching index is reused. A file from
     another namespace is never overwritten or silently reused.
+
+    Partial append happens only after a batch returns a verified vector count
+    and consistent dimension. Failed/retried requests never write.
     """
+    def _event(payload: Dict[str, Any]) -> None:
+        if event_callback is not None:
+            event_callback(payload)
+
     metadata_hash = catalog.fingerprint()
     model_name = embedder.model_name
     identity = embedding_cache_identity(
@@ -653,21 +700,58 @@ def build_embedding_table(
         vectors = _read_partial(partial, expected)
         if vectors:
             index_action = "resume_partial"
+            _event(
+                {
+                    "event": "resume",
+                    "completed": len(vectors),
+                    "total": len(units),
+                }
+            )
+    retries_before = int(getattr(getattr(embedder, "inner", None), "retry_count", 0) or 0)
     calls_before, tokens_before = embedder.calls, embedder.tokens
     started = time.perf_counter()
     pending = [(k, t) for k, t in units if k not in vectors]
     step = max(1, int(batch_size))
+    existing_dim: Optional[int] = None
+    if vectors:
+        existing_dim = _vector_dimension(vectors)
     for start in range(0, len(pending), step):
         chunk = pending[start : start + step]
+        abs_start = len(vectors) + 1
+        abs_end = len(vectors) + len(chunk)
+        _event(
+            {
+                "event": "batch_start",
+                "start": abs_start,
+                "end": abs_end,
+                "total": len(units),
+                "batch_size": len(chunk),
+            }
+        )
         vecs = embedder.embed([t for _, t in chunk])
+        _validate_batch_vectors(
+            vecs, expected_n=len(chunk), existing_dim=existing_dim
+        )
+        if existing_dim is None and vecs:
+            existing_dim = len(vecs[0])
+        # Only append after the batch is fully validated.
         for (key, _), vec in zip(chunk, vecs):
-            vectors[key] = vec
+            vectors[key] = list(map(float, vec))
         if partial is not None:
             with partial.open("a", encoding="utf-8") as handle:
                 for (key, _), vec in zip(chunk, vecs):
-                    handle.write(json.dumps({"k": key, "v": vec}) + "\n")
+                    handle.write(
+                        json.dumps({"k": key, "v": list(map(float, vec))}) + "\n"
+                    )
                 handle.flush()
                 os.fsync(handle.fileno())
+        _event(
+            {
+                "event": "checkpoint",
+                "completed": len(vectors),
+                "total": len(units),
+            }
+        )
         if progress:
             progress(len(vectors), len(units))
     build_latency_ms = (time.perf_counter() - started) * 1000.0
@@ -679,6 +763,8 @@ def build_embedding_table(
     table = _split_table(vectors, model_name, metadata_hash)
     table.build_calls = embedder.calls - calls_before
     table.build_tokens = embedder.tokens - tokens_before
+    retries_after = int(getattr(getattr(embedder, "inner", None), "retry_count", 0) or 0)
+    table.build_retries = max(0, retries_after - retries_before)
     table.build_latency_ms = round(build_latency_ms, 3)
     table.identity = identity
     table.identity_sha256 = identity_digest(identity)

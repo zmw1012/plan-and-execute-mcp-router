@@ -24,6 +24,13 @@ limits:
   max_extension_rounds: 3
   timeout_sec: 180
 
+# Transport-only knobs for catalog index builds. NOT part of routing method-card.
+embedding_build:
+  batch_size: 32
+  request_timeout_sec: 120
+  max_retries: 3
+  retry_backoff_seconds: [1, 2, 4]
+
 pricing:
   # Align with ETOM OV formal-100 pricing block for comparable cost summaries.
   # DeepSeek-V4.1-Flash peak cache-miss list price + text-embedding-3-small.

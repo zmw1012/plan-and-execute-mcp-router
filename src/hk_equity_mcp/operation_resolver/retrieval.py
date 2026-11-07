@@ -11,11 +11,13 @@ import json
 import math
 import os
 import re
+import socket
+import time
 import urllib.error
 import urllib.request
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from hk_equity_mcp.operation_resolver.registry import registry_fingerprint
 from hk_equity_mcp.operation_resolver.schemas import OperationSpec
@@ -87,8 +89,16 @@ class EmbeddingBackend(ABC):
         raise NotImplementedError
 
 
+_RETRYABLE_HTTP = frozenset({429, 500, 502, 503, 504})
+
+
 class OpenAICompatibleEmbeddingBackend(EmbeddingBackend):
-    """Relay/OpenAI-compatible embeddings. Fails clearly on missing config or HTTP errors."""
+    """Relay/OpenAI-compatible embeddings. Fails clearly on missing config or HTTP errors.
+
+    Optional transport retries (TimeoutError / URLError / 429 / 5xx) are for index
+    builds only. Defaults keep historical single-shot behaviour (max_retries=0).
+    Never logs API keys or response bodies. Never falls back to lexical/mock.
+    """
 
     def __init__(
         self,
@@ -96,13 +106,22 @@ class OpenAICompatibleEmbeddingBackend(EmbeddingBackend):
         api_key: Optional[str] = None,
         model: Optional[str] = None,
         timeout_sec: float = 60.0,
+        max_retries: int = 0,
+        retry_backoff_seconds: Optional[Sequence[float]] = None,
+        on_attempt: Optional[Callable[[Dict[str, Any]], None]] = None,
     ):
         self.base_url = (base_url or os.environ.get("EMBEDDING_BASE_URL") or "").rstrip(
             "/"
         )
         self.api_key = api_key or os.environ.get("EMBEDDING_API_KEY") or ""
         self.model_name = model or os.environ.get("EMBEDDING_MODEL") or ""
-        self.timeout_sec = timeout_sec
+        self.timeout_sec = float(timeout_sec)
+        self.max_retries = max(0, int(max_retries))
+        self.retry_backoff_seconds = [
+            float(x) for x in (retry_backoff_seconds or [])
+        ]
+        self.on_attempt = on_attempt
+        self.retry_count = 0
         if not self.base_url:
             raise RuntimeError(
                 "Missing EMBEDDING_BASE_URL. Load EMBEDDING_ENV_FILE=.env.embedding-relay "
@@ -120,9 +139,18 @@ class OpenAICompatibleEmbeddingBackend(EmbeddingBackend):
         if self.model_name.strip().lower() == "auto":
             raise RuntimeError("EMBEDDING_MODEL=auto is not allowed; pin an explicit model.")
 
-    def embed(self, texts: List[str]) -> List[List[float]]:
-        if not texts:
-            return []
+    def _emit(self, payload: Dict[str, Any]) -> None:
+        if self.on_attempt is not None:
+            self.on_attempt(payload)
+
+    def _backoff_delay(self, retry_index: int) -> float:
+        if not self.retry_backoff_seconds:
+            return float(2 ** retry_index)
+        if retry_index < len(self.retry_backoff_seconds):
+            return float(self.retry_backoff_seconds[retry_index])
+        return float(self.retry_backoff_seconds[-1])
+
+    def _embed_once(self, texts: List[str]) -> List[List[float]]:
         url = f"{self.base_url}/embeddings"
         payload = json.dumps({"model": self.model_name, "input": texts}).encode("utf-8")
         req = urllib.request.Request(
@@ -138,10 +166,20 @@ class OpenAICompatibleEmbeddingBackend(EmbeddingBackend):
             with urllib.request.urlopen(req, timeout=self.timeout_sec) as resp:
                 body = json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
-            # Do not include response body if it might leak secrets; keep status only.
+            # Do not include response body; keep status only.
             raise RuntimeError(
                 f"Embedding request failed with HTTP {exc.code} for model "
                 f"{self.model_name}. No lexical-only fallback."
+            ) from exc
+        except (TimeoutError, socket.timeout) as exc:
+            raise TimeoutError(
+                f"Embedding request failed for model {self.model_name}: TimeoutError. "
+                "No lexical-only fallback."
+            ) from exc
+        except urllib.error.URLError as exc:
+            raise urllib.error.URLError(
+                f"Embedding request failed for model {self.model_name}: URLError. "
+                "No lexical-only fallback."
             ) from exc
         except Exception as exc:  # noqa: BLE001
             raise RuntimeError(
@@ -151,7 +189,6 @@ class OpenAICompatibleEmbeddingBackend(EmbeddingBackend):
         data = body.get("data")
         if not isinstance(data, list) or len(data) != len(texts):
             raise RuntimeError("Unexpected embedding response shape.")
-        # OpenAI-compatible responses usually include an index field.
         ordered = sorted(data, key=lambda row: int(row.get("index", 0)))
         vectors: List[List[float]] = []
         for row in ordered:
@@ -160,6 +197,73 @@ class OpenAICompatibleEmbeddingBackend(EmbeddingBackend):
                 raise RuntimeError("Embedding response missing vectors.")
             vectors.append([float(x) for x in emb])
         return vectors
+
+    @staticmethod
+    def _is_retryable(exc: BaseException) -> bool:
+        if isinstance(exc, (TimeoutError, socket.timeout)):
+            return True
+        if isinstance(exc, urllib.error.HTTPError):
+            return int(exc.code) in _RETRYABLE_HTTP
+        if isinstance(exc, urllib.error.URLError):
+            return True
+        if isinstance(exc, RuntimeError):
+            text = str(exc)
+            if "HTTP 429" in text or "HTTP 500" in text or "HTTP 502" in text:
+                return True
+            if "HTTP 503" in text or "HTTP 504" in text:
+                return True
+            if "TimeoutError" in text:
+                return True
+            if "URLError" in text:
+                return True
+            # Non-429 HTTP 4xx messages are not retryable.
+            if "HTTP 4" in text:
+                return False
+        return False
+
+    def embed(self, texts: List[str]) -> List[List[float]]:
+        if not texts:
+            return []
+        max_attempts = 1 + self.max_retries
+        last_exc: Optional[BaseException] = None
+        for attempt in range(1, max_attempts + 1):
+            self._emit(
+                {
+                    "phase": "attempt",
+                    "attempt": attempt,
+                    "max_attempts": max_attempts,
+                    "batch_size": len(texts),
+                }
+            )
+            try:
+                return self._embed_once(texts)
+            except Exception as exc:  # noqa: BLE001
+                last_exc = exc
+                retryable = self._is_retryable(exc)
+                if (not retryable) or attempt >= max_attempts:
+                    if isinstance(exc, RuntimeError):
+                        raise
+                    raise RuntimeError(
+                        f"Embedding request failed for model {self.model_name}: "
+                        f"{type(exc).__name__}. No lexical-only fallback."
+                    ) from exc
+                delay = self._backoff_delay(attempt - 1)
+                self.retry_count += 1
+                self._emit(
+                    {
+                        "phase": "retry",
+                        "attempt": attempt,
+                        "max_attempts": max_attempts,
+                        "delay_sec": delay,
+                        "error_type": type(exc).__name__,
+                    }
+                )
+                time.sleep(delay)
+        assert last_exc is not None
+        raise RuntimeError(
+            f"Embedding request failed for model {self.model_name}: "
+            f"{type(last_exc).__name__}. No lexical-only fallback."
+        ) from last_exc
 
 
 class DeterministicHashEmbeddingBackend(EmbeddingBackend):

@@ -5,6 +5,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 export PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+PYTHON_BIN="${PYTHON:-python3}"
 MODE="${1:-preflight}"
 OUT="${OUT:-$ROOT/outputs/etom_external_pilot10_mcp_zero_v1}"
 CACHE="${EMBEDDING_CACHE_DIR:-$ROOT/.cache/mcp_zero_etom_v1}"
@@ -46,47 +47,47 @@ EOF
 
 case "$MODE" in
   dry-run)
-    python3 "$ROOT/scripts/run_etom_mcp_zero.py" --split pilot10 --dry-run \
+    "$PYTHON_BIN" "$ROOT/scripts/run_etom_mcp_zero.py" --split pilot10 --dry-run \
       --output-dir "$OUT" --embedding-cache-dir "$CACHE" \
       ${SOURCE_ARGS[@]+"${SOURCE_ARGS[@]}"} ${FIXTURE_ARGS[@]+"${FIXTURE_ARGS[@]}"} ${ENV_ARGS[@]+"${ENV_ARGS[@]}"} ${DIRTY_ARGS[@]+"${DIRTY_ARGS[@]}"}
     ;;
   preflight)
-    python3 "$ROOT/scripts/run_etom_mcp_zero.py" --split pilot10 --preflight \
+    "$PYTHON_BIN" "$ROOT/scripts/run_etom_mcp_zero.py" --split pilot10 --preflight \
       --output-dir "$OUT" --embedding-cache-dir "$CACHE" \
       ${SOURCE_ARGS[@]+"${SOURCE_ARGS[@]}"} ${FIXTURE_ARGS[@]+"${FIXTURE_ARGS[@]}"} ${ENV_ARGS[@]+"${ENV_ARGS[@]}"} ${DIRTY_ARGS[@]+"${DIRTY_ARGS[@]}"}
     ;;
   mock)
-    python3 "$ROOT/scripts/run_etom_mcp_zero.py" --split pilot10 --mock \
+    "$PYTHON_BIN" "$ROOT/scripts/run_etom_mcp_zero.py" --split pilot10 --mock \
       --output-dir "${OUT}_mock" --embedding-cache-dir "$CACHE" \
       ${SOURCE_ARGS[@]+"${SOURCE_ARGS[@]}"} ${FIXTURE_ARGS[@]+"${FIXTURE_ARGS[@]}"} ${MAX_TASKS_ARGS[@]+"${MAX_TASKS_ARGS[@]}"} ${DIRTY_ARGS[@]+"${DIRTY_ARGS[@]}"}
     ;;
   index-status)
-    python3 "$ROOT/scripts/run_etom_mcp_zero.py" --split pilot10 --index-status \
+    "$PYTHON_BIN" "$ROOT/scripts/run_etom_mcp_zero.py" --split pilot10 --index-status \
       --output-dir "$OUT" --embedding-cache-dir "$CACHE" \
       ${SOURCE_ARGS[@]+"${SOURCE_ARGS[@]}"} ${FIXTURE_ARGS[@]+"${FIXTURE_ARGS[@]}"} ${DIRTY_ARGS[@]+"${DIRTY_ARGS[@]}"}
     ;;
   build-index)
     _require_paid_env
-    python3 "$ROOT/scripts/run_etom_mcp_zero.py" --split pilot10 --build-index-only \
+    "$PYTHON_BIN" "$ROOT/scripts/run_etom_mcp_zero.py" --split pilot10 --build-index-only \
       --output-dir "$OUT" --embedding-cache-dir "$CACHE" \
       ${SOURCE_ARGS[@]+"${SOURCE_ARGS[@]}"} ${ENV_ARGS[@]+"${ENV_ARGS[@]}"} ${DIRTY_ARGS[@]+"${DIRTY_ARGS[@]}"}
     ;;
   run)
     _require_paid_env
-    python3 "$ROOT/scripts/run_etom_mcp_zero.py" --split pilot10 --live \
+    "$PYTHON_BIN" "$ROOT/scripts/run_etom_mcp_zero.py" --split pilot10 --live \
       --require-complete-index --output-dir "$OUT" --embedding-cache-dir "$CACHE" \
       ${SOURCE_ARGS[@]+"${SOURCE_ARGS[@]}"} ${ENV_ARGS[@]+"${ENV_ARGS[@]}"} ${MAX_TASKS_ARGS[@]+"${MAX_TASKS_ARGS[@]}"} ${DIRTY_ARGS[@]+"${DIRTY_ARGS[@]}"}
     ;;
   resume)
     _require_paid_env
-    python3 "$ROOT/scripts/run_etom_mcp_zero.py" --split pilot10 --live --resume \
+    "$PYTHON_BIN" "$ROOT/scripts/run_etom_mcp_zero.py" --split pilot10 --live --resume \
       --require-complete-index --output-dir "$OUT" --embedding-cache-dir "$CACHE" \
       ${SOURCE_ARGS[@]+"${SOURCE_ARGS[@]}"} ${ENV_ARGS[@]+"${ENV_ARGS[@]}"} ${MAX_TASKS_ARGS[@]+"${MAX_TASKS_ARGS[@]}"} ${DIRTY_ARGS[@]+"${DIRTY_ARGS[@]}"}
     ;;
   log)
     echo "=== $OUT/run_metadata.json ==="
     if [[ -f "$OUT/run_metadata.json" ]]; then
-      python3 -c "import json,sys; print(json.dumps(json.load(open(sys.argv[1])), indent=2)[:4000])" "$OUT/run_metadata.json"
+      "$PYTHON_BIN" -c "import json,sys; print(json.dumps(json.load(open(sys.argv[1])), indent=2)[:4000])" "$OUT/run_metadata.json"
     else
       echo "(missing)"
     fi
