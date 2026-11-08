@@ -127,29 +127,93 @@ def aggregate_apv_fin_metrics(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
+def _sum_int(rows: Sequence[Dict[str, Any]], *keys: str) -> int:
+    total = 0
+    for r in rows:
+        for key in keys:
+            if key == "tokens.input_tokens":
+                total += int((r.get("tokens") or {}).get("input_tokens") or 0)
+            elif key == "tokens.output_tokens":
+                total += int((r.get("tokens") or {}).get("output_tokens") or 0)
+            elif key == "tokens.total_tokens":
+                total += int((r.get("tokens") or {}).get("total_tokens") or 0)
+            else:
+                val = r.get(key)
+                if val is not None:
+                    total += int(val or 0)
+                    break
+    return total
+
+
 def _cost_summary(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+    """Always emit cost observability — including all-failed / zero-success runs."""
     used_vals: List[int] = []
     hitting_cap = 0
     stage_totals: Dict[str, int] = {}
+    latencies: List[float] = []
     for r in rows:
         used = r.get("llm_calls_used")
         if used is None:
             used = r.get("llm_calls")
-        if used is None:
-            continue
-        used_i = int(used)
-        used_vals.append(used_i)
-        budget = r.get("llm_call_budget")
-        exhausted = r.get("llm_budget_exhausted")
-        if exhausted or (
-            budget is not None and used_i >= int(budget)
-        ) or str(r.get("error_type") or "") == "llm_call_budget_exhausted":
-            hitting_cap += 1
+        if used is not None:
+            used_i = int(used)
+            used_vals.append(used_i)
+            budget = r.get("llm_call_budget")
+            exhausted = r.get("llm_budget_exhausted")
+            if exhausted or (
+                budget is not None and used_i >= int(budget)
+            ) or str(r.get("error_type") or "") == "llm_call_budget_exhausted":
+                hitting_cap += 1
         for stage, count in (r.get("calls_by_stage") or {}).items():
             stage_totals[str(stage)] = stage_totals.get(str(stage), 0) + int(count or 0)
+        if r.get("latency_ms") is not None:
+            try:
+                latencies.append(float(r.get("latency_ms")))
+            except (TypeError, ValueError):
+                pass
+
+    planner_calls = int(stage_totals.get("planner") or 0)
+    planner_repair_calls = int(stage_totals.get("planner_repair") or 0)
+    embedding_query_calls = _sum_int(rows, "embedding_calls")
+    # Catalog index build is separate from per-task query embeddings.
+    catalog_index_embedding_calls = _sum_int(
+        rows, "catalog_index_embedding_calls", "embedding_index_calls"
+    )
+
     return {
+        "n_tasks": len(rows),
+        "successful_tasks": sum(
+            1
+            for r in rows
+            if str(r.get("status") or r.get("result_status") or "").lower()
+            in {"ok", "success", "answered", "completed"}
+        ),
+        "failed_tasks": sum(
+            1
+            for r in rows
+            if str(r.get("status") or r.get("result_status") or "").lower()
+            in {"failed", "error", "fail"}
+        ),
+        "planner_calls": planner_calls,
+        "planner_repair_calls": planner_repair_calls,
+        "calls_by_stage": stage_totals,
+        "total_input_tokens": _sum_int(rows, "tokens.input_tokens"),
+        "total_output_tokens": _sum_int(rows, "tokens.output_tokens"),
+        "total_tokens": _sum_int(rows, "tokens.total_tokens"),
+        "total_llm_calls": _sum_int(rows, "llm_calls_used", "llm_calls"),
+        "total_real_mcp_executions": _sum_int(rows, "real_mcp_execution_count"),
+        "total_embedding_query_calls": embedding_query_calls,
+        "catalog_index_embedding_calls": catalog_index_embedding_calls,
+        "mean_latency_ms": _mean(latencies),
+        "total_latency_ms": sum(latencies) if latencies else 0.0,
         "tasks_hitting_llm_call_cap": hitting_cap,
         "max_llm_calls_observed": max(used_vals) if used_vals else None,
         "mean_llm_calls_per_task": _mean(used_vals),
-        "calls_by_stage": stage_totals,
+        "estimated_cost_usd": None,
+        "note": (
+            "Token/call totals only; estimated_cost_usd is null without a provider "
+            "price table. Catalog index embedding reuse is recorded separately from "
+            "per-task embedding query calls. Artifacts are written even when all "
+            "tasks fail."
+        ),
     }

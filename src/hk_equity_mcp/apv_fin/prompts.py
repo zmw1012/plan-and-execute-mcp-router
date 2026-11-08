@@ -32,14 +32,76 @@ Method rules:
 APV_FIN_PLANNER_USER_TEMPLATE = """Question:
 {question}
 
-Return ONE JSON object matching schema apv_fin_plan_v1 with:
+Output ONE compact JSON object only matching schema apv_fin_plan_v1.
+Do not write prose in enum fields. Keep the plan minimal. Prefer 3–6 steps
+(max 8). Never include operation_id. Do not include markdown fences.
+Do not repeat the full question. Do not write chain-of-thought.
+Do not repeat global constraints (cutoff/source/currency) in every step —
+put globals in task_spec; steps only hold step-specific content.
+
+Required fields:
 - schema_version: "apv_fin_plan_v1"
-- task_spec: goal, entities, periods, metrics, constraints, ambiguities,
-  answerability_hypothesis, optional cutoff_date / currency_unit_hints /
-  metric_basis_hints
-- initial_plan.steps: a mutable DAG of steps (unique step_id, depends_on,
-  step_type, objective, mandatory, success_criteria). Do NOT include operation_id.
-No markdown fences.
+- task_spec.goal (≤180 chars)
+- task_spec.entities/periods/metrics/constraints/ambiguities (compact arrays)
+- task_spec.answerability_hypothesis: EXACTLY one of
+  answerable | needs_clarification | likely_unavailable | unknown
+- task_spec.answerability_reason: one short sentence (≤180 chars) explaining
+  the hypothesis — NEVER put that explanation inside answerability_hypothesis
+- initial_plan.steps: unique step_id, depends_on, step_type, objective (≤180),
+  mandatory, success_criteria (≤160)
+
+Company-generic compact example (illustrative only; adapt to the question):
+{{
+  "schema_version": "apv_fin_plan_v1",
+  "task_spec": {{
+    "goal": "Obtain the requested HK equity metric from supported sources.",
+    "entities": ["hk_listed_issuer"],
+    "periods": ["FY2025"],
+    "metrics": ["requested_metric"],
+    "constraints": ["cutoff_2026-08-12"],
+    "ambiguities": [],
+    "answerability_hypothesis": "answerable",
+    "answerability_reason": "Required evidence is available from supported sources.",
+    "cutoff_date": "2026-08-12",
+    "currency_unit_hints": [],
+    "metric_basis_hints": []
+  }},
+  "initial_plan": {{
+    "steps": [
+      {{
+        "step_id": "s1_retrieve",
+        "step_type": "retrieve",
+        "objective": "Retrieve supporting evidence for the metric.",
+        "depends_on": [],
+        "mandatory": true,
+        "success_criteria": "Evidence rows obtained",
+        "retrieval_query_hint": "hong kong equity metric",
+        "notes": null
+      }},
+      {{
+        "step_id": "s2_reason",
+        "step_type": "reason",
+        "objective": "Summarize evidence for the answer.",
+        "depends_on": ["s1_retrieve"],
+        "mandatory": true,
+        "success_criteria": "Concise summary ready",
+        "retrieval_query_hint": null,
+        "notes": null
+      }},
+      {{
+        "step_id": "s3_answer",
+        "step_type": "answer",
+        "objective": "Emit final answer.",
+        "depends_on": ["s2_reason"],
+        "mandatory": true,
+        "success_criteria": "Final JSON ready",
+        "retrieval_query_hint": null,
+        "notes": null
+      }}
+    ],
+    "planning_notes": null
+  }}
+}}
 """
 
 APV_FIN_MONITOR_USER_TEMPLATE = """Question:
@@ -112,8 +174,9 @@ Cite only evidence_ids actually present. No markdown fences.
 
 
 def apv_fin_prompt_hash() -> str:
-    # Hash the stable system prompt only (templates are versioned separately).
-    return prompt_hash(APV_FIN_SYSTEM_PROMPT)
+    # System + planner contract (planner_protocol_v2). Other templates remain
+    # versioned in code; resume identity keys on this combined hash.
+    return prompt_hash(APV_FIN_SYSTEM_PROMPT + "\n---\n" + APV_FIN_PLANNER_USER_TEMPLATE)
 
 
 def assert_prompts_clean() -> None:

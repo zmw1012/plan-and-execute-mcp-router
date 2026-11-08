@@ -110,7 +110,9 @@ PYTHONPATH=src python scripts/run_hk_unified_apv_fin_experiment.py \
 
 ## Real Smoke-4 commands (paid; run only after explicit confirmation)
 
-v1 output was invalidated pre-task due to embedding index timeout. Use **v2**.
+- v1: invalidated (embedding index timeout before tasks).
+- v2: invalidated engineering smoke (`planner_fail_closed` / schema contract mismatch; not an accuracy result). Raw preserved under `outputs/apv_fin_real_smoke4_v2/`.
+- Next paid run: **v3** after `planner_protocol_v2_before_valid_method_evaluation`.
 
 Shared catalog index cache: `.cache/apv_fin_operation_embeddings_v1/`
 
@@ -131,7 +133,7 @@ PYTHONPATH=src \
   --index-status \
   --embedding-env-file "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.env.embedding-relay"
 
-# (c) Smoke-4 live v2 — requires complete index; no --allow-dirty
+# (c) Smoke-4 live v3 — requires complete index; no --allow-dirty
 PYTHONPATH=src \
 "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.venv-aktools-discovery/bin/python" \
   scripts/run_hk_unified_apv_fin_experiment.py \
@@ -142,5 +144,5 @@ PYTHONPATH=src \
   --require-complete-index \
   --env-file "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.env.relay-v41" \
   --embedding-env-file "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.env.embedding-relay" \
-  --output-dir "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_real_smoke4_v2"
+  --output-dir "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_real_smoke4_v3"
 ```

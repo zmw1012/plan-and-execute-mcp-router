@@ -58,6 +58,7 @@ def _plan_payload(steps: Optional[List[Dict[str, Any]]] = None) -> dict:
             "constraints": ["cutoff_2026-08-12"],
             "ambiguities": [],
             "answerability_hypothesis": "answerable",
+            "answerability_reason": "Required evidence is available from supported sources.",
             "cutoff_date": "2026-08-12",
             "currency_unit_hints": [],
             "metric_basis_hints": [],

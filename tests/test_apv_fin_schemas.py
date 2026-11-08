@@ -26,6 +26,7 @@ def _valid_plan() -> dict:
             "constraints": [],
             "ambiguities": [],
             "answerability_hypothesis": "answerable",
+            "answerability_reason": "Required evidence is available from supported sources.",
             "cutoff_date": "2026-08-12",
             "currency_unit_hints": ["HKD"],
             "metric_basis_hints": ["reported_ifrs"],

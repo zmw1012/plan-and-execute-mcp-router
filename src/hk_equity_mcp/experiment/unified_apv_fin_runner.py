@@ -24,6 +24,7 @@ from hk_equity_mcp.apv_fin.identity import (
     EXPECTED_GENERATION_HOST,
     EXPECTED_GENERATION_MODEL,
     EXPECTED_GENERATION_PROVIDER,
+    PLANNER_PROTOCOL_CHANGE,
     assert_live_provider_identity,
     combined_schema_hash,
     host_from_base_url,
@@ -267,6 +268,7 @@ def _mock_apv_scripted_llm() -> ScriptedLLMClient:
             "constraints": ["cutoff_2026-08-12"],
             "ambiguities": [],
             "answerability_hypothesis": "answerable",
+            "answerability_reason": "Required evidence is available from supported sources.",
             "cutoff_date": "2026-08-12",
             "currency_unit_hints": [],
             "metric_basis_hints": [],
@@ -761,6 +763,8 @@ class UnifiedHkApvFinRunner:
             "system_prompt": self.system_prompt,
             "schema_hash": schema_h,
             "schema_hashes": schema_hashes(),
+            "planner_protocol_change": PLANNER_PROTOCOL_CHANGE,
+            "max_tokens_unchanged": self.max_tokens == 2048,
             "catalog_fingerprint": fingerprint,
             "operation_metadata_path": str(self.metadata_path),
             "operation_metadata_hash": meta_hash,
@@ -1189,14 +1193,29 @@ class UnifiedHkApvFinRunner:
             for i in items
             if i["task_id"] in predictions_by_id
         ]
+        # Always write full artifact set — including all-failed / zero-success runs.
         summary = summarize_predictions(rows)
         apv_metrics = aggregate_apv_fin_metrics(rows)
+        cost = apv_metrics.get("cost_summary") or {}
+        from hk_equity_mcp.experiment.unified_aggregates import build_grouped_aggregates
+        from hk_equity_mcp.experiment.unified_grading import summarize_grading
+
+        grading_summary = summarize_grading(rows)
+        grouped = build_grouped_aggregates(rows)
         atomic_write_json(self.output_dir / "apv_fin_metrics.json", apv_metrics)
+        atomic_write_json(self.output_dir / "cost_summary.json", cost)
+        atomic_write_json(self.output_dir / "grouped_aggregates.json", grouped)
+        atomic_write_json(self.output_dir / "grading_summary.json", grading_summary)
         atomic_write_json(
             self.output_dir / "error_summary.json",
             {
                 "aggregate": summary,
                 "apv_fin_metrics": apv_metrics,
+                "grading": grading_summary,
+                "grouped_aggregates": grouped,
+                "n_tasks": len(rows),
+                "n_successful": cost.get("successful_tasks"),
+                "n_failed": cost.get("failed_tasks"),
             },
         )
 
@@ -1359,6 +1378,16 @@ class UnifiedHkApvFinRunner:
                     predictions_by_id=predictions_by_id,
                     run_meta=run_meta,
                 )
+
+            # Final artifact flush (covers all-failed, resume-all-skipped, empty success).
+            if not predictions_path.exists():
+                predictions_path.write_text("", encoding="utf-8")
+                fsync_file(predictions_path)
+            self._write_side_artifacts(
+                items=items,
+                predictions_by_id=predictions_by_id,
+                run_meta=run_meta,
+            )
 
             run_meta["run_status"] = "completed"
             run_meta["completed_at"] = datetime.now(timezone.utc).isoformat()

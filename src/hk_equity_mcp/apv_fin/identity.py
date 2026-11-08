@@ -20,6 +20,9 @@ FORMAL_OUTPUT_DIRS = {
     "diagnostic12_live": "outputs/apv_fin_diagnostic12_live_v1",
 }
 
+# Accounting label for this protocol fix (not an accuracy retune).
+PLANNER_PROTOCOL_CHANGE = "planner_protocol_v2_before_valid_method_evaluation"
+
 
 def schema_hashes() -> Dict[str, str]:
     out: Dict[str, str] = {}

@@ -49,6 +49,40 @@ MONITOR_DECISIONS = (
 
 ANSWER_STATUSES = ("answered", "clarification_needed", "unavailable")
 
+ANSWERABILITY_HYPOTHESIS_ENUM = (
+    "answerable",
+    "needs_clarification",
+    "likely_unavailable",
+    "unknown",
+)
+
+# Compact plan limits (planner_protocol_v2) — keep output under max_tokens without
+# raising the token budget.
+PLAN_COMPACT_LIMITS = {
+    "goal_max": 180,
+    "entity_max_items": 4,
+    "entity_item_max": 80,
+    "period_max_items": 4,
+    "period_item_max": 80,
+    "metric_max_items": 5,
+    "metric_item_max": 100,
+    "constraint_max_items": 6,
+    "constraint_item_max": 140,
+    "ambiguity_max_items": 3,
+    "ambiguity_item_max": 140,
+    "answerability_reason_max": 180,
+    "currency_hint_max_items": 3,
+    "currency_hint_item_max": 100,
+    "metric_basis_hint_max_items": 3,
+    "metric_basis_hint_item_max": 100,
+    "steps_max_items": 8,
+    "objective_max": 180,
+    "success_criteria_max": 160,
+    "retrieval_query_hint_max": 160,
+    "notes_max": 160,
+    "planning_notes_max": 200,
+}
+
 PLAN_STEP_SCHEMA: Dict[str, Any] = {
     "type": "object",
     "additionalProperties": False,
@@ -61,17 +95,32 @@ PLAN_STEP_SCHEMA: Dict[str, Any] = {
         "success_criteria",
     ],
     "properties": {
-        "step_id": {"type": "string", "minLength": 1},
+        "step_id": {"type": "string", "minLength": 1, "maxLength": 64},
         "step_type": {"type": "string", "enum": list(STEP_TYPES)},
-        "objective": {"type": "string", "minLength": 1},
+        "objective": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": PLAN_COMPACT_LIMITS["objective_max"],
+        },
         "depends_on": {
             "type": "array",
-            "items": {"type": "string"},
+            "maxItems": 8,
+            "items": {"type": "string", "maxLength": 64},
         },
         "mandatory": {"type": "boolean"},
-        "success_criteria": {"type": "string"},
-        "retrieval_query_hint": {"type": ["string", "null"]},
-        "notes": {"type": ["string", "null"]},
+        "success_criteria": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": PLAN_COMPACT_LIMITS["success_criteria_max"],
+        },
+        "retrieval_query_hint": {
+            "type": ["string", "null"],
+            "maxLength": PLAN_COMPACT_LIMITS["retrieval_query_hint_max"],
+        },
+        "notes": {
+            "type": ["string", "null"],
+            "maxLength": PLAN_COMPACT_LIMITS["notes_max"],
+        },
     },
 }
 
@@ -93,46 +142,79 @@ APV_FIN_PLAN_V1: Dict[str, Any] = {
                 "constraints",
                 "ambiguities",
                 "answerability_hypothesis",
+                "answerability_reason",
             ],
             "properties": {
-                "goal": {"type": "string", "minLength": 1},
+                "goal": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": PLAN_COMPACT_LIMITS["goal_max"],
+                },
                 "entities": {
                     "type": "array",
-                    "items": {"type": "string"},
+                    "maxItems": PLAN_COMPACT_LIMITS["entity_max_items"],
+                    "items": {
+                        "type": "string",
+                        "maxLength": PLAN_COMPACT_LIMITS["entity_item_max"],
+                    },
                 },
                 "periods": {
                     "type": "array",
-                    "items": {"type": "string"},
+                    "maxItems": PLAN_COMPACT_LIMITS["period_max_items"],
+                    "items": {
+                        "type": "string",
+                        "maxLength": PLAN_COMPACT_LIMITS["period_item_max"],
+                    },
                 },
                 "metrics": {
                     "type": "array",
-                    "items": {"type": "string"},
+                    "maxItems": PLAN_COMPACT_LIMITS["metric_max_items"],
+                    "items": {
+                        "type": "string",
+                        "maxLength": PLAN_COMPACT_LIMITS["metric_item_max"],
+                    },
                 },
                 "constraints": {
                     "type": "array",
-                    "items": {"type": "string"},
+                    "maxItems": PLAN_COMPACT_LIMITS["constraint_max_items"],
+                    "items": {
+                        "type": "string",
+                        "maxLength": PLAN_COMPACT_LIMITS["constraint_item_max"],
+                    },
                 },
                 "ambiguities": {
                     "type": "array",
-                    "items": {"type": "string"},
+                    "maxItems": PLAN_COMPACT_LIMITS["ambiguity_max_items"],
+                    "items": {
+                        "type": "string",
+                        "maxLength": PLAN_COMPACT_LIMITS["ambiguity_item_max"],
+                    },
                 },
                 "answerability_hypothesis": {
                     "type": "string",
-                    "enum": [
-                        "answerable",
-                        "needs_clarification",
-                        "likely_unavailable",
-                        "unknown",
-                    ],
+                    "enum": list(ANSWERABILITY_HYPOTHESIS_ENUM),
                 },
-                "cutoff_date": {"type": ["string", "null"]},
+                "answerability_reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": PLAN_COMPACT_LIMITS["answerability_reason_max"],
+                },
+                "cutoff_date": {"type": ["string", "null"], "maxLength": 32},
                 "currency_unit_hints": {
                     "type": "array",
-                    "items": {"type": "string"},
+                    "maxItems": PLAN_COMPACT_LIMITS["currency_hint_max_items"],
+                    "items": {
+                        "type": "string",
+                        "maxLength": PLAN_COMPACT_LIMITS["currency_hint_item_max"],
+                    },
                 },
                 "metric_basis_hints": {
                     "type": "array",
-                    "items": {"type": "string"},
+                    "maxItems": PLAN_COMPACT_LIMITS["metric_basis_hint_max_items"],
+                    "items": {
+                        "type": "string",
+                        "maxLength": PLAN_COMPACT_LIMITS["metric_basis_hint_item_max"],
+                    },
                 },
             },
         },
@@ -144,9 +226,13 @@ APV_FIN_PLAN_V1: Dict[str, Any] = {
                 "steps": {
                     "type": "array",
                     "minItems": 1,
+                    "maxItems": PLAN_COMPACT_LIMITS["steps_max_items"],
                     "items": PLAN_STEP_SCHEMA,
                 },
-                "planning_notes": {"type": ["string", "null"]},
+                "planning_notes": {
+                    "type": ["string", "null"],
+                    "maxLength": PLAN_COMPACT_LIMITS["planning_notes_max"],
+                },
             },
         },
     },
@@ -346,16 +432,28 @@ def validate_against_schema(
                 f"enum mismatch: {instance!r} not in {schema['enum']}", path
             )
 
-    if isinstance(instance, str) and "minLength" in schema:
-        if len(instance) < int(schema["minLength"]):
+    if isinstance(instance, str):
+        if "minLength" in schema and len(instance) < int(schema["minLength"]):
             raise SchemaValidationError(
-                f"minLength {schema['minLength']} violated", path
+                f"minLength {schema['minLength']} violated (got {len(instance)})",
+                path,
+            )
+        if "maxLength" in schema and len(instance) > int(schema["maxLength"]):
+            raise SchemaValidationError(
+                f"maxLength {schema['maxLength']} violated (got {len(instance)})",
+                path,
             )
 
     if isinstance(instance, list):
         if "minItems" in schema and len(instance) < int(schema["minItems"]):
             raise SchemaValidationError(
-                f"minItems {schema['minItems']} violated", path
+                f"minItems {schema['minItems']} violated (got {len(instance)})",
+                path,
+            )
+        if "maxItems" in schema and len(instance) > int(schema["maxItems"]):
+            raise SchemaValidationError(
+                f"maxItems {schema['maxItems']} violated (got {len(instance)})",
+                path,
             )
         item_schema = schema.get("items")
         if item_schema:
@@ -437,13 +535,76 @@ def parse_and_validate(
     return {}, repair_count, last_error or "parse_failed"
 
 
+def _extract_json_path_from_error(err: str) -> str:
+    """Extract $.path from SchemaValidationError / wrapped parse errors."""
+    match = re.search(r"(\$[.\w\[\]]*)", err or "")
+    return match.group(1) if match else "$"
+
+
 def format_repair_user_message(schema_name: str, error: str) -> str:
-    return (
-        f"Your previous response was not valid {schema_name} JSON. "
-        f"Validation error: {error}. "
-        "Reply again with a single JSON object that matches the schema exactly. "
-        "No markdown fences."
+    """Build a repair instruction. Distinguishes schema validation vs truncated JSON."""
+    err = str(error or "")
+    is_json_decode = (
+        "JSONDecodeError" in err
+        or "Expecting" in err
+        or "truncated" in err.lower()
+        or err.strip().startswith("JSONDecodeError")
     )
+    is_enum = "enum mismatch" in err
+    is_length = "maxLength" in err or "maxItems" in err or "minLength" in err or "minItems" in err
+    path = _extract_json_path_from_error(err)
+
+    # Pull invalid enum value when present: enum mismatch: <value> not in [...]
+    invalid_value = None
+    enum_match = re.search(r"enum mismatch:\s*(.+?)\s+not in\s+", err)
+    if enum_match:
+        invalid_value = enum_match.group(1).strip()
+
+    lines = [
+        f"Your previous response was not valid {schema_name}.",
+        f"Error: {err}",
+        "Re-output ONE complete compact JSON object that matches the schema exactly.",
+        "No markdown fences. No chain-of-thought. Prefer 3–6 plan steps.",
+    ]
+    if is_json_decode:
+        lines.extend(
+            [
+                "Failure class: truncated_or_invalid_json",
+                "JSON was truncated or malformed — do NOT patch or splice fragments.",
+                "Regenerate the full object under compactness limits "
+                "(short strings, small arrays, max 8 steps, maxLength/maxItems).",
+            ]
+        )
+    if is_enum and "answerability_hypothesis" in err:
+        lines.extend(
+            [
+                "Failure class: schema_validation_error",
+                f"JSON path: {path}",
+                "expected enum: " + " | ".join(ANSWERABILITY_HYPOTHESIS_ENUM),
+                f"invalid value: {invalid_value}" if invalid_value else "invalid value: (see Error)",
+                "Do not place explanation prose in answerability_hypothesis.",
+                "Put the short explanation in answerability_reason (≤180 chars).",
+            ]
+        )
+    elif is_enum:
+        lines.extend(
+            [
+                "Failure class: schema_validation_error",
+                f"JSON path: {path}",
+                f"invalid value: {invalid_value}" if invalid_value else "invalid value: (see Error)",
+                "Replace the invalid enum token with an allowed schema enum value only.",
+            ]
+        )
+    if is_length:
+        lines.extend(
+            [
+                "Failure class: schema_validation_error",
+                f"JSON path: {path}",
+                "Shorten the offending string/array to satisfy maxLength/maxItems.",
+                "Do not repeat the full question or global constraints in every step.",
+            ]
+        )
+    return "\n".join(lines)
 
 
 def schema_catalog() -> Dict[str, Any]:

@@ -35,6 +35,7 @@ def test_validator_flags_unsupported_substitution_and_missing_evidence():
             "entities": ["IssuerX"],
             "periods": ["FY2025"],
             "answerability_hypothesis": "likely_unavailable",
+            "answerability_reason": "Cutoff or disclosure gap likely blocks a supported answer.",
         },
         final_payload={
             "status": "answered",
