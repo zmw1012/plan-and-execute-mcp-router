@@ -1,0 +1,41 @@
+# APV-Fin proposed method v1 (separated from Operation-Visible baseline)
+condition: apv_fin
+method_version: apv_fin_v1
+execution_backend: real_mcp
+generation_provider: aliyun
+generation_model: deepseek-v4.1-flash
+embedding_model: text-embedding-3-small
+temperature: 0.0
+max_tokens: 2048
+json_mode: true
+dataset_split: development
+dataset_manifest: benchmarks/manifests/hk_unified_dataset_v1.json
+diagnostic_manifest: benchmarks/manifests/hk_apv_fin_diagnostic12_v1.json
+operation_metadata: configs/operations/hk_unified_operation_metadata_v1.yaml
+
+retrieval:
+  top_k: 20
+  lexical_weight: 0.12
+  compatibility_tiers: [A, B, C]
+
+limits:
+  # Bounded replanning — config-driven (not hardcoded in agent logic defaults only).
+  max_plan_revisions: 2
+  max_targeted_retrievals_per_step: 2
+  max_total_mcp_invocations: 8
+  max_llm_monitor_rounds: 6
+  max_same_operation_repeats: 1
+  max_final_repair_rounds: 1
+  timeout_sec: 180
+
+catalogs:
+  financial: configs/operations/financial_real_mcp.yaml
+  market: configs/operations/market_real_mcp_v1_1.yaml
+  news: configs/operations/news_real_mcp_v1.yaml
+  cross_domain: configs/operations/cross_domain_real_mcp_v1.yaml
+
+notes:
+  - Must execute real MCP via UnifiedRealMcpGateway (not ETOM routing-only).
+  - Does not modify Operation-Visible baseline behavior, prompts, or raw outputs.
+  - Plans never hard-code operation_id; only retrieve steps enter the resolver.
+  - No MCP-Zero ATR protocol.
