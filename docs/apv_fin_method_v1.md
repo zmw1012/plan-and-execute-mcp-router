@@ -108,11 +108,30 @@ PYTHONPATH=src python scripts/run_hk_unified_apv_fin_experiment.py \
   --output-dir outputs/apv_fin_dry_run_v1
 ```
 
-## Real Smoke-4 command (paid; run only after explicit confirmation)
+## Real Smoke-4 commands (paid; run only after explicit confirmation)
+
+v1 output was invalidated pre-task due to embedding index timeout. Use **v2**.
+
+Shared catalog index cache: `.cache/apv_fin_operation_embeddings_v1/`
 
 ```bash
 cd "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin"
 
+# (a) build/resume shared operation embedding index only
+PYTHONPATH=src \
+"/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.venv-aktools-discovery/bin/python" \
+  scripts/run_hk_unified_apv_fin_experiment.py \
+  --build-index-only \
+  --embedding-env-file "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.env.embedding-relay"
+
+# (b) local status (zero network)
+PYTHONPATH=src \
+"/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.venv-aktools-discovery/bin/python" \
+  scripts/run_hk_unified_apv_fin_experiment.py \
+  --index-status \
+  --embedding-env-file "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.env.embedding-relay"
+
+# (c) Smoke-4 live v2 — requires complete index; no --allow-dirty
 PYTHONPATH=src \
 "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.venv-aktools-discovery/bin/python" \
   scripts/run_hk_unified_apv_fin_experiment.py \
@@ -120,9 +139,8 @@ PYTHONPATH=src \
   --split exploratory_all \
   --confirm-retire-heldout \
   --allow-hkex-download \
+  --require-complete-index \
   --env-file "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.env.relay-v41" \
   --embedding-env-file "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.env.embedding-relay" \
-  --output-dir "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_real_smoke4_v1"
+  --output-dir "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_real_smoke4_v2"
 ```
-
-Notes: do **not** pass `--allow-dirty`; git tree must be clean. Output dir is exclusive to Smoke-4 live.

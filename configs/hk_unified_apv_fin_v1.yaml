@@ -29,6 +29,13 @@ retrieval:
   lexical_weight: 0.12
   compatibility_tiers: [A, B, C]
 
+# Catalog operation embedding index (shared; not under output_dir)
+embedding_cache_namespace: apv_fin_operation_embeddings_v1
+embedding_batch_size: 16
+embedding_request_timeout_sec: 120
+embedding_max_retries: 3
+embedding_retry_backoff_seconds: [1, 2, 4]
+
 limits:
   # Bounded replanning — config-driven (do not retune for mock pass).
   max_plan_revisions: 2

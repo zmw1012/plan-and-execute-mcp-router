@@ -31,6 +31,15 @@ from hk_equity_mcp.apv_fin.identity import (
     worst_case_budget_estimate,
 )
 from hk_equity_mcp.apv_fin.metadata import load_and_validate_metadata
+from hk_equity_mcp.apv_fin.operation_embedding_index import (
+    build_index_identity,
+    build_or_resume_index,
+    default_shared_cache_dir,
+    index_status,
+    load_complete_index,
+    resolve_embedding_cache_dir,
+    sibling_ov_cache_dir,
+)
 from hk_equity_mcp.apv_fin.prompts import APV_FIN_SYSTEM_PROMPT, apv_fin_prompt_hash
 from hk_equity_mcp.common.env_loader import (
     EMBEDDING_REQUIRED,
@@ -361,6 +370,9 @@ class UnifiedHkApvFinRunner:
         root: Optional[Path] = None,
         allow_hkex_download: bool = False,
         json_mode: bool = True,
+        require_complete_index: bool = False,
+        embedding_cache_dir: Optional[Path] = None,
+        allow_auto_build_index: bool = False,
     ):
         self.root = root or repo_root()
         self.output_dir = Path(output_dir)
@@ -383,10 +395,26 @@ class UnifiedHkApvFinRunner:
         self.config = config or load_apv_fin_config(root=self.root)
         self.allow_hkex_download = allow_hkex_download
         self.json_mode = json_mode
+        self.require_complete_index = bool(require_complete_index)
+        self.allow_auto_build_index = bool(allow_auto_build_index)
+        self.embedding_cache_dir = resolve_embedding_cache_dir(
+            self.root, embedding_cache_dir
+        )
         self.temperature = float(self.config.get("temperature", 0.0))
         self.max_tokens = int(self.config.get("max_tokens", 2048))
         self.limits = dict(self.config.get("limits") or {})
         self.retrieval = dict(self.config.get("retrieval") or {})
+        self.embedding_batch_size = int(self.config.get("embedding_batch_size", 16))
+        self.embedding_request_timeout_sec = float(
+            self.config.get("embedding_request_timeout_sec", 120)
+        )
+        self.embedding_max_retries = int(self.config.get("embedding_max_retries", 3))
+        self.embedding_retry_backoff_seconds = [
+            float(x)
+            for x in (
+                self.config.get("embedding_retry_backoff_seconds") or [1, 2, 4]
+            )
+        ]
         self.condition = APV_FIN_CONDITION
         self.method_version = APV_FIN_METHOD_VERSION
         self.execution_backend = "real_mcp"
@@ -394,6 +422,8 @@ class UnifiedHkApvFinRunner:
         self.gen_meta: Dict[str, str] = {}
         self.emb_meta: Optional[Dict[str, str]] = None
         self._gateway: Optional[UnifiedRealMcpGateway] = None
+        self._index_identity: Optional[Dict[str, Any]] = None
+        self._index_status: Optional[Dict[str, Any]] = None
         self.bundle = build_unified_catalog(root=self.root)
         meta_path = self.root / str(
             self.config.get("operation_metadata")
@@ -777,12 +807,170 @@ class UnifiedHkApvFinRunner:
                 "embedding_model": EXPECTED_EMBEDDING_MODEL,
             },
             "no_mcp_zero_atr": True,
+            "embedding_cache_dir": str(self.embedding_cache_dir),
+            "embedding_batch_size": self.embedding_batch_size,
+            "embedding_request_timeout_sec": self.embedding_request_timeout_sec,
+            "embedding_max_retries": self.embedding_max_retries,
+            "embedding_retry_backoff_seconds": list(
+                self.embedding_retry_backoff_seconds
+            ),
+            "require_complete_index": self.require_complete_index,
+            "allow_auto_build_index": self.allow_auto_build_index,
+            "embedding_index_status": self.get_index_status(),
         }
         return {"items": tasks, "run_metadata": redact_secrets(meta)}
+
+    def _catalog_fingerprint(self) -> str:
+        return catalog_fingerprint(self.bundle.stats, self.bundle.source_catalogs)
+
+    def _embedding_index_identity(self) -> Dict[str, Any]:
+        emb_model = (
+            (self.emb_meta or {}).get("model")
+            or os.environ.get("EMBEDDING_MODEL")
+            or self.config.get("embedding_model")
+            or EXPECTED_EMBEDDING_MODEL
+        )
+        emb_host = host_from_base_url(
+            (self.emb_meta or {}).get("base_url")
+            or os.environ.get("EMBEDDING_BASE_URL")
+        ) or url_host(
+            (self.emb_meta or {}).get("base_url")
+            or os.environ.get("EMBEDDING_BASE_URL")
+        )
+        if self.mock and not emb_host:
+            emb_host = "mock-local"
+        identity = build_index_identity(
+            registry=self.bundle.registry,
+            catalog_fingerprint=self._catalog_fingerprint(),
+            embedding_model=str(emb_model),
+            embedding_provider_host=emb_host,
+        )
+        self._index_identity = identity
+        return identity
+
+    def _make_embedding_backend(self, *, for_index_build: bool) -> Any:
+        if self.mock:
+            return DeterministicHashEmbeddingBackend()
+        # Live / build-index: load embedding profile if not yet loaded.
+        if self.emb_meta is None:
+            self.emb_meta = load_embedding_profile(self.root, self.embedding_env_file)
+        kwargs: Dict[str, Any] = {
+            "base_url": os.environ.get("EMBEDDING_BASE_URL")
+            or (self.emb_meta or {}).get("base_url"),
+            "api_key": os.environ.get("EMBEDDING_API_KEY"),
+            "model": os.environ.get("EMBEDDING_MODEL")
+            or (self.emb_meta or {}).get("model"),
+            "timeout_sec": self.embedding_request_timeout_sec,
+        }
+        if for_index_build:
+            kwargs["max_retries"] = self.embedding_max_retries
+            kwargs["retry_backoff_seconds"] = self.embedding_retry_backoff_seconds
+
+            def _on_attempt(event: Dict[str, Any]) -> None:
+                print(
+                    "embedding_transport "
+                    f"phase={event.get('phase')} attempt={event.get('attempt')}/"
+                    f"{event.get('max_attempts')} batch_size={event.get('batch_size')} "
+                    f"error_type={event.get('error_type')}",
+                    flush=True,
+                )
+
+            kwargs["on_attempt"] = _on_attempt
+        else:
+            # Query-time embeddings: short retries only (index must already be complete).
+            kwargs["max_retries"] = min(1, self.embedding_max_retries)
+            kwargs["retry_backoff_seconds"] = self.embedding_retry_backoff_seconds[:1]
+        return OpenAICompatibleEmbeddingBackend(**kwargs)
+
+    def get_index_status(self) -> Dict[str, Any]:
+        """Pure local index status — zero network calls."""
+        if self.emb_meta is None and not self.mock:
+            try:
+                self.emb_meta = load_embedding_profile(
+                    self.root, self.embedding_env_file
+                )
+            except FileNotFoundError:
+                self.emb_meta = {
+                    "model": self.config.get("embedding_model")
+                    or EXPECTED_EMBEDDING_MODEL,
+                    "base_url": None,
+                }
+        identity = self._embedding_index_identity()
+        status = index_status(
+            registry=self.bundle.registry,
+            identity=identity,
+            cache_dir=self.embedding_cache_dir,
+        ).to_dict()
+        self._index_status = status
+        return status
+
+    def build_index_only(self) -> Dict[str, Any]:
+        """Build/resume shared catalog embedding index. No generation LLM / MCP / agent."""
+        if self.emb_meta is None and not self.mock:
+            self.emb_meta = load_embedding_profile(self.root, self.embedding_env_file)
+        identity = self._embedding_index_identity()
+        backend = self._make_embedding_backend(for_index_build=True)
+        ov_dir = sibling_ov_cache_dir(self.root) if not self.mock else None
+        result = build_or_resume_index(
+            registry=self.bundle.registry,
+            identity=identity,
+            cache_dir=self.embedding_cache_dir,
+            embed_fn=backend.embed,
+            batch_size=self.embedding_batch_size,
+            ov_cache_dir=ov_dir,
+        )
+        self._index_status = result
+        return result
 
     def build_agent(self) -> ApvFinAgent:
         if self.dry_run:
             raise RuntimeError("build_agent must not be called during dry-run.")
+
+        identity = self._embedding_index_identity()
+        status = index_status(
+            registry=self.bundle.registry,
+            identity=identity,
+            cache_dir=self.embedding_cache_dir,
+        )
+        self._index_status = status.to_dict()
+
+        if self.require_complete_index and not status.complete:
+            raise RuntimeError(
+                "APV-Fin require-complete-index: shared operation embedding index "
+                f"incomplete ({status.completed}/{status.total}) at "
+                f"{self.embedding_cache_dir}. Run --build-index-only first. "
+                "Live runs must not auto-rebuild the catalog index."
+            )
+        if (
+            not self.mock
+            and not status.complete
+            and not self.allow_auto_build_index
+        ):
+            raise RuntimeError(
+                "APV-Fin fail-closed: catalog embedding index incomplete and "
+                "auto-build disabled for live runs. Use --build-index-only then "
+                "--require-complete-index."
+            )
+        if self.mock and not status.complete:
+            # Offline mock may build the deterministic index into the shared cache.
+            self.build_index_only()
+            status = index_status(
+                registry=self.bundle.registry,
+                identity=identity,
+                cache_dir=self.embedding_cache_dir,
+            )
+            self._index_status = status.to_dict()
+        if not status.complete:
+            raise RuntimeError(
+                "APV-Fin fail-closed: refusing to start agent without a complete "
+                "operation embedding index."
+            )
+
+        preloaded = load_complete_index(
+            registry=self.bundle.registry,
+            identity=identity,
+            cache_dir=self.embedding_cache_dir,
+        )
 
         if self.mock:
             llm: Any = _mock_apv_scripted_llm()
@@ -799,11 +987,7 @@ class UnifiedHkApvFinRunner:
                 provider=os.environ.get("LLM_PROVIDER") or "openai_compatible",
                 json_mode=self.json_mode,
             )
-            embedding = OpenAICompatibleEmbeddingBackend(
-                base_url=os.environ["EMBEDDING_BASE_URL"],
-                api_key=os.environ["EMBEDDING_API_KEY"],
-                model=os.environ["EMBEDDING_MODEL"],
-            )
+            embedding = self._make_embedding_backend(for_index_build=False)
             gateway = UnifiedRealMcpGateway(
                 catalog_bundle=self.bundle,
                 allow_hkex_download=self.allow_hkex_download,
@@ -812,15 +996,12 @@ class UnifiedHkApvFinRunner:
 
         gateway.open()
         self._gateway = gateway
-        cache_dir = None
-        if self.mock:
-            cache_dir = self.output_dir / ".cache" / "operation_embeddings"
-            cache_dir.mkdir(parents=True, exist_ok=True)
         resolver = OperationResolverServer(
             embedding_backend=embedding,
             registry=self.bundle.registry,
             real_mcp_gateway=gateway,
-            cache_dir=cache_dir,
+            preloaded_doc_vectors=preloaded,
+            ensure_docs=False,
         )
         if resolver.financial is not None:
             gateway.close()

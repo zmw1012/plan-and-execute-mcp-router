@@ -33,6 +33,9 @@ class OperationResolverServer:
         registry: Optional[Dict[str, OperationSpec]] = None,
         cache_dir: Optional[Path] = None,
         real_mcp_gateway: Optional[RealInvokeBackend] = None,
+        *,
+        preloaded_doc_vectors: Optional[Dict[str, list]] = None,
+        ensure_docs: bool = True,
     ):
         self.registry = registry or build_default_registry()
         self.real_mcp_gateway = real_mcp_gateway
@@ -42,7 +45,11 @@ class OperationResolverServer:
             financial_server or FinancialServer()
         )
         self.retriever = OperationRetriever(
-            self.registry, embedding_backend, cache_dir=cache_dir
+            self.registry,
+            embedding_backend,
+            cache_dir=cache_dir,
+            preloaded_doc_vectors=preloaded_doc_vectors,
+            ensure_docs=ensure_docs,
         )
         self._servers = {}
         if self.financial is not None:
