@@ -1,0 +1,753 @@
+{
+  "reference_id": "hk_apv_fin_diagnostic12_baseline_reference_v1",
+  "version": "1.0",
+  "descriptive_only": true,
+  "not_apv_fin_result": true,
+  "diagnostic12_ordered_task_ids": [
+    "fin_cf_003",
+    "fin_cf_011",
+    "fin_cf_020",
+    "fin_cf_023",
+    "fin_ht_016",
+    "xd_dev_002",
+    "xd_ht_007",
+    "xd_ht_014",
+    "mkt_dev_014",
+    "fin_cf_024",
+    "mkt_dev_001",
+    "news_ht_004"
+  ],
+  "diagnostic12_manifest_hash": "3b67b1f03746181bcb856bda60f8954a0db0ca8c8f42a881e9c93ff032ac5f17",
+  "conditions": {
+    "operation_visible": {
+      "available": true,
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-hk-unified/outputs/hk_unified_exploratory155_operation_visible_v1",
+      "predictions_sha256": "e273d25a41470ca1fcdaa979469a2c18de1c0bf5eade46e969e33c42526cb50c",
+      "n_diagnostic12_found": 12,
+      "condition_from_metadata": "operation_visible",
+      "generation_model": "deepseek-v4.1-flash",
+      "generation_provider": "aliyun",
+      "system_prompt_hash": "9674844a98c9f438ae02d19572f173a7cdc27e1c365ed27dd39ea7e0963eec1b",
+      "catalog_fingerprint": "unique=42|runtime=39|namespaced=54|cross_domain:a21a0cdf6c73|financial:18634ccfb733|market:2b201872c109|news:9121e9b7ca8d",
+      "git_commit": "39bd31b651deb1d064942ee5c6f5e9068946ac15"
+    },
+    "mcp_zero": {
+      "available": true,
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero/outputs/hk_unified_mcp_zero_exploratory155_v2",
+      "predictions_sha256": "f35f30aa712df505025f39d3b4d5043da2786439531ace9a7f5e6df92d353d1a",
+      "n_diagnostic12_found": 12,
+      "condition_from_metadata": "mcp_zero",
+      "generation_model": "deepseek-v4.1-flash",
+      "generation_provider": "openai_compatible",
+      "system_prompt_hash": "0879f47079d8ba345cda167829fa3474375aefd647f92efc139014d7a2885ab8",
+      "catalog_fingerprint": "unique=42|runtime=39|namespaced=54|cross_domain:a21a0cdf6c73|financial:18634ccfb733|market:2b201872c109|news:9121e9b7ca8d",
+      "git_commit": "1c027c3405d7d70cbdbc82d270a1251969420405"
+    },
+    "flat_all_tools": {
+      "available": true,
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-flat-all-tools/outputs/hk_unified_flat_all_tools_155_v1",
+      "predictions_sha256": "41bdc25238a3016ffa086bfc567bdae53c71abad7d70372087435107286f4e51",
+      "n_diagnostic12_found": 12,
+      "condition_from_metadata": "flat",
+      "generation_model": "deepseek-v4.1-flash",
+      "generation_provider": "openai_compatible",
+      "system_prompt_hash": "fdecb85f16b506c6ed0e5e2c8b2c248929bd7342c68d11a2e6ac7f604ed1198c",
+      "catalog_fingerprint": "unique=42|runtime=39|namespaced=54|cross_domain:a21a0cdf6c73|financial:18634ccfb733|market:2b201872c109|news:9121e9b7ca8d",
+      "git_commit": "9c4c904311d72c78ea169c1ac9e452966366ca66"
+    },
+    "mcp_free": {
+      "available": true,
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-hk-mcp-free/outputs/hk_unified_exploratory155_mcp_free_live_v1",
+      "predictions_sha256": "0a84e64b3ee79aafdd0d8fd263c0fd394d2451f7db0979491b448016519cb87c",
+      "n_diagnostic12_found": 12,
+      "condition_from_metadata": "mcp_free",
+      "generation_model": "deepseek-v4.1-flash",
+      "generation_provider": "openai_compatible",
+      "system_prompt_hash": "89f91313ed782f85a388d0e212438f376876ed03b039e43b92fc5760b73bc5dc",
+      "catalog_fingerprint": null,
+      "git_commit": "bf12c6b6373bd1082b2839108378d49b946b8e65"
+    },
+    "operation_visible_audit_csv": {
+      "available": true,
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/docs/hk_unified_baseline_final_audit_v2/per_task_audit_v2.csv",
+      "sha256": "e91f580ff0a9b632783d88ef848365bd12d9715113ff582eec1689674bf6ab2d",
+      "note": "Frozen final audit v2 descriptive metrics for OV; not a re-run."
+    }
+  },
+  "per_task": {
+    "fin_cf_003": {
+      "operation_visible": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "answered",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.571429,
+        "refusal_correctness": null,
+        "llm_calls": 8,
+        "real_mcp_execution_count": 3,
+        "error": null
+      },
+      "mcp_zero": {
+        "available": true,
+        "status": "failed",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.666667,
+        "refusal_correctness": 0.0,
+        "llm_calls": 7,
+        "real_mcp_execution_count": 7,
+        "error": "max_invocations"
+      },
+      "flat_all_tools": {
+        "available": true,
+        "status": "failed",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.666667,
+        "refusal_correctness": 0.0,
+        "llm_calls": 3,
+        "real_mcp_execution_count": 8,
+        "error": "max_invocations"
+      },
+      "mcp_free": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": "N/A",
+        "operation_f1": "N/A",
+        "refusal_correctness": 0.0,
+        "llm_calls": 1,
+        "real_mcp_execution_count": 0,
+        "error": null
+      },
+      "operation_visible_audit_csv": {
+        "primary_error_category": "agent_selection",
+        "answer_correct": "False",
+        "exact_tool_set": "False",
+        "refusal_correctness": ""
+      }
+    },
+    "fin_cf_011": {
+      "operation_visible": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "answered",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.0,
+        "refusal_correctness": null,
+        "llm_calls": 7,
+        "real_mcp_execution_count": 3,
+        "error": null
+      },
+      "mcp_zero": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "answered",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.0,
+        "refusal_correctness": null,
+        "llm_calls": 4,
+        "real_mcp_execution_count": 3,
+        "error": null
+      },
+      "flat_all_tools": {
+        "available": true,
+        "status": "failed",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.4,
+        "refusal_correctness": 0.0,
+        "llm_calls": 4,
+        "real_mcp_execution_count": 7,
+        "error": "max_invocations"
+      },
+      "mcp_free": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": "N/A",
+        "operation_f1": "N/A",
+        "refusal_correctness": 0.0,
+        "llm_calls": 1,
+        "real_mcp_execution_count": 0,
+        "error": null
+      },
+      "operation_visible_audit_csv": {
+        "primary_error_category": "agent_selection",
+        "answer_correct": "False",
+        "exact_tool_set": "False",
+        "refusal_correctness": ""
+      }
+    },
+    "fin_cf_020": {
+      "operation_visible": {
+        "available": true,
+        "status": "failed",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.8,
+        "refusal_correctness": 0.0,
+        "llm_calls": 8,
+        "real_mcp_execution_count": 7,
+        "error": "max_invocations"
+      },
+      "mcp_zero": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.285714,
+        "refusal_correctness": 0.0,
+        "llm_calls": 6,
+        "real_mcp_execution_count": 3,
+        "error": null
+      },
+      "flat_all_tools": {
+        "available": true,
+        "status": "failed",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.6,
+        "refusal_correctness": 0.0,
+        "llm_calls": 4,
+        "real_mcp_execution_count": 7,
+        "error": "max_invocations"
+      },
+      "mcp_free": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": "N/A",
+        "operation_f1": "N/A",
+        "refusal_correctness": 0.0,
+        "llm_calls": 1,
+        "real_mcp_execution_count": 0,
+        "error": null
+      },
+      "operation_visible_audit_csv": {
+        "primary_error_category": "resource_limit",
+        "answer_correct": "False",
+        "exact_tool_set": "False",
+        "refusal_correctness": "0.0"
+      }
+    },
+    "fin_cf_023": {
+      "operation_visible": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "answered",
+        "answer_correct": false,
+        "exact_tool_set": true,
+        "operation_f1": 1.0,
+        "refusal_correctness": null,
+        "llm_calls": 5,
+        "real_mcp_execution_count": 4,
+        "error": null
+      },
+      "mcp_zero": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "answered",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.666667,
+        "refusal_correctness": null,
+        "llm_calls": 6,
+        "real_mcp_execution_count": 2,
+        "error": null
+      },
+      "flat_all_tools": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "answered",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.8,
+        "refusal_correctness": null,
+        "llm_calls": 3,
+        "real_mcp_execution_count": 4,
+        "error": null
+      },
+      "mcp_free": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": "N/A",
+        "operation_f1": "N/A",
+        "refusal_correctness": 0.0,
+        "llm_calls": 1,
+        "real_mcp_execution_count": 0,
+        "error": null
+      },
+      "operation_visible_audit_csv": {
+        "primary_error_category": "answer_synthesis_calculation",
+        "answer_correct": "False",
+        "exact_tool_set": "True",
+        "refusal_correctness": ""
+      }
+    },
+    "fin_ht_016": {
+      "operation_visible": {
+        "available": true,
+        "status": "failed",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.909091,
+        "refusal_correctness": 0.0,
+        "llm_calls": 8,
+        "real_mcp_execution_count": 7,
+        "error": "max_invocations"
+      },
+      "mcp_zero": {
+        "available": true,
+        "status": "failed",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.75,
+        "refusal_correctness": 0.0,
+        "llm_calls": 8,
+        "real_mcp_execution_count": 3,
+        "error": "max_llm_turns"
+      },
+      "flat_all_tools": {
+        "available": true,
+        "status": "failed",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.6,
+        "refusal_correctness": 0.0,
+        "llm_calls": 4,
+        "real_mcp_execution_count": 8,
+        "error": "max_invocations"
+      },
+      "mcp_free": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": "N/A",
+        "operation_f1": "N/A",
+        "refusal_correctness": 0.0,
+        "llm_calls": 1,
+        "real_mcp_execution_count": 0,
+        "error": null
+      },
+      "operation_visible_audit_csv": {
+        "primary_error_category": "resource_limit",
+        "answer_correct": "False",
+        "exact_tool_set": "False",
+        "refusal_correctness": "0.0"
+      }
+    },
+    "xd_dev_002": {
+      "operation_visible": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "answered",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.4,
+        "refusal_correctness": null,
+        "llm_calls": 5,
+        "real_mcp_execution_count": 3,
+        "error": null
+      },
+      "mcp_zero": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "answered",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.5,
+        "refusal_correctness": null,
+        "llm_calls": 6,
+        "real_mcp_execution_count": 2,
+        "error": null
+      },
+      "flat_all_tools": {
+        "available": true,
+        "status": "failed",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.222222,
+        "refusal_correctness": 0.0,
+        "llm_calls": 3,
+        "real_mcp_execution_count": 7,
+        "error": "max_invocations"
+      },
+      "mcp_free": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": "N/A",
+        "operation_f1": "N/A",
+        "refusal_correctness": 0.0,
+        "llm_calls": 1,
+        "real_mcp_execution_count": 0,
+        "error": null
+      },
+      "operation_visible_audit_csv": {
+        "primary_error_category": "agent_selection",
+        "answer_correct": "False",
+        "exact_tool_set": "False",
+        "refusal_correctness": ""
+      }
+    },
+    "xd_ht_007": {
+      "operation_visible": {
+        "available": true,
+        "status": "failed",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.666667,
+        "refusal_correctness": 0.0,
+        "llm_calls": 4,
+        "real_mcp_execution_count": 1,
+        "error": "max_search_reformulations"
+      },
+      "mcp_zero": {
+        "available": true,
+        "status": "failed",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.4,
+        "refusal_correctness": 0.0,
+        "llm_calls": 8,
+        "real_mcp_execution_count": 3,
+        "error": "max_llm_turns"
+      },
+      "flat_all_tools": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "answered",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.5,
+        "refusal_correctness": null,
+        "llm_calls": 4,
+        "real_mcp_execution_count": 2,
+        "error": null
+      },
+      "mcp_free": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": "N/A",
+        "operation_f1": "N/A",
+        "refusal_correctness": 0.0,
+        "llm_calls": 1,
+        "real_mcp_execution_count": 0,
+        "error": null
+      },
+      "operation_visible_audit_csv": {
+        "primary_error_category": "resource_limit",
+        "answer_correct": "False",
+        "exact_tool_set": "False",
+        "refusal_correctness": "0.0"
+      }
+    },
+    "xd_ht_014": {
+      "operation_visible": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "answered",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.666667,
+        "refusal_correctness": null,
+        "llm_calls": 6,
+        "real_mcp_execution_count": 4,
+        "error": null
+      },
+      "mcp_zero": {
+        "available": true,
+        "status": "failed",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.666667,
+        "refusal_correctness": 0.0,
+        "llm_calls": 8,
+        "real_mcp_execution_count": 3,
+        "error": "max_llm_turns"
+      },
+      "flat_all_tools": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "answered",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.75,
+        "refusal_correctness": null,
+        "llm_calls": 2,
+        "real_mcp_execution_count": 5,
+        "error": null
+      },
+      "mcp_free": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": "N/A",
+        "operation_f1": "N/A",
+        "refusal_correctness": 0.0,
+        "llm_calls": 1,
+        "real_mcp_execution_count": 0,
+        "error": null
+      },
+      "operation_visible_audit_csv": {
+        "primary_error_category": "agent_selection",
+        "answer_correct": "False",
+        "exact_tool_set": "False",
+        "refusal_correctness": ""
+      }
+    },
+    "mkt_dev_014": {
+      "operation_visible": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "answered",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.0,
+        "refusal_correctness": 0.0,
+        "llm_calls": 4,
+        "real_mcp_execution_count": 1,
+        "error": null
+      },
+      "mcp_zero": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "answered",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.0,
+        "refusal_correctness": 0.0,
+        "llm_calls": 4,
+        "real_mcp_execution_count": 1,
+        "error": null
+      },
+      "flat_all_tools": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "answered",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.0,
+        "refusal_correctness": 0.0,
+        "llm_calls": 2,
+        "real_mcp_execution_count": 2,
+        "error": null
+      },
+      "mcp_free": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "unavailable",
+        "answer_correct": true,
+        "exact_tool_set": "N/A",
+        "operation_f1": "N/A",
+        "refusal_correctness": 1.0,
+        "llm_calls": 1,
+        "real_mcp_execution_count": 0,
+        "error": null
+      },
+      "operation_visible_audit_csv": {
+        "primary_error_category": "feasibility_refusal",
+        "answer_correct": "False",
+        "exact_tool_set": "False",
+        "refusal_correctness": "0.0"
+      }
+    },
+    "fin_cf_024": {
+      "operation_visible": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.0,
+        "refusal_correctness": 1.0,
+        "llm_calls": 4,
+        "real_mcp_execution_count": 1,
+        "error": null
+      },
+      "mcp_zero": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.0,
+        "refusal_correctness": 1.0,
+        "llm_calls": 3,
+        "real_mcp_execution_count": 2,
+        "error": null
+      },
+      "flat_all_tools": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": false,
+        "operation_f1": 0.0,
+        "refusal_correctness": 1.0,
+        "llm_calls": 2,
+        "real_mcp_execution_count": 3,
+        "error": null
+      },
+      "mcp_free": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": "N/A",
+        "operation_f1": "N/A",
+        "refusal_correctness": 1.0,
+        "llm_calls": 1,
+        "real_mcp_execution_count": 0,
+        "error": null
+      },
+      "operation_visible_audit_csv": {
+        "primary_error_category": "feasibility_refusal",
+        "answer_correct": "False",
+        "exact_tool_set": "False",
+        "refusal_correctness": "1.0"
+      }
+    },
+    "mkt_dev_001": {
+      "operation_visible": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "answered",
+        "answer_correct": true,
+        "exact_tool_set": true,
+        "operation_f1": 1.0,
+        "refusal_correctness": null,
+        "llm_calls": 4,
+        "real_mcp_execution_count": 1,
+        "error": null
+      },
+      "mcp_zero": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "answered",
+        "answer_correct": true,
+        "exact_tool_set": true,
+        "operation_f1": 1.0,
+        "refusal_correctness": null,
+        "llm_calls": 3,
+        "real_mcp_execution_count": 1,
+        "error": null
+      },
+      "flat_all_tools": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "answered",
+        "answer_correct": true,
+        "exact_tool_set": true,
+        "operation_f1": 1.0,
+        "refusal_correctness": null,
+        "llm_calls": 2,
+        "real_mcp_execution_count": 1,
+        "error": null
+      },
+      "mcp_free": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": "N/A",
+        "operation_f1": "N/A",
+        "refusal_correctness": 0.0,
+        "llm_calls": 1,
+        "real_mcp_execution_count": 0,
+        "error": null
+      },
+      "operation_visible_audit_csv": {
+        "primary_error_category": "success",
+        "answer_correct": "True",
+        "exact_tool_set": "True",
+        "refusal_correctness": ""
+      }
+    },
+    "news_ht_004": {
+      "operation_visible": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "answered",
+        "answer_correct": true,
+        "exact_tool_set": true,
+        "operation_f1": 1.0,
+        "refusal_correctness": null,
+        "llm_calls": 5,
+        "real_mcp_execution_count": 1,
+        "error": null
+      },
+      "mcp_zero": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "answered",
+        "answer_correct": true,
+        "exact_tool_set": true,
+        "operation_f1": 1.0,
+        "refusal_correctness": null,
+        "llm_calls": 3,
+        "real_mcp_execution_count": 1,
+        "error": null
+      },
+      "flat_all_tools": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "answered",
+        "answer_correct": true,
+        "exact_tool_set": false,
+        "operation_f1": 0.666667,
+        "refusal_correctness": null,
+        "llm_calls": 2,
+        "real_mcp_execution_count": 2,
+        "error": null
+      },
+      "mcp_free": {
+        "available": true,
+        "status": "full",
+        "predicted_status": "unavailable",
+        "answer_correct": false,
+        "exact_tool_set": "N/A",
+        "operation_f1": "N/A",
+        "refusal_correctness": 0.0,
+        "llm_calls": 1,
+        "real_mcp_execution_count": 0,
+        "error": null
+      },
+      "operation_visible_audit_csv": {
+        "primary_error_category": "success",
+        "answer_correct": "True",
+        "exact_tool_set": "True",
+        "refusal_correctness": ""
+      }
+    }
+  },
+  "missing_sources": [],
+  "reference_hash": "7086f3b599514e6cebffe0ccb0d343b81d06c12114daeea97ad30aa0daee8e51"
+}

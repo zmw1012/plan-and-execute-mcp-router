@@ -80,9 +80,11 @@ class BudgetTracker:
             "max_llm_monitor_rounds": int(limits.get("max_llm_monitor_rounds", 6)),
             "max_same_operation_repeats": int(limits.get("max_same_operation_repeats", 1)),
             "max_final_repair_rounds": int(limits.get("max_final_repair_rounds", 1)),
+            "max_idle_monitor_rounds": int(limits.get("max_idle_monitor_rounds", 1)),
         }
         self.plan_revisions = 0
         self.monitor_rounds = 0
+        self.idle_monitor_rounds = 0
         self.mcp_invocations = 0
         self.retrievals_per_step: Dict[str, int] = {}
         self.operation_invoke_counts: Dict[str, int] = {}
@@ -95,6 +97,7 @@ class BudgetTracker:
             "limits": dict(self.limits),
             "plan_revisions": self.plan_revisions,
             "monitor_rounds": self.monitor_rounds,
+            "idle_monitor_rounds": self.idle_monitor_rounds,
             "mcp_invocations": self.mcp_invocations,
             "retrievals_per_step": dict(self.retrievals_per_step),
             "operation_invoke_counts": dict(self.operation_invoke_counts),
@@ -110,6 +113,8 @@ class BudgetTracker:
             return "max_llm_monitor_rounds"
         if self.mcp_invocations > self.limits["max_total_mcp_invocations"]:
             return "max_total_mcp_invocations"
+        if self.idle_monitor_rounds > self.limits["max_idle_monitor_rounds"]:
+            return "max_idle_monitor_rounds"
         return None
 
 
@@ -125,8 +130,16 @@ def execute_retrieve_step(
     top_k: int = 20,
     invoke_arguments: Optional[Dict[str, Any]] = None,
     select_operation_id: Optional[str] = None,
+    allow_forced_select: bool = False,
 ) -> Dict[str, Any]:
     """Retrieve path: find → hard-filter/rerank → describe → invoke via gateway."""
+    if select_operation_id and not allow_forced_select:
+        return {
+            "ok": False,
+            "error": "forced_select_forbidden_in_live_mode",
+            "step_id": step.step_id,
+            "mcp_called": False,
+        }
     count = budget.retrievals_per_step.get(step.step_id, 0)
     if count >= budget.limits["max_targeted_retrievals_per_step"]:
         return {
@@ -149,12 +162,24 @@ def execute_retrieve_step(
     )
     reranked = ranked["reranked"]
     chosen = None
+    forced_select_used = False
     if select_operation_id:
         chosen = next(
             (r for r in reranked if r["operation_id"] == select_operation_id), None
         )
         if chosen is None and select_operation_id in metadata_by_id:
+            if not allow_forced_select:
+                return {
+                    "ok": False,
+                    "error": "forced_select_forbidden_in_live_mode",
+                    "step_id": step.step_id,
+                    "query": query,
+                    "find": find_out,
+                    "rerank": ranked,
+                    "mcp_called": False,
+                }
             # Offline mock / unit-test override when hash retrieval misses the target.
+            forced_select_used = True
             chosen = {
                 "operation_id": select_operation_id,
                 "original_rank": None,
@@ -234,6 +259,7 @@ def execute_retrieve_step(
                 "invoke": invoke_out,
                 "evidence_id": ev.evidence_id,
                 "mcp_called": mcp_called,
+                "forced_select_used": forced_select_used,
                 "error": None if invoke_out.get("success") else invoke_out.get("error"),
             }
 
@@ -247,6 +273,7 @@ def execute_retrieve_step(
         "describe": describe_out,
         "invoke": invoke_out,
         "mcp_called": mcp_called,
+        "forced_select_used": forced_select_used,
         "error": "no_compatible_operation",
     }
 

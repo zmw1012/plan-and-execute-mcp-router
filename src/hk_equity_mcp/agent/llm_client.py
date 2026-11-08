@@ -96,12 +96,24 @@ class OpenAICompatibleChatClient(LLMClient):
         choices = body.get("choices") or []
         if not choices:
             raise RuntimeError("LLM response missing choices.")
-        content = choices[0].get("message", {}).get("content") or ""
+        message = choices[0].get("message")
+        raw_content = None if message is None else message.get("content")
+        # Null-safe: never treat missing/null content as a successful structured answer.
+        # Downstream parsers must fail closed on empty content.
+        if raw_content is None:
+            content = ""
+        elif isinstance(raw_content, (dict, list)):
+            content = json.dumps(raw_content, ensure_ascii=False)
+        else:
+            content = str(raw_content)
         usage = body.get("usage") or {}
         in_tok = int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
         out_tok = int(usage.get("completion_tokens") or usage.get("output_tokens") or 0)
         return {
             "content": content,
+            "raw_content": raw_content,
+            "message_was_null": message is None,
+            "content_was_null": raw_content is None,
             "usage": {
                 "input_tokens": in_tok,
                 "output_tokens": out_tok,

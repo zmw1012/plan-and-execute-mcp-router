@@ -92,6 +92,7 @@ def test_retrieve_uses_resolver_compute_does_not_call_mcp(tmp_path: Path):
             "end_date": "20260731",
         },
         select_operation_id="aktools.stock_hk_hist",
+        allow_forced_select=True,
     )
     assert out.get("ok") is True, out.get("error")
     assert out["mcp_called"] is True

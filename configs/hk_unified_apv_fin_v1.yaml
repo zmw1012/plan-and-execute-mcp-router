@@ -2,15 +2,26 @@
 condition: apv_fin
 method_version: apv_fin_v1
 execution_backend: real_mcp
-generation_provider: aliyun
+
+# Formal live identity (fail-closed; no Aliyun silent fallback)
+generation_provider: openai_compatible
+generation_host: api.zhizengzeng.com
 generation_model: deepseek-v4.1-flash
+embedding_provider: openai_compatible
 embedding_model: text-embedding-3-small
+# Formal env files live in the sibling main checkout (never commit keys):
+#   GEN_ENV:  ../hk-equity-mcp-agent/.env.relay-v41
+#   EMB_ENV:  ../hk-equity-mcp-agent/.env.embedding-relay
+# Formal python:
+#   ../hk-equity-mcp-agent/.venv-aktools-discovery/bin/python
+
 temperature: 0.0
 max_tokens: 2048
 json_mode: true
 dataset_split: development
 dataset_manifest: benchmarks/manifests/hk_unified_dataset_v1.json
 diagnostic_manifest: benchmarks/manifests/hk_apv_fin_diagnostic12_v1.json
+smoke4_manifest: benchmarks/manifests/hk_apv_fin_real_smoke4_v1.json
 operation_metadata: configs/operations/hk_unified_operation_metadata_v1.yaml
 
 retrieval:
@@ -19,13 +30,14 @@ retrieval:
   compatibility_tiers: [A, B, C]
 
 limits:
-  # Bounded replanning — config-driven (not hardcoded in agent logic defaults only).
+  # Bounded replanning — config-driven (do not retune for mock pass).
   max_plan_revisions: 2
   max_targeted_retrievals_per_step: 2
   max_total_mcp_invocations: 8
   max_llm_monitor_rounds: 6
   max_same_operation_repeats: 1
   max_final_repair_rounds: 1
+  max_idle_monitor_rounds: 1
   timeout_sec: 180
 
 catalogs:
@@ -39,3 +51,4 @@ notes:
   - Does not modify Operation-Visible baseline behavior, prompts, or raw outputs.
   - Plans never hard-code operation_id; only retrieve steps enter the resolver.
   - No MCP-Zero ATR protocol.
+  - Live mode must not enable mock_select_operation_id / forced_select overrides.

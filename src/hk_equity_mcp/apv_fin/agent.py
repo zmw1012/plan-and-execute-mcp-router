@@ -1,16 +1,25 @@
-"""APV-Fin agent: dynamic Plan-Visible + ReAct hybrid (proposed method)."""
+"""APV-Fin agent: dynamic Plan-Visible + ReAct hybrid (proposed method).
+
+Canonical live order:
+  initial planner
+  → scheduler selects ready steps
+  → execute retrieve/compute/reason/verify
+  → write evidence ledger
+  → monitor (continue/replan/answer/clarify/refuse/fail)
+  → final validator
+"""
 
 from __future__ import annotations
 
 import json
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 from hk_equity_mcp.agent.llm_client import LLMClient
 from hk_equity_mcp.apv_fin.evidence_ledger import EvidenceLedger
 from hk_equity_mcp.apv_fin.metadata import load_and_validate_metadata
 from hk_equity_mcp.apv_fin.monitor import run_monitor
-from hk_equity_mcp.apv_fin.planner import run_initial_planner
+from hk_equity_mcp.apv_fin.planner import _merge_usage, run_initial_planner
 from hk_equity_mcp.apv_fin.prompts import (
     APV_FIN_FINAL_USER_TEMPLATE,
     APV_FIN_SYSTEM_PROMPT,
@@ -23,14 +32,13 @@ from hk_equity_mcp.apv_fin.scheduler import (
     execute_retrieve_step,
     select_next_step,
 )
-from hk_equity_mcp.apv_fin.schemas import format_repair_user_message, parse_and_validate
+from hk_equity_mcp.apv_fin.structured_parse import parse_structured, repair_user_message
 from hk_equity_mcp.apv_fin.validator import controlled_failure_payload, validate_final_state
 from hk_equity_mcp.experiment.normalize import (
     agent_completion_to_fallback,
     normalize_final_payload,
 )
 from hk_equity_mcp.operation_resolver.server import OperationResolverServer
-from hk_equity_mcp.apv_fin.planner import _merge_usage
 
 
 class ApvFinAgent:
@@ -42,11 +50,13 @@ class ApvFinAgent:
         config: Optional[Dict[str, Any]] = None,
         metadata_by_id: Optional[Dict[str, Dict[str, Any]]] = None,
         runtime_operation_ids: Optional[List[str]] = None,
+        live_mode: bool = True,
     ):
         assert_prompts_clean()
         self.llm = llm
         self.resolver = resolver
         self.config = config or {}
+        self.live_mode = bool(live_mode)
         self.limits = dict(self.config.get("limits") or {})
         self.budget = BudgetTracker(self.limits)
         self.temperature = float(self.config.get("llm", {}).get("temperature", 0.0))
@@ -57,34 +67,62 @@ class ApvFinAgent:
             runtime_operation_ids
             or sorted(self.resolver.list_underlying_operation_ids())
         )
-        # Optional offline hooks for unit tests / mock scripts.
-        self._scripted_retrieve_args = dict(
-            self.config.get("mock_retrieve_arguments") or {}
+        # Mock-only hooks — must remain unreachable in live mode.
+        self._allow_mock_hooks = bool(self.config.get("allow_mock_hooks", False))
+        mock_hook_keys = (
+            "mock_retrieve_arguments",
+            "mock_compute_payload",
+            "mock_reason_payload",
+            "mock_select_operation_id",
         )
-        self._scripted_compute = self.config.get("mock_compute_payload")
-        self._scripted_reason = self.config.get("mock_reason_payload")
-        self._scripted_select_op = self.config.get("mock_select_operation_id")
+        if self.live_mode and self._allow_mock_hooks:
+            raise RuntimeError("APV-Fin fail-closed: allow_mock_hooks forbidden in live_mode")
+        if self.live_mode and any(self.config.get(k) for k in mock_hook_keys):
+            raise RuntimeError(
+                "APV-Fin fail-closed: mock hooks present while live_mode=True"
+            )
+        self._scripted_retrieve_args = (
+            dict(self.config.get("mock_retrieve_arguments") or {})
+            if self._allow_mock_hooks
+            else {}
+        )
+        self._scripted_compute = (
+            self.config.get("mock_compute_payload") if self._allow_mock_hooks else None
+        )
+        self._scripted_reason = (
+            self.config.get("mock_reason_payload") if self._allow_mock_hooks else None
+        )
+        self._scripted_select_op = (
+            self.config.get("mock_select_operation_id") if self._allow_mock_hooks else None
+        )
 
     def run(self, question: str) -> Dict[str, Any]:
         started = time.perf_counter()
-        # Fresh budgets/trace state per task (agent instance may be reused by runner).
         self.budget = BudgetTracker(self.limits)
         trace: List[Dict[str, Any]] = []
         ledger = EvidenceLedger()
         compute_traces: List[Dict[str, Any]] = []
         observations: List[Dict[str, Any]] = []
+        scheduler_decisions: List[Dict[str, Any]] = []
+        monitor_decisions: List[Dict[str, Any]] = []
+        plan_revisions: List[Dict[str, Any]] = []
         total_in = 0
         total_out = 0
         parse_repair_count = 0
         resolver_calls = {"find_operations": 0, "describe_operation": 0}
         predicted_operations: List[str] = []
+        selected_operations: List[str] = []
+        invoked_operations: List[str] = []
+        successful_invoked: List[str] = []
         retrieved_candidates: List[Any] = []
+        executed_step_ids: Set[str] = set()
         status = "failed"
         error: Optional[str] = None
         final_obj: Optional[Dict[str, Any]] = None
         task_spec: Dict[str, Any] = {}
         plan_state = None
         validator_result: Optional[Dict[str, Any]] = None
+        observations_since_monitor = 0
 
         def _acc_llm(llm_meta: Optional[Dict[str, Any]]) -> None:
             nonlocal total_in, total_out
@@ -95,7 +133,7 @@ class ApvFinAgent:
             total_in += int(usage.get("input_tokens") or 0)
             total_out += int(usage.get("output_tokens") or 0)
 
-        # 1) Initial planner
+        # ---- 1) Initial planner -------------------------------------------------
         plan_out = run_initial_planner(
             self.llm,
             question,
@@ -104,7 +142,15 @@ class ApvFinAgent:
         )
         _acc_llm(plan_out.get("llm"))
         parse_repair_count += int(plan_out.get("repair_count") or 0)
-        trace.append({"type": "planner", "result": {k: v for k, v in plan_out.items() if k != "plan_state"}})
+        trace.append(
+            {
+                "type": "planner",
+                "raw_contents": plan_out.get("raw_contents"),
+                "result": {
+                    k: v for k, v in plan_out.items() if k not in {"plan_state", "llm"}
+                },
+            }
+        )
         if not plan_out.get("ok"):
             final_obj = controlled_failure_payload(
                 reason=plan_out.get("error") or "planner_fail_closed"
@@ -124,8 +170,11 @@ class ApvFinAgent:
                 provenance="apv_fin_plan_v1",
                 validation_status="unchecked",
             )
+            plan_revisions.append(
+                {"revision": plan_state.revision, "note": "initial_plan"}
+            )
 
-            # 2) Monitor/execute loop
+            # ---- 2) Execute-ready → monitor loop --------------------------------
             while True:
                 exhausted = self.budget.exhausted()
                 if exhausted:
@@ -135,6 +184,278 @@ class ApvFinAgent:
                     error = exhausted
                     break
 
+                # Scheduler: execute currently ready steps BEFORE calling monitor.
+                # Never call monitor in a loop with zero new observations.
+                executed_this_round = 0
+                while True:
+                    step = select_next_step(plan_state)
+                    if step is None:
+                        break
+                    if step.step_id in executed_step_ids and step.status == "running":
+                        # Defensive: do not re-execute the same running step.
+                        plan_state.mark_failed(step.step_id, "duplicate_execution_guard")
+                        break
+                    sched_event = {
+                        "type": "scheduler",
+                        "selected_step_id": step.step_id,
+                        "step_type": step.step_type,
+                        "ready_step_ids": [s.step_id for s in plan_state.ready_steps()],
+                    }
+                    scheduler_decisions.append(sched_event)
+                    trace.append(sched_event)
+
+                    plan_state.mark_running(step.step_id)
+                    executed_step_ids.add(step.step_id)
+                    step_event: Dict[str, Any] = {
+                        "type": "step_execution",
+                        "step_id": step.step_id,
+                        "step_type": step.step_type,
+                    }
+
+                    if step.step_type == "retrieve":
+                        out = execute_retrieve_step(
+                            step=step,
+                            task_spec=task_spec,
+                            resolver=self.resolver,
+                            metadata_by_id=self.metadata_by_id,
+                            runtime_operation_ids=self.runtime_operation_ids,
+                            ledger=ledger,
+                            budget=self.budget,
+                            top_k=self.top_k,
+                            invoke_arguments=(
+                                self._scripted_retrieve_args.get(step.step_id)
+                                or self._scripted_retrieve_args.get("*")
+                            ),
+                            select_operation_id=self._scripted_select_op,
+                            allow_forced_select=self._allow_mock_hooks,
+                        )
+                        if out.get("forced_select_used") and self.live_mode:
+                            final_obj = controlled_failure_payload(
+                                reason="forced_select_in_live_mode"
+                            )
+                            status = "failed"
+                            error = "forced_select_in_live_mode"
+                            self.budget.stopping_reason = error
+                            step_event["result"] = out
+                            trace.append(step_event)
+                            break
+                        resolver_calls["find_operations"] += 1
+                        if out.get("describe") is not None:
+                            resolver_calls["describe_operation"] += 1
+                        if out.get("rerank"):
+                            retrieved_candidates.append(
+                                {
+                                    "step_id": step.step_id,
+                                    "query": out.get("query"),
+                                    "original_candidates": [
+                                        {
+                                            "operation_id": c.get("operation_id"),
+                                            "score": c.get("score"),
+                                            "original_rank": i + 1,
+                                        }
+                                        for i, c in enumerate(
+                                            (out.get("find") or {}).get("candidates")
+                                            or []
+                                        )
+                                    ],
+                                    "reranked": [
+                                        {
+                                            "operation_id": r["operation_id"],
+                                            "original_rank": r["original_rank"],
+                                            "final_rank": r.get("final_rank"),
+                                            "compatibility_tier": r.get(
+                                                "compatibility_tier"
+                                            ),
+                                            "compatibility_reasons": r.get(
+                                                "compatibility_reasons"
+                                            ),
+                                            "base_score": r.get("base_score"),
+                                        }
+                                        for r in (out["rerank"].get("reranked") or [])[
+                                            :20
+                                        ]
+                                    ],
+                                    "hard_filtered": out["rerank"].get("hard_filtered"),
+                                }
+                            )
+                        if out.get("chosen_operation_id"):
+                            selected_operations.append(out["chosen_operation_id"])
+                            predicted_operations.append(out["chosen_operation_id"])
+                        if out.get("invoke") is not None:
+                            oid = out.get("chosen_operation_id")
+                            if oid:
+                                invoked_operations.append(oid)
+                            if out.get("ok") and oid:
+                                successful_invoked.append(oid)
+                        step_event["result"] = {
+                            k: v for k, v in out.items() if k not in {"find"}
+                        }
+                        observations.append(step_event["result"])
+                        observations_since_monitor += 1
+                        trace.extend(_ov_compatible_retrieve_events(out))
+                        if out.get("ok"):
+                            plan_state.mark_resolved(
+                                step.step_id,
+                                observation_ids=[out.get("evidence_id")]
+                                if out.get("evidence_id")
+                                else None,
+                            )
+                        else:
+                            plan_state.mark_failed(
+                                step.step_id, out.get("error") or "retrieve_failed"
+                            )
+
+                    elif step.step_type == "compute":
+                        out = execute_compute_step(
+                            llm=self.llm,
+                            question=question,
+                            step=step,
+                            ledger=ledger,
+                            temperature=self.temperature,
+                            max_tokens=self.max_tokens,
+                            scripted_payload=self._scripted_compute,
+                        )
+                        _acc_llm(out.get("llm"))
+                        parse_repair_count += int(out.get("repair_count") or 0)
+                        if out.get("compute_trace"):
+                            compute_traces.append(out["compute_trace"])
+                        assert out.get("mcp_called") is False
+                        step_event["result"] = {
+                            k: v for k, v in out.items() if k != "llm"
+                        }
+                        observations.append(step_event["result"])
+                        observations_since_monitor += 1
+                        if out.get("ok"):
+                            plan_state.mark_resolved(
+                                step.step_id,
+                                observation_ids=[out.get("evidence_id")]
+                                if out.get("evidence_id")
+                                else None,
+                            )
+                        else:
+                            plan_state.mark_failed(
+                                step.step_id, out.get("error") or "compute_failed"
+                            )
+
+                    elif step.step_type in {"reason", "verify"}:
+                        out = execute_reason_step(
+                            llm=self.llm,
+                            question=question,
+                            step=step,
+                            ledger=ledger,
+                            temperature=self.temperature,
+                            max_tokens=self.max_tokens,
+                            scripted_payload=self._scripted_reason,
+                        )
+                        _acc_llm(out.get("llm"))
+                        assert out.get("mcp_called") is False
+                        step_event["result"] = {
+                            k: v for k, v in out.items() if k != "llm"
+                        }
+                        observations.append(step_event["result"])
+                        observations_since_monitor += 1
+                        if out.get("ok"):
+                            plan_state.mark_resolved(
+                                step.step_id,
+                                observation_ids=[out.get("evidence_id")]
+                                if out.get("evidence_id")
+                                else None,
+                            )
+                        else:
+                            plan_state.mark_failed(
+                                step.step_id, out.get("error") or "reason_failed"
+                            )
+
+                    elif step.step_type in {"answer", "clarify", "refuse"}:
+                        plan_state.mark_resolved(step.step_id)
+                        step_event["result"] = {
+                            "ok": True,
+                            "mcp_called": False,
+                            "terminal": step.step_type,
+                        }
+                        observations.append(step_event["result"])
+                        observations_since_monitor += 1
+                    else:
+                        plan_state.mark_failed(
+                            step.step_id, f"unknown_step_type:{step.step_type}"
+                        )
+                        step_event["result"] = {"ok": False, "mcp_called": False}
+                        observations_since_monitor += 1
+
+                    trace.append(step_event)
+                    executed_this_round += 1
+                    # Execute one ready step per scheduler pass, then monitor.
+                    break
+
+                if error == "forced_select_in_live_mode":
+                    break
+
+                # If plan complete after execution, synthesize without extra idle monitors.
+                if plan_state.is_complete() and executed_this_round > 0:
+                    final_pack = self._synthesize_final(
+                        question=question,
+                        plan_state=plan_state,
+                        ledger=ledger,
+                        task_spec=task_spec,
+                        compute_traces=compute_traces,
+                    )
+                    _acc_llm(final_pack.pop("_llm", None))
+                    parse_repair_count += int(final_pack.pop("_repair_count", 0) or 0)
+                    validator_result = final_pack.get("validator")
+                    if not final_pack.get("ok"):
+                        status = "failed"
+                        error = final_pack.get("error")
+                        final_obj = final_pack.get("payload") or controlled_failure_payload(
+                            reason=error or "final_fail_closed"
+                        )
+                    else:
+                        final_obj = final_pack["payload"]
+                        status = "full"
+                        # Validator must pass for answered finals.
+                        if (
+                            final_obj.get("status") == "answered"
+                            and validator_result
+                            and not validator_result.get("ok")
+                        ):
+                            if (
+                                self.budget.final_repair_rounds
+                                < self.budget.limits["max_final_repair_rounds"]
+                            ):
+                                self.budget.final_repair_rounds += 1
+                                final_obj = controlled_failure_payload(
+                                    reason="validator_failed:"
+                                    + ",".join(validator_result.get("failed_checks") or [])
+                                )
+                                self.budget.stopping_reason = "validator_controlled_failure"
+                            else:
+                                final_obj = controlled_failure_payload(
+                                    reason="validator_failed_no_budget"
+                                )
+                                status = "failed"
+                                error = "validator_failed_no_budget"
+                                self.budget.stopping_reason = error
+                        else:
+                            self.budget.stopping_reason = "plan_complete"
+                    break
+
+                # Idle-monitor guard: no new observations and nothing ready → stop.
+                if executed_this_round == 0 and observations_since_monitor == 0:
+                    self.budget.idle_monitor_rounds += 1
+                    if self.budget.idle_monitor_rounds > self.budget.limits[
+                        "max_idle_monitor_rounds"
+                    ]:
+                        self.budget.stopping_reason = "max_idle_monitor_rounds"
+                        final_obj = controlled_failure_payload(
+                            reason="max_idle_monitor_rounds"
+                        )
+                        status = "failed"
+                        error = "max_idle_monitor_rounds"
+                        break
+                    # One allowed idle monitor only when plan may need replan/clarify.
+                else:
+                    self.budget.idle_monitor_rounds = 0
+
+                # Monitor uses real plan state + observations (after execution).
                 self.budget.monitor_rounds += 1
                 mon = run_monitor(
                     self.llm,
@@ -148,18 +469,21 @@ class ApvFinAgent:
                 )
                 _acc_llm(mon.get("llm"))
                 parse_repair_count += int(mon.get("repair_count") or 0)
+                observations_since_monitor = 0
                 if mon.get("patch_summary"):
                     self.budget.plan_revisions = plan_state.revision
-                trace.append(
-                    {
-                        "type": "monitor",
-                        "result": {
-                            k: v
-                            for k, v in mon.items()
-                            if k != "llm" or True
-                        },
-                    }
-                )
+                    plan_revisions.append(mon["patch_summary"])
+                mon_rec = {
+                    "decision": mon.get("decision"),
+                    "decision_reason": mon.get("decision_reason"),
+                    "ready_step_ids": mon.get("ready_step_ids"),
+                    "ok": mon.get("ok"),
+                    "error": mon.get("error"),
+                    "patch_summary": mon.get("patch_summary"),
+                    "raw_contents": mon.get("raw_contents"),
+                }
+                monitor_decisions.append(mon_rec)
+                trace.append({"type": "monitor", "result": mon_rec})
                 if not mon.get("ok"):
                     final_obj = controlled_failure_payload(
                         reason=mon.get("error") or "monitor_fail_closed"
@@ -174,12 +498,11 @@ class ApvFinAgent:
                     self.budget.plan_revisions = plan_state.revision
                     if self.budget.plan_revisions > self.budget.limits["max_plan_revisions"]:
                         self.budget.stopping_reason = "max_plan_revisions"
-                        final_obj = controlled_failure_payload(
-                            reason="max_plan_revisions"
-                        )
+                        final_obj = controlled_failure_payload(reason="max_plan_revisions")
                         status = "failed"
                         error = "max_plan_revisions"
                         break
+                    # After replan, execute newly ready steps on next loop iteration.
                     continue
 
                 if decision in {"clarify", "refuse", "fail", "answer"}:
@@ -215,210 +538,58 @@ class ApvFinAgent:
                         final_obj = controlled_failure_payload(reason=str(reason))
                         status = "full" if decision == "refuse" else "failed"
                         break
-                    # answer → synthesize below
-                    final_obj = self._synthesize_final(
+                    final_pack = self._synthesize_final(
                         question=question,
                         plan_state=plan_state,
                         ledger=ledger,
                         task_spec=task_spec,
                         compute_traces=compute_traces,
                     )
-                    _acc_llm(final_obj.pop("_llm", None))
-                    parse_repair_count += int(final_obj.pop("_repair_count", 0) or 0)
-                    validator_result = final_obj.get("validator")
-                    if not final_obj.get("ok"):
+                    _acc_llm(final_pack.pop("_llm", None))
+                    parse_repair_count += int(final_pack.pop("_repair_count", 0) or 0)
+                    validator_result = final_pack.get("validator")
+                    if not final_pack.get("ok"):
                         status = "failed"
-                        error = final_obj.get("error")
-                        final_obj = final_obj.get("payload") or controlled_failure_payload(
+                        error = final_pack.get("error")
+                        final_obj = final_pack.get("payload") or controlled_failure_payload(
                             reason=error or "final_fail_closed"
                         )
                     else:
-                        final_obj = final_obj["payload"]
+                        final_obj = final_pack["payload"]
                         status = "full"
+                        if (
+                            final_obj.get("status") == "answered"
+                            and validator_result
+                            and not validator_result.get("ok")
+                        ):
+                            # answer_ready / answered but validator fails → controlled failure
+                            if (
+                                self.budget.final_repair_rounds
+                                < self.budget.limits["max_final_repair_rounds"]
+                            ):
+                                self.budget.final_repair_rounds += 1
+                                final_obj = controlled_failure_payload(
+                                    reason="validator_failed:"
+                                    + ",".join(
+                                        validator_result.get("failed_checks") or []
+                                    )
+                                )
+                                self.budget.stopping_reason = (
+                                    "validator_controlled_failure"
+                                )
+                            else:
+                                final_obj = controlled_failure_payload(
+                                    reason="validator_failed_no_budget"
+                                )
+                                status = "failed"
+                                error = "validator_failed_no_budget"
+                                self.budget.stopping_reason = error
                     break
 
                 if decision in {"continue", "verify"}:
-                    preferred = list(mon.get("ready_step_ids") or [])
-                    step = select_next_step(plan_state, preferred)
-                    if step is None:
-                        # Nothing ready — ask monitor next round or stop.
-                        if plan_state.is_complete():
-                            final_obj = self._synthesize_final(
-                                question=question,
-                                plan_state=plan_state,
-                                ledger=ledger,
-                                task_spec=task_spec,
-                                compute_traces=compute_traces,
-                            )
-                            _acc_llm(final_obj.pop("_llm", None))
-                            parse_repair_count += int(
-                                final_obj.pop("_repair_count", 0) or 0
-                            )
-                            if not final_obj.get("ok"):
-                                status = "failed"
-                                error = final_obj.get("error")
-                                final_obj = final_obj.get(
-                                    "payload"
-                                ) or controlled_failure_payload(
-                                    reason=error or "final_fail_closed"
-                                )
-                            else:
-                                final_obj = final_obj["payload"]
-                                status = "full"
-                            self.budget.stopping_reason = "plan_complete"
-                            break
-                        continue
-
-                    plan_state.mark_running(step.step_id)
-                    step_event: Dict[str, Any] = {
-                        "type": "step_execution",
-                        "step_id": step.step_id,
-                        "step_type": step.step_type,
-                    }
-
-                    if step.step_type == "retrieve":
-                        out = execute_retrieve_step(
-                            step=step,
-                            task_spec=task_spec,
-                            resolver=self.resolver,
-                            metadata_by_id=self.metadata_by_id,
-                            runtime_operation_ids=self.runtime_operation_ids,
-                            ledger=ledger,
-                            budget=self.budget,
-                            top_k=self.top_k,
-                            invoke_arguments=self._scripted_retrieve_args.get(
-                                step.step_id
-                            )
-                            or self._scripted_retrieve_args.get("*"),
-                            select_operation_id=self._scripted_select_op,
-                        )
-                        resolver_calls["find_operations"] += 1
-                        if out.get("describe") is not None:
-                            resolver_calls["describe_operation"] += 1
-                        if out.get("rerank"):
-                            retrieved_candidates.append(
-                                {
-                                    "step_id": step.step_id,
-                                    "query": out.get("query"),
-                                    "reranked": [
-                                        {
-                                            "operation_id": r["operation_id"],
-                                            "original_rank": r["original_rank"],
-                                            "final_rank": r.get("final_rank"),
-                                            "compatibility_tier": r.get(
-                                                "compatibility_tier"
-                                            ),
-                                            "compatibility_reasons": r.get(
-                                                "compatibility_reasons"
-                                            ),
-                                            "base_score": r.get("base_score"),
-                                        }
-                                        for r in (out["rerank"].get("reranked") or [])[
-                                            :20
-                                        ]
-                                    ],
-                                    "hard_filtered": out["rerank"].get("hard_filtered"),
-                                }
-                            )
-                        if out.get("chosen_operation_id"):
-                            predicted_operations.append(out["chosen_operation_id"])
-                        step_event["result"] = {
-                            k: v for k, v in out.items() if k not in {"find"}
-                        }
-                        observations.append(step_event["result"])
-                        # Emit Operation-Visible-compatible tool_result events so
-                        # evaluator v1.2 extractors reuse without baseline changes.
-                        trace.extend(_ov_compatible_retrieve_events(out))
-                        if out.get("ok"):
-                            plan_state.mark_resolved(
-                                step.step_id,
-                                observation_ids=[out.get("evidence_id")]
-                                if out.get("evidence_id")
-                                else None,
-                            )
-                        else:
-                            plan_state.mark_failed(
-                                step.step_id, out.get("error") or "retrieve_failed"
-                            )
-
-                    elif step.step_type == "compute":
-                        out = execute_compute_step(
-                            llm=self.llm,
-                            question=question,
-                            step=step,
-                            ledger=ledger,
-                            temperature=self.temperature,
-                            max_tokens=self.max_tokens,
-                            scripted_payload=self._scripted_compute,
-                        )
-                        _acc_llm(out.get("llm"))
-                        parse_repair_count += int(out.get("repair_count") or 0)
-                        if out.get("compute_trace"):
-                            compute_traces.append(out["compute_trace"])
-                        assert out.get("mcp_called") is False
-                        step_event["result"] = {
-                            k: v for k, v in out.items() if k != "llm"
-                        }
-                        observations.append(step_event["result"])
-                        if out.get("ok"):
-                            plan_state.mark_resolved(
-                                step.step_id,
-                                observation_ids=[out.get("evidence_id")]
-                                if out.get("evidence_id")
-                                else None,
-                            )
-                        else:
-                            plan_state.mark_failed(
-                                step.step_id, out.get("error") or "compute_failed"
-                            )
-
-                    elif step.step_type in {"reason", "verify"}:
-                        out = execute_reason_step(
-                            llm=self.llm,
-                            question=question,
-                            step=step,
-                            ledger=ledger,
-                            temperature=self.temperature,
-                            max_tokens=self.max_tokens,
-                            scripted_payload=self._scripted_reason,
-                        )
-                        _acc_llm(out.get("llm"))
-                        assert out.get("mcp_called") is False
-                        step_event["result"] = {
-                            k: v for k, v in out.items() if k != "llm"
-                        }
-                        observations.append(step_event["result"])
-                        if out.get("ok"):
-                            plan_state.mark_resolved(
-                                step.step_id,
-                                observation_ids=[out.get("evidence_id")]
-                                if out.get("evidence_id")
-                                else None,
-                            )
-                        else:
-                            plan_state.mark_failed(
-                                step.step_id, out.get("error") or "reason_failed"
-                            )
-
-                    elif step.step_type in {"answer", "clarify", "refuse"}:
-                        # Terminal plan nodes: resolve and let monitor/final handle.
-                        plan_state.mark_resolved(step.step_id)
-                        step_event["result"] = {
-                            "ok": True,
-                            "mcp_called": False,
-                            "terminal": step.step_type,
-                        }
-                        observations.append(step_event["result"])
-                    else:
-                        plan_state.mark_failed(
-                            step.step_id, f"unknown_step_type:{step.step_type}"
-                        )
-                        step_event["result"] = {"ok": False, "mcp_called": False}
-
-                    trace.append(step_event)
+                    # Continue executing newly ready steps; do not re-monitor without work.
                     continue
 
-                # Unknown decision — fail closed.
                 final_obj = controlled_failure_payload(
                     reason=f"unknown_monitor_decision:{decision}"
                 )
@@ -441,42 +612,20 @@ class ApvFinAgent:
                 final_payload=final_obj,
                 compute_traces=compute_traces,
             )
-            # One optional final repair if validator fails and budget allows.
-            if (
-                not validator_result.get("ok")
-                and self.budget.final_repair_rounds
-                < self.budget.limits["max_final_repair_rounds"]
-                and status == "full"
-                and final_obj.get("status") == "answered"
-            ):
-                self.budget.final_repair_rounds += 1
-                # Convert to controlled refusal rather than fabricating.
-                final_obj = controlled_failure_payload(
-                    reason="validator_failed:"
-                    + ",".join(validator_result.get("failed_checks") or [])
-                )
-                status = "full"
-                self.budget.stopping_reason = "validator_controlled_failure"
-                validator_result = validate_final_state(
-                    plan_state=plan_state,
-                    ledger=ledger,
-                    task_spec=task_spec,
-                    final_payload=final_obj,
-                    compute_traces=compute_traces,
-                )
 
         predicted_status, final_text = normalize_final_payload(
             final_obj, fallback_status=agent_completion_to_fallback(status)
         )
         latency_ms = (time.perf_counter() - started) * 1000.0
 
-        # Deduplicate predicted operations preserving order.
-        seen = set()
-        pred_ops: List[str] = []
-        for oid in predicted_operations:
-            if oid not in seen:
-                seen.add(oid)
-                pred_ops.append(oid)
+        def _dedupe(seq: List[str]) -> List[str]:
+            seen: Set[str] = set()
+            out: List[str] = []
+            for x in seq:
+                if x not in seen:
+                    seen.add(x)
+                    out.append(x)
+            return out
 
         return {
             "status": status,
@@ -488,13 +637,19 @@ class ApvFinAgent:
             "initial_plan": (plan_out.get("initial_plan") if plan_out else None),
             "plan_state": plan_state.to_dict() if plan_state else None,
             "plan_revisions": plan_state.revision if plan_state else 0,
+            "plan_revision_log": plan_revisions,
+            "scheduler_decisions": scheduler_decisions,
+            "monitor_decisions": monitor_decisions,
             "evidence_ledger": ledger.to_list(),
             "evidence_summary": ledger.summary(),
             "compute_traces": compute_traces,
             "validator": validator_result,
             "stopping_reason": self.budget.stopping_reason,
             "budget": self.budget.snapshot(),
-            "predicted_operations": pred_ops,
+            "predicted_operations": _dedupe(predicted_operations),
+            "selected_operations": _dedupe(selected_operations),
+            "invoked_operations": _dedupe(invoked_operations),
+            "successful_invoked_operations": _dedupe(successful_invoked),
             "retrieved_candidates": retrieved_candidates,
             "describe_calls": [
                 t for t in trace if t.get("type") == "step_execution"
@@ -530,14 +685,16 @@ class ApvFinAgent:
                 "output_tokens": total_out,
                 "total_tokens": total_in + total_out,
             },
-            "embedding_calls": getattr(self.resolver.retriever.backend, "call_count", 0)
-            if hasattr(getattr(self.resolver, "retriever", None), "backend")
-            else 0,
+            "embedding_calls": getattr(
+                getattr(getattr(self.resolver, "retriever", None), "backend", None),
+                "call_count",
+                0,
+            ),
             "embedding_tokens": getattr(
-                self.resolver.retriever.backend, "token_count", 0
-            )
-            if hasattr(getattr(self.resolver, "retriever", None), "backend")
-            else 0,
+                getattr(getattr(self.resolver, "retriever", None), "backend", None),
+                "token_count",
+                0,
+            ),
             "latency_ms": round(latency_ms, 3),
             "retry_count": parse_repair_count,
             "parse_repair_count": parse_repair_count,
@@ -548,8 +705,18 @@ class ApvFinAgent:
             "provider_metadata": {
                 "llm_provider": getattr(self.llm, "provider", None),
                 "llm_model": getattr(self.llm, "model", None),
+                "live_mode": self.live_mode,
+                "allow_mock_hooks": self._allow_mock_hooks,
             },
             "condition": "apv_fin",
+            "execution_order": [
+                "planner",
+                "scheduler_ready",
+                "execute_steps",
+                "evidence_ledger",
+                "monitor",
+                "final_validator",
+            ],
         }
 
     def _synthesize_final(
@@ -586,44 +753,54 @@ class ApvFinAgent:
         resp = self.llm.complete(
             messages, temperature=self.temperature, max_tokens=self.max_tokens
         )
-        payload, repair_count, error = parse_and_validate(
-            resp["content"], "apv_fin_final_v1"
-        )
+        parsed = parse_structured(resp.get("content"), "apv_fin_final_v1")
         llm_meta = resp
-        if error is not None:
-            messages.append({"role": "assistant", "content": resp["content"]})
+        repair_count = int(parsed.get("repair_count") or 0)
+        if not parsed["ok"]:
+            messages.append({"role": "assistant", "content": str(resp.get("content") or "")})
             messages.append(
                 {
                     "role": "user",
-                    "content": format_repair_user_message("apv_fin_final_v1", error),
+                    "content": repair_user_message(
+                        "apv_fin_final_v1", parsed.get("error") or "parse_failed"
+                    ),
                 }
             )
             repair = self.llm.complete(
                 messages, temperature=self.temperature, max_tokens=self.max_tokens
             )
-            payload, repair_count, error2 = parse_and_validate(
-                resp["content"],
+            parsed = parse_structured(
+                resp.get("content"),
                 "apv_fin_final_v1",
-                repair_content=repair["content"],
+                repair_content=repair.get("content"),
             )
+            repair_count = int(parsed.get("repair_count") or 1)
             llm_meta = {
-                "content": repair["content"],
+                "content": repair.get("content"),
+                "raw_content": repair.get("raw_content", repair.get("content")),
                 "usage": _merge_usage(resp.get("usage"), repair.get("usage")),
                 "latency_ms": float(resp.get("latency_ms") or 0)
                 + float(repair.get("latency_ms") or 0),
                 "provider": repair.get("provider"),
                 "model": repair.get("model"),
             }
-            if error2 is not None:
+            if not parsed["ok"]:
                 return {
                     "ok": False,
-                    "error": error2,
-                    "payload": controlled_failure_payload(reason=error2),
+                    "error": parsed.get("error") or "final_parse_fail_closed",
+                    "payload": controlled_failure_payload(
+                        reason=parsed.get("error") or "final_parse_fail_closed"
+                    ),
                     "validator": pre_validator,
                     "_llm": llm_meta,
                     "_repair_count": repair_count,
+                    "raw_contents": [
+                        parsed.get("raw_content"),
+                        parsed.get("repair_raw_content"),
+                    ],
                 }
 
+        payload = parsed["payload"]
         validator = validate_final_state(
             plan_state=plan_state,
             ledger=ledger,
@@ -638,11 +815,14 @@ class ApvFinAgent:
             "validator": validator,
             "_llm": llm_meta,
             "_repair_count": repair_count,
+            "raw_contents": [
+                parsed.get("raw_content"),
+                parsed.get("repair_raw_content"),
+            ],
         }
 
 
 def _ov_compatible_retrieve_events(out: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Map APV-Fin retrieve output into OV tool_result trace shape."""
     events: List[Dict[str, Any]] = []
     find_out = out.get("find") or {}
     events.append(

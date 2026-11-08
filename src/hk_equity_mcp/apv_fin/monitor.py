@@ -12,12 +12,8 @@ from hk_equity_mcp.apv_fin.prompts import (
     APV_FIN_MONITOR_USER_TEMPLATE,
     APV_FIN_SYSTEM_PROMPT,
 )
-from hk_equity_mcp.apv_fin.schemas import (
-    MONITOR_DECISIONS,
-    assert_no_operation_id_in_plan,
-    format_repair_user_message,
-    parse_and_validate,
-)
+from hk_equity_mcp.apv_fin.schemas import MONITOR_DECISIONS, assert_no_operation_id_in_plan
+from hk_equity_mcp.apv_fin.structured_parse import parse_structured, repair_user_message
 
 
 def run_monitor(
@@ -46,64 +42,72 @@ def run_monitor(
         },
     ]
     resp = llm.complete(messages, temperature=temperature, max_tokens=max_tokens)
-    content = resp["content"]
-    payload, repair_count, error = parse_and_validate(content, "apv_fin_monitor_v1")
-    if error is not None:
-        messages.append({"role": "assistant", "content": content})
+    parsed = parse_structured(resp.get("content"), "apv_fin_monitor_v1")
+    raw_contents = [parsed["raw_content"]]
+    if not parsed["ok"]:
+        messages.append({"role": "assistant", "content": str(resp.get("content") or "")})
         messages.append(
             {
                 "role": "user",
-                "content": format_repair_user_message("apv_fin_monitor_v1", error),
+                "content": repair_user_message(
+                    "apv_fin_monitor_v1", parsed.get("error") or "parse_failed"
+                ),
             }
         )
         repair_resp = llm.complete(
             messages, temperature=temperature, max_tokens=max_tokens
         )
-        payload, repair_count2, error2 = parse_and_validate(
-            content,
+        parsed = parse_structured(
+            resp.get("content"),
             "apv_fin_monitor_v1",
-            repair_content=repair_resp["content"],
+            repair_content=repair_resp.get("content"),
         )
-        repair_count = max(repair_count, repair_count2)
+        raw_contents.append(parsed.get("repair_raw_content"))
         resp = {
-            "content": repair_resp["content"],
+            "content": repair_resp.get("content"),
+            "raw_content": repair_resp.get("raw_content", repair_resp.get("content")),
             "usage": _merge_usage(resp.get("usage"), repair_resp.get("usage")),
             "latency_ms": float(resp.get("latency_ms") or 0)
             + float(repair_resp.get("latency_ms") or 0),
             "provider": repair_resp.get("provider"),
             "model": repair_resp.get("model"),
             "repair": True,
+            "content_was_null": repair_resp.get("content_was_null"),
         }
-        if error2 is not None:
+        if not parsed["ok"]:
             return {
                 "ok": False,
                 "fail_closed": True,
-                "error": error2,
-                "repair_count": repair_count,
+                "error": parsed.get("error") or "monitor_parse_fail_closed",
+                "repair_count": int(parsed.get("repair_count") or 1),
                 "llm": resp,
                 "payload": None,
                 "patch_summary": None,
+                "raw_contents": raw_contents,
             }
 
+    payload = parsed["payload"]
     decision = payload.get("decision")
     if decision not in MONITOR_DECISIONS:
         return {
             "ok": False,
             "fail_closed": True,
             "error": f"invalid monitor decision: {decision!r}",
-            "repair_count": repair_count,
+            "repair_count": int(parsed.get("repair_count") or 0),
             "llm": resp,
             "payload": payload,
             "patch_summary": None,
+            "raw_contents": raw_contents,
         }
 
     patch_summary = None
     try:
         if decision == "replan":
-            assert_no_operation_id_in_plan({"initial_plan": {"steps": payload["patch"].get("new_steps") or []}})
+            assert_no_operation_id_in_plan(
+                {"initial_plan": {"steps": payload["patch"].get("new_steps") or []}}
+            )
             patch_summary = plan_state.apply_monitor_patch(payload.get("patch") or {})
         elif payload.get("patch"):
-            # Allow non-replan decisions to mark completed steps without full replan.
             patch = payload["patch"]
             soft = {
                 "completed_steps": list(patch.get("completed_steps") or []),
@@ -118,21 +122,23 @@ def run_monitor(
             "ok": False,
             "fail_closed": True,
             "error": f"{type(exc).__name__}: {exc}",
-            "repair_count": repair_count,
+            "repair_count": int(parsed.get("repair_count") or 0),
             "llm": resp,
             "payload": payload,
             "patch_summary": None,
+            "raw_contents": raw_contents,
         }
 
     return {
         "ok": True,
         "fail_closed": False,
         "error": None,
-        "repair_count": repair_count,
+        "repair_count": int(parsed.get("repair_count") or 0),
         "llm": resp,
         "payload": payload,
         "decision": decision,
         "decision_reason": payload.get("decision_reason"),
         "ready_step_ids": list(payload.get("ready_step_ids") or []),
         "patch_summary": patch_summary,
+        "raw_contents": raw_contents,
     }

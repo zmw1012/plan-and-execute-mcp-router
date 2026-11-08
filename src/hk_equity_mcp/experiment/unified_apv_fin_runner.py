@@ -19,7 +19,18 @@ import yaml
 from hk_equity_mcp.agent.llm_client import OpenAICompatibleChatClient, ScriptedLLMClient
 from hk_equity_mcp.apv_fin import APV_FIN_CONDITION, APV_FIN_METHOD_VERSION
 from hk_equity_mcp.apv_fin.agent import ApvFinAgent
-from hk_equity_mcp.apv_fin.metadata import load_and_validate_metadata, validate_metadata_bundle
+from hk_equity_mcp.apv_fin.identity import (
+    EXPECTED_EMBEDDING_MODEL,
+    EXPECTED_GENERATION_HOST,
+    EXPECTED_GENERATION_MODEL,
+    EXPECTED_GENERATION_PROVIDER,
+    assert_live_provider_identity,
+    combined_schema_hash,
+    host_from_base_url,
+    schema_hashes,
+    worst_case_budget_estimate,
+)
+from hk_equity_mcp.apv_fin.metadata import load_and_validate_metadata
 from hk_equity_mcp.apv_fin.prompts import APV_FIN_SYSTEM_PROMPT, apv_fin_prompt_hash
 from hk_equity_mcp.common.env_loader import (
     EMBEDDING_REQUIRED,
@@ -82,11 +93,34 @@ from hk_equity_mcp.real_mcp.unified_gateway import (
 )
 
 DIAGNOSTIC12_MANIFEST = "benchmarks/manifests/hk_apv_fin_diagnostic12_v1.json"
+SMOKE4_MANIFEST = "benchmarks/manifests/hk_apv_fin_real_smoke4_v1.json"
 
-APV_RESUME_IDENTITY_KEYS = RESUME_IDENTITY_KEYS + (
+APV_RESUME_IDENTITY_KEYS = (
+    "condition",
     "method_version",
+    "execution_backend",
+    "generation_provider",
+    "generation_base_url_host",
+    "generation_model",
+    "embedding_provider",
+    "embedding_base_url_host",
+    "embedding_model",
+    "system_prompt_hash",
+    "schema_hash",
     "operation_metadata_hash",
+    "catalog_fingerprint",
+    "dataset_split",
+    "subset_kind",
+    "subset_manifest_hash",
+    "subset_ordered_id_hash",
     "diagnostic_manifest_hash",
+    "smoke4_manifest_hash",
+    "temperature",
+    "max_tokens",
+    "json_mode",
+    "limits",
+    "mock",
+    "dry_run",
 )
 
 
@@ -118,6 +152,82 @@ def load_diagnostic12_tasks(root: Optional[Path] = None) -> List[Dict[str, Any]]
     return select_by_ids(all_tasks, man["ordered_task_ids"], preserve_id_order=True)
 
 
+def load_smoke4_manifest(root: Optional[Path] = None) -> Dict[str, Any]:
+    root = root or repo_root()
+    path = root / SMOKE4_MANIFEST
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if data.get("manifest_id") != "hk_apv_fin_real_smoke4_v1":
+        raise RuntimeError("Unexpected smoke4 manifest_id")
+    if len(data.get("ordered_task_ids") or []) != 4:
+        raise RuntimeError("smoke4 must contain exactly 4 ordered_task_ids")
+    return data
+
+
+def load_smoke4_tasks(root: Optional[Path] = None) -> List[Dict[str, Any]]:
+    """Pointer-only Smoke-4 subset of Diagnostic-12 / exploratory_all."""
+    root = root or repo_root()
+    man = load_smoke4_manifest(root)
+    all_tasks = load_split_tasks(root, "exploratory_all")
+    return select_by_ids(all_tasks, man["ordered_task_ids"], preserve_id_order=True)
+
+
+def assert_output_dir_safe(
+    *,
+    output_dir: Path,
+    dry_run: bool,
+    mock: bool,
+    resume: bool,
+    run_meta: Dict[str, Any],
+) -> None:
+    """Refuse unsafe overwrite / dry-mock→live resume / subset mixing."""
+    meta_path = output_dir / "run_metadata.json"
+    predictions_path = output_dir / "predictions.jsonl"
+    if predictions_path.exists() and not resume and not dry_run:
+        raise RuntimeError(
+            f"Output directory already has predictions.jsonl at {predictions_path}. "
+            "Pass --resume explicitly; refusing overwrite."
+        )
+    if not meta_path.exists():
+        return
+    existing = json.loads(meta_path.read_text(encoding="utf-8"))
+    if resume:
+        if bool(existing.get("dry_run")) and not dry_run:
+            raise RuntimeError(
+                "Resume refused: cannot resume a dry-run directory as a live/mock run."
+            )
+        if bool(existing.get("mock")) and not mock and not dry_run:
+            raise RuntimeError(
+                "Resume refused: cannot resume a mock directory as a live run."
+            )
+        if bool(existing.get("dry_run")) != bool(dry_run):
+            raise RuntimeError("Resume refused: dry_run flag mismatch.")
+        if bool(existing.get("mock")) != bool(mock):
+            raise RuntimeError("Resume refused: mock flag mismatch.")
+        # Subset mixing guard
+        if existing.get("subset_kind") != run_meta.get("subset_kind"):
+            raise RuntimeError(
+                "Resume refused: subset_kind mismatch "
+                f"(existing={existing.get('subset_kind')!r} "
+                f"current={run_meta.get('subset_kind')!r})."
+            )
+        mismatches = []
+        for key in APV_RESUME_IDENTITY_KEYS:
+            if existing.get(key) != run_meta.get(key):
+                mismatches.append(
+                    f"{key}: existing={existing.get(key)!r} current={run_meta.get(key)!r}"
+                )
+        if mismatches:
+            raise RuntimeError(
+                "Resume refused: APV-Fin run_metadata identity mismatch. "
+                + "; ".join(mismatches)
+            )
+    elif not dry_run and meta_path.exists() and predictions_path.exists():
+        raise RuntimeError(
+            "Output directory already contains a previous run. "
+            "Use a fresh directory or pass --resume."
+        )
+
+
 class _CyclingScriptedLLM(ScriptedLLMClient):
     def __init__(self, scripted_contents: list[str], model: str = "mock-llm"):
         super().__init__(scripted_contents, model=model)
@@ -136,7 +246,7 @@ class _CyclingScriptedLLM(ScriptedLLMClient):
 
 
 def _mock_apv_scripted_llm() -> ScriptedLLMClient:
-    """Offline trajectory covering planner → monitor continue → retrieve → monitor answer."""
+    """Offline trajectory for hardened order: plan→execute→monitor→…→final."""
     plan = {
         "schema_version": "apv_fin_plan_v1",
         "task_spec": {
@@ -190,35 +300,10 @@ def _mock_apv_scripted_llm() -> ScriptedLLMClient:
     monitor_continue = {
         "schema_version": "apv_fin_monitor_v1",
         "decision": "continue",
-        "decision_reason": "execute next ready step",
-        "ready_step_ids": ["s1_retrieve"],
-        "patch": {
-            "completed_steps": [],
-            "updated_steps": [],
-            "new_steps": [],
-            "removed_steps": [],
-        },
-        "clarify_question": None,
-        "refuse_reason": None,
-        "fail_reason": None,
-    }
-    monitor_continue2 = {
-        **monitor_continue,
-        "ready_step_ids": ["s2_reason"],
-        "decision_reason": "continue to reason",
-    }
-    monitor_continue3 = {
-        **monitor_continue,
-        "ready_step_ids": ["s3_answer"],
-        "decision_reason": "continue to answer node",
-    }
-    monitor_answer = {
-        "schema_version": "apv_fin_monitor_v1",
-        "decision": "answer",
-        "decision_reason": "enough evidence for mock answer",
+        "decision_reason": "continue after observation",
         "ready_step_ids": [],
         "patch": {
-            "completed_steps": ["s3_answer"],
+            "completed_steps": [],
             "updated_steps": [],
             "new_steps": [],
             "removed_steps": [],
@@ -247,16 +332,8 @@ def _mock_apv_scripted_llm() -> ScriptedLLMClient:
         "period": None,
         "entity": None,
     }
-    # Sequence consumed across one task; cycling restarts for next task.
-    turns = [
-        plan,
-        monitor_continue,
-        monitor_continue2,
-        reason,
-        monitor_continue3,
-        monitor_answer,
-        final,
-    ]
+    # Hardened order: planner → (retrieve) → monitor → reason → monitor → (answer) → final
+    turns = [plan, monitor_continue, reason, monitor_continue, final]
     return _CyclingScriptedLLM([json.dumps(t, ensure_ascii=False) for t in turns])
 
 
@@ -268,6 +345,7 @@ class UnifiedHkApvFinRunner:
         split: str = "development",
         smoke: bool = False,
         diagnostic12: bool = False,
+        smoke4: bool = False,
         ids: Optional[Sequence[str]] = None,
         max_tasks: Optional[int] = None,
         resume: bool = False,
@@ -288,6 +366,9 @@ class UnifiedHkApvFinRunner:
         self.split = split
         self.smoke = bool(smoke)
         self.diagnostic12 = bool(diagnostic12)
+        self.smoke4 = bool(smoke4)
+        if self.diagnostic12 and self.smoke4:
+            raise RuntimeError("Cannot combine --diagnostic12 and --smoke4")
         self.ids = list(ids) if ids else None
         self.max_tasks = max_tasks
         self.resume = resume
@@ -324,19 +405,20 @@ class UnifiedHkApvFinRunner:
         self._exploratory_manifest: Optional[Dict[str, Any]] = None
         self._exploratory_run_order: Optional[Dict[str, Any]] = None
         self._diagnostic_manifest: Optional[Dict[str, Any]] = None
+        self._smoke4_manifest: Optional[Dict[str, Any]] = None
 
     def _load_tasks(self) -> List[Dict[str, Any]]:
         effective_split = self.split
         confirm_retire = self.confirm_retire_heldout
-        if self.diagnostic12:
-            # Diagnostic-12 is always a pointer subset of exploratory_all.
+        if self.diagnostic12 or self.smoke4:
+            # Pointer subsets of exploratory_all.
             effective_split = "exploratory_all"
             if self.dry_run and not confirm_retire:
                 # Offline dry-run may unlock for metadata validation only.
                 confirm_retire = True
             if not self.dry_run and not confirm_retire:
                 raise RuntimeError(
-                    "diagnostic12 requires --split exploratory_all "
+                    "diagnostic12/smoke4 requires --split exploratory_all "
                     "--confirm-retire-heldout (except dry-run)."
                 )
 
@@ -354,6 +436,13 @@ class UnifiedHkApvFinRunner:
             self._diagnostic_manifest = load_diagnostic12_manifest(self.root)
             self.split = "exploratory_all"
             tasks = load_diagnostic12_tasks(self.root)
+            self._exploratory_manifest = load_exploratory_manifest(self.root)
+            self._exploratory_run_order = load_exploratory_run_order(self.root)
+        elif self.smoke4:
+            self._smoke4_manifest = load_smoke4_manifest(self.root)
+            self._diagnostic_manifest = load_diagnostic12_manifest(self.root)
+            self.split = "exploratory_all"
+            tasks = load_smoke4_tasks(self.root)
             self._exploratory_manifest = load_exploratory_manifest(self.root)
             self._exploratory_run_order = load_exploratory_run_order(self.root)
         elif self.smoke:
@@ -393,15 +482,31 @@ class UnifiedHkApvFinRunner:
         stats = self.bundle.stats
         meta_hash = file_sha256(self.metadata_path)
 
+        expected_model = str(
+            self.config.get("generation_model") or EXPECTED_GENERATION_MODEL
+        )
+        expected_provider = str(
+            self.config.get("generation_provider") or EXPECTED_GENERATION_PROVIDER
+        )
+        expected_host = str(
+            self.config.get("generation_host") or EXPECTED_GENERATION_HOST
+        )
+        expected_emb = str(
+            self.config.get("embedding_model") or EXPECTED_EMBEDDING_MODEL
+        )
+        expected_emb_provider = str(
+            self.config.get("embedding_provider") or "openai_compatible"
+        )
+
         if self.mock or self.dry_run:
             try:
                 self.gen_meta = load_generation_profile(self.root, self.env_file)
             except FileNotFoundError:
                 self.gen_meta = {
-                    "provider": "aliyun",
-                    "model": "deepseek-v4.1-flash",
+                    "provider": expected_provider,
+                    "model": expected_model,
                     "profile_file": None,
-                    "base_url": None,
+                    "base_url": f"https://{expected_host}/v1",
                 }
             try:
                 self.emb_meta = load_embedding_profile(
@@ -409,7 +514,8 @@ class UnifiedHkApvFinRunner:
                 )
             except FileNotFoundError:
                 self.emb_meta = {
-                    "model": "text-embedding-3-small",
+                    "provider": expected_emb_provider,
+                    "model": expected_emb,
                     "profile_file": None,
                     "base_url": None,
                 }
@@ -422,21 +528,55 @@ class UnifiedHkApvFinRunner:
             self.gen_meta = load_generation_profile(self.root, self.env_file)
             self.emb_meta = load_embedding_profile(self.root, self.embedding_env_file)
 
-        expected_model = str(
-            self.config.get("generation_model") or "deepseek-v4.1-flash"
+        gen_host = host_from_base_url(
+            self.gen_meta.get("base_url") or os.environ.get("LLM_BASE_URL")
+        ) or url_host(
+            self.gen_meta.get("base_url") or os.environ.get("LLM_BASE_URL")
         )
-        expected_provider = str(self.config.get("generation_provider") or "aliyun")
-        expected_emb = str(
-            self.config.get("embedding_model") or "text-embedding-3-small"
+        emb_host = host_from_base_url(
+            (self.emb_meta or {}).get("base_url")
+            or os.environ.get("EMBEDDING_BASE_URL")
+        ) or url_host(
+            (self.emb_meta or {}).get("base_url")
+            or os.environ.get("EMBEDDING_BASE_URL")
         )
-        if not self.mock:
-            actual_model = self.gen_meta.get("model") or os.environ.get("LLM_MODEL")
-            actual_provider = self.gen_meta.get("provider") or os.environ.get(
-                "LLM_PROVIDER"
+        actual_model = self.gen_meta.get("model") or os.environ.get("LLM_MODEL")
+        actual_provider = self.gen_meta.get("provider") or os.environ.get(
+            "LLM_PROVIDER"
+        )
+        actual_emb = (self.emb_meta or {}).get("model") or os.environ.get(
+            "EMBEDDING_MODEL"
+        )
+        actual_emb_provider = (self.emb_meta or {}).get("provider") or os.environ.get(
+            "EMBEDDING_PROVIDER"
+        )
+
+        # Live (non-mock, non-dry-run): fail-closed identity — no Aliyun/mock/lexical fallback.
+        if not self.mock and not self.dry_run:
+            assert_live_provider_identity(
+                generation_provider=str(actual_provider or ""),
+                generation_host=gen_host,
+                generation_model=str(actual_model or ""),
+                embedding_model=str(actual_emb or ""),
+                embedding_host=emb_host,
+                embedding_provider=str(actual_emb_provider)
+                if actual_emb_provider
+                else None,
             )
-            actual_emb = (self.emb_meta or {}).get("model") or os.environ.get(
-                "EMBEDDING_MODEL"
-            )
+            if expected_provider != EXPECTED_GENERATION_PROVIDER:
+                raise RuntimeError(
+                    f"config generation_provider must be {EXPECTED_GENERATION_PROVIDER}"
+                )
+            if expected_host != EXPECTED_GENERATION_HOST:
+                raise RuntimeError(
+                    f"config generation_host must be {EXPECTED_GENERATION_HOST}"
+                )
+            if expected_model != EXPECTED_GENERATION_MODEL:
+                raise RuntimeError(
+                    f"config generation_model must be {EXPECTED_GENERATION_MODEL}"
+                )
+        elif not self.mock:
+            # Dry-run: still validate when env values are present.
             if actual_model and actual_model != expected_model:
                 raise RuntimeError(
                     f"generation model mismatch: expected {expected_model}, got {actual_model}"
@@ -450,6 +590,10 @@ class UnifiedHkApvFinRunner:
                 raise RuntimeError(
                     f"embedding model mismatch: expected {expected_emb}, got {actual_emb}"
                 )
+            if gen_host and gen_host != expected_host:
+                raise RuntimeError(
+                    f"generation host mismatch: expected {expected_host}, got {gen_host}"
+                )
 
         self.output_dir.mkdir(parents=True, exist_ok=True)
         fingerprint = catalog_fingerprint(stats, self.bundle.source_catalogs)
@@ -461,14 +605,41 @@ class UnifiedHkApvFinRunner:
             ) + 1
 
         diagnostic_manifest_hash = None
+        diagnostic_ordered_id_hash = None
         if self._diagnostic_manifest is not None:
             diagnostic_manifest_hash = self._diagnostic_manifest.get("manifest_hash")
+            diagnostic_ordered_id_hash = self._diagnostic_manifest.get(
+                "ordered_id_hash"
+            )
+
+        smoke4_manifest_hash = None
+        smoke4_ordered_id_hash = None
+        if self._smoke4_manifest is not None:
+            smoke4_manifest_hash = self._smoke4_manifest.get("manifest_hash")
+            smoke4_ordered_id_hash = self._smoke4_manifest.get("ordered_id_hash")
+
+        if self.smoke4:
+            subset_kind = "smoke4"
+            subset_manifest_hash = smoke4_manifest_hash
+            subset_ordered_id_hash = smoke4_ordered_id_hash
+        elif self.diagnostic12:
+            subset_kind = "diagnostic12"
+            subset_manifest_hash = diagnostic_manifest_hash
+            subset_ordered_id_hash = diagnostic_ordered_id_hash
+        elif self.smoke:
+            subset_kind = "smoke8"
+            subset_manifest_hash = None
+            subset_ordered_id_hash = None
+        else:
+            subset_kind = "split"
+            subset_manifest_hash = None
+            subset_ordered_id_hash = None
 
         exploratory_manifest_hash = None
         run_order_hash = None
         retirement_policy_version = None
         retirement_meta = None
-        if self.split == "exploratory_all" or self.diagnostic12:
+        if self.split == "exploratory_all" or self.diagnostic12 or self.smoke4:
             man = self._exploratory_manifest or load_exploratory_manifest(self.root)
             order = self._exploratory_run_order or load_exploratory_run_order(self.root)
             exploratory_manifest_hash = man.get("manifest_hash")
@@ -488,7 +659,7 @@ class UnifiedHkApvFinRunner:
                 dry_run=self.dry_run,
                 mock=self.mock,
                 confirm_retire_heldout=self.confirm_retire_heldout
-                or bool(self.diagnostic12 and self.dry_run),
+                or bool((self.diagnostic12 or self.smoke4) and self.dry_run),
                 git_commit=git_commit(self.root),
                 prompt_hash=prompt_h,
                 catalog_fingerprint=fingerprint,
@@ -497,6 +668,9 @@ class UnifiedHkApvFinRunner:
                 timestamp=datetime.now(timezone.utc).isoformat(),
                 existing_first_real=existing_first,
             )
+
+        schema_h = combined_schema_hash()
+        worst_case = worst_case_budget_estimate(self.limits)
 
         meta = {
             "condition": self.condition,
@@ -508,7 +682,14 @@ class UnifiedHkApvFinRunner:
             "dataset_split": self.split,
             "smoke": self.smoke,
             "diagnostic12": self.diagnostic12,
+            "smoke4": self.smoke4,
+            "subset_kind": subset_kind,
+            "subset_manifest_hash": subset_manifest_hash,
+            "subset_ordered_id_hash": subset_ordered_id_hash,
             "diagnostic_manifest_hash": diagnostic_manifest_hash,
+            "diagnostic_ordered_id_hash": diagnostic_ordered_id_hash,
+            "smoke4_manifest_hash": smoke4_manifest_hash,
+            "smoke4_ordered_id_hash": smoke4_ordered_id_hash,
             "heldout_lock": getattr(self, "_heldout_status", {}),
             "exploratory_lock": getattr(self, "_exploratory_status", {}),
             "exploratory_manifest_hash": exploratory_manifest_hash,
@@ -521,12 +702,17 @@ class UnifiedHkApvFinRunner:
             "generation_provider": self.gen_meta.get("provider") or expected_provider,
             "generation_model": self.gen_meta.get("model") or expected_model,
             "generation_profile_file": self.gen_meta.get("profile_file"),
-            "generation_base_url_host": url_host(
+            "generation_base_url_host": gen_host
+            or url_host(
                 self.gen_meta.get("base_url") or os.environ.get("LLM_BASE_URL")
             ),
+            "embedding_provider": (self.emb_meta or {}).get("provider")
+            or actual_emb_provider
+            or expected_emb_provider,
             "embedding_model": (self.emb_meta or {}).get("model") or expected_emb,
             "embedding_profile_file": (self.emb_meta or {}).get("profile_file"),
-            "embedding_base_url_host": url_host(
+            "embedding_base_url_host": emb_host
+            or url_host(
                 (self.emb_meta or {}).get("base_url")
                 or os.environ.get("EMBEDDING_BASE_URL")
             ),
@@ -536,8 +722,11 @@ class UnifiedHkApvFinRunner:
             "retrieval_top_k": int(self.retrieval.get("top_k", 20)),
             "lexical_weight": float(self.retrieval.get("lexical_weight", 0.12)),
             "limits": self.limits,
+            "worst_case_budget_estimate": worst_case,
             "system_prompt_hash": prompt_h,
             "system_prompt": self.system_prompt,
+            "schema_hash": schema_h,
+            "schema_hashes": schema_hashes(),
             "catalog_fingerprint": fingerprint,
             "operation_metadata_path": str(self.metadata_path),
             "operation_metadata_hash": meta_hash,
@@ -570,12 +759,20 @@ class UnifiedHkApvFinRunner:
             "fidelity_note": (
                 "APV-Fin proposed method v1; separated from Operation-Visible baseline"
             ),
+            "not_formal_accuracy_result": bool(self.smoke4),
             "dry_run_missing_env": getattr(self, "_dry_run_missing", None),
             "baseline_separation": {
                 "does_not_modify_operation_visible_baseline": True,
                 "does_not_modify_baseline_raw_outputs": True,
                 "reuses_unified_gateway_and_catalog": True,
             },
+            "formal_live_identity": {
+                "generation_provider": EXPECTED_GENERATION_PROVIDER,
+                "generation_host": EXPECTED_GENERATION_HOST,
+                "generation_model": EXPECTED_GENERATION_MODEL,
+                "embedding_model": EXPECTED_EMBEDDING_MODEL,
+            },
+            "no_mcp_zero_atr": True,
         }
         return {"items": tasks, "run_metadata": redact_secrets(meta)}
 
@@ -627,25 +824,26 @@ class UnifiedHkApvFinRunner:
                 "APV-Fin fail-closed: OperationResolverServer unexpectedly retained "
                 "FinancialServer."
             )
-        cfg = {
+        live_mode = not self.mock
+        cfg: Dict[str, Any] = {
             "llm": {"temperature": self.temperature, "max_tokens": self.max_tokens},
             "limits": dict(self.limits),
             "retrieval": dict(self.retrieval),
-            # Symbol-only args match the forced financial-indicator mock target.
-            "mock_retrieve_arguments": {"*": {"symbol": "0700"}},
-            # Deterministic offline invoke target with symbol-only required args.
-            "mock_select_operation_id": (
-                "aktools.stock_financial_hk_analysis_indicator_em"
-                if self.mock
-                else None
-            ),
+            "allow_mock_hooks": bool(self.mock),
         }
+        if self.mock:
+            # Mock-only hooks — unreachable in live_mode.
+            cfg["mock_retrieve_arguments"] = {"*": {"symbol": "0700"}}
+            cfg["mock_select_operation_id"] = (
+                "aktools.stock_financial_hk_analysis_indicator_em"
+            )
         return ApvFinAgent(
             llm=llm,
             resolver=resolver,
             config=cfg,
             metadata_by_id=self.metadata_by_id,
             runtime_operation_ids=list(self.bundle.stats.runtime_operation_ids),
+            live_mode=live_mode,
         )
 
     def close(self) -> None:
@@ -700,11 +898,23 @@ class UnifiedHkApvFinRunner:
             "initial_plan": result.get("initial_plan"),
             "plan_state": result.get("plan_state"),
             "plan_revisions": result.get("plan_revisions"),
+            "plan_revision_log": result.get("plan_revision_log"),
+            "scheduler_decisions": result.get("scheduler_decisions"),
+            "monitor_decisions": result.get("monitor_decisions"),
+            "retrieved_candidates": result.get("retrieved_candidates"),
+            "selected_operations": result.get("selected_operations"),
+            "invoked_operations": result.get("invoked_operations"),
+            "successful_invoked_operations": result.get(
+                "successful_invoked_operations"
+            ),
+            "describe_calls": result.get("describe_calls"),
+            "invoke_calls": result.get("invoke_calls"),
             "evidence_ledger": result.get("evidence_ledger"),
             "compute_traces": result.get("compute_traces"),
             "validator": result.get("validator"),
             "stopping_reason": result.get("stopping_reason"),
             "budget": result.get("budget"),
+            "execution_order": result.get("execution_order"),
             "auto_grade_status": grade.get("auto_grade_status"),
             "answer_correct": grade.get("answer_correct"),
             "auto_grade_reason": grade.get("reason"),
@@ -856,24 +1066,42 @@ class UnifiedHkApvFinRunner:
         meta_path = self.output_dir / "run_metadata.json"
         predictions_path = self.output_dir / "predictions.jsonl"
 
+        assert_output_dir_safe(
+            output_dir=self.output_dir,
+            dry_run=self.dry_run,
+            mock=self.mock,
+            resume=self.resume,
+            run_meta=run_meta,
+        )
+
         if self.dry_run:
             atomic_write_json(meta_path, run_meta)
             print("APV-FIN DRY-RUN OK")
             print(f"condition={run_meta['condition']}")
             print(f"method_version={run_meta['method_version']}")
             print(f"split={self.split}")
+            print(f"subset_kind={run_meta.get('subset_kind')}")
             print(f"diagnostic12={self.diagnostic12}")
+            print(f"smoke4={self.smoke4}")
             print(f"question_count={run_meta['question_count']}")
             print(f"domain_counts={run_meta['domain_counts']}")
+            print(f"generation_provider={run_meta.get('generation_provider')}")
+            print(f"generation_base_url_host={run_meta.get('generation_base_url_host')}")
+            print(f"generation_model={run_meta.get('generation_model')}")
+            print(f"embedding_model={run_meta.get('embedding_model')}")
+            print(f"embedding_base_url_host={run_meta.get('embedding_base_url_host')}")
             print(f"system_prompt_hash={run_meta['system_prompt_hash']}")
+            print(f"schema_hash={run_meta.get('schema_hash')}")
             print(f"operation_metadata_coverage={run_meta['operation_metadata_coverage']}")
             print(f"operation_metadata_hash={run_meta['operation_metadata_hash']}")
             print(f"diagnostic_manifest_hash={run_meta.get('diagnostic_manifest_hash')}")
+            print(f"smoke4_manifest_hash={run_meta.get('smoke4_manifest_hash')}")
             print(f"catalog_fingerprint={run_meta['catalog_fingerprint']}")
             print(f"output_dir={self.output_dir}")
             return run_meta
 
         if self.resume and meta_path.exists():
+            # assert_output_dir_safe already checked identity; re-raise clearly if needed
             existing = json.loads(meta_path.read_text(encoding="utf-8"))
             mismatches = []
             for key in APV_RESUME_IDENTITY_KEYS:

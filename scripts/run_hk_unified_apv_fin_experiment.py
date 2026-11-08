@@ -38,6 +38,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Run Diagnostic-12 pointer subset (exploratory_all IDs)",
     )
+    p.add_argument(
+        "--smoke4",
+        action="store_true",
+        help="Run Smoke-4 pointer subset (not a formal accuracy result)",
+    )
     p.add_argument("--ids", default=None, help="Comma-separated task ids")
     p.add_argument("--max-tasks", type=int, default=None)
     p.add_argument("--output-dir", required=True)
@@ -66,11 +71,15 @@ def main() -> None:
     if not output_dir.is_absolute():
         output_dir = (ROOT / output_dir).resolve()
 
+    if args.diagnostic12 and args.smoke4:
+        raise SystemExit("Cannot combine --diagnostic12 and --smoke4")
+
     runner = UnifiedHkApvFinRunner(
         output_dir=output_dir,
         split=args.split,
         smoke=args.smoke,
         diagnostic12=args.diagnostic12,
+        smoke4=args.smoke4,
         ids=parse_ids(args.ids),
         max_tasks=args.max_tasks,
         resume=args.resume,
