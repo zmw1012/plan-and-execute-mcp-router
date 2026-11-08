@@ -41,7 +41,9 @@ def run_monitor(
             ),
         },
     ]
-    resp = llm.complete(messages, temperature=temperature, max_tokens=max_tokens)
+    resp = llm.complete(
+        messages, temperature=temperature, max_tokens=max_tokens, stage="monitor"
+    )
     parsed = parse_structured(resp.get("content"), "apv_fin_monitor_v1")
     raw_contents = [parsed["raw_content"]]
     if not parsed["ok"]:
@@ -55,7 +57,10 @@ def run_monitor(
             }
         )
         repair_resp = llm.complete(
-            messages, temperature=temperature, max_tokens=max_tokens
+            messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stage="monitor_repair",
         )
         parsed = parse_structured(
             resp.get("content"),

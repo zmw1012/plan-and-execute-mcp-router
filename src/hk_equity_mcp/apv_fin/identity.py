@@ -90,32 +90,37 @@ def worst_case_budget_estimate(limits: Dict[str, Any]) -> Dict[str, Any]:
     max_mcp = int(limits.get("max_total_mcp_invocations", 8))
     max_retrievals_per_step = int(limits.get("max_targeted_retrievals_per_step", 2))
     max_final_repair = int(limits.get("max_final_repair_rounds", 1))
+    hard_cap = int(limits.get("max_total_llm_calls_per_task", 14))
     # Planner: 1 + optional 1 repair
     planner_calls = 2
     # Each monitor round: 1 + optional 1 repair
     monitor_calls = max_monitor * 2
-    # Reason/verify/compute may each call LLM once (+1 repair) per executed step.
-    # Bound loosely by monitor rounds * 2 step executions * 2.
-    reason_compute_calls = max_monitor * 2 * 2
+    # Reason/verify may each call LLM once (+1 repair) per executed step.
+    # Compute is deterministic and does not consume LLM budget.
+    reason_verify_calls = max_monitor * 2 * 2
     # Final synthesize: 1 + repair, plus optional controlled-failure path.
     final_calls = 2 + max_final_repair
-    max_llm_turns = planner_calls + monitor_calls + reason_compute_calls + final_calls
+    structural_upper = planner_calls + monitor_calls + reason_verify_calls + final_calls
+    max_llm_turns = min(structural_upper, hard_cap)
     # Embedding: one find_operations query per targeted retrieval attempt.
     max_embedding_queries = max_mcp * max_retrievals_per_step
     return {
         "per_task_max_planner_calls": planner_calls,
         "per_task_max_monitor_calls_including_repair": monitor_calls,
-        "per_task_max_reason_compute_verify_calls_including_repair": reason_compute_calls,
+        "per_task_max_reason_verify_calls_including_repair": reason_verify_calls,
         "per_task_max_final_calls_including_repair": final_calls,
+        "per_task_structural_llm_upper_bound": structural_upper,
         "per_task_max_llm_turns": max_llm_turns,
+        "max_total_llm_calls_per_task": hard_cap,
         "per_task_max_mcp_invocations": max_mcp,
         "per_task_max_embedding_query_calls": max_embedding_queries,
         "diagnostic12_worst_case_llm_turns": 12 * max_llm_turns,
         "diagnostic12_worst_case_mcp_invocations": 12 * max_mcp,
         "diagnostic12_worst_case_embedding_queries": 12 * max_embedding_queries,
         "notes": (
-            "Worst-case upper bound from config budgets; not an expected mean. "
-            "Does not change budget values."
+            "Hard-capped by max_total_llm_calls_per_task; structural upper is "
+            "informational. Compute steps do not consume LLM budget. "
+            "Does not change other budget values."
         ),
         "limits_snapshot": dict(limits),
         "max_plan_revisions": max_revisions,

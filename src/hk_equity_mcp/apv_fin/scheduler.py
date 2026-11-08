@@ -13,14 +13,11 @@ from hk_equity_mcp.apv_fin.calculator import (
 )
 from hk_equity_mcp.apv_fin.evidence_ledger import EvidenceLedger
 from hk_equity_mcp.apv_fin.plan_state import PlanStep, PlanState
-from hk_equity_mcp.apv_fin.planner import _merge_usage
 from hk_equity_mcp.apv_fin.prompts import (
-    APV_FIN_COMPUTE_USER_TEMPLATE,
     APV_FIN_REASON_USER_TEMPLATE,
     APV_FIN_SYSTEM_PROMPT,
 )
 from hk_equity_mcp.apv_fin.reranker import RetrievalContext, rerank_candidates
-from hk_equity_mcp.apv_fin.schemas import format_repair_user_message, parse_and_validate
 from hk_equity_mcp.operation_resolver.server import OperationResolverServer
 
 
@@ -81,6 +78,10 @@ class BudgetTracker:
             "max_same_operation_repeats": int(limits.get("max_same_operation_repeats", 1)),
             "max_final_repair_rounds": int(limits.get("max_final_repair_rounds", 1)),
             "max_idle_monitor_rounds": int(limits.get("max_idle_monitor_rounds", 1)),
+            # Global per-task generation cap (planner/monitor/reason/verify/final + repairs).
+            "max_total_llm_calls_per_task": int(
+                limits.get("max_total_llm_calls_per_task", 14)
+            ),
         }
         self.plan_revisions = 0
         self.monitor_rounds = 0
@@ -90,7 +91,45 @@ class BudgetTracker:
         self.operation_invoke_counts: Dict[str, int] = {}
         self.final_repair_rounds = 0
         self.llm_calls = 0
+        self.calls_by_stage: Dict[str, int] = {}
         self.stopping_reason: Optional[str] = None
+
+    @property
+    def llm_call_budget(self) -> int:
+        return int(self.limits["max_total_llm_calls_per_task"])
+
+    @property
+    def llm_calls_remaining(self) -> int:
+        return max(0, self.llm_call_budget - self.llm_calls)
+
+    @property
+    def llm_budget_exhausted(self) -> bool:
+        return self.llm_calls >= self.llm_call_budget
+
+    def check_llm_budget_or_raise(self, *, stage: str) -> None:
+        """Call before issuing the next generation request."""
+        from hk_equity_mcp.apv_fin.llm_budget import LlmCallBudgetExhausted
+
+        if self.llm_calls >= self.llm_call_budget:
+            self.stopping_reason = "llm_call_budget_exhausted"
+            raise LlmCallBudgetExhausted(
+                used=self.llm_calls, limit=self.llm_call_budget, stage=stage
+            )
+
+    def record_llm_call(self, *, stage: str) -> None:
+        """Record one generation call after budget check passes (before/at request)."""
+        self.llm_calls += 1
+        key = str(stage or "unspecified")
+        self.calls_by_stage[key] = int(self.calls_by_stage.get(key) or 0) + 1
+
+    def llm_budget_fields(self) -> Dict[str, Any]:
+        return {
+            "llm_call_budget": self.llm_call_budget,
+            "llm_calls_used": self.llm_calls,
+            "llm_calls_remaining": self.llm_calls_remaining,
+            "llm_budget_exhausted": self.llm_budget_exhausted,
+            "calls_by_stage": dict(self.calls_by_stage),
+        }
 
     def snapshot(self) -> Dict[str, Any]:
         return {
@@ -103,10 +142,14 @@ class BudgetTracker:
             "operation_invoke_counts": dict(self.operation_invoke_counts),
             "final_repair_rounds": self.final_repair_rounds,
             "llm_calls": self.llm_calls,
+            "calls_by_stage": dict(self.calls_by_stage),
             "stopping_reason": self.stopping_reason,
+            **self.llm_budget_fields(),
         }
 
     def exhausted(self) -> Optional[str]:
+        # LLM call cap is enforced at request time by BudgetedLLMClient
+        # (non-LLM steps may still proceed when the generation budget is spent).
         if self.plan_revisions > self.limits["max_plan_revisions"]:
             return "max_plan_revisions"
         if self.monitor_rounds > self.limits["max_llm_monitor_rounds"]:
@@ -278,72 +321,68 @@ def execute_retrieve_step(
     }
 
 
+def _extract_compute_payload_from_step(
+    step: PlanStep, scripted_payload: Optional[Dict[str, Any]] = None
+) -> Optional[Dict[str, Any]]:
+    """Resolve compute expression/operands without any LLM call."""
+    if scripted_payload is not None:
+        return dict(scripted_payload)
+    # Prefer structured JSON in notes; otherwise accept notes already shaped as payload.
+    for raw in (step.notes, step.objective):
+        if not raw or not isinstance(raw, str):
+            continue
+        text = raw.strip()
+        if not text.startswith("{"):
+            continue
+        try:
+            obj = json.loads(text)
+        except Exception:  # noqa: BLE001
+            continue
+        if isinstance(obj, dict) and obj.get("expression") and obj.get("operands") is not None:
+            payload = {
+                "schema_version": obj.get("schema_version") or "apv_fin_compute_v1",
+                "expression": obj["expression"],
+                "operands": obj["operands"],
+                "unit": obj.get("unit"),
+                "notes": obj.get("notes"),
+            }
+            return payload
+    return None
+
+
 def execute_compute_step(
     *,
-    llm: LLMClient,
-    question: str,
+    llm: Optional[LLMClient] = None,  # retained for call-site compat; never used
+    question: str = "",
     step: PlanStep,
     ledger: EvidenceLedger,
     temperature: float = 0.0,
     max_tokens: int = 1024,
     scripted_payload: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Compute steps never call MCP."""
-    if scripted_payload is not None:
-        payload = scripted_payload
-        llm_meta = None
-        repair_count = 0
-    else:
-        messages = [
-            {"role": "system", "content": APV_FIN_SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": APV_FIN_COMPUTE_USER_TEMPLATE.format(
-                    question=question,
-                    step_id=step.step_id,
-                    objective=step.objective,
-                    evidence_json=json.dumps(ledger.to_list(), ensure_ascii=False)[:8000],
-                ),
-            },
-        ]
-        resp = llm.complete(messages, temperature=temperature, max_tokens=max_tokens)
-        payload, repair_count, error = parse_and_validate(resp["content"], "apv_fin_compute_v1")
-        llm_meta = resp
-        if error is not None:
-            messages.append({"role": "assistant", "content": resp["content"]})
-            messages.append(
-                {
-                    "role": "user",
-                    "content": format_repair_user_message("apv_fin_compute_v1", error),
-                }
-            )
-            repair = llm.complete(
-                messages, temperature=temperature, max_tokens=max_tokens
-            )
-            payload, repair_count, error2 = parse_and_validate(
-                resp["content"],
-                "apv_fin_compute_v1",
-                repair_content=repair["content"],
-            )
-            llm_meta = {
-                "content": repair["content"],
-                "usage": _merge_usage(resp.get("usage"), repair.get("usage")),
-                "latency_ms": float(resp.get("latency_ms") or 0)
-                + float(repair.get("latency_ms") or 0),
-                "provider": repair.get("provider"),
-                "model": repair.get("model"),
-            }
-            if error2 is not None:
-                return {
-                    "ok": False,
-                    "mcp_called": False,
-                    "error": error2,
-                    "repair_count": repair_count,
-                    "llm": llm_meta,
-                    "compute_trace": compute_trace_record(
-                        step_id=step.step_id, payload={}, error=error2
-                    ),
-                }
+    """Deterministic compute: safe arithmetic only. Never calls LLM or MCP.
+
+    If expression/operands are missing, mark unresolved for monitor/replan
+    (no hidden compute LLM call).
+    """
+    del llm, question, temperature, max_tokens  # unused; keep signature stable
+    payload = _extract_compute_payload_from_step(step, scripted_payload)
+    if payload is None:
+        return {
+            "ok": False,
+            "mcp_called": False,
+            "llm_called": False,
+            "error": "compute_missing_expression_operands",
+            "unresolved": True,
+            "repair_count": 0,
+            "llm": None,
+            "payload": None,
+            "compute_trace": compute_trace_record(
+                step_id=step.step_id,
+                payload={},
+                error="compute_missing_expression_operands",
+            ),
+        }
 
     try:
         evaluated = evaluate_compute_payload(payload)
@@ -365,9 +404,11 @@ def execute_compute_step(
         return {
             "ok": True,
             "mcp_called": False,
+            "llm_called": False,
             "error": None,
-            "repair_count": repair_count,
-            "llm": llm_meta,
+            "unresolved": False,
+            "repair_count": 0,
+            "llm": None,
             "payload": payload,
             "evaluated": evaluated,
             "compute_trace": trace,
@@ -380,9 +421,11 @@ def execute_compute_step(
         return {
             "ok": False,
             "mcp_called": False,
+            "llm_called": False,
             "error": str(exc),
-            "repair_count": repair_count,
-            "llm": llm_meta,
+            "unresolved": True,
+            "repair_count": 0,
+            "llm": None,
             "payload": payload,
             "compute_trace": trace,
         }
@@ -416,7 +459,10 @@ def execute_reason_step(
                 ),
             },
         ]
-        resp = llm.complete(messages, temperature=temperature, max_tokens=max_tokens)
+        stage = "verify" if step.step_type == "verify" else "reason"
+        resp = llm.complete(
+            messages, temperature=temperature, max_tokens=max_tokens, stage=stage
+        )
         llm_meta = resp
         try:
             parsed = json.loads(resp["content"])

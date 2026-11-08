@@ -38,6 +38,9 @@ limits:
   max_same_operation_repeats: 1
   max_final_repair_rounds: 1
   max_idle_monitor_rounds: 1
+  # Global per-task generation cap (planner/monitor/reason/verify/final + repairs).
+  # Does not include embedding, MCP, or catalog indexing.
+  max_total_llm_calls_per_task: 14
   timeout_sec: 180
 
 catalogs:

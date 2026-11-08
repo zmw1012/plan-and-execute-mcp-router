@@ -29,7 +29,9 @@ def run_initial_planner(
             "content": APV_FIN_PLANNER_USER_TEMPLATE.format(question=question),
         },
     ]
-    resp = llm.complete(messages, temperature=temperature, max_tokens=max_tokens)
+    resp = llm.complete(
+        messages, temperature=temperature, max_tokens=max_tokens, stage="planner"
+    )
     parsed = parse_structured(resp.get("content"), "apv_fin_plan_v1")
     raw_contents = [parsed["raw_content"]]
     if not parsed["ok"]:
@@ -39,7 +41,10 @@ def run_initial_planner(
         messages.append({"role": "assistant", "content": str(resp.get("content") or "")})
         messages.append({"role": "user", "content": repair_msg})
         repair_resp = llm.complete(
-            messages, temperature=temperature, max_tokens=max_tokens
+            messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stage="planner_repair",
         )
         parsed = parse_structured(
             resp.get("content"),

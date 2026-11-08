@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional, Set
 
 from hk_equity_mcp.agent.llm_client import LLMClient
 from hk_equity_mcp.apv_fin.evidence_ledger import EvidenceLedger
+from hk_equity_mcp.apv_fin.llm_budget import BudgetedLLMClient, LlmCallBudgetExhausted
 from hk_equity_mcp.apv_fin.metadata import load_and_validate_metadata
 from hk_equity_mcp.apv_fin.monitor import run_monitor
 from hk_equity_mcp.apv_fin.planner import _merge_usage, run_initial_planner
@@ -53,7 +54,8 @@ class ApvFinAgent:
         live_mode: bool = True,
     ):
         assert_prompts_clean()
-        self.llm = llm
+        self._raw_llm = llm
+        self.llm = llm  # replaced per-run with BudgetedLLMClient
         self.resolver = resolver
         self.config = config or {}
         self.live_mode = bool(live_mode)
@@ -99,6 +101,8 @@ class ApvFinAgent:
     def run(self, question: str) -> Dict[str, Any]:
         started = time.perf_counter()
         self.budget = BudgetTracker(self.limits)
+        # All generation helpers must use this wrapper — never self._raw_llm.
+        self.llm = BudgetedLLMClient(self._raw_llm, self.budget)
         trace: List[Dict[str, Any]] = []
         ledger = EvidenceLedger()
         compute_traces: List[Dict[str, Any]] = []
@@ -118,47 +122,74 @@ class ApvFinAgent:
         executed_step_ids: Set[str] = set()
         status = "failed"
         error: Optional[str] = None
+        error_type: Optional[str] = None
         final_obj: Optional[Dict[str, Any]] = None
         task_spec: Dict[str, Any] = {}
         plan_state = None
+        plan_out: Dict[str, Any] = {}
         validator_result: Optional[Dict[str, Any]] = None
         observations_since_monitor = 0
 
-        def _acc_llm(llm_meta: Optional[Dict[str, Any]]) -> None:
+        def _acc_tokens(llm_meta: Optional[Dict[str, Any]]) -> None:
+            """Accumulate tokens only — call counts live solely in BudgetedLLMClient."""
             nonlocal total_in, total_out
             if not llm_meta:
                 return
-            self.budget.llm_calls += 1
             usage = llm_meta.get("usage") or {}
             total_in += int(usage.get("input_tokens") or 0)
             total_out += int(usage.get("output_tokens") or 0)
 
-        # ---- 1) Initial planner -------------------------------------------------
-        plan_out = run_initial_planner(
-            self.llm,
-            question,
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
-        )
-        _acc_llm(plan_out.get("llm"))
-        parse_repair_count += int(plan_out.get("repair_count") or 0)
-        trace.append(
-            {
-                "type": "planner",
-                "raw_contents": plan_out.get("raw_contents"),
-                "result": {
-                    k: v for k, v in plan_out.items() if k not in {"plan_state", "llm"}
-                },
-            }
-        )
-        if not plan_out.get("ok"):
-            final_obj = controlled_failure_payload(
-                reason=plan_out.get("error") or "planner_fail_closed"
-            )
+        def _fail_llm_budget(exc: LlmCallBudgetExhausted) -> None:
+            nonlocal final_obj, status, error, error_type
+            self.budget.stopping_reason = "llm_call_budget_exhausted"
+            error_type = LlmCallBudgetExhausted.error_type
+            error = str(exc)
             status = "failed"
-            error = plan_out.get("error")
-            self.budget.stopping_reason = "planner_fail_closed"
+            final_obj = controlled_failure_payload(reason="llm_call_budget_exhausted")
+            trace.append(
+                {
+                    "type": "llm_budget",
+                    "error_type": error_type,
+                    "used": exc.used,
+                    "limit": exc.limit,
+                    "stage": exc.stage,
+                }
+            )
+
+        # ---- 1) Initial planner -------------------------------------------------
+        try:
+            plan_out = run_initial_planner(
+                self.llm,
+                question,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+            )
+        except LlmCallBudgetExhausted as exc:
+            _fail_llm_budget(exc)
+            plan_out = {"ok": False, "error": str(exc)}
         else:
+            _acc_tokens(plan_out.get("llm"))
+            parse_repair_count += int(plan_out.get("repair_count") or 0)
+            trace.append(
+                {
+                    "type": "planner",
+                    "raw_contents": plan_out.get("raw_contents"),
+                    "result": {
+                        k: v
+                        for k, v in plan_out.items()
+                        if k not in {"plan_state", "llm"}
+                    },
+                }
+            )
+            if not plan_out.get("ok"):
+                final_obj = controlled_failure_payload(
+                    reason=plan_out.get("error") or "planner_fail_closed"
+                )
+                status = "failed"
+                error = plan_out.get("error")
+                self.budget.stopping_reason = "planner_fail_closed"
+
+        if plan_out.get("ok"):
             plan_state = plan_out["plan_state"]
             task_spec = dict(plan_out.get("task_spec") or {})
             ledger.add(
@@ -306,20 +337,16 @@ class ApvFinAgent:
                             )
 
                     elif step.step_type == "compute":
+                        # Deterministic only — never increments LLM counter.
                         out = execute_compute_step(
-                            llm=self.llm,
-                            question=question,
                             step=step,
                             ledger=ledger,
-                            temperature=self.temperature,
-                            max_tokens=self.max_tokens,
                             scripted_payload=self._scripted_compute,
                         )
-                        _acc_llm(out.get("llm"))
-                        parse_repair_count += int(out.get("repair_count") or 0)
                         if out.get("compute_trace"):
                             compute_traces.append(out["compute_trace"])
                         assert out.get("mcp_called") is False
+                        assert out.get("llm_called") is False
                         step_event["result"] = {
                             k: v for k, v in out.items() if k != "llm"
                         }
@@ -333,21 +360,27 @@ class ApvFinAgent:
                                 else None,
                             )
                         else:
+                            # Missing expression/operands → unresolved for monitor/replan.
                             plan_state.mark_failed(
-                                step.step_id, out.get("error") or "compute_failed"
+                                step.step_id,
+                                out.get("error") or "compute_unresolved",
                             )
 
                     elif step.step_type in {"reason", "verify"}:
-                        out = execute_reason_step(
-                            llm=self.llm,
-                            question=question,
-                            step=step,
-                            ledger=ledger,
-                            temperature=self.temperature,
-                            max_tokens=self.max_tokens,
-                            scripted_payload=self._scripted_reason,
-                        )
-                        _acc_llm(out.get("llm"))
+                        try:
+                            out = execute_reason_step(
+                                llm=self.llm,
+                                question=question,
+                                step=step,
+                                ledger=ledger,
+                                temperature=self.temperature,
+                                max_tokens=self.max_tokens,
+                                scripted_payload=self._scripted_reason,
+                            )
+                        except LlmCallBudgetExhausted as exc:
+                            _fail_llm_budget(exc)
+                            break
+                        _acc_tokens(out.get("llm"))
                         assert out.get("mcp_called") is False
                         step_event["result"] = {
                             k: v for k, v in out.items() if k != "llm"
@@ -387,19 +420,23 @@ class ApvFinAgent:
                     # Execute one ready step per scheduler pass, then monitor.
                     break
 
-                if error == "forced_select_in_live_mode":
+                if error == "forced_select_in_live_mode" or error_type == "llm_call_budget_exhausted":
                     break
 
                 # If plan complete after execution, synthesize without extra idle monitors.
                 if plan_state.is_complete() and executed_this_round > 0:
-                    final_pack = self._synthesize_final(
-                        question=question,
-                        plan_state=plan_state,
-                        ledger=ledger,
-                        task_spec=task_spec,
-                        compute_traces=compute_traces,
-                    )
-                    _acc_llm(final_pack.pop("_llm", None))
+                    try:
+                        final_pack = self._synthesize_final(
+                            question=question,
+                            plan_state=plan_state,
+                            ledger=ledger,
+                            task_spec=task_spec,
+                            compute_traces=compute_traces,
+                        )
+                    except LlmCallBudgetExhausted as exc:
+                        _fail_llm_budget(exc)
+                        break
+                    _acc_tokens(final_pack.pop("_llm", None))
                     parse_repair_count += int(final_pack.pop("_repair_count", 0) or 0)
                     validator_result = final_pack.get("validator")
                     if not final_pack.get("ok"):
@@ -457,17 +494,21 @@ class ApvFinAgent:
 
                 # Monitor uses real plan state + observations (after execution).
                 self.budget.monitor_rounds += 1
-                mon = run_monitor(
-                    self.llm,
-                    question=question,
-                    plan_state=plan_state,
-                    observations=observations,
-                    evidence_summary=ledger.summary(),
-                    budget=self.budget.snapshot(),
-                    temperature=self.temperature,
-                    max_tokens=self.max_tokens,
-                )
-                _acc_llm(mon.get("llm"))
+                try:
+                    mon = run_monitor(
+                        self.llm,
+                        question=question,
+                        plan_state=plan_state,
+                        observations=observations,
+                        evidence_summary=ledger.summary(),
+                        budget=self.budget.snapshot(),
+                        temperature=self.temperature,
+                        max_tokens=self.max_tokens,
+                    )
+                except LlmCallBudgetExhausted as exc:
+                    _fail_llm_budget(exc)
+                    break
+                _acc_tokens(mon.get("llm"))
                 parse_repair_count += int(mon.get("repair_count") or 0)
                 observations_since_monitor = 0
                 if mon.get("patch_summary"):
@@ -538,14 +579,18 @@ class ApvFinAgent:
                         final_obj = controlled_failure_payload(reason=str(reason))
                         status = "full" if decision == "refuse" else "failed"
                         break
-                    final_pack = self._synthesize_final(
-                        question=question,
-                        plan_state=plan_state,
-                        ledger=ledger,
-                        task_spec=task_spec,
-                        compute_traces=compute_traces,
-                    )
-                    _acc_llm(final_pack.pop("_llm", None))
+                    try:
+                        final_pack = self._synthesize_final(
+                            question=question,
+                            plan_state=plan_state,
+                            ledger=ledger,
+                            task_spec=task_spec,
+                            compute_traces=compute_traces,
+                        )
+                    except LlmCallBudgetExhausted as exc:
+                        _fail_llm_budget(exc)
+                        break
+                    _acc_tokens(final_pack.pop("_llm", None))
                     parse_repair_count += int(final_pack.pop("_repair_count", 0) or 0)
                     validator_result = final_pack.get("validator")
                     if not final_pack.get("ok"):
@@ -630,9 +675,16 @@ class ApvFinAgent:
         return {
             "status": status,
             "error": error,
+            "error_type": error_type
+            or (
+                "llm_call_budget_exhausted"
+                if self.budget.stopping_reason == "llm_call_budget_exhausted"
+                else None
+            ),
             "final_answer": final_text,
             "predicted_status": predicted_status,
             "final_payload": final_obj,
+            **self.budget.llm_budget_fields(),
             "task_spec": task_spec,
             "initial_plan": (plan_out.get("initial_plan") if plan_out else None),
             "plan_state": plan_state.to_dict() if plan_state else None,
@@ -751,7 +803,10 @@ class ApvFinAgent:
             },
         ]
         resp = self.llm.complete(
-            messages, temperature=self.temperature, max_tokens=self.max_tokens
+            messages,
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+            stage="final",
         )
         parsed = parse_structured(resp.get("content"), "apv_fin_final_v1")
         llm_meta = resp
@@ -767,7 +822,10 @@ class ApvFinAgent:
                 }
             )
             repair = self.llm.complete(
-                messages, temperature=self.temperature, max_tokens=self.max_tokens
+                messages,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                stage="final_repair",
             )
             parsed = parse_structured(
                 resp.get("content"),

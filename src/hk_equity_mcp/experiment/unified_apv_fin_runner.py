@@ -119,6 +119,7 @@ APV_RESUME_IDENTITY_KEYS = (
     "max_tokens",
     "json_mode",
     "limits",
+    "max_total_llm_calls_per_task",
     "mock",
     "dry_run",
 )
@@ -722,6 +723,9 @@ class UnifiedHkApvFinRunner:
             "retrieval_top_k": int(self.retrieval.get("top_k", 20)),
             "lexical_weight": float(self.retrieval.get("lexical_weight", 0.12)),
             "limits": self.limits,
+            "max_total_llm_calls_per_task": int(
+                self.limits.get("max_total_llm_calls_per_task", 14)
+            ),
             "worst_case_budget_estimate": worst_case,
             "system_prompt_hash": prompt_h,
             "system_prompt": self.system_prompt,
@@ -914,6 +918,12 @@ class UnifiedHkApvFinRunner:
             "validator": result.get("validator"),
             "stopping_reason": result.get("stopping_reason"),
             "budget": result.get("budget"),
+            "error_type": result.get("error_type"),
+            "llm_call_budget": result.get("llm_call_budget"),
+            "llm_calls_used": result.get("llm_calls_used"),
+            "llm_calls_remaining": result.get("llm_calls_remaining"),
+            "llm_budget_exhausted": result.get("llm_budget_exhausted"),
+            "calls_by_stage": result.get("calls_by_stage"),
             "execution_order": result.get("execution_order"),
             "auto_grade_status": grade.get("auto_grade_status"),
             "answer_correct": grade.get("answer_correct"),

@@ -123,4 +123,33 @@ def aggregate_apv_fin_metrics(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
         "latency_ms_mean": _mean([r.get("latency_ms") for r in rows]),
         "resource_limit_failures": resource_limit_failures,
         "resource_limit_failure_rate": (resource_limit_failures / n) if n else None,
+        "cost_summary": _cost_summary(rows),
+    }
+
+
+def _cost_summary(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+    used_vals: List[int] = []
+    hitting_cap = 0
+    stage_totals: Dict[str, int] = {}
+    for r in rows:
+        used = r.get("llm_calls_used")
+        if used is None:
+            used = r.get("llm_calls")
+        if used is None:
+            continue
+        used_i = int(used)
+        used_vals.append(used_i)
+        budget = r.get("llm_call_budget")
+        exhausted = r.get("llm_budget_exhausted")
+        if exhausted or (
+            budget is not None and used_i >= int(budget)
+        ) or str(r.get("error_type") or "") == "llm_call_budget_exhausted":
+            hitting_cap += 1
+        for stage, count in (r.get("calls_by_stage") or {}).items():
+            stage_totals[str(stage)] = stage_totals.get(str(stage), 0) + int(count or 0)
+    return {
+        "tasks_hitting_llm_call_cap": hitting_cap,
+        "max_llm_calls_observed": max(used_vals) if used_vals else None,
+        "mean_llm_calls_per_task": _mean(used_vals),
+        "calls_by_stage": stage_totals,
     }

@@ -25,8 +25,12 @@ class LLMClient(ABC):
         *,
         temperature: float = 0.0,
         max_tokens: int = 1024,
+        stage: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Return {content, usage:{input_tokens,output_tokens,total_tokens}, latency_ms}."""
+        """Return {content, usage:{input_tokens,output_tokens,total_tokens}, latency_ms}.
+
+        ``stage`` is optional observability for budgeted wrappers; base clients ignore it.
+        """
         raise NotImplementedError
 
 
@@ -61,7 +65,9 @@ class OpenAICompatibleChatClient(LLMClient):
         *,
         temperature: float = 0.0,
         max_tokens: int = 1024,
+        stage: Optional[str] = None,
     ) -> Dict[str, Any]:
+        _ = stage  # reserved for BudgetedLLMClient; never sent to provider
         url = f"{self.base_url}/chat/completions"
         payload: Dict[str, Any] = {
             "model": self.model,
@@ -139,7 +145,9 @@ class ScriptedLLMClient(LLMClient):
         *,
         temperature: float = 0.0,
         max_tokens: int = 1024,
+        stage: Optional[str] = None,
     ) -> Dict[str, Any]:
+        _ = stage
         if not self._queue:
             raise RuntimeError("ScriptedLLMClient exhausted.")
         content = self._queue.pop(0)

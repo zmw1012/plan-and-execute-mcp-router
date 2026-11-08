@@ -109,10 +109,7 @@ def test_retrieve_uses_resolver_compute_does_not_call_mcp(tmp_path: Path):
         success_criteria="numeric",
     )
     before = len(transport.calls)
-    llm = ScriptedLLMClient([])  # unused due to scripted_payload
     cout = execute_compute_step(
-        llm=llm,
-        question="compute return",
         step=compute_step,
         ledger=ledger,
         scripted_payload={
@@ -125,6 +122,7 @@ def test_retrieve_uses_resolver_compute_does_not_call_mcp(tmp_path: Path):
     )
     assert cout["ok"] is True
     assert cout["mcp_called"] is False
+    assert cout["llm_called"] is False
     assert len(transport.calls) == before
     gateway.close()
 

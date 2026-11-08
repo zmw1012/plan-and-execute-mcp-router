@@ -76,6 +76,7 @@ From `configs/hk_unified_apv_fin_v1.yaml` (worst-case call estimate derived offl
 - `max_same_operation_repeats: 1`
 - `max_final_repair_rounds: 1`
 - `max_idle_monitor_rounds: 1`
+- `max_total_llm_calls_per_task: 14` (all generation calls incl. repairs; excludes embedding/MCP)
 
 ## Metadata + reranking
 
@@ -107,15 +108,21 @@ PYTHONPATH=src python scripts/run_hk_unified_apv_fin_experiment.py \
   --output-dir outputs/apv_fin_dry_run_v1
 ```
 
-## Real Smoke-4 command (paid; not run in this hardening round)
+## Real Smoke-4 command (paid; run only after explicit confirmation)
 
 ```bash
+cd "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin"
+
+PYTHONPATH=src \
 "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.venv-aktools-discovery/bin/python" \
-  "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/scripts/run_hk_unified_apv_fin_experiment.py" \
+  scripts/run_hk_unified_apv_fin_experiment.py \
   --smoke4 \
   --split exploratory_all \
   --confirm-retire-heldout \
+  --allow-hkex-download \
   --env-file "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.env.relay-v41" \
   --embedding-env-file "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.env.embedding-relay" \
   --output-dir "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_real_smoke4_v1"
 ```
+
+Notes: do **not** pass `--allow-dirty`; git tree must be clean. Output dir is exclusive to Smoke-4 live.
