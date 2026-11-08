@@ -1,0 +1,39 @@
+{
+  "matches_expected": {
+    "gold_in_candidates_tasks": true,
+    "query_embedding_calls": true,
+    "query_embedding_tokens": true,
+    "routed_gold_not_selected_tasks": true,
+    "selected_not_retrieved_tasks": true,
+    "server_recall": true,
+    "tool_recall": true
+  },
+  "note": "Post-hoc retrieval analysis from prediction fields. Gold never entered the agent prompt. Routing-only; real_tool_executions=0.",
+  "recomputed": {
+    "gold_in_candidates_tasks": 69,
+    "query_embedding_calls": 308,
+    "query_embedding_tokens": 5868,
+    "routed_gold_not_selected_tasks": 37,
+    "selected_not_retrieved_tasks": 0,
+    "server_hits": 62,
+    "server_recall": 0.775,
+    "server_total": 80,
+    "tool_hits": 69,
+    "tool_recall": 0.8625,
+    "tool_total": 80
+  },
+  "stored": {
+    "gold_in_candidates_tasks": 69,
+    "hierarchical": true,
+    "mean_query_embedding_calls": 3.08,
+    "note": "Post-hoc retrieval analysis from lock gold fields. Gold never enters the agent prompt. Routing-only; real_tool_executions=0.",
+    "query_embedding_calls": 308,
+    "query_embedding_tokens": 5868,
+    "real_mcp_tool_executed": false,
+    "routed_gold_not_selected_tasks": 37,
+    "selected_not_retrieved_tasks": 0,
+    "server_recall": 0.775,
+    "tasks": 100,
+    "tool_recall": 0.8625
+  }
+}

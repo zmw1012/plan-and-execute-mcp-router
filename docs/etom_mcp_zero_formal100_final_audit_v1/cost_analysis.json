@@ -1,0 +1,54 @@
+{
+  "catalog_index": {
+    "cache_reused": true,
+    "calls": 0,
+    "paid_on_this_run": false,
+    "retries": 0,
+    "token_source": "provider_or_estimated",
+    "tokens": 0,
+    "usd": 0.0
+  },
+  "checks": {
+    "cache_reused": true,
+    "catalog_build_calls_0": true,
+    "input_tokens": true,
+    "llm_calls_451": true,
+    "output_tokens": true,
+    "query_embedding_calls_308": true,
+    "query_embedding_tokens_5868": true,
+    "retry_count_0": true,
+    "this_run_estimated_usd": true,
+    "timeouts_0": true,
+    "total_tokens": true
+  },
+  "input_tokens": 1277207,
+  "latency_ms": {
+    "recomputed": {
+      "mean": 25290.42833,
+      "median": 18214.6835,
+      "n": 100,
+      "p95": 59416.6618
+    },
+    "stored": {
+      "mean": 25290.42833,
+      "median": 18214.6835,
+      "p95": 59416.661799999994
+    }
+  },
+  "llm_calls": 451,
+  "output_tokens": 142939,
+  "pricing": {
+    "embedding_usd_per_million": 0.02,
+    "llm_input_usd_per_million": 0.3,
+    "llm_output_usd_per_million": 1.2,
+    "pricing_sha256": "7a5c417cfedb5f57806c9c2e456c41331cf0af3e0e7a173c6a9655f9a84dfba9",
+    "source": "frozen pricing block in configs/mcp_zero_etom_v1.yaml / cost_summary"
+  },
+  "query_embedding_calls": 308,
+  "query_embedding_tokens": 5868,
+  "real_tool_executions": 0,
+  "retry_count": 0,
+  "this_run_estimated_usd": 0.554806,
+  "timeouts": 0,
+  "total_tokens": 1420146
+}

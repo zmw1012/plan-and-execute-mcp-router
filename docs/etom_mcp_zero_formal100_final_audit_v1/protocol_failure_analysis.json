@@ -1,0 +1,558 @@
+{
+  "all_failures_are_max_llm_turns": true,
+  "completed": 84,
+  "failed": 16,
+  "failed_tasks": [
+    {
+      "atr_rounds": 2,
+      "candidate_tools_n": 10,
+      "error_type": "max_llm_turns",
+      "eval_status_if_scored": "tool_graph",
+      "existing_predicted_tools_exact_match_if_accepted": true,
+      "extension_rounds": 1,
+      "failure_stage": "max_llm_turns",
+      "gold_in_candidates": true,
+      "gold_operation_ids": [
+        "Redis Cloud API MCP Server::create-essential-subscription",
+        "Redis Cloud API MCP Server::get-current-account",
+        "Redis Cloud API MCP Server::get-database-modules",
+        "Redis Cloud API MCP Server::get-tasks"
+      ],
+      "last_valid_state": {
+        "predicted_nodes_n": 4,
+        "predicted_tools_n": 4,
+        "selected_operations_n": 4,
+        "task_protocol_success": false,
+        "termination_reason": "max_llm_turns"
+      },
+      "level": 3,
+      "llm_calls": 8,
+      "llm_turns": 8,
+      "parser_recovery_note": "Offline check only: whether already-emitted predicted_tools would score exact_match. No new parser, no re-run, no guessed route.",
+      "retrieved_servers": [
+        "Descope MCP Server",
+        "Redis Cloud API MCP Server",
+        "UniCloudDB-MCP"
+      ],
+      "retrieved_servers_n": 3,
+      "task_id": "L3-q195"
+    },
+    {
+      "atr_rounds": 4,
+      "candidate_tools_n": 16,
+      "error_type": "max_llm_turns",
+      "eval_status_if_scored": "tool_graph",
+      "existing_predicted_tools_exact_match_if_accepted": false,
+      "extension_rounds": 3,
+      "failure_stage": "max_llm_turns",
+      "gold_in_candidates": true,
+      "gold_operation_ids": [
+        "RAG Documentation MCP Server::clear_queue",
+        "RAG Documentation MCP Server::list_queue",
+        "RAG Documentation MCP Server::list_sources",
+        "RAG Documentation MCP Server::run_queue",
+        "RAG Documentation MCP Server::search_documentation"
+      ],
+      "last_valid_state": {
+        "predicted_nodes_n": 4,
+        "predicted_tools_n": 4,
+        "selected_operations_n": 4,
+        "task_protocol_success": false,
+        "termination_reason": "max_llm_turns"
+      },
+      "level": 3,
+      "llm_calls": 8,
+      "llm_turns": 8,
+      "parser_recovery_note": "Offline check only: whether already-emitted predicted_tools would score exact_match. No new parser, no re-run, no guessed route.",
+      "retrieved_servers": [
+        "MCP Website Downloader",
+        "Obsidian MCP Server",
+        "Ragie Model Context Protocol Server"
+      ],
+      "retrieved_servers_n": 3,
+      "task_id": "L3-q180"
+    },
+    {
+      "atr_rounds": 3,
+      "candidate_tools_n": 15,
+      "error_type": "max_llm_turns",
+      "eval_status_if_scored": "tool_chain_efs",
+      "existing_predicted_tools_exact_match_if_accepted": false,
+      "extension_rounds": 2,
+      "failure_stage": "max_llm_turns",
+      "gold_in_candidates": true,
+      "gold_operation_ids": [
+        "4o-image MCP Server::generateImage",
+        "AWS Nova Canvas::generate_image",
+        "Amazon Bedrock MCP Server::generate_image",
+        "Gemini Image Generator MCP Server::generate_image_from_text",
+        "Google OCR MCP server::ocr",
+        "Image Generation MCP Server::generate_image",
+        "Image Generator MCP Server::generate-image",
+        "LetzAI MCP Setup Guide::letzai_create_image",
+        "MCP Asset Generator::generateImage",
+        "MCP Web Browser Server blazickjp::browse_webpage",
+        "MCPollinations Multimodal MCP Server::generateImage",
+        "MCPollinations Multimodal MCP Server::generateImageUrl",
+        "Memgraph MCP Server::run_query",
+        "Together AI Image Server::generate_image",
+        "image-gen MCP Server::generate_image"
+      ],
+      "last_valid_state": {
+        "predicted_nodes_n": 3,
+        "predicted_tools_n": 3,
+        "selected_operations_n": 3,
+        "task_protocol_success": false,
+        "termination_reason": "max_llm_turns"
+      },
+      "level": 4,
+      "llm_calls": 8,
+      "llm_turns": 8,
+      "parser_recovery_note": "Offline check only: whether already-emitted predicted_tools would score exact_match. No new parser, no re-run, no guessed route.",
+      "retrieved_servers": [
+        "Firecrawl MCP Server",
+        "MCP Webscan Server",
+        "Oxylabs MCP Server"
+      ],
+      "retrieved_servers_n": 3,
+      "task_id": "L4-q37"
+    },
+    {
+      "atr_rounds": 3,
+      "candidate_tools_n": 15,
+      "error_type": "max_llm_turns",
+      "eval_status_if_scored": "tool_chain_efs",
+      "existing_predicted_tools_exact_match_if_accepted": false,
+      "extension_rounds": 2,
+      "failure_stage": "max_llm_turns",
+      "gold_in_candidates": false,
+      "gold_operation_ids": [
+        "Code Index MCP::get_file_summary",
+        "Code Index MCP::search_code",
+        "Code Index MCP::search_code_advanced",
+        "Code Index MCP::set_project_path",
+        "MCP Ripgrep Server::advanced-search",
+        "MCP Ripgrep Server::search",
+        "solana-docs-server MCP Server::get_api_reference",
+        "solana-docs-server MCP Server::search_docs"
+      ],
+      "last_valid_state": {
+        "predicted_nodes_n": 6,
+        "predicted_tools_n": 6,
+        "selected_operations_n": 6,
+        "task_protocol_success": false,
+        "termination_reason": "max_llm_turns"
+      },
+      "level": 4,
+      "llm_calls": 8,
+      "llm_turns": 8,
+      "parser_recovery_note": "Offline check only: whether already-emitted predicted_tools would score exact_match. No new parser, no re-run, no guessed route.",
+      "retrieved_servers": [
+        "Context Continuation MCP Server",
+        "Filesystem MCP Server",
+        "MCPunk "
+      ],
+      "retrieved_servers_n": 3,
+      "task_id": "L4-q62"
+    },
+    {
+      "atr_rounds": 2,
+      "candidate_tools_n": 10,
+      "error_type": "max_llm_turns",
+      "eval_status_if_scored": "tool_chain_efs",
+      "existing_predicted_tools_exact_match_if_accepted": false,
+      "extension_rounds": 1,
+      "failure_stage": "max_llm_turns",
+      "gold_in_candidates": true,
+      "gold_operation_ids": [
+        "Mobile Next::launch_app",
+        "Mobile Next::list_apps_on_device",
+        "Mobile Next::take_device_screenshot",
+        "Software Planning Tool::add_todo",
+        "Software Planning Tool::save_plan",
+        "Software Planning Tool::start_planning"
+      ],
+      "last_valid_state": {
+        "predicted_nodes_n": 5,
+        "predicted_tools_n": 5,
+        "selected_operations_n": 4,
+        "task_protocol_success": false,
+        "termination_reason": "max_llm_turns"
+      },
+      "level": 4,
+      "llm_calls": 8,
+      "llm_turns": 8,
+      "parser_recovery_note": "Offline check only: whether already-emitted predicted_tools would score exact_match. No new parser, no re-run, no guessed route.",
+      "retrieved_servers": [
+        "DeltaTask - Advanced Task Management System",
+        "Targetprocess MCP Server",
+        "TaskFlow MCP"
+      ],
+      "retrieved_servers_n": 3,
+      "task_id": "L4-q75"
+    },
+    {
+      "atr_rounds": 2,
+      "candidate_tools_n": 10,
+      "error_type": "max_llm_turns",
+      "eval_status_if_scored": "tool_chain_efs",
+      "existing_predicted_tools_exact_match_if_accepted": false,
+      "extension_rounds": 1,
+      "failure_stage": "max_llm_turns",
+      "gold_in_candidates": true,
+      "gold_operation_ids": [
+        "IoTDB MCP Server::describe_table",
+        "IoTDB MCP Server::list_tables",
+        "IoTDB MCP Server::read_query",
+        "Model Context Protocol Server for Apache OpenDAL™::get_info",
+        "Model Context Protocol Server for Apache OpenDAL™::list",
+        "Model Context Protocol Server for Apache OpenDAL™::read"
+      ],
+      "last_valid_state": {
+        "predicted_nodes_n": 5,
+        "predicted_tools_n": 5,
+        "selected_operations_n": 5,
+        "task_protocol_success": false,
+        "termination_reason": "max_llm_turns"
+      },
+      "level": 4,
+      "llm_calls": 8,
+      "llm_turns": 8,
+      "parser_recovery_note": "Offline check only: whether already-emitted predicted_tools would score exact_match. No new parser, no re-run, no guessed route.",
+      "retrieved_servers": [
+        "Hydrolix MCP Server",
+        "IoTDB MCP Server",
+        "OceanBase MCP Server"
+      ],
+      "retrieved_servers_n": 3,
+      "task_id": "L4-q71"
+    },
+    {
+      "atr_rounds": 4,
+      "candidate_tools_n": 20,
+      "error_type": "max_llm_turns",
+      "eval_status_if_scored": null,
+      "existing_predicted_tools_exact_match_if_accepted": false,
+      "extension_rounds": 3,
+      "failure_stage": "max_llm_turns",
+      "gold_in_candidates": true,
+      "gold_operation_ids": [
+        "Alibaba Cloud FC MCP Server::get-custom-domain-config",
+        "UseGrant MCP Server::list_domains",
+        "hostinger-api-mcp::DNS_getRecordsV1"
+      ],
+      "last_valid_state": {
+        "predicted_nodes_n": 0,
+        "predicted_tools_n": 0,
+        "selected_operations_n": 0,
+        "task_protocol_success": false,
+        "termination_reason": "max_llm_turns"
+      },
+      "level": 4,
+      "llm_calls": 8,
+      "llm_turns": 8,
+      "parser_recovery_note": "Offline check only: whether already-emitted predicted_tools would score exact_match. No new parser, no re-run, no guessed route.",
+      "retrieved_servers": [
+        "Descope MCP Server",
+        "MCP Blockchain Server",
+        "eClass MCP Server"
+      ],
+      "retrieved_servers_n": 3,
+      "task_id": "L4-q7"
+    },
+    {
+      "atr_rounds": 3,
+      "candidate_tools_n": 11,
+      "error_type": "max_llm_turns",
+      "eval_status_if_scored": "tool_chain_efs",
+      "existing_predicted_tools_exact_match_if_accepted": false,
+      "extension_rounds": 2,
+      "failure_stage": "max_llm_turns",
+      "gold_in_candidates": true,
+      "gold_operation_ids": [
+        "MCP Server Template for Cursor IDE::figma_design",
+        "MCP Server Template for Cursor IDE::generate_image",
+        "MCP Server Template for Cursor IDE::mcp_fetch",
+        "Reader MCP Server::list_documents"
+      ],
+      "last_valid_state": {
+        "predicted_nodes_n": 5,
+        "predicted_tools_n": 5,
+        "selected_operations_n": 5,
+        "task_protocol_success": false,
+        "termination_reason": "max_llm_turns"
+      },
+      "level": 4,
+      "llm_calls": 8,
+      "llm_turns": 8,
+      "parser_recovery_note": "Offline check only: whether already-emitted predicted_tools would score exact_match. No new parser, no re-run, no guessed route.",
+      "retrieved_servers": [
+        "Reader MCP Server",
+        "Readwise MCP",
+        "mcp-jinaai-reader"
+      ],
+      "retrieved_servers_n": 3,
+      "task_id": "L4-q95"
+    },
+    {
+      "atr_rounds": 2,
+      "candidate_tools_n": 10,
+      "error_type": "max_llm_turns",
+      "eval_status_if_scored": "tool_chain_efs",
+      "existing_predicted_tools_exact_match_if_accepted": false,
+      "extension_rounds": 1,
+      "failure_stage": "max_llm_turns",
+      "gold_in_candidates": true,
+      "gold_operation_ids": [
+        "Build Agents with Needle MCP Server::needle_add_file",
+        "Build Agents with Needle MCP Server::needle_create_collection",
+        "Build Agents with Needle MCP Server::needle_list_collections",
+        "Build Agents with Needle MCP Server::needle_search",
+        "VeyraX MCP::get_flow",
+        "docs-mcp::semantic_search"
+      ],
+      "last_valid_state": {
+        "predicted_nodes_n": 4,
+        "predicted_tools_n": 4,
+        "selected_operations_n": 4,
+        "task_protocol_success": false,
+        "termination_reason": "max_llm_turns"
+      },
+      "level": 4,
+      "llm_calls": 8,
+      "llm_turns": 8,
+      "parser_recovery_note": "Offline check only: whether already-emitted predicted_tools would score exact_match. No new parser, no re-run, no guessed route.",
+      "retrieved_servers": [
+        "Build Agents with Needle MCP Server",
+        "McpDocServer",
+        "docs-mcp"
+      ],
+      "retrieved_servers_n": 3,
+      "task_id": "L4-q101"
+    },
+    {
+      "atr_rounds": 3,
+      "candidate_tools_n": 15,
+      "error_type": "max_llm_turns",
+      "eval_status_if_scored": "tool_chain_efs",
+      "existing_predicted_tools_exact_match_if_accepted": true,
+      "extension_rounds": 2,
+      "failure_stage": "max_llm_turns",
+      "gold_in_candidates": true,
+      "gold_operation_ids": [
+        "OpenRouter MCP Server::get_model_info",
+        "OpenRouter MCP Server::search_models",
+        "arizeai/phoenix-mcp::add-prompt-version-tag",
+        "arizeai/phoenix-mcp::list-datasets",
+        "arizeai/phoenix-mcp::upsert-prompt"
+      ],
+      "last_valid_state": {
+        "predicted_nodes_n": 5,
+        "predicted_tools_n": 5,
+        "selected_operations_n": 5,
+        "task_protocol_success": false,
+        "termination_reason": "max_llm_turns"
+      },
+      "level": 4,
+      "llm_calls": 8,
+      "llm_turns": 8,
+      "parser_recovery_note": "Offline check only: whether already-emitted predicted_tools would score exact_match. No new parser, no re-run, no guessed route.",
+      "retrieved_servers": [
+        "Amazon Bedrock MCP Server",
+        "OpenRouter MCP Server",
+        "Ragie Model Context Protocol Server"
+      ],
+      "retrieved_servers_n": 3,
+      "task_id": "L4-q54"
+    },
+    {
+      "atr_rounds": 4,
+      "candidate_tools_n": 20,
+      "error_type": "max_llm_turns",
+      "eval_status_if_scored": null,
+      "existing_predicted_tools_exact_match_if_accepted": false,
+      "extension_rounds": 3,
+      "failure_stage": "max_llm_turns",
+      "gold_in_candidates": true,
+      "gold_operation_ids": [
+        "Disclaimer::execute_parallel_mcp_client",
+        "Gmail MCP::send_draft",
+        "Gmail MCP::update_draft",
+        "code-scanner-server::scan_code"
+      ],
+      "last_valid_state": {
+        "predicted_nodes_n": 0,
+        "predicted_tools_n": 0,
+        "selected_operations_n": 0,
+        "task_protocol_success": false,
+        "termination_reason": "max_llm_turns"
+      },
+      "level": 4,
+      "llm_calls": 8,
+      "llm_turns": 8,
+      "parser_recovery_note": "Offline check only: whether already-emitted predicted_tools would score exact_match. No new parser, no re-run, no guessed route.",
+      "retrieved_servers": [
+        "MCP Source Relation Server",
+        "MCPunk ",
+        "code-scanner-server"
+      ],
+      "retrieved_servers_n": 3,
+      "task_id": "L4-q36"
+    },
+    {
+      "atr_rounds": 3,
+      "candidate_tools_n": 12,
+      "error_type": "max_llm_turns",
+      "eval_status_if_scored": "incorrect_tools_predicted",
+      "existing_predicted_tools_exact_match_if_accepted": false,
+      "extension_rounds": 2,
+      "failure_stage": "max_llm_turns",
+      "gold_in_candidates": null,
+      "gold_operation_ids": [],
+      "last_valid_state": {
+        "predicted_nodes_n": 1,
+        "predicted_tools_n": 1,
+        "selected_operations_n": 1,
+        "task_protocol_success": false,
+        "termination_reason": "max_llm_turns"
+      },
+      "level": 5,
+      "llm_calls": 8,
+      "llm_turns": 8,
+      "parser_recovery_note": "Offline check only: whether already-emitted predicted_tools would score exact_match. No new parser, no re-run, no guessed route.",
+      "retrieved_servers": [
+        "MCP Website Downloader",
+        "Markdown Downloader MCP Server",
+        "Torrent Search MCP Server & API"
+      ],
+      "retrieved_servers_n": 3,
+      "task_id": "L5-q4"
+    },
+    {
+      "atr_rounds": 4,
+      "candidate_tools_n": 13,
+      "error_type": "max_llm_turns",
+      "eval_status_if_scored": null,
+      "existing_predicted_tools_exact_match_if_accepted": false,
+      "extension_rounds": 3,
+      "failure_stage": "max_llm_turns",
+      "gold_in_candidates": null,
+      "gold_operation_ids": [],
+      "last_valid_state": {
+        "predicted_nodes_n": 0,
+        "predicted_tools_n": 0,
+        "selected_operations_n": 0,
+        "task_protocol_success": false,
+        "termination_reason": "max_llm_turns"
+      },
+      "level": 5,
+      "llm_calls": 8,
+      "llm_turns": 8,
+      "parser_recovery_note": "Offline check only: whether already-emitted predicted_tools would score exact_match. No new parser, no re-run, no guessed route.",
+      "retrieved_servers": [
+        "MCP Server for Paddle Billing",
+        "YNAB MCP Server",
+        "fewsats-mcp: A Fewsats MCP Server"
+      ],
+      "retrieved_servers_n": 3,
+      "task_id": "L5-q39"
+    },
+    {
+      "atr_rounds": 2,
+      "candidate_tools_n": 10,
+      "error_type": "max_llm_turns",
+      "eval_status_if_scored": null,
+      "existing_predicted_tools_exact_match_if_accepted": false,
+      "extension_rounds": 1,
+      "failure_stage": "max_llm_turns",
+      "gold_in_candidates": null,
+      "gold_operation_ids": [],
+      "last_valid_state": {
+        "predicted_nodes_n": 0,
+        "predicted_tools_n": 0,
+        "selected_operations_n": 0,
+        "task_protocol_success": false,
+        "termination_reason": "max_llm_turns"
+      },
+      "level": 5,
+      "llm_calls": 8,
+      "llm_turns": 8,
+      "parser_recovery_note": "Offline check only: whether already-emitted predicted_tools would score exact_match. No new parser, no re-run, no guessed route.",
+      "retrieved_servers": [
+        "Google OCR MCP server",
+        "MCP Blockchain Server",
+        "OTP-MCP-Server"
+      ],
+      "retrieved_servers_n": 3,
+      "task_id": "L5-q27"
+    },
+    {
+      "atr_rounds": 2,
+      "candidate_tools_n": 10,
+      "error_type": "max_llm_turns",
+      "eval_status_if_scored": null,
+      "existing_predicted_tools_exact_match_if_accepted": false,
+      "extension_rounds": 1,
+      "failure_stage": "max_llm_turns",
+      "gold_in_candidates": null,
+      "gold_operation_ids": [],
+      "last_valid_state": {
+        "predicted_nodes_n": 0,
+        "predicted_tools_n": 0,
+        "selected_operations_n": 0,
+        "task_protocol_success": false,
+        "termination_reason": "max_llm_turns"
+      },
+      "level": 5,
+      "llm_calls": 8,
+      "llm_turns": 8,
+      "parser_recovery_note": "Offline check only: whether already-emitted predicted_tools would score exact_match. No new parser, no re-run, no guessed route.",
+      "retrieved_servers": [
+        "Crypto Liquidations MCP",
+        "FFmpeg-MCP",
+        "fewsats-mcp: A Fewsats MCP Server"
+      ],
+      "retrieved_servers_n": 3,
+      "task_id": "L5-q58"
+    },
+    {
+      "atr_rounds": 3,
+      "candidate_tools_n": 15,
+      "error_type": "max_llm_turns",
+      "eval_status_if_scored": null,
+      "existing_predicted_tools_exact_match_if_accepted": false,
+      "extension_rounds": 2,
+      "failure_stage": "max_llm_turns",
+      "gold_in_candidates": null,
+      "gold_operation_ids": [],
+      "last_valid_state": {
+        "predicted_nodes_n": 0,
+        "predicted_tools_n": 0,
+        "selected_operations_n": 0,
+        "task_protocol_success": false,
+        "termination_reason": "max_llm_turns"
+      },
+      "level": 5,
+      "llm_calls": 8,
+      "llm_turns": 8,
+      "parser_recovery_note": "Offline check only: whether already-emitted predicted_tools would score exact_match. No new parser, no re-run, no guessed route.",
+      "retrieved_servers": [
+        "LiGo + LinkedIn MCP Runner",
+        "MCP NVD Server",
+        "n8n Assistant"
+      ],
+      "retrieved_servers_n": 3,
+      "task_id": "L5-q73"
+    }
+  ],
+  "parse_repairs": 63,
+  "parser_v2_1": {
+    "built": false,
+    "existing_partial_routes_that_would_exact_match": 2,
+    "reason": "All 16 failures are max_llm_turns resource limits, not isolated parse failures. No task-id-special parser was introduced.",
+    "score_delta_if_built": null
+  },
+  "protocol_repairs": 47,
+  "raw_content_preserved_tasks": 100,
+  "task_protocol_success_rate": 0.84
+}
