@@ -31,6 +31,9 @@ DETERMINISTIC_CONTROLLER_PROTOCOL_CHANGE = (
 CAPABILITY_CONTRACT_PROTOCOL_CHANGE = (
     "capability_contract_refactor_before_valid_method_evaluation"
 )
+CAPABILITY_COMPILER_PROTOCOL_CHANGE = (
+    "capability_requirement_compiler_before_valid_method_evaluation"
+)
 
 
 def schema_hashes() -> Dict[str, str]:
@@ -151,5 +154,5 @@ def worst_case_budget_estimate(limits: Dict[str, Any]) -> Dict[str, Any]:
         ),
         "limits_snapshot": dict(limits),
         "max_plan_revisions": max_revisions,
-        "protocol_change": CAPABILITY_CONTRACT_PROTOCOL_CHANGE,
+        "protocol_change": CAPABILITY_COMPILER_PROTOCOL_CHANGE,
     }

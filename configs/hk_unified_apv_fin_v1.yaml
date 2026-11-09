@@ -1,8 +1,8 @@
-# APV-Fin proposed method v1.2 — capability-contract controller (pre-valid method eval)
+# APV-Fin proposed method v1.3 — capability requirement compiler (pre-valid method eval)
 condition: apv_fin
-method_version: apv_fin_v1_2_capability_contract
+method_version: apv_fin_v1_3_capability_compiler
 execution_backend: real_mcp
-protocol_change: capability_contract_refactor_before_valid_method_evaluation
+protocol_change: capability_requirement_compiler_before_valid_method_evaluation
 capability_contract: configs/operations/hk_capability_contract_v1.yaml
 
 # Formal live identity (fail-closed; no Aliyun silent fallback)

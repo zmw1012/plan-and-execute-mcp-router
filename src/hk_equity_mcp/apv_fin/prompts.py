@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from hk_equity_mcp.apv_fin.capability_ontology import CAPABILITY_IDS
 from hk_equity_mcp.experiment.prompts import prompt_hash
 from hk_equity_mcp.experiment.schema import FINAL_ANSWER_CONTRACT
 from hk_equity_mcp.experiment.unified_schema import BANNED_PROMPT_SUBSTRINGS
+
+_FORMAL_CAPABILITY_LIST = " | ".join(CAPABILITY_IDS)
 
 APV_FIN_SYSTEM_PROMPT = f"""You are APV-Fin, an Adaptive Plan-Visible Finance Router for Hong Kong equity Q&A
 across Financial, Market, News, and Cross-domain tasks.
@@ -25,6 +28,15 @@ Method rules:
   Never fabricate figures, citations, or tool outputs.
 - Be company-generic for any HK listed issuer / index. Do not assume a fixed issuer
   whitelist.
+- Formal required_capability values MUST be chosen from:
+  {_FORMAL_CAPABILITY_LIST}
+- For non-IFRS / adjusted / alternative performance metrics that need filing
+  narrative evidence, use financial.official_narrative_evidence (not structured
+  reported_metric_bundle alone).
+- For latest equity close use market.latest_close; for daily OHLCV/volume use
+  market.daily_ohlcv. Prefer contract-canonical required_outputs such as
+  close, volume, trade_date, attributable_profit, revenue, basic_eps, currency,
+  report_date, snippet, local_key.
 
 {FINAL_ANSWER_CONTRACT}
 """
@@ -39,6 +51,9 @@ Do not repeat the full question. Do not write chain-of-thought.
 Do not repeat global constraints (cutoff/source/currency) in every step —
 put globals in task_spec; steps only hold step-specific content.
 
+Formal required_capability enum (retrieve steps ONLY; use exact tokens):
+""" + _FORMAL_CAPABILITY_LIST + """
+
 Required fields:
 - schema_version: "apv_fin_plan_v1"
 - task_spec.goal (≤180 chars)
@@ -49,9 +64,11 @@ Required fields:
   the hypothesis — NEVER put that explanation inside answerability_hypothesis
 - initial_plan.steps: unique step_id, depends_on, step_type, objective (≤180),
   mandatory, success_criteria (≤160), compute_spec (required for compute; else null)
-- Every retrieve step MUST include required_capability (capability ontology id),
-  required_outputs (list), argument_slots (object), optional source_preference /
-  fallback_capabilities. Never put operation_id in the plan.
+- Every retrieve step MUST include required_capability (formal enum above),
+  required_outputs (prefer contract fields: close/volume/trade_date/
+  attributable_profit/revenue/basic_eps/currency/report_date/snippet/local_key),
+  argument_slots (object), optional source_preference / fallback_capabilities
+  (fallback also from the formal enum). Never put operation_id in the plan.
 - Do NOT emit runtime fields: status, observation_ids, attempt_count, etc.
 
 Company-generic compact example (illustrative only; adapt to the question):
@@ -156,9 +173,22 @@ Exception trigger: {exception_trigger}
 You are the EXCEPTIONAL replan Monitor only. Normal step completion is handled
 by the deterministic runtime controller — do NOT mark runtime status.
 
+Allowed Monitor intents ONLY:
+retry_current_capability | switch_to_declared_fallback_capability |
+reformulate_query | clarify | refuse | fail
+
+Do NOT invent new retrieve capabilities. Disclosure dependency expansion and
+capability switching are owned by the deterministic controller. Prefer
+updating retrieval_query_hint on an existing retrieve step, or switching
+required_capability to one of that step's declared fallback_capabilities.
+
+Formal required_capability enum (exact tokens only):
+""" + _FORMAL_CAPABILITY_LIST + """
+
 Output ONE compact JSON object matching schema apv_fin_monitor_v1:
 - schema_version: "apv_fin_monitor_v1"
 - decision: replan|clarify|refuse|fail|continue
+- replan_action: one of the allowed intents above (or null when decision!=replan)
 - decision_reason: short non-empty string (NOT reasoning_brief)
 - ready_step_ids: []
 - patch: {{
@@ -169,9 +199,14 @@ Output ONE compact JSON object matching schema apv_fin_monitor_v1:
   }}
 
 Patch rules:
-- updated_plan_steps / new_plan_steps may ONLY include model-owned fields:
-  step_id, step_type, objective, depends_on, mandatory, success_criteria,
-  retrieval_query_hint, compute_spec, notes.
+- Prefer empty new_plan_steps. Prefer updated_plan_steps that only reformulate
+  retrieval_query_hint / notes, or switch required_capability to a declared
+  fallback_capabilities entry.
+- If new_plan_steps MUST add a retrieve step, it MUST use the FULL Initial
+  Planner contract: step_id, step_type, objective, depends_on, mandatory,
+  success_criteria, required_capability (formal enum), required_outputs,
+  argument_slots, source_preference, fallback_capabilities, compute_spec.
+- Missing contract fields are rejected by schema before PlanState apply.
 - FORBIDDEN runtime fields: status, observation_ids, attempt_count,
   failure_reason, selected_operation, invoked_operation, execution_result,
   resolved_at.
@@ -182,6 +217,7 @@ Minimal example:
 {{
   "schema_version": "apv_fin_monitor_v1",
   "decision": "replan",
+  "replan_action": "reformulate_query",
   "decision_reason": "Required output missing; update retrieve query hint.",
   "ready_step_ids": [],
   "patch": {{

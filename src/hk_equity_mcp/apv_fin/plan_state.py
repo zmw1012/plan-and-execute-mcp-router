@@ -19,12 +19,14 @@ MODEL_OWNED_STEP_FIELDS = (
     "retrieval_query_hint",
     "compute_spec",
     "notes",
-    # v1.2 retrieve contract (planner-owned; never operation_id)
+    # v1.2/v1.3 retrieve contract (planner-owned; never operation_id)
     "required_capability",
     "required_outputs",
     "argument_slots",
     "source_preference",
     "fallback_capabilities",
+    "semantic_output_requirements",
+    "semantic_to_canonical_output_map",
 )
 
 RUNTIME_ONLY_STEP_FIELDS = (
@@ -88,6 +90,8 @@ class PlanStep:
     argument_slots: Dict[str, Any] = field(default_factory=dict)
     source_preference: List[str] = field(default_factory=list)
     fallback_capabilities: List[str] = field(default_factory=list)
+    semantic_output_requirements: List[str] = field(default_factory=list)
+    semantic_to_canonical_output_map: Dict[str, str] = field(default_factory=dict)
     # Runtime-only:
     status: str = "pending"
     observation_ids: List[str] = field(default_factory=list)
@@ -114,6 +118,10 @@ class PlanStep:
             "argument_slots": deepcopy(self.argument_slots),
             "source_preference": list(self.source_preference),
             "fallback_capabilities": list(self.fallback_capabilities),
+            "semantic_output_requirements": list(self.semantic_output_requirements),
+            "semantic_to_canonical_output_map": dict(
+                self.semantic_to_canonical_output_map
+            ),
         }
 
     def to_dict(self) -> Dict[str, Any]:
@@ -154,12 +162,27 @@ class PlanStep:
         argument_slots = dict(raw.get("argument_slots") or {})
         source_preference = list(raw.get("source_preference") or [])
         fallback_capabilities = list(raw.get("fallback_capabilities") or [])
+        semantic_output_requirements = list(
+            raw.get("semantic_output_requirements") or []
+        )
+        semantic_to_canonical_output_map = {
+            str(k): str(v)
+            for k, v in dict(raw.get("semantic_to_canonical_output_map") or {}).items()
+        }
         if step_type == "retrieve":
             if not required_capability or not str(required_capability).strip():
                 raise PlanStateError(
                     f"retrieve step {step_id!r} requires required_capability"
                 )
             required_capability = str(required_capability).strip()
+            # Fail closed on unknown / informal capability that escaped compile.
+            from hk_equity_mcp.apv_fin.capability_ontology import CAPABILITY_IDS
+
+            if required_capability not in CAPABILITY_IDS:
+                raise PlanStateError(
+                    f"retrieve step {step_id!r} required_capability "
+                    f"{required_capability!r} is not a formal CAPABILITY_IDS value"
+                )
         else:
             required_capability = (
                 str(required_capability).strip() if required_capability else None
@@ -184,6 +207,8 @@ class PlanStep:
             argument_slots=argument_slots,
             source_preference=[str(x) for x in source_preference],
             fallback_capabilities=[str(x) for x in fallback_capabilities],
+            semantic_output_requirements=[str(x) for x in semantic_output_requirements],
+            semantic_to_canonical_output_map=semantic_to_canonical_output_map,
             status=status,
             observation_ids=list(raw.get("observation_ids") or []) if allow_runtime else [],
             attempt_count=int(raw.get("attempt_count") or 0) if allow_runtime else 0,
@@ -420,6 +445,17 @@ class PlanState:
                 step.source_preference = list(upd.get("source_preference") or [])
             if "fallback_capabilities" in upd:
                 step.fallback_capabilities = list(upd.get("fallback_capabilities") or [])
+            if "semantic_output_requirements" in upd:
+                step.semantic_output_requirements = list(
+                    upd.get("semantic_output_requirements") or []
+                )
+            if "semantic_to_canonical_output_map" in upd:
+                step.semantic_to_canonical_output_map = {
+                    str(k): str(v)
+                    for k, v in dict(
+                        upd.get("semantic_to_canonical_output_map") or {}
+                    ).items()
+                }
             if step.status in {"failed", "skipped"} and (
                 "retrieval_query_hint" in upd
                 or upd.get("objective") is not None

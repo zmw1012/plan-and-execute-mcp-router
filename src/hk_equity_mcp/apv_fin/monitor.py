@@ -6,13 +6,22 @@ import json
 from typing import Any, Dict, List, Optional
 
 from hk_equity_mcp.agent.llm_client import LLMClient
+from hk_equity_mcp.apv_fin.capability_requirement_compiler import (
+    CapabilityCompilerError,
+    compile_retrieve_step,
+)
 from hk_equity_mcp.apv_fin.plan_state import PlanState, PlanStateError
 from hk_equity_mcp.apv_fin.planner import _merge_usage
 from hk_equity_mcp.apv_fin.prompts import (
     APV_FIN_MONITOR_USER_TEMPLATE,
     APV_FIN_SYSTEM_PROMPT,
 )
-from hk_equity_mcp.apv_fin.schemas import MONITOR_DECISIONS, assert_no_operation_id_in_plan
+from hk_equity_mcp.apv_fin.schemas import (
+    MONITOR_ALLOWED_REPLAN_ACTIONS,
+    MONITOR_DECISIONS,
+    assert_monitor_patch_retrieve_contract,
+    assert_no_operation_id_in_plan,
+)
 from hk_equity_mcp.apv_fin.structured_parse import parse_structured, repair_user_message
 
 
@@ -118,10 +127,108 @@ def run_monitor(
         patch = payload.get("patch") or {}
         # Reject runtime-only fields anywhere in the patch before apply.
         _assert_no_runtime_fields_in_patch(patch)
+        # Schema-level retrieve contract (also enforced in parse_and_validate).
+        assert_monitor_patch_retrieve_contract(payload)
+        replan_action = payload.get("replan_action")
+        if decision == "replan" and replan_action is not None:
+            if replan_action not in MONITOR_ALLOWED_REPLAN_ACTIONS:
+                raise PlanStateError(
+                    f"monitor replan_action {replan_action!r} not allowed; "
+                    f"expected one of {MONITOR_ALLOWED_REPLAN_ACTIONS}"
+                )
         if decision == "replan":
             assert_no_operation_id_in_plan(
                 {"initial_plan": {"steps": patch.get("new_plan_steps") or []}}
             )
+            # Compile new retrieve steps to formal capability + canonical outputs.
+            compiled_new = []
+            for raw in patch.get("new_plan_steps") or []:
+                if not isinstance(raw, dict):
+                    raise PlanStateError("new_plan_steps entries must be objects")
+                if str(raw.get("step_type") or "") == "retrieve":
+                    result = compile_retrieve_step(raw, task_spec=None)
+                    if not result["compilation"].get("ok", True):
+                        raise CapabilityCompilerError(
+                            result["compilation"].get("error") or "compile_failed",
+                            error_type=str(
+                                result["compilation"].get("error_type")
+                                or "compile_failed"
+                            ),
+                        )
+                    compiled_new.append(result["step"])
+                else:
+                    compiled_new.append(raw)
+            patch = dict(patch)
+            patch["new_plan_steps"] = compiled_new
+            # Compile capability updates on existing retrieve steps.
+            compiled_upd = []
+            for upd in patch.get("updated_plan_steps") or []:
+                if not isinstance(upd, dict):
+                    raise PlanStateError("updated_plan_steps entries must be objects")
+                sid = str(upd.get("step_id") or "")
+                existing = plan_state.steps.get(sid)
+                if (
+                    existing
+                    and existing.step_type == "retrieve"
+                    and (
+                        "required_capability" in upd
+                        or "required_outputs" in upd
+                        or "fallback_capabilities" in upd
+                    )
+                ):
+                    merged = existing.model_dict()
+                    merged.update(
+                        {
+                            k: v
+                            for k, v in upd.items()
+                            if k != "step_id" and v is not None
+                        }
+                    )
+                    result = compile_retrieve_step(merged, task_spec=None)
+                    if not result["compilation"].get("ok", True):
+                        raise CapabilityCompilerError(
+                            result["compilation"].get("error") or "compile_failed",
+                            error_type=str(
+                                result["compilation"].get("error_type")
+                                or "compile_failed"
+                            ),
+                        )
+                    compiled_upd.append(
+                        {
+                            "step_id": sid,
+                            **{
+                                k: result["step"].get(k)
+                                for k in (
+                                    "required_capability",
+                                    "required_outputs",
+                                    "argument_slots",
+                                    "source_preference",
+                                    "fallback_capabilities",
+                                    "semantic_output_requirements",
+                                    "semantic_to_canonical_output_map",
+                                    "retrieval_query_hint",
+                                    "objective",
+                                    "notes",
+                                    "success_criteria",
+                                    "depends_on",
+                                    "mandatory",
+                                    "step_type",
+                                    "compute_spec",
+                                )
+                                if k in upd or k.startswith("semantic") or k
+                                in {
+                                    "required_capability",
+                                    "required_outputs",
+                                    "fallback_capabilities",
+                                    "argument_slots",
+                                    "source_preference",
+                                }
+                            },
+                        }
+                    )
+                else:
+                    compiled_upd.append(upd)
+            patch["updated_plan_steps"] = compiled_upd
             patch_summary = plan_state.apply_monitor_patch(patch)
         elif patch.get("completed_plan_step_ids") or patch.get("completed_steps"):
             # Suggestions only — apply_monitor_patch does not auto-resolve.
@@ -137,11 +244,14 @@ def run_monitor(
                     "removed_plan_step_ids": [],
                 }
             )
-    except (PlanStateError, ValueError) as exc:
+    except (PlanStateError, ValueError, CapabilityCompilerError) as exc:
+        err = f"{type(exc).__name__}: {exc}"
+        if isinstance(exc, CapabilityCompilerError):
+            err = f"{exc.error_type}: {exc.message}"
         return {
             "ok": False,
             "fail_closed": True,
-            "error": f"{type(exc).__name__}: {exc}",
+            "error": err,
             "repair_count": int(parsed.get("repair_count") or 0),
             "llm": resp,
             "payload": payload,

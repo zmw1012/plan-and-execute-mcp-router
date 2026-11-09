@@ -965,7 +965,7 @@ class ApvFinAgent:
                 "allow_mock_hooks": self._allow_mock_hooks,
             },
             "condition": "apv_fin",
-            "method_version": "apv_fin_v1_2_capability_contract",
+            "method_version": "apv_fin_v1_3_capability_compiler",
             "deterministic_binding_count": self.budget.deterministic_binding_count,
             "llm_binding_count": self.budget.llm_binding_count,
             "capability_injected_candidate_count": self.budget.capability_injected_candidate_count,

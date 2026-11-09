@@ -437,12 +437,69 @@ def execute_retrieve_step(
             ranked = dict(ranked)
             ranked["reranked"] = reranked
 
-    # v1.2 capability contract filter + catalog injection (not gold injection).
+    # v1.3: compile semantic requirement → canonical capability/outputs, then
+    # capability contract filter + catalog injection (not gold injection).
+    from hk_equity_mcp.apv_fin.capability_requirement_compiler import (
+        CapabilityCompilerError,
+        compile_capability_requirement,
+    )
+
+    prior_semantic = getattr(step, "semantic_output_requirements", None)
+    if isinstance(prior_semantic, list) and prior_semantic:
+        semantic_outs = list(prior_semantic)
+    else:
+        semantic_outs = list(step.required_outputs or [])
+    try:
+        compiled_req = compile_capability_requirement(
+            task_spec=task_spec,
+            step_objective=step.objective,
+            metric_semantics=list((task_spec or {}).get("metrics") or []),
+            period=list((task_spec or {}).get("periods") or []),
+            source_preference=list(step.source_preference or []),
+            capability_hint=step.required_capability,
+            required_output_semantics=semantic_outs,
+            argument_slots=dict(step.argument_slots or {}),
+            basis_adjustment_constraints=list(
+                (task_spec or {}).get("metric_basis_hints") or []
+            ),
+            fallback_capabilities=list(step.fallback_capabilities or []),
+        )
+        required_capability = compiled_req["canonical_required_capability"]
+        required_outputs = list(compiled_req["canonical_required_outputs"])
+        semantic_to_canonical = dict(
+            compiled_req["semantic_to_canonical_output_map"]
+        )
+        # Keep plan step aligned with compiler (idempotent if already compiled).
+        step.required_capability = required_capability
+        step.required_outputs = required_outputs
+        step.semantic_output_requirements = list(
+            compiled_req["semantic_output_requirements"]
+        )
+        step.semantic_to_canonical_output_map = semantic_to_canonical
+        if compiled_req.get("source_preference"):
+            step.source_preference = list(compiled_req["source_preference"])
+        if compiled_req.get("selected_fallback_capabilities") is not None:
+            step.fallback_capabilities = list(
+                compiled_req["selected_fallback_capabilities"]
+            )
+    except CapabilityCompilerError as exc:
+        return {
+            "ok": False,
+            "error": exc.error_type,
+            "error_detail": exc.message,
+            "step_id": step.step_id,
+            "mcp_called": False,
+            "binding_decision": None,
+            "llm_binding_skipped": True,
+            "no_candidate_reason": exc.error_type,
+        }
+
+    embedding_before = len(reranked)
     cap_filter = filter_by_capability_contract(
         candidates=reranked,
         contracts=contracts,
-        required_capability=str(step.required_capability),
-        required_outputs=list(step.required_outputs or []),
+        required_capability=str(required_capability),
+        required_outputs=list(required_outputs),
         runtime_operation_ids=runtime_operation_ids,
         source_preference=list(step.source_preference or []),
     )
@@ -464,9 +521,65 @@ def execute_retrieve_step(
             "required_outputs",
         )
     }
+    ranked["capability_filter"]["embedding_candidates_before_filter"] = embedding_before
+    ranked["capability_filter"]["capability_compatible_candidates"] = len(
+        cap_filter.get("compatible_candidates") or []
+    )
+    ranked["capability_filter"]["capability_injected_candidates"] = int(
+        cap_filter.get("capability_injected_candidate_count") or 0
+    )
+    ranked["capability_filter"]["semantic_to_canonical_output_map"] = semantic_to_canonical
+    ranked["capability_filter"]["selected_capability"] = required_capability
     ranked["hard_filtered"] = list(ranked.get("hard_filtered") or []) + list(
         cap_filter.get("hard_filtered") or []
     )
+
+    # Empty binder pool: never call Tool Binding LLM; not mcp_execution_failed.
+    if not reranked:
+        # Diagnose: catalog injection vs alias gap.
+        from hk_equity_mcp.apv_fin.capability_contract import operations_for_capability
+
+        catalog_ids = operations_for_capability(
+            contracts, str(required_capability), include_compatible=True
+        )
+        runtime = set(runtime_operation_ids or [])
+        catalog_runtime = [oid for oid in catalog_ids if (not runtime or oid in runtime)]
+        if not catalog_runtime:
+            no_reason = "capability_catalog_injection_empty"
+        elif not required_outputs:
+            no_reason = "capability_contract_no_candidate"
+        else:
+            # Likely canonical output alias / provides gap after injection filter.
+            no_reason = "canonical_output_alias_or_provides_gap"
+        return {
+            "ok": False,
+            "error": "capability_contract_no_candidate",
+            "no_candidate_reason": no_reason,
+            "step_id": step.step_id,
+            "mcp_called": False,
+            "binding_decision": None,
+            "binding_mode": "skipped_empty_pool",
+            "llm_binding_skipped": True,
+            "llm_binding_count": 0,
+            "query": query,
+            "find": find_out,
+            "rerank": ranked,
+            "described_candidate_ids": [],
+            "capability_filter_candidate_count": cap_filter.get(
+                "capability_filter_candidate_count"
+            ),
+            "capability_injected_candidate_count": cap_filter.get(
+                "capability_injected_candidate_count"
+            ),
+            "embedding_candidates_before_filter": embedding_before,
+            "capability_compatible_candidates": ranked["capability_filter"][
+                "capability_compatible_candidates"
+            ],
+            "semantic_to_canonical_output_map": semantic_to_canonical,
+            "selected_capability": required_capability,
+            "canonical_required_outputs": required_outputs,
+            "catalog_runtime_ops_for_capability": catalog_runtime[:20],
+        }
 
     to_describe = select_candidates_to_describe(
         reranked, required_provides=list(ctx.required_provides or [])

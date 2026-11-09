@@ -6,6 +6,10 @@ import json
 from typing import Any, Dict, Optional
 
 from hk_equity_mcp.agent.llm_client import LLMClient
+from hk_equity_mcp.apv_fin.capability_requirement_compiler import (
+    CapabilityCompilerError,
+    compile_plan_payload,
+)
 from hk_equity_mcp.apv_fin.plan_state import PlanState, PlanStateError
 from hk_equity_mcp.apv_fin.prompts import (
     APV_FIN_PLANNER_USER_TEMPLATE,
@@ -103,11 +107,16 @@ def run_initial_planner(
         ):
             if banned in blob:
                 raise ValueError(f"planner_output_contains_banned_{banned}")
+        # Semantic → canonical capability/outputs before PlanState load.
+        payload = compile_plan_payload(payload)
         plan_state = PlanState.from_initial_plan(payload["initial_plan"])
-    except (PlanStateError, ValueError) as exc:
+    except (PlanStateError, ValueError, CapabilityCompilerError) as exc:
+        err = f"{type(exc).__name__}: {exc}"
+        if isinstance(exc, CapabilityCompilerError):
+            err = f"{exc.error_type}: {exc.message}"
         return {
             "ok": False,
-            "error": f"{type(exc).__name__}: {exc}",
+            "error": err,
             "fail_closed": True,
             "repair_count": int(parsed.get("repair_count") or 0),
             "llm": resp,
@@ -126,6 +135,7 @@ def run_initial_planner(
         "task_spec": payload["task_spec"],
         "initial_plan": payload["initial_plan"],
         "plan_state": plan_state,
+        "capability_compilations": payload.get("_capability_compilations"),
         "raw_contents": raw_contents,
     }
 

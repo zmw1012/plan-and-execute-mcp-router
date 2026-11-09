@@ -21,9 +21,11 @@ EXCEPTION_TRIGGERS = (
     "constraint_conflict",
     "no_ready_mandatory_unresolved",
     "capability_unsupported",
+    "capability_contract_no_candidate",
     "critical_ambiguity",
     "validator_inconsistency",
     "missing_compute_operands",
+    "unknown_capability",
 )
 
 
@@ -39,10 +41,29 @@ def classify_after_step(
     """Decide whether to auto-resolve or raise an exceptional replan trigger."""
     del task_spec  # reserved
     if not execution_ok:
+        err = str(error or "execution_failed")
+        # Empty binder / unknown capability are contract failures, not MCP failures.
+        if err in {
+            "capability_contract_no_candidate",
+            "unknown_capability",
+            "missing_required_capability",
+            "retrieve_missing_required_capability",
+            "capability_catalog_injection_empty",
+            "canonical_output_alias_or_provides_gap",
+        } or err.startswith("unknown_capability"):
+            return {
+                "action": "exception",
+                "trigger": (
+                    "capability_contract_no_candidate"
+                    if "no_candidate" in err or "alias" in err or "catalog" in err
+                    else "capability_unsupported"
+                ),
+                "reason": err,
+            }
         return {
             "action": "exception",
             "trigger": "mcp_execution_failed",
-            "reason": error or "execution_failed",
+            "reason": err,
         }
 
     adapted_view = adapted or (projection or {}).get("adapted") or {}

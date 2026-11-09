@@ -11,6 +11,8 @@ import re
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+from hk_equity_mcp.apv_fin.capability_ontology import CAPABILITY_IDS
+
 SCHEMA_VERSIONS = {
     "plan": "apv_fin_plan_v1",
     "monitor": "apv_fin_monitor_v1",
@@ -56,6 +58,19 @@ MONITOR_DECISIONS = (
     "refuse",
     "fail",
 )
+
+# Exceptional Monitor may only express these replan intents (v1.3).
+# Disclosure expansion / capability switching is deterministic-controller owned.
+MONITOR_ALLOWED_REPLAN_ACTIONS = (
+    "retry_current_capability",
+    "switch_to_declared_fallback_capability",
+    "reformulate_query",
+    "clarify",
+    "refuse",
+    "fail",
+)
+
+FORMAL_CAPABILITY_ENUM: List[Any] = list(CAPABILITY_IDS) + [None]
 
 ANSWER_STATUSES = ("answered", "clarification_needed", "unavailable")
 
@@ -153,7 +168,10 @@ PLAN_STEP_SCHEMA: Dict[str, Any] = {
             "type": ["string", "null"],
             "maxLength": PLAN_COMPACT_LIMITS["notes_max"],
         },
-        "required_capability": {"type": ["string", "null"], "maxLength": 80},
+        "required_capability": {
+            "type": ["string", "null"],
+            "enum": list(FORMAL_CAPABILITY_ENUM),
+        },
         "required_outputs": {
             "type": ["array", "null"],
             "maxItems": 12,
@@ -173,7 +191,20 @@ PLAN_STEP_SCHEMA: Dict[str, Any] = {
         "fallback_capabilities": {
             "type": ["array", "null"],
             "maxItems": 6,
-            "items": {"type": "string", "maxLength": 80},
+            "items": {
+                "type": "string",
+                "enum": list(CAPABILITY_IDS),
+            },
+        },
+        # Compiler provenance (optional; runtime may attach after compile).
+        "semantic_output_requirements": {
+            "type": ["array", "null"],
+            "maxItems": 12,
+            "items": {"type": "string", "maxLength": 120},
+        },
+        "semantic_to_canonical_output_map": {
+            "type": ["object", "null"],
+            "additionalProperties": {"type": "string", "maxLength": 120},
         },
     },
 }
@@ -309,7 +340,10 @@ _MONITOR_UPDATED_STEP_PROPERTIES: Dict[str, Any] = {
     "retrieval_query_hint": {"type": ["string", "null"]},
     "compute_spec": {"type": ["object", "null"]},
     "notes": {"type": ["string", "null"]},
-    "required_capability": {"type": ["string", "null"]},
+    "required_capability": {
+        "type": ["string", "null"],
+        "enum": list(FORMAL_CAPABILITY_ENUM),
+    },
     "required_outputs": {
         "type": ["array", "null"],
         "items": {"type": "string"},
@@ -321,7 +355,15 @@ _MONITOR_UPDATED_STEP_PROPERTIES: Dict[str, Any] = {
     },
     "fallback_capabilities": {
         "type": ["array", "null"],
+        "items": {"type": "string", "enum": list(CAPABILITY_IDS)},
+    },
+    "semantic_output_requirements": {
+        "type": ["array", "null"],
         "items": {"type": "string"},
+    },
+    "semantic_to_canonical_output_map": {
+        "type": ["object", "null"],
+        "additionalProperties": {"type": "string"},
     },
 }
 
@@ -379,6 +421,10 @@ APV_FIN_MONITOR_V1: Dict[str, Any] = {
             "items": {"type": "string"},
         },
         "patch": MONITOR_PATCH_SCHEMA,
+        "replan_action": {
+            "type": ["string", "null"],
+            "enum": list(MONITOR_ALLOWED_REPLAN_ACTIONS) + [None],
+        },
         "clarify_question": {"type": ["string", "null"]},
         "refuse_reason": {"type": ["string", "null"]},
         "fail_reason": {"type": ["string", "null"]},
@@ -620,6 +666,11 @@ def parse_and_validate(
     Caller supplies an optional already-repaired content for the single allowed
     repair attempt. This function itself does not call any LLM.
     """
+    from hk_equity_mcp.apv_fin.capability_requirement_compiler import (
+        CapabilityCompilerError,
+        precompile_capability_vocabulary,
+    )
+
     schema = SCHEMA_BY_NAME[schema_name]
     repair_count = 0
     last_error: Optional[str] = None
@@ -634,12 +685,77 @@ def parse_and_validate(
             parsed = extract_json_object(candidate)
             if not isinstance(parsed, dict):
                 raise SchemaValidationError("top-level value must be an object")
+            # Normalize informal capability vocabulary before enum validation.
+            if schema_name in {"apv_fin_plan_v1", "apv_fin_monitor_v1"}:
+                try:
+                    parsed = precompile_capability_vocabulary(parsed)
+                except CapabilityCompilerError as exc:
+                    raise SchemaValidationError(
+                        f"{exc.error_type}: {exc.message}",
+                        path="$.required_capability",
+                    ) from exc
             validate_against_schema(parsed, schema)
+            if schema_name == "apv_fin_monitor_v1":
+                assert_monitor_patch_retrieve_contract(parsed)
             return parsed, repair_count, None
         except (json.JSONDecodeError, SchemaValidationError, ValueError) as exc:
             last_error = f"{type(exc).__name__}: {exc}"
             continue
     return {}, repair_count, last_error or "parse_failed"
+
+
+def assert_monitor_patch_retrieve_contract(payload: Dict[str, Any]) -> None:
+    """Reject Monitor new retrieve steps missing the full capability contract.
+
+    Monitor must not invent retrieve steps without required_capability /
+    required_outputs / argument_slots / source_preference / fallback_capabilities.
+    Prefer reformulate / fallback / clarify / refuse / fail instead.
+    """
+    patch = payload.get("patch") or {}
+    decision = payload.get("decision")
+    replan_action = payload.get("replan_action")
+    if decision == "replan" and replan_action is not None:
+        if replan_action not in MONITOR_ALLOWED_REPLAN_ACTIONS:
+            raise SchemaValidationError(
+                f"replan_action {replan_action!r} not in "
+                f"{MONITOR_ALLOWED_REPLAN_ACTIONS}",
+                path="$.replan_action",
+            )
+    for entry in patch.get("new_plan_steps") or []:
+        if not isinstance(entry, dict):
+            raise SchemaValidationError(
+                "new_plan_steps entries must be objects",
+                path="$.patch.new_plan_steps",
+            )
+        if str(entry.get("step_type") or "") != "retrieve":
+            continue
+        missing = []
+        for field in (
+            "required_capability",
+            "required_outputs",
+            "argument_slots",
+            "source_preference",
+            "fallback_capabilities",
+        ):
+            if field not in entry or entry.get(field) is None:
+                missing.append(field)
+        if missing:
+            raise SchemaValidationError(
+                "monitor new retrieve step missing contract fields "
+                f"{missing}; Monitor must not invent retrieve capabilities",
+                path=f"$.patch.new_plan_steps[{entry.get('step_id')}]",
+            )
+        if not str(entry.get("required_capability") or "").strip():
+            raise SchemaValidationError(
+                "monitor new retrieve step requires non-empty required_capability",
+                path=f"$.patch.new_plan_steps[{entry.get('step_id')}].required_capability",
+            )
+        if entry["required_capability"] not in CAPABILITY_IDS:
+            raise SchemaValidationError(
+                f"required_capability {entry['required_capability']!r} "
+                "must be a formal CAPABILITY_IDS enum value",
+                path=f"$.patch.new_plan_steps[{entry.get('step_id')}].required_capability",
+            )
 
 
 def _extract_json_path_from_error(err: str) -> str:
@@ -677,14 +793,19 @@ def format_repair_user_message(schema_name: str, error: str) -> str:
         lines.append("Prefer 3–6 plan steps.")
         lines.append(
             "Every retrieve step MUST include required_capability "
-            "(capability ontology id), required_outputs, and argument_slots. "
+            "(formal capability ontology enum), required_outputs, and argument_slots. "
             "Never include operation_id or runtime fields."
         )
-        if "required_capability" in err:
+        if "required_capability" in err or "unknown_capability" in err:
             lines.append(
                 "JSON path: $.initial_plan.steps[*].required_capability — "
-                "add a capability id such as market.daily_ohlcv or "
-                "financial.reported_metric_bundle."
+                "use ONLY a formal CAPABILITY_IDS enum value, e.g. "
+                "market.latest_close | market.daily_ohlcv | "
+                "financial.reported_metric_bundle | "
+                "financial.official_narrative_evidence."
+            )
+            lines.append(
+                "Formal capability IDs: " + " | ".join(CAPABILITY_IDS)
             )
     if schema_name == "apv_fin_monitor_v1":
         lines.extend(
@@ -692,6 +813,15 @@ def format_repair_user_message(schema_name: str, error: str) -> str:
                 "Required: schema_version=\"apv_fin_monitor_v1\", decision, "
                 "decision_reason (non-empty), ready_step_ids, patch.",
                 "Do NOT use reasoning_brief; put short rationale in decision_reason only.",
+                "Allowed replan intents only: "
+                + " | ".join(MONITOR_ALLOWED_REPLAN_ACTIONS),
+                "Do NOT invent new retrieve capabilities. Prefer reformulate_query, "
+                "switch_to_declared_fallback_capability, clarify, refuse, or fail.",
+                "If new_plan_steps includes retrieve, it MUST include the full "
+                "Initial Planner contract: required_capability (formal enum), "
+                "required_outputs, argument_slots, source_preference, "
+                "fallback_capabilities.",
+                "Formal capability IDs: " + " | ".join(CAPABILITY_IDS),
             ]
         )
         if "schema_version" in err and "missing" in err:

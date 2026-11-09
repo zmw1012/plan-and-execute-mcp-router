@@ -1,7 +1,9 @@
-"""Versioned, company-generic capability ontology for APV-Fin v1.2."""
+"""Versioned, company-generic capability ontology for APV-Fin v1.2+."""
 
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Dict, List, Set, Tuple
 
 CAPABILITY_ONTOLOGY_VERSION = "apv_fin_capability_ontology_v1"
@@ -81,3 +83,18 @@ def compatible_capabilities(required: str) -> Set[str]:
 
 def ontology_coverage_checklist() -> List[str]:
     return list(CAPABILITY_IDS)
+
+
+def capability_ontology_hash() -> str:
+    blob = json.dumps(
+        {
+            "version": CAPABILITY_ONTOLOGY_VERSION,
+            "ids": list(CAPABILITY_IDS),
+            "compatibility": {k: list(v) for k, v in CAPABILITY_COMPATIBILITY.items()},
+            "defaults": {k: list(v) for k, v in DEFAULT_REQUIRED_OUTPUTS.items()},
+            "disclosure_workflow": list(DISCLOSURE_NARRATIVE_WORKFLOW),
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
