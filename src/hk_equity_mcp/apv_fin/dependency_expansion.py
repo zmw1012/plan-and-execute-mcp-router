@@ -1,10 +1,30 @@
-"""Capability workflow expansion driven by capability contracts (v1.2)."""
+"""Capability workflow expansion driven by capability contracts (v1.2/v1.4)."""
 
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any, Dict, List, Optional, Sequence
 
 from hk_equity_mcp.apv_fin.capability_ontology import DISCLOSURE_NARRATIVE_WORKFLOW
+
+DEPENDENCY_PROGRESSION_VERSION = "apv_fin_dependency_progression_v1_4"
+
+
+def dependency_progression_hash() -> str:
+    blob = json.dumps(
+        {
+            "version": DEPENDENCY_PROGRESSION_VERSION,
+            "workflow": list(DISCLOSURE_NARRATIVE_WORKFLOW),
+            "policy": [
+                "prefix_list_when_local_key_missing",
+                "requires_provides_graph",
+                "no_fabricated_local_key",
+            ],
+        },
+        sort_keys=True,
+    )
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
 
 def is_narrative_capability(capability: Optional[str]) -> bool:
@@ -78,8 +98,12 @@ def next_disclosure_capability(
     workflow = list(DISCLOSURE_NARRATIVE_WORKFLOW)
     cur = str(current_capability or "disclosure.list")
     if cur not in workflow:
-        # List-like ops map to disclosure.list
-        if "list" in cur or cur == "news.official_announcement":
+        # List-like / narrative-target retrieve that already listed docs → treat as list.
+        if (
+            "list" in cur
+            or cur == "news.official_announcement"
+            or is_narrative_capability(cur)
+        ):
             cur = "disclosure.list"
         else:
             return workflow[0]
@@ -193,8 +217,92 @@ def list_only_should_not_resolve_narrative(
     if is_narrative_capability(required_capability):
         oid = (operation_id or "").lower()
         return "list" in oid
+    if str(required_capability or "") == "disclosure.list":
+        return True
     blob = f"{objective or ''} {query_hint or ''} {required_capability or ''}".lower()
     if "narrative" in blob or "non-ifrs" in blob or "official" in blob:
         oid = (operation_id or "").lower()
         return "list" in oid and ("hkex" in oid or "disclosure" in oid or "announcement" in oid)
     return False
+
+
+def capability_requires_local_key(
+    *,
+    contracts: Dict[str, Dict[str, Any]],
+    capability: Optional[str],
+) -> bool:
+    """True when runtime providers for capability require local_key."""
+    cap = str(capability or "")
+    if not cap:
+        return False
+    for row in contracts.values():
+        if str(row.get("runtime_availability") or "") != "runtime":
+            continue
+        caps = set(row.get("capabilities") or [])
+        if cap not in caps:
+            continue
+        requires = {str(r) for r in (row.get("requires_fields") or [])}
+        req_args = {str(r) for r in (row.get("required_arguments") or [])}
+        if "local_key" in requires or "local_key" in req_args:
+            return True
+    return False
+
+
+def disclosure_prefix_needed(
+    *,
+    required_capability: Optional[str],
+    argument_slots: Optional[Dict[str, Any]] = None,
+    available_deps: Optional[Dict[str, Any]] = None,
+    contracts: Optional[Dict[str, Dict[str, Any]]] = None,
+) -> bool:
+    """Narrative/keyword/page path missing local_key → list first (no Binder LLM)."""
+    cap = str(required_capability or "")
+    slots = dict(argument_slots or {})
+    available = dict(available_deps or {})
+    if slots.get("local_key") or available.get("local_key"):
+        return False
+    if cap == "disclosure.list":
+        return False
+    if is_narrative_capability(cap):
+        return True
+    if cap in {
+        "disclosure.keyword_search",
+        "disclosure.page_read",
+        "disclosure.parse",
+        "disclosure.download",
+    }:
+        if contracts is None:
+            return True
+        return capability_requires_local_key(contracts=contracts, capability=cap)
+    return False
+
+
+def rewrite_step_to_disclosure_list(
+    step: Dict[str, Any],
+    *,
+    target_capability: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Deterministically retarget a retrieve step to disclosure.list."""
+    out = dict(step)
+    target = target_capability or step.get("required_capability")
+    out["required_capability"] = "disclosure.list"
+    out["required_outputs"] = ["local_key", "title", "release_date"]
+    out["source_preference"] = ["official_disclosure"]
+    out["fallback_capabilities"] = [
+        c
+        for c in (
+            "disclosure.download",
+            "disclosure.parse",
+            "disclosure.keyword_search",
+            "disclosure.page_read",
+            "financial.official_narrative_evidence",
+        )
+        if c != "disclosure.list"
+    ]
+    notes = str(out.get("notes") or "")
+    tag = f"disclosure_prefix_for:{target}"
+    out["notes"] = f"{notes};{tag}".strip(";")
+    out["semantic_output_requirements"] = list(
+        out.get("semantic_output_requirements") or out.get("required_outputs") or []
+    )
+    return out

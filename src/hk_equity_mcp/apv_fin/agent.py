@@ -432,7 +432,8 @@ class ApvFinAgent:
                             oid = out.get("chosen_operation_id")
                             if oid:
                                 invoked_operations.append(oid)
-                            if out.get("ok") and oid:
+                            # Gateway execution success ≠ required-output satisfaction.
+                            if out.get("mcp_execution_success") and oid:
                                 successful_invoked.append(oid)
                         step_event["result"] = {
                             k: v for k, v in out.items() if k not in {"find"}
@@ -442,26 +443,20 @@ class ApvFinAgent:
                         trace.extend(_ov_compatible_retrieve_events(out))
                         last_classification = classify_after_step(
                             step=step,
-                            execution_ok=bool(out.get("ok") or out.get("mcp_execution_success")),
+                            execution_ok=bool(out.get("ok")),
                             projection=out.get("projection"),
                             task_spec=task_spec,
                             error=out.get("error"),
                             adapted=out.get("adapted"),
+                            mcp_execution_success=bool(out.get("mcp_execution_success")),
+                            pagination_recommended=bool(
+                                out.get("pagination_recommended")
+                            ),
                         )
-                        # MCP failed → exceptional; MCP ok but missing outputs → exception
-                        # unless narrative list expansion.
-                        if out.get("mcp_execution_success") and not out.get("ok"):
-                            if last_classification.get("action") != "expand_dependency":
-                                last_classification = {
-                                    "action": "exception",
-                                    "trigger": "required_output_missing",
-                                    "reason": out.get("error") or "required_output_missing",
-                                    "missing_outputs": (
-                                        (out.get("required_outputs_check") or {}).get(
-                                            "missing"
-                                        )
-                                    ),
-                                }
+                        # MCP ok but missing outputs: keep classify decision
+                        # (paginate / expand_dependency / required_output_missing).
+                        # Never rewrite paginate/expand into mcp_execution_failed.
+                        adapted_deps = dict(out.get("adapted") or {})
                         progress = apply_deterministic_progress(
                             plan_state=plan_state,
                             step=step,
@@ -469,9 +464,20 @@ class ApvFinAgent:
                             observation_ids=[out.get("evidence_id")]
                             if out.get("evidence_id")
                             else None,
-                            projection=out.get("projection") or {"adapted": out.get("adapted")},
+                            projection=out.get("projection")
+                            or {"adapted": out.get("adapted")},
                             contracts=self.capability_contracts,
-                            available_deps={},
+                            available_deps={
+                                k: adapted_deps[k]
+                                for k in (
+                                    "local_key",
+                                    "news_id",
+                                    "release_date",
+                                    "page_number",
+                                    "stock_code",
+                                )
+                                if adapted_deps.get(k) is not None
+                            },
                             already_invoked=invoked_operations,
                         )
                         if progress.get("resolved") or progress.get(
@@ -965,7 +971,7 @@ class ApvFinAgent:
                 "allow_mock_hooks": self._allow_mock_hooks,
             },
             "condition": "apv_fin",
-            "method_version": "apv_fin_v1_3_capability_compiler",
+            "method_version": "apv_fin_v1_4_gateway_adapter_and_progression",
             "deterministic_binding_count": self.budget.deterministic_binding_count,
             "llm_binding_count": self.budget.llm_binding_count,
             "capability_injected_candidate_count": self.budget.capability_injected_candidate_count,
@@ -973,6 +979,8 @@ class ApvFinAgent:
             "output_adapter_success_count": self.budget.output_adapter_success_count,
             "required_output_missing_count": self.budget.required_output_missing_count,
             "deterministic_compute_count": self.budget.deterministic_compute_count,
+            "pagination_count": getattr(self.budget, "pagination_count", 0),
+            "rows_scanned": getattr(self.budget, "rows_scanned", 0),
             "execution_order": [
                 "planner",
                 "capability_filter",

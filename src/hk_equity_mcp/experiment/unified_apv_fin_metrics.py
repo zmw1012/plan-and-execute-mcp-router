@@ -164,6 +164,20 @@ def plan_completion_flag(row: Dict[str, Any]) -> bool:
     return all(s.get("status") == "resolved" for s in mandatory)
 
 
+def _counter(row: Dict[str, Any], key: str) -> int:
+    """Read per-task counter from top-level or nested budget snapshot."""
+    if row.get(key) is not None:
+        try:
+            return int(row.get(key) or 0)
+        except (TypeError, ValueError):
+            return 0
+    budget = row.get("budget") or {}
+    try:
+        return int(budget.get(key) or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
 def aggregate_apv_fin_metrics(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     rows = list(rows)
     n = len(rows)
@@ -278,62 +292,71 @@ def aggregate_apv_fin_metrics(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
         "resource_limit_failures": resource_limit_failures,
         "resource_limit_failure_rate": (resource_limit_failures / n) if n else None,
         "deterministic_step_transitions_mean": _mean(
-            [int(r.get("deterministic_step_transitions") or 0) for r in rows]
+            [_counter(r, "deterministic_step_transitions") for r in rows]
         ),
         "exception_replan_calls_mean": _mean(
-            [int(r.get("exception_replan_calls") or 0) for r in rows]
+            [_counter(r, "exception_replan_calls") for r in rows]
         ),
         "raw_observation_chars_mean": _mean(
-            [int(r.get("raw_observation_chars") or 0) for r in rows]
+            [_counter(r, "raw_observation_chars") for r in rows]
         ),
         "projected_observation_chars_mean": _mean(
-            [int(r.get("projected_observation_chars") or 0) for r in rows]
+            [_counter(r, "projected_observation_chars") for r in rows]
         ),
         "compression_ratio_mean": _mean(
             [
                 float(r["compression_ratio"])
                 if r.get("compression_ratio") is not None
                 else (
-                    (int(r.get("projected_observation_chars") or 0) / int(r.get("raw_observation_chars")))
-                    if int(r.get("raw_observation_chars") or 0) > 0
-                    else 0.0
+                    (
+                        _counter(r, "projected_observation_chars")
+                        / _counter(r, "raw_observation_chars")
+                    )
+                    if _counter(r, "raw_observation_chars") > 0
+                    else (
+                        float((r.get("budget") or {}).get("compression_ratio") or 0.0)
+                        if (r.get("budget") or {}).get("compression_ratio") is not None
+                        else 0.0
+                    )
                 )
                 for r in rows
             ]
         ),
         "repeated_signature_block_count_sum": sum(
-            int(r.get("repeated_signature_block_count") or 0) for r in rows
+            _counter(r, "repeated_signature_block_count") for r in rows
         ),
         "dependency_auto_expansion_count_sum": sum(
-            int(r.get("dependency_auto_expansion_count") or 0) for r in rows
+            _counter(r, "dependency_auto_expansion_count") for r in rows
         ),
         "schema_description_expansion_count_sum": sum(
-            int(r.get("schema_description_expansion_count") or 0) for r in rows
+            _counter(r, "schema_description_expansion_count") for r in rows
         ),
         "deterministic_binding_count_sum": sum(
-            int(r.get("deterministic_binding_count") or 0) for r in rows
+            _counter(r, "deterministic_binding_count") for r in rows
         ),
-        "llm_binding_count_sum": sum(int(r.get("llm_binding_count") or 0) for r in rows),
+        "llm_binding_count_sum": sum(_counter(r, "llm_binding_count") for r in rows),
         "capability_injected_candidate_count_sum": sum(
-            int(r.get("capability_injected_candidate_count") or 0) for r in rows
+            _counter(r, "capability_injected_candidate_count") for r in rows
         ),
         "capability_filter_candidate_count_sum": sum(
-            int(r.get("capability_filter_candidate_count") or 0) for r in rows
+            _counter(r, "capability_filter_candidate_count") for r in rows
         ),
         "output_adapter_success_count_sum": sum(
-            int(r.get("output_adapter_success_count") or 0) for r in rows
+            _counter(r, "output_adapter_success_count") for r in rows
         ),
         "required_output_missing_count_sum": sum(
-            int(r.get("required_output_missing_count") or 0) for r in rows
+            _counter(r, "required_output_missing_count") for r in rows
         ),
         "deterministic_compute_count_sum": sum(
-            int(r.get("deterministic_compute_count") or 0) for r in rows
+            _counter(r, "deterministic_compute_count") for r in rows
         ),
+        "pagination_count_sum": sum(_counter(r, "pagination_count") for r in rows),
+        "rows_scanned_sum": sum(_counter(r, "rows_scanned") for r in rows),
         "monitor_revision_count_mean": _mean(
             [len(r.get("monitor_decisions") or []) for r in rows]
         ),
         "exception_replan_calls_sum": sum(
-            int(r.get("exception_replan_calls") or 0) for r in rows
+            _counter(r, "exception_replan_calls") for r in rows
         ),
         "cost_summary": _cost_summary(rows),
     }

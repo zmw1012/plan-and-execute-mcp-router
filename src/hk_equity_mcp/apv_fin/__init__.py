@@ -8,6 +8,6 @@ find/describe/invoke boundary, dataset loader, and evaluator v1.2.
 from __future__ import annotations
 
 APV_FIN_CONDITION = "apv_fin"
-APV_FIN_METHOD_VERSION = "apv_fin_v1_3_capability_compiler"
+APV_FIN_METHOD_VERSION = "apv_fin_v1_4_gateway_adapter_and_progression"
 
 __all__ = ["APV_FIN_CONDITION", "APV_FIN_METHOD_VERSION"]

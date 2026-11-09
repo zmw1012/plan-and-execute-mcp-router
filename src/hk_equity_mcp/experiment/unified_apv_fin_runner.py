@@ -36,6 +36,8 @@ from hk_equity_mcp.apv_fin.identity import (
     EXPECTED_GENERATION_PROVIDER,
     CAPABILITY_COMPILER_PROTOCOL_CHANGE,
     CAPABILITY_CONTRACT_PROTOCOL_CHANGE,
+    GATEWAY_ADAPTER_PROTOCOL_CHANGE,
+    METRICS_VERSION,
     PLANNER_PROTOCOL_CHANGE,
     TOOL_BINDING_PROTOCOL_CHANGE,
     assert_live_provider_identity,
@@ -44,6 +46,11 @@ from hk_equity_mcp.apv_fin.identity import (
     schema_hashes,
     worst_case_budget_estimate,
 )
+from hk_equity_mcp.apv_fin.dependency_expansion import dependency_progression_hash
+from hk_equity_mcp.apv_fin.financial_item_aliases import financial_item_alias_map_hash
+from hk_equity_mcp.apv_fin.output_adapters import output_adapter_hash
+from hk_equity_mcp.apv_fin.pagination import pagination_policy_hash
+from hk_equity_mcp.apv_fin.result_envelope import result_envelope_hash
 from hk_equity_mcp.apv_fin.metadata import load_and_validate_metadata
 from hk_equity_mcp.apv_fin.operation_embedding_index import (
     build_index_identity,
@@ -780,12 +787,19 @@ class UnifiedHkApvFinRunner:
             "tool_binding_protocol_change": TOOL_BINDING_PROTOCOL_CHANGE,
             "capability_contract_protocol_change": CAPABILITY_CONTRACT_PROTOCOL_CHANGE,
             "capability_compiler_protocol_change": CAPABILITY_COMPILER_PROTOCOL_CHANGE,
+            "gateway_adapter_protocol_change": GATEWAY_ADAPTER_PROTOCOL_CHANGE,
             "capability_contract_hash": capability_contract_hash(),
             "capability_ontology_version": CAPABILITY_ONTOLOGY_VERSION,
             "capability_ontology_hash": capability_ontology_hash(),
             "capability_compiler_version": COMPILER_VERSION,
             "capability_compiler_hash": capability_compiler_hash(),
             "output_alias_map_hash": output_alias_map_hash(),
+            "result_envelope_hash": result_envelope_hash(),
+            "output_adapter_hash": output_adapter_hash(),
+            "financial_item_alias_map_hash": financial_item_alias_map_hash(),
+            "dependency_progression_hash": dependency_progression_hash(),
+            "pagination_policy_hash": pagination_policy_hash(),
+            "metrics_version": METRICS_VERSION,
             "max_tokens_unchanged": self.max_tokens == 2048,
             "catalog_fingerprint": fingerprint,
             "operation_metadata_path": str(self.metadata_path),
@@ -1148,6 +1162,37 @@ class UnifiedHkApvFinRunner:
             "successful_invocation_count": result.get("successful_invocation_count"),
             "failed_invocation_count": result.get("failed_invocation_count"),
             "real_mcp_execution_count": result.get("real_mcp_execution_count"),
+            "deterministic_step_transitions": result.get(
+                "deterministic_step_transitions"
+            ),
+            "dependency_auto_expansion_count": result.get(
+                "dependency_auto_expansion_count"
+            ),
+            "schema_description_expansion_count": result.get(
+                "schema_description_expansion_count"
+            ),
+            "repeated_signature_block_count": result.get(
+                "repeated_signature_block_count"
+            ),
+            "raw_observation_chars": result.get("raw_observation_chars"),
+            "projected_observation_chars": result.get("projected_observation_chars"),
+            "compression_ratio": result.get("compression_ratio"),
+            "deterministic_binding_count": result.get("deterministic_binding_count"),
+            "llm_binding_count": result.get("llm_binding_count"),
+            "capability_injected_candidate_count": result.get(
+                "capability_injected_candidate_count"
+            ),
+            "capability_filter_candidate_count": result.get(
+                "capability_filter_candidate_count"
+            ),
+            "output_adapter_success_count": result.get("output_adapter_success_count"),
+            "required_output_missing_count": result.get(
+                "required_output_missing_count"
+            ),
+            "deterministic_compute_count": result.get("deterministic_compute_count"),
+            "exception_replan_calls": result.get("exception_replan_calls"),
+            "pagination_count": result.get("pagination_count"),
+            "rows_scanned": result.get("rows_scanned"),
             "auto_grade_status": grade.get("auto_grade_status"),
             "answer_correct": grade.get("answer_correct"),
             "auto_grade_reason": grade.get("reason"),
@@ -1157,7 +1202,42 @@ class UnifiedHkApvFinRunner:
             "manual_causal_overclaim": "",
             "manual_overall_task_success": "",
         }
+        # Preserve APV-Fin MCP tool-success semantics (null when zero invokes)
+        # before evaluator metrics (which use vacuous True) overwrite them.
+        agent_tool_ok = result.get("all_tool_invocations_successful")
+        agent_succ = result.get("successful_invocation_count")
+        agent_fail = result.get("failed_invocation_count")
         row.update(metrics)
+        if "all_tool_invocations_successful" in result:
+            row["all_tool_invocations_successful"] = agent_tool_ok
+            row["tool_execution_success"] = result.get("tool_execution_success")
+        if agent_succ is not None:
+            row["successful_invocation_count"] = agent_succ
+        if agent_fail is not None:
+            row["failed_invocation_count"] = agent_fail
+        # Promote budget counters when top-level missing.
+        budget = result.get("budget") or {}
+        for key in (
+            "deterministic_step_transitions",
+            "dependency_auto_expansion_count",
+            "schema_description_expansion_count",
+            "repeated_signature_block_count",
+            "raw_observation_chars",
+            "projected_observation_chars",
+            "compression_ratio",
+            "deterministic_binding_count",
+            "llm_binding_count",
+            "capability_injected_candidate_count",
+            "capability_filter_candidate_count",
+            "output_adapter_success_count",
+            "required_output_missing_count",
+            "deterministic_compute_count",
+            "exception_replan_calls",
+            "pagination_count",
+            "rows_scanned",
+        ):
+            if row.get(key) is None and key in budget:
+                row[key] = budget.get(key)
         for key in PREDICTION_FIELDS:
             row.setdefault(key, None)
         return redact_secrets(row)

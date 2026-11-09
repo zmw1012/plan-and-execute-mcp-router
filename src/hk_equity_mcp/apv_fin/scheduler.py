@@ -250,6 +250,11 @@ class BudgetTracker:
         self.output_adapter_success_count = 0
         self.required_output_missing_count = 0
         self.deterministic_compute_count = 0
+        self.pagination_count = 0
+        self.rows_scanned = 0
+        self.pagination_signatures: set = set()
+        self.pagination_pages_per_step: Dict[str, int] = {}
+        self.rows_scanned_per_step: Dict[str, int] = {}
 
     @property
     def llm_call_budget(self) -> int:
@@ -323,6 +328,8 @@ class BudgetTracker:
             "output_adapter_success_count": self.output_adapter_success_count,
             "required_output_missing_count": self.required_output_missing_count,
             "deterministic_compute_count": self.deterministic_compute_count,
+            "pagination_count": self.pagination_count,
+            "rows_scanned": self.rows_scanned,
             **self.llm_budget_fields(),
         }
 
@@ -370,9 +377,24 @@ def execute_retrieve_step(
     from hk_equity_mcp.apv_fin.argument_slots import can_deterministic_bind, map_slots_to_arguments
     from hk_equity_mcp.apv_fin.capability_contract import load_and_validate_capability_contracts
     from hk_equity_mcp.apv_fin.capability_filter import filter_by_capability_contract
+    from hk_equity_mcp.apv_fin.dependency_expansion import (
+        disclosure_prefix_needed,
+        rewrite_step_to_disclosure_list,
+    )
     from hk_equity_mcp.apv_fin.output_adapters import (
         adapt_mcp_result,
         required_outputs_present,
+    )
+    from hk_equity_mcp.apv_fin.pagination import (
+        FINANCIAL_BUNDLE_PAGE_MAX_ROWS,
+        next_page_arguments,
+        operation_supports_offset,
+        pagination_signature,
+        should_paginate,
+    )
+    from hk_equity_mcp.apv_fin.result_envelope import (
+        envelope_supports_pagination,
+        normalize_gateway_envelope,
     )
 
     if select_operation_id and not allow_forced_select:
@@ -402,6 +424,32 @@ def execute_retrieve_step(
     budget.retrievals_per_step[step.step_id] = count + 1
 
     contracts = contracts or load_and_validate_capability_contracts()
+    # Pre-binder disclosure prefix: never ask Binder LLM to invent local_key.
+    if disclosure_prefix_needed(
+        required_capability=step.required_capability,
+        argument_slots=dict(step.argument_slots or {}),
+        available_deps={},
+        contracts=contracts,
+    ):
+        rewritten = rewrite_step_to_disclosure_list(
+            {
+                "required_capability": step.required_capability,
+                "required_outputs": list(step.required_outputs or []),
+                "argument_slots": dict(step.argument_slots or {}),
+                "source_preference": list(step.source_preference or []),
+                "fallback_capabilities": list(step.fallback_capabilities or []),
+                "notes": step.notes,
+                "semantic_output_requirements": list(
+                    getattr(step, "semantic_output_requirements", None) or []
+                ),
+            },
+            target_capability=step.required_capability,
+        )
+        step.required_capability = rewritten["required_capability"]
+        step.required_outputs = list(rewritten["required_outputs"])
+        step.source_preference = list(rewritten.get("source_preference") or [])
+        step.fallback_capabilities = list(rewritten.get("fallback_capabilities") or [])
+        step.notes = rewritten.get("notes")
     query = build_retrieval_query(step, task_spec)
     find_out = resolver.find_operations(query, top_k=top_k)
     candidates = list(find_out.get("candidates") or [])
@@ -1013,6 +1061,15 @@ def execute_retrieve_step(
         return base_out
 
     base_out["validation_passed"] = True
+    # Prefer larger pages for financial long-tables when offset supported.
+    schema_for_page = (described_contracts.get(oid) or {}).get("json_schema") or {}
+    if operation_supports_offset(schema_for_page) and str(
+        step.required_capability or ""
+    ).startswith("financial."):
+        args = dict(args)
+        args.setdefault("offset", 0)
+        args.setdefault("max_rows", FINANCIAL_BUNDLE_PAGE_MAX_ROWS)
+
     invoke_out = resolver.invoke_api(oid, args)
     budget.mcp_invocations += 1
     budget.operation_invoke_counts[oid] = repeats + 1
@@ -1027,21 +1084,162 @@ def execute_retrieve_step(
     projection = None
     adapted = None
     output_check = None
+    envelope = None
+    adapter_ok = False
+    pagination_recommended = False
     if success:
         contract = contracts.get(str(oid)) or {}
+        try:
+            envelope = normalize_gateway_envelope(invoke_out)
+        except Exception:  # noqa: BLE001
+            try:
+                envelope = normalize_gateway_envelope(
+                    (invoke_out or {}).get("result")
+                )
+            except Exception as exc:  # noqa: BLE001
+                envelope = {
+                    "rows": [],
+                    "truncated": False,
+                    "normalization_errors": [str(exc)],
+                    "execution_success": True,
+                }
+        scanned = int(envelope.get("returned_rows") or len(envelope.get("rows") or []))
+        budget.rows_scanned += scanned
+        budget.rows_scanned_per_step[step.step_id] = int(
+            budget.rows_scanned_per_step.get(step.step_id) or 0
+        ) + scanned
         adapted = adapt_mcp_result(
             capability=str(step.required_capability),
-            raw_result=(invoke_out or {}).get("result"),
+            raw_result=invoke_out,
             contract=contract,
             arguments=args,
+            task_spec=task_spec,
         )
+        adapter_ok = bool(adapted.get("adapter_ok"))
+        if adapter_ok:
+            budget.output_adapter_success_count += 1
         output_check = required_outputs_present(
             adapted, list(step.required_outputs or [])
         )
-        if output_check.get("ok"):
-            budget.output_adapter_success_count += 1
-        else:
+        if list(step.required_outputs or []) and not output_check.get("ok"):
             budget.required_output_missing_count += 1
+        supports_off = operation_supports_offset(schema_for_page)
+        can_page, page_reason = should_paginate(
+            mcp_success=True,
+            envelope=envelope,
+            required_outputs_ok=bool(output_check.get("ok")),
+            supports_offset=supports_off,
+            pages_used=int(budget.pagination_pages_per_step.get(step.step_id) or 0),
+            rows_scanned=int(budget.rows_scanned_per_step.get(step.step_id) or 0),
+            mcp_budget_remaining=max(
+                0,
+                int(budget.limits["max_total_mcp_invocations"]) - budget.mcp_invocations,
+            ),
+        )
+        pagination_recommended = bool(can_page) or bool(
+            adapted.get("pagination_needed") and supports_off
+        )
+        # Auto next-page loop (deterministic; no Monitor).
+        while pagination_recommended and not output_check.get("ok"):
+            next_args = next_page_arguments(
+                current_arguments=args,
+                envelope=envelope or {},
+                capability=step.required_capability,
+            )
+            if not next_args:
+                pagination_recommended = False
+                break
+            sig = pagination_signature(
+                operation_id=str(oid),
+                base_arguments=next_args,
+                offset=int(next_args.get("offset") or 0),
+                max_rows=int(next_args.get("max_rows") or 0),
+            )
+            if sig in budget.pagination_signatures:
+                pagination_recommended = False
+                break
+            if budget.mcp_invocations >= budget.limits["max_total_mcp_invocations"]:
+                pagination_recommended = False
+                break
+            if int(budget.pagination_pages_per_step.get(step.step_id) or 0) >= 5:
+                pagination_recommended = False
+                break
+            budget.pagination_signatures.add(sig)
+            budget.pagination_count += 1
+            budget.pagination_pages_per_step[step.step_id] = int(
+                budget.pagination_pages_per_step.get(step.step_id) or 0
+            ) + 1
+            args = next_args
+            invoke_out = resolver.invoke_api(oid, args)
+            budget.mcp_invocations += 1
+            if not invoke_out.get("success"):
+                success = False
+                pagination_recommended = False
+                break
+            try:
+                envelope = normalize_gateway_envelope(invoke_out)
+            except Exception:  # noqa: BLE001
+                envelope = normalize_gateway_envelope(
+                    (invoke_out or {}).get("result")
+                )
+            scanned = int(
+                envelope.get("returned_rows") or len(envelope.get("rows") or [])
+            )
+            budget.rows_scanned += scanned
+            budget.rows_scanned_per_step[step.step_id] = int(
+                budget.rows_scanned_per_step.get(step.step_id) or 0
+            ) + scanned
+            # Merge rows into adapted by re-adapting cumulative? Re-adapt latest page
+            # then merge metrics for financial long-table.
+            page_adapted = adapt_mcp_result(
+                capability=str(step.required_capability),
+                raw_result=invoke_out,
+                contract=contract,
+                arguments=args,
+                task_spec=task_spec,
+            )
+            if page_adapted.get("adapter_ok"):
+                budget.output_adapter_success_count += 1
+            # Merge metrics / latest market fields.
+            if isinstance(adapted.get("metrics"), dict) and isinstance(
+                page_adapted.get("metrics"), dict
+            ):
+                for k, v in page_adapted["metrics"].items():
+                    adapted["metrics"].setdefault(k, v)
+                    adapted.setdefault(k, v)
+                for key in ("field_provenance",):
+                    adapted.setdefault(key, [])
+                    adapted[key] = list(adapted.get(key) or []) + list(
+                        page_adapted.get(key) or []
+                    )
+                adapted["pagination_needed"] = bool(page_adapted.get("pagination_needed"))
+            else:
+                adapted = page_adapted
+            adapted["envelope"] = {
+                "truncated": envelope.get("truncated"),
+                "offset": envelope.get("offset"),
+                "returned_rows": envelope.get("returned_rows"),
+                "total_rows": envelope.get("total_rows"),
+            }
+            output_check = required_outputs_present(
+                adapted, list(step.required_outputs or [])
+            )
+            can_page, page_reason = should_paginate(
+                mcp_success=True,
+                envelope=envelope,
+                required_outputs_ok=bool(output_check.get("ok")),
+                supports_offset=True,
+                pages_used=int(budget.pagination_pages_per_step.get(step.step_id) or 0),
+                rows_scanned=int(budget.rows_scanned_per_step.get(step.step_id) or 0),
+                mcp_budget_remaining=max(
+                    0,
+                    int(budget.limits["max_total_mcp_invocations"])
+                    - budget.mcp_invocations,
+                ),
+            )
+            pagination_recommended = bool(can_page)
+            del page_reason
+
         projection = project_mcp_result(
             operation_id=str(oid),
             arguments=args,
@@ -1051,13 +1249,14 @@ def execute_retrieve_step(
         )
         projection["adapted"] = adapted
         projection["required_outputs_check"] = output_check
+        projection["envelope"] = envelope
         budget.raw_observation_chars += int(projection.get("raw_chars") or 0)
         budget.projected_observation_chars += int(
             projection.get("projected_chars") or 0
         )
 
-    # MCP success alone is not step success when required_outputs missing.
-    evidence_valid = bool(success) and (
+    # Separate MCP success from required-output satisfaction / step completion.
+    required_outputs_satisfied = bool(
         not list(step.required_outputs or [])
         or bool((output_check or {}).get("ok"))
     )
@@ -1065,13 +1264,16 @@ def execute_retrieve_step(
         list_only_should_not_resolve_narrative as _list_only,
     )
 
-    narrative_list = bool(success) and _list_only(
-        operation_id=str(oid),
-        objective=step.objective,
-        query_hint=step.retrieval_query_hint,
-        required_capability=step.required_capability,
+    narrative_list = bool(success) and (
+        str(step.required_capability or "") == "disclosure.list"
+        or _list_only(
+            operation_id=str(oid),
+            objective=step.objective,
+            query_hint=step.retrieval_query_hint,
+            required_capability=step.required_capability,
+        )
     )
-    step_ok = bool(success) and (evidence_valid or narrative_list)
+    step_ok = bool(success) and (required_outputs_satisfied or narrative_list)
 
     ev = ledger.add(
         step_id=step.step_id,
@@ -1089,6 +1291,7 @@ def execute_retrieve_step(
                 "projection": projection,
                 "adapted": adapted,
                 "required_outputs_check": output_check,
+                "envelope": envelope,
             }
             if projection
             else {}
@@ -1098,10 +1301,19 @@ def execute_retrieve_step(
         {
             "ok": step_ok,
             "mcp_execution_success": success,
+            "adapter_ok": adapter_ok,
+            "required_outputs_satisfied": required_outputs_satisfied,
+            "missing_required_outputs": list((output_check or {}).get("missing") or []),
+            "pagination_recommended": bool(
+                pagination_recommended and not required_outputs_satisfied
+            ),
+            "pagination_count": budget.pagination_count,
+            "rows_scanned": budget.rows_scanned,
             "chosen_operation_id": oid,
             "invoke": invoke_out,
             "projection": projection,
             "adapted": adapted,
+            "envelope": envelope,
             "required_outputs_check": output_check,
             "evidence_id": ev.evidence_id,
             "mcp_called": True,
@@ -1124,7 +1336,7 @@ def execute_retrieve_step(
             "adapted": adapted,
             "projected": projection.get("projected"),
             "raw_artifact_hash": projection.get("raw_artifact_hash"),
-            "truncated": projection.get("truncated"),
+            "truncated": (envelope or {}).get("truncated"),
         }
     return base_out
 

@@ -44,8 +44,8 @@ V5_PRED = ROOT / "outputs" / "apv_fin_real_smoke4_v5" / "predictions.jsonl"
 
 
 def test_method_version_v1_2():
-    # Suite still covers v1.2 contracts; live method version advanced to v1.3.
-    assert APV_FIN_METHOD_VERSION == "apv_fin_v1_3_capability_compiler"
+    # Suite still covers v1.2 contracts; live method version advanced to v1.4.
+    assert APV_FIN_METHOD_VERSION == "apv_fin_v1_4_gateway_adapter_and_progression"
     cfg = load_apv_fin_config()
     assert cfg["method_version"] == APV_FIN_METHOD_VERSION
 
