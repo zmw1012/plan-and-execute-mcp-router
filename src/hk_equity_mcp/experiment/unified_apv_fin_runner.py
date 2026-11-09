@@ -36,6 +36,7 @@ from hk_equity_mcp.apv_fin.identity import (
     EXPECTED_GENERATION_PROVIDER,
     CAPABILITY_COMPILER_PROTOCOL_CHANGE,
     CAPABILITY_CONTRACT_PROTOCOL_CHANGE,
+    CRASH_SAFE_RUNTIME_PROTOCOL_CHANGE,
     GATEWAY_ADAPTER_PROTOCOL_CHANGE,
     METRICS_VERSION,
     PLANNER_PROTOCOL_CHANGE,
@@ -48,9 +49,17 @@ from hk_equity_mcp.apv_fin.identity import (
 )
 from hk_equity_mcp.apv_fin.dependency_expansion import dependency_progression_hash
 from hk_equity_mcp.apv_fin.financial_item_aliases import financial_item_alias_map_hash
+from hk_equity_mcp.apv_fin.llm_budget import LlmCallBudgetExhausted
 from hk_equity_mcp.apv_fin.output_adapters import output_adapter_hash
 from hk_equity_mcp.apv_fin.pagination import pagination_policy_hash
 from hk_equity_mcp.apv_fin.result_envelope import result_envelope_hash
+from hk_equity_mcp.apv_fin.runtime_safety import (
+    disclosure_prefix_policy_hash,
+    runner_finalization_policy_hash,
+    runtime_exception_policy_hash,
+    structured_llm_budget_failure,
+    summarize_prediction_outcomes,
+)
 from hk_equity_mcp.apv_fin.metadata import load_and_validate_metadata
 from hk_equity_mcp.apv_fin.operation_embedding_index import (
     build_index_identity,
@@ -788,6 +797,7 @@ class UnifiedHkApvFinRunner:
             "capability_contract_protocol_change": CAPABILITY_CONTRACT_PROTOCOL_CHANGE,
             "capability_compiler_protocol_change": CAPABILITY_COMPILER_PROTOCOL_CHANGE,
             "gateway_adapter_protocol_change": GATEWAY_ADAPTER_PROTOCOL_CHANGE,
+            "crash_safe_runtime_protocol_change": CRASH_SAFE_RUNTIME_PROTOCOL_CHANGE,
             "capability_contract_hash": capability_contract_hash(),
             "capability_ontology_version": CAPABILITY_ONTOLOGY_VERSION,
             "capability_ontology_hash": capability_ontology_hash(),
@@ -799,6 +809,9 @@ class UnifiedHkApvFinRunner:
             "financial_item_alias_map_hash": financial_item_alias_map_hash(),
             "dependency_progression_hash": dependency_progression_hash(),
             "pagination_policy_hash": pagination_policy_hash(),
+            "runtime_exception_policy_hash": runtime_exception_policy_hash(),
+            "runner_finalization_policy_hash": runner_finalization_policy_hash(),
+            "disclosure_prefix_policy_hash": disclosure_prefix_policy_hash(),
             "metrics_version": METRICS_VERSION,
             "max_tokens_unchanged": self.max_tokens == 2048,
             "catalog_fingerprint": fingerprint,
@@ -1449,8 +1462,13 @@ class UnifiedHkApvFinRunner:
             )
 
         run_meta["run_status"] = "running" if not self.mock else "mock_running"
+        run_meta["expected_task_count"] = len(items)
+        run_meta["first_task_started_at"] = None
+        run_meta["last_task_finished_at"] = None
         atomic_write_json(meta_path, run_meta)
 
+        predictions_by_id: Dict[str, Dict[str, Any]] = {}
+        abort_exc: Optional[BaseException] = None
         try:
             agent = self.build_agent()
             done = already_done_ids(predictions_path) if self.resume else set()
@@ -1469,7 +1487,6 @@ class UnifiedHkApvFinRunner:
             if not self.resume and predictions_path.exists():
                 predictions_path.unlink()
 
-            predictions_by_id: Dict[str, Dict[str, Any]] = {}
             if self.resume and predictions_path.exists():
                 for line in predictions_path.read_text(encoding="utf-8").splitlines():
                     if not line.strip():
@@ -1483,30 +1500,70 @@ class UnifiedHkApvFinRunner:
                     print(f"[{index:02d}/{len(items)}] skip {qid} (resume)", flush=True)
                     continue
                 print(f"[{index:02d}/{len(items)}] {qid}", flush=True)
+                now = datetime.now(timezone.utc).isoformat()
+                if run_meta.get("first_task_started_at") is None:
+                    run_meta["first_task_started_at"] = now
                 # Model receives ONLY the question string (no gold leakage).
                 if hasattr(agent.llm, "reset_script"):
                     agent.llm.reset_script()
-                result = agent.run(item["question"])
-                # Scrub gold keys from any accidental prompt surfaces in trace text.
+                try:
+                    result = agent.run(item["question"])
+                except LlmCallBudgetExhausted as exc:
+                    # Task isolation: convert to failed prediction; continue batch.
+                    result = structured_llm_budget_failure(exc)
+                except (KeyboardInterrupt, SystemExit):
+                    raise
+                except Exception as exc:  # noqa: BLE001
+                    # Unknown programming error: finalize as aborted, then re-raise.
+                    abort_exc = exc
+                    run_meta["run_status"] = "aborted"
+                    run_meta["abort_reason"] = "internal_error"
+                    run_meta["abort_error_type"] = type(exc).__name__
+                    run_meta["abort_error"] = str(exc)[:2000]
+                    run_meta["aborted_at"] = datetime.now(timezone.utc).isoformat()
+                    run_meta["aborted_task_id"] = qid
+                    break
+
                 row = self._build_prediction_row(item, result)
                 append_jsonl(predictions_path, row)
                 predictions_by_id[qid] = row
+                run_meta["last_task_finished_at"] = datetime.now(
+                    timezone.utc
+                ).isoformat()
+                outcome = summarize_prediction_outcomes(
+                    expected_ids=[t["task_id"] for t in items],
+                    predictions_by_id=predictions_by_id,
+                )
+                run_meta.update(outcome)
                 self._write_side_artifacts(
                     items=items,
                     predictions_by_id=predictions_by_id,
                     run_meta=run_meta,
                 )
+                atomic_write_json(meta_path, run_meta)
 
             # Final artifact flush (covers all-failed, resume-all-skipped, empty success).
             if not predictions_path.exists():
                 predictions_path.write_text("", encoding="utf-8")
                 fsync_file(predictions_path)
+            else:
+                fsync_file(predictions_path)
+            outcome = summarize_prediction_outcomes(
+                expected_ids=[t["task_id"] for t in items],
+                predictions_by_id=predictions_by_id,
+            )
+            run_meta.update(outcome)
             self._write_side_artifacts(
                 items=items,
                 predictions_by_id=predictions_by_id,
                 run_meta=run_meta,
             )
 
+            if abort_exc is not None:
+                atomic_write_json(meta_path, run_meta)
+                raise abort_exc
+
+            # Task failures do not make the run incomplete when all predictions exist.
             run_meta["run_status"] = "completed"
             run_meta["completed_at"] = datetime.now(timezone.utc).isoformat()
             if self._gateway is not None:
@@ -1515,5 +1572,49 @@ class UnifiedHkApvFinRunner:
             print(f"Predictions: {predictions_path}")
             print(f"Run metadata: {meta_path}")
             return run_meta
+        except (KeyboardInterrupt, SystemExit) as exc:
+            run_meta["run_status"] = "aborted"
+            run_meta["abort_reason"] = type(exc).__name__
+            run_meta["aborted_at"] = datetime.now(timezone.utc).isoformat()
+            outcome = summarize_prediction_outcomes(
+                expected_ids=[t["task_id"] for t in items],
+                predictions_by_id=predictions_by_id,
+            )
+            run_meta.update(outcome)
+            try:
+                if predictions_path.exists():
+                    fsync_file(predictions_path)
+                self._write_side_artifacts(
+                    items=items,
+                    predictions_by_id=predictions_by_id,
+                    run_meta=run_meta,
+                )
+                atomic_write_json(meta_path, run_meta)
+            finally:
+                raise
+        except Exception as exc:
+            # Ensure metadata is never left as running after an unexpected crash.
+            if run_meta.get("run_status") in {"running", "mock_running"}:
+                run_meta["run_status"] = "aborted"
+                run_meta["abort_reason"] = "internal_error"
+                run_meta["abort_error_type"] = type(exc).__name__
+                run_meta["abort_error"] = str(exc)[:2000]
+                run_meta["aborted_at"] = datetime.now(timezone.utc).isoformat()
+            outcome = summarize_prediction_outcomes(
+                expected_ids=[t["task_id"] for t in items],
+                predictions_by_id=predictions_by_id,
+            )
+            run_meta.update(outcome)
+            try:
+                if predictions_path.exists():
+                    fsync_file(predictions_path)
+                self._write_side_artifacts(
+                    items=items,
+                    predictions_by_id=predictions_by_id,
+                    run_meta=run_meta,
+                )
+                atomic_write_json(meta_path, run_meta)
+            finally:
+                raise
         finally:
             self.close()

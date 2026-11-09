@@ -24,13 +24,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_method_version_v1_4():
-    assert APV_FIN_METHOD_VERSION == "apv_fin_v1_4_gateway_adapter_and_progression"
+    assert APV_FIN_METHOD_VERSION == "apv_fin_v1_4_1_crash_safe_runtime"
     cfg = load_apv_fin_config()
     assert cfg["method_version"] == APV_FIN_METHOD_VERSION
     assert (
         GATEWAY_ADAPTER_PROTOCOL_CHANGE
         == "gateway_envelope_adapter_before_valid_method_evaluation"
     )
+    assert "crash_safe_runtime" in str(cfg.get("protocol_change") or "")
     assert result_envelope_hash()
     assert output_adapter_hash()
 

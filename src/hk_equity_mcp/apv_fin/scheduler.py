@@ -255,6 +255,7 @@ class BudgetTracker:
         self.pagination_signatures: set = set()
         self.pagination_pages_per_step: Dict[str, int] = {}
         self.rows_scanned_per_step: Dict[str, int] = {}
+        self.attempted_over_budget = False
 
     @property
     def llm_call_budget(self) -> int:
@@ -330,12 +331,15 @@ class BudgetTracker:
             "deterministic_compute_count": self.deterministic_compute_count,
             "pagination_count": self.pagination_count,
             "rows_scanned": self.rows_scanned,
+            "attempted_over_budget": self.attempted_over_budget,
             **self.llm_budget_fields(),
         }
 
     def exhausted(self) -> Optional[str]:
         # LLM call cap is enforced at request time by BudgetedLLMClient
         # (non-LLM steps may still proceed when the generation budget is spent).
+        # Call sites check-before-increment so used should never exceed limit;
+        # these > checks are residual safety only.
         if self.plan_revisions > self.limits["max_plan_revisions"]:
             return "max_plan_revisions"
         if self.exception_replan_calls > self.limits[
@@ -378,6 +382,7 @@ def execute_retrieve_step(
     from hk_equity_mcp.apv_fin.capability_contract import load_and_validate_capability_contracts
     from hk_equity_mcp.apv_fin.capability_filter import filter_by_capability_contract
     from hk_equity_mcp.apv_fin.dependency_expansion import (
+        available_deps_from_ledger,
         disclosure_prefix_needed,
         rewrite_step_to_disclosure_list,
     )
@@ -424,32 +429,8 @@ def execute_retrieve_step(
     budget.retrievals_per_step[step.step_id] = count + 1
 
     contracts = contracts or load_and_validate_capability_contracts()
-    # Pre-binder disclosure prefix: never ask Binder LLM to invent local_key.
-    if disclosure_prefix_needed(
-        required_capability=step.required_capability,
-        argument_slots=dict(step.argument_slots or {}),
-        available_deps={},
-        contracts=contracts,
-    ):
-        rewritten = rewrite_step_to_disclosure_list(
-            {
-                "required_capability": step.required_capability,
-                "required_outputs": list(step.required_outputs or []),
-                "argument_slots": dict(step.argument_slots or {}),
-                "source_preference": list(step.source_preference or []),
-                "fallback_capabilities": list(step.fallback_capabilities or []),
-                "notes": step.notes,
-                "semantic_output_requirements": list(
-                    getattr(step, "semantic_output_requirements", None) or []
-                ),
-            },
-            target_capability=step.required_capability,
-        )
-        step.required_capability = rewritten["required_capability"]
-        step.required_outputs = list(rewritten["required_outputs"])
-        step.source_preference = list(rewritten.get("source_preference") or [])
-        step.fallback_capabilities = list(rewritten.get("fallback_capabilities") or [])
-        step.notes = rewritten.get("notes")
+    # Disclosure prefix is applied AFTER the capability compiler (below). Applying
+    # it here would be overwritten when the compiler restores the narrative target.
     query = build_retrieval_query(step, task_spec)
     find_out = resolver.find_operations(query, top_k=top_k)
     candidates = list(find_out.get("candidates") or [])
@@ -542,6 +523,55 @@ def execute_retrieve_step(
             "no_candidate_reason": exc.error_type,
         }
 
+    # Live disclosure prefix: after compiler, before Binder. Never invent local_key.
+    disclosure_prefix_applied = False
+    ledger_deps = available_deps_from_ledger(ledger)
+    if disclosure_prefix_needed(
+        required_capability=str(required_capability),
+        argument_slots=dict(step.argument_slots or {}),
+        available_deps=ledger_deps,
+        contracts=contracts,
+    ):
+        target_cap = str(required_capability)
+        rewritten = rewrite_step_to_disclosure_list(
+            {
+                "required_capability": required_capability,
+                "required_outputs": list(required_outputs),
+                "argument_slots": dict(step.argument_slots or {}),
+                "source_preference": list(step.source_preference or []),
+                "fallback_capabilities": list(step.fallback_capabilities or []),
+                "notes": step.notes,
+                "semantic_output_requirements": list(
+                    getattr(step, "semantic_output_requirements", None)
+                    or semantic_outs
+                    or []
+                ),
+            },
+            target_capability=target_cap,
+        )
+        step.required_capability = rewritten["required_capability"]
+        step.required_outputs = list(rewritten["required_outputs"])
+        step.source_preference = list(rewritten.get("source_preference") or [])
+        step.fallback_capabilities = list(rewritten.get("fallback_capabilities") or [])
+        step.notes = rewritten.get("notes")
+        required_capability = "disclosure.list"
+        required_outputs = list(rewritten["required_outputs"])
+        disclosure_prefix_applied = True
+        budget.dependency_auto_expansion_count += 1
+        budget.deterministic_step_transitions += 1
+        # Refresh retrieval query toward list producers for embedding recall.
+        query = build_retrieval_query(step, task_spec)
+        find_out = resolver.find_operations(query, top_k=top_k)
+        candidates = list(find_out.get("candidates") or [])
+        ctx = context_from_task_spec(task_spec, step, question=question)
+        ranked = rerank_candidates(
+            candidates,
+            metadata_by_id,
+            ctx,
+            runtime_operation_ids=runtime_operation_ids,
+        )
+        reranked = list(ranked["reranked"] or [])
+
     embedding_before = len(reranked)
     cap_filter = filter_by_capability_contract(
         candidates=reranked,
@@ -627,6 +657,7 @@ def execute_retrieve_step(
             "selected_capability": required_capability,
             "canonical_required_outputs": required_outputs,
             "catalog_runtime_ops_for_capability": catalog_runtime[:20],
+            "disclosure_prefix_applied": disclosure_prefix_applied,
         }
 
     to_describe = select_candidates_to_describe(
@@ -853,6 +884,8 @@ def execute_retrieve_step(
         "capability_injected_candidate_count": cap_filter.get(
             "capability_injected_candidate_count"
         ),
+        "disclosure_prefix_applied": disclosure_prefix_applied,
+        "selected_capability": required_capability,
         "mcp_called": False,
         "chosen_operation_id": None,
         "invoke": None,

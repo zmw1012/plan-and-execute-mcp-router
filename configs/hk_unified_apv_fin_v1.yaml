@@ -1,8 +1,8 @@
-# APV-Fin proposed method v1.4 — gateway envelope adapter + progression (pre-valid eval)
+# APV-Fin proposed method v1.4.1 — crash-safe runtime + disclosure prefix (pre-valid eval)
 condition: apv_fin
-method_version: apv_fin_v1_4_gateway_adapter_and_progression
+method_version: apv_fin_v1_4_1_crash_safe_runtime
 execution_backend: real_mcp
-protocol_change: gateway_envelope_adapter_before_valid_method_evaluation
+protocol_change: crash_safe_runtime_before_valid_method_evaluation
 capability_contract: configs/operations/hk_capability_contract_v1.yaml
 
 # Formal live identity (fail-closed; no Aliyun silent fallback)

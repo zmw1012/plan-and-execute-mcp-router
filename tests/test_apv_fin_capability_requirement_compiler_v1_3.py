@@ -30,7 +30,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_method_version_and_protocol_v1_3():
     # Compiler suite remains; live method advanced to v1.4 adapter/progression.
-    assert APV_FIN_METHOD_VERSION == "apv_fin_v1_4_gateway_adapter_and_progression"
+    assert APV_FIN_METHOD_VERSION == "apv_fin_v1_4_1_crash_safe_runtime"
     cfg = load_apv_fin_config()
     assert cfg["method_version"] == APV_FIN_METHOD_VERSION
     assert (

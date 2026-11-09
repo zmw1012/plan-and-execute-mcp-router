@@ -37,7 +37,10 @@ CAPABILITY_COMPILER_PROTOCOL_CHANGE = (
 GATEWAY_ADAPTER_PROTOCOL_CHANGE = (
     "gateway_envelope_adapter_before_valid_method_evaluation"
 )
-METRICS_VERSION = "apv_fin_metrics_v1_4"
+CRASH_SAFE_RUNTIME_PROTOCOL_CHANGE = (
+    "crash_safe_runtime_before_valid_method_evaluation"
+)
+METRICS_VERSION = "apv_fin_metrics_v1_4_1"
 
 
 def schema_hashes() -> Dict[str, str]:
@@ -158,5 +161,5 @@ def worst_case_budget_estimate(limits: Dict[str, Any]) -> Dict[str, Any]:
         ),
         "limits_snapshot": dict(limits),
         "max_plan_revisions": max_revisions,
-        "protocol_change": GATEWAY_ADAPTER_PROTOCOL_CHANGE,
+        "protocol_change": CRASH_SAFE_RUNTIME_PROTOCOL_CHANGE,
     }

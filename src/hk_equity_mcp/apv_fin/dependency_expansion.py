@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Sequence
 
 from hk_equity_mcp.apv_fin.capability_ontology import DISCLOSURE_NARRATIVE_WORKFLOW
 
-DEPENDENCY_PROGRESSION_VERSION = "apv_fin_dependency_progression_v1_4"
+DEPENDENCY_PROGRESSION_VERSION = "apv_fin_dependency_progression_v1_4_1"
 
 
 def dependency_progression_hash() -> str:
@@ -18,7 +18,9 @@ def dependency_progression_hash() -> str:
             "workflow": list(DISCLOSURE_NARRATIVE_WORKFLOW),
             "policy": [
                 "prefix_list_when_local_key_missing",
+                "apply_after_capability_compiler",
                 "requires_provides_graph",
+                "ledger_availability_gate",
                 "no_fabricated_local_key",
             ],
         },
@@ -248,6 +250,61 @@ def capability_requires_local_key(
     return False
 
 
+def available_deps_from_ledger(ledger: Any) -> Dict[str, Any]:
+    """Extract disclosure identity / parse provenance already present in the ledger."""
+    out: Dict[str, Any] = {}
+    items = []
+    if ledger is None:
+        return out
+    if hasattr(ledger, "items"):
+        items = list(ledger.items or [])
+    elif isinstance(ledger, list):
+        items = ledger
+    for item in items:
+        payload = item.to_dict() if hasattr(item, "to_dict") else item
+        if not isinstance(payload, dict):
+            continue
+        blobs: List[Any] = [
+            payload.get("raw_value"),
+            payload.get("normalized_value"),
+            payload.get("extras"),
+            payload,
+        ]
+        for blob in blobs:
+            if not isinstance(blob, dict):
+                continue
+            for key in (
+                "local_key",
+                "news_id",
+                "release_date",
+                "page_number",
+                "stock_code",
+                "title",
+            ):
+                if blob.get(key) is not None and key not in out:
+                    out[key] = blob.get(key)
+            if blob.get("documents") or blob.get("document_identified"):
+                out.setdefault("document_identified", True)
+            if (
+                blob.get("parsed")
+                or blob.get("pages")
+                or blob.get("snippets")
+                or blob.get("textual_content")
+                or str(payload.get("claim") or "").startswith("parsed")
+            ):
+                out["parsed_document"] = True
+            adapted = blob.get("adapted") if isinstance(blob.get("adapted"), dict) else None
+            if adapted:
+                for key in ("local_key", "news_id", "release_date", "page_number"):
+                    if adapted.get(key) is not None and key not in out:
+                        out[key] = adapted.get(key)
+                if adapted.get("documents") or adapted.get("document_identified"):
+                    out.setdefault("document_identified", True)
+                if adapted.get("snippets") or adapted.get("pages"):
+                    out["parsed_document"] = True
+    return out
+
+
 def disclosure_prefix_needed(
     *,
     required_capability: Optional[str],
@@ -255,7 +312,7 @@ def disclosure_prefix_needed(
     available_deps: Optional[Dict[str, Any]] = None,
     contracts: Optional[Dict[str, Dict[str, Any]]] = None,
 ) -> bool:
-    """Narrative/keyword/page path missing local_key → list first (no Binder LLM)."""
+    """Narrative/keyword/page path missing ledger identity → list first (no Binder LLM)."""
     cap = str(required_capability or "")
     slots = dict(argument_slots or {})
     available = dict(available_deps or {})
@@ -264,6 +321,13 @@ def disclosure_prefix_needed(
     if cap == "disclosure.list":
         return False
     if is_narrative_capability(cap):
+        # Prefix when ledger lacks document identity and parse provenance.
+        if (
+            available.get("local_key")
+            or available.get("news_id")
+            or available.get("parsed_document")
+        ):
+            return False
         return True
     if cap in {
         "disclosure.keyword_search",
@@ -271,6 +335,8 @@ def disclosure_prefix_needed(
         "disclosure.parse",
         "disclosure.download",
     }:
+        if available.get("local_key"):
+            return False
         if contracts is None:
             return True
         return capability_requires_local_key(contracts=contracts, capability=cap)

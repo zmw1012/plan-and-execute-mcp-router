@@ -164,15 +164,16 @@ class ApvFinAgent:
 
         def _fail_llm_budget(exc: LlmCallBudgetExhausted) -> None:
             nonlocal final_obj, status, error, error_type
-            self.budget.stopping_reason = "resource_limit_failure"
-            error_type = LlmCallBudgetExhausted.error_type
+            self.budget.stopping_reason = "llm_call_budget_exhausted"
+            error_type = "resource_limit_failure"
             error = str(exc)
             status = "failed"
-            final_obj = controlled_failure_payload(reason="resource_limit_failure")
+            final_obj = controlled_failure_payload(reason="llm_call_budget_exhausted")
             trace.append(
                 {
                     "type": "llm_budget",
                     "error_type": error_type,
+                    "stopping_reason": "llm_call_budget_exhausted",
                     "used": exc.used,
                     "limit": exc.limit,
                     "stage": exc.stage,
@@ -252,575 +253,610 @@ class ApvFinAgent:
             )
 
             # ---- 2) Execute-ready → monitor loop --------------------------------
-            while True:
-                exhausted = self.budget.exhausted()
-                if exhausted:
-                    self.budget.stopping_reason = exhausted
-                    final_obj = controlled_failure_payload(reason=exhausted)
-                    status = "failed"
-                    error = exhausted
-                    break
-
-                # Scheduler: execute currently ready steps BEFORE calling monitor.
-                # Never call monitor in a loop with zero new observations.
-                executed_this_round = 0
+            try:
                 while True:
-                    step = select_next_step(plan_state)
-                    if step is None:
+                    exhausted = self.budget.exhausted()
+                    if exhausted:
+                        self.budget.stopping_reason = exhausted
+                        final_obj = controlled_failure_payload(reason=exhausted)
+                        status = "failed"
+                        error = exhausted
                         break
-                    if step.step_id in executed_step_ids and step.status == "running":
-                        # Defensive: do not re-execute the same running step.
-                        plan_state.mark_failed(step.step_id, "duplicate_execution_guard")
-                        break
-                    sched_event = {
-                        "type": "scheduler",
-                        "selected_step_id": step.step_id,
-                        "step_type": step.step_type,
-                        "ready_step_ids": [s.step_id for s in plan_state.ready_steps()],
-                    }
-                    scheduler_decisions.append(sched_event)
-                    trace.append(sched_event)
 
-                    plan_state.mark_running(step.step_id)
-                    executed_step_ids.add(step.step_id)
-                    step_event: Dict[str, Any] = {
-                        "type": "step_execution",
-                        "step_id": step.step_id,
-                        "step_type": step.step_type,
-                    }
-
-                    if step.step_type == "retrieve":
-                        out = execute_retrieve_step(
-                            step=step,
-                            task_spec=task_spec,
-                            resolver=self.resolver,
-                            metadata_by_id=self.metadata_by_id,
-                            runtime_operation_ids=self.runtime_operation_ids,
-                            ledger=ledger,
-                            budget=self.budget,
-                            top_k=self.top_k,
-                            llm=self.llm,
-                            question=question,
-                            invoke_arguments=(
-                                self._scripted_retrieve_args.get(step.step_id)
-                                or self._scripted_retrieve_args.get("*")
-                            ),
-                            select_operation_id=self._scripted_select_op,
-                            allow_forced_select=self._allow_mock_hooks,
-                            # Mock/offline: synthetic binding through the same validator;
-                            # never empty-arg invoke and never skip Tool Binding.
-                            offline_tool_binding=bool(self._allow_mock_hooks),
-                            contracts=self.capability_contracts,
-                        )
-                        _acc_tokens((out.get("binding") or {}).get("llm"))
-                        binding_meta = out.get("binding") or {}
-                        if out.get("binding_mode") == "deterministic":
-                            binding_decisions.append(
-                                {
-                                    "step_id": step.step_id,
-                                    "decision": "select",
-                                    "selected_operation_id": out.get(
-                                        "binding_selected_operation"
-                                    ),
-                                    "ok": True,
-                                    "binding_mode": "deterministic",
-                                }
-                            )
-                        elif binding_meta:
-                            binding_calls += 1
-                            binding_repair_count += int(
-                                binding_meta.get("repair_count") or 0
-                            )
-                            binding_decisions.append(
-                                {
-                                    "step_id": step.step_id,
-                                    "decision": binding_meta.get("decision"),
-                                    "selected_operation_id": binding_meta.get(
-                                        "selected_operation_id"
-                                    ),
-                                    "ok": binding_meta.get("ok"),
-                                    "error": binding_meta.get("error"),
-                                    "binding_mode": out.get("binding_mode"),
-                                    "raw_contents": binding_meta.get("raw_contents"),
-                                }
-                            )
-                        if out.get("described_candidate_ids"):
-                            described_candidate_ids.extend(
-                                out.get("described_candidate_ids") or []
-                            )
-                        if out.get("binding_selected_operation"):
-                            binding_selected_operations.append(
-                                out["binding_selected_operation"]
-                            )
-                        if out.get("grounded_arguments") is not None:
-                            grounded_arguments_log.append(
-                                {
-                                    "step_id": step.step_id,
-                                    "arguments": out.get("grounded_arguments"),
-                                }
-                            )
-                        if out.get("argument_sources") is not None:
-                            argument_sources_log.append(
-                                {
-                                    "step_id": step.step_id,
-                                    "sources": out.get("argument_sources"),
-                                }
-                            )
-                        if out.get("argument_validation") is not None:
-                            argument_validation_log.append(
-                                {
-                                    "step_id": step.step_id,
-                                    "validation": out.get("argument_validation"),
-                                }
-                            )
-                        retrieval_reformulation_count += int(
-                            out.get("retrieval_reformulation_count") or 0
-                        )
-                        if out.get("forced_select_used") and self.live_mode:
-                            final_obj = controlled_failure_payload(
-                                reason="forced_select_in_live_mode"
-                            )
-                            status = "failed"
-                            error = "forced_select_in_live_mode"
-                            self.budget.stopping_reason = error
-                            step_event["result"] = out
-                            trace.append(step_event)
+                    # Scheduler: execute currently ready steps BEFORE calling monitor.
+                    # Never call monitor in a loop with zero new observations.
+                    executed_this_round = 0
+                    while True:
+                        step = select_next_step(plan_state)
+                        if step is None:
                             break
-                        resolver_calls["find_operations"] += 1
-                        if out.get("describe") is not None:
-                            resolver_calls["describe_operation"] += 1
-                        if out.get("rerank"):
-                            retrieved_candidates.append(
-                                {
-                                    "step_id": step.step_id,
-                                    "query": out.get("query"),
-                                    "original_candidates": [
-                                        {
-                                            "operation_id": c.get("operation_id"),
-                                            "score": c.get("score"),
-                                            "original_rank": i + 1,
-                                        }
-                                        for i, c in enumerate(
-                                            (out.get("find") or {}).get("candidates")
-                                            or []
-                                        )
-                                    ],
-                                    "reranked": [
-                                        {
-                                            "operation_id": r["operation_id"],
-                                            "original_rank": r["original_rank"],
-                                            "final_rank": r.get("final_rank"),
-                                            "compatibility_tier": r.get(
-                                                "compatibility_tier"
-                                            ),
-                                            "compatibility_reasons": r.get(
-                                                "compatibility_reasons"
-                                            ),
-                                            "base_score": r.get("base_score"),
-                                        }
-                                        for r in (out["rerank"].get("reranked") or [])[
-                                            :20
-                                        ]
-                                    ],
-                                    "hard_filtered": out["rerank"].get("hard_filtered"),
-                                }
-                            )
-                        if out.get("chosen_operation_id"):
-                            selected_operations.append(out["chosen_operation_id"])
-                            predicted_operations.append(out["chosen_operation_id"])
-                        if out.get("invoke") is not None:
-                            oid = out.get("chosen_operation_id")
-                            if oid:
-                                invoked_operations.append(oid)
-                            # Gateway execution success ≠ required-output satisfaction.
-                            if out.get("mcp_execution_success") and oid:
-                                successful_invoked.append(oid)
-                        step_event["result"] = {
-                            k: v for k, v in out.items() if k not in {"find"}
+                        if step.step_id in executed_step_ids and step.status == "running":
+                            # Defensive: do not re-execute the same running step.
+                            plan_state.mark_failed(step.step_id, "duplicate_execution_guard")
+                            break
+                        sched_event = {
+                            "type": "scheduler",
+                            "selected_step_id": step.step_id,
+                            "step_type": step.step_type,
+                            "ready_step_ids": [s.step_id for s in plan_state.ready_steps()],
                         }
-                        observations.append(step_event["result"])
-                        observations_since_monitor += 1
-                        trace.extend(_ov_compatible_retrieve_events(out))
-                        last_classification = classify_after_step(
-                            step=step,
-                            execution_ok=bool(out.get("ok")),
-                            projection=out.get("projection"),
-                            task_spec=task_spec,
-                            error=out.get("error"),
-                            adapted=out.get("adapted"),
-                            mcp_execution_success=bool(out.get("mcp_execution_success")),
-                            pagination_recommended=bool(
-                                out.get("pagination_recommended")
-                            ),
-                        )
-                        # MCP ok but missing outputs: keep classify decision
-                        # (paginate / expand_dependency / required_output_missing).
-                        # Never rewrite paginate/expand into mcp_execution_failed.
-                        adapted_deps = dict(out.get("adapted") or {})
-                        progress = apply_deterministic_progress(
-                            plan_state=plan_state,
-                            step=step,
-                            classification=last_classification,
-                            observation_ids=[out.get("evidence_id")]
-                            if out.get("evidence_id")
-                            else None,
-                            projection=out.get("projection")
-                            or {"adapted": out.get("adapted")},
-                            contracts=self.capability_contracts,
-                            available_deps={
-                                k: adapted_deps[k]
-                                for k in (
-                                    "local_key",
-                                    "news_id",
-                                    "release_date",
-                                    "page_number",
-                                    "stock_code",
+                        scheduler_decisions.append(sched_event)
+                        trace.append(sched_event)
+
+                        plan_state.mark_running(step.step_id)
+                        executed_step_ids.add(step.step_id)
+                        step_event: Dict[str, Any] = {
+                            "type": "step_execution",
+                            "step_id": step.step_id,
+                            "step_type": step.step_type,
+                        }
+
+                        if step.step_type == "retrieve":
+                            try:
+                                out = execute_retrieve_step(
+                                    step=step,
+                                    task_spec=task_spec,
+                                    resolver=self.resolver,
+                                    metadata_by_id=self.metadata_by_id,
+                                    runtime_operation_ids=self.runtime_operation_ids,
+                                    ledger=ledger,
+                                    budget=self.budget,
+                                    top_k=self.top_k,
+                                    llm=self.llm,
+                                    question=question,
+                                    invoke_arguments=(
+                                        self._scripted_retrieve_args.get(step.step_id)
+                                        or self._scripted_retrieve_args.get("*")
+                                    ),
+                                    select_operation_id=self._scripted_select_op,
+                                    allow_forced_select=self._allow_mock_hooks,
+                                    # Mock/offline: synthetic binding through the same validator;
+                                    # never empty-arg invoke and never skip Tool Binding.
+                                    offline_tool_binding=bool(self._allow_mock_hooks),
+                                    contracts=self.capability_contracts,
                                 )
-                                if adapted_deps.get(k) is not None
-                            },
-                            already_invoked=invoked_operations,
-                        )
-                        if progress.get("resolved") or progress.get(
-                            "dependency_auto_expansion_count"
-                        ):
-                            self.budget.deterministic_step_transitions += 1
-                        self.budget.dependency_auto_expansion_count += int(
-                            progress.get("dependency_auto_expansion_count") or 0
-                        )
-                        step_event["progress"] = progress
-                        step.selected_operation = out.get("chosen_operation_id")
-                        step.invoked_operation = out.get("chosen_operation_id")
-                        step.execution_result = {
-                            "ok": out.get("ok"),
-                            "error": out.get("error"),
-                        }
-
-                    elif step.step_type == "compute":
-                        out = execute_compute_step(
-                            step=step,
-                            ledger=ledger,
-                            scripted_payload=self._scripted_compute,
-                        )
-                        if out.get("compute_trace"):
-                            compute_traces.append(out["compute_trace"])
-                        assert out.get("mcp_called") is False
-                        assert out.get("llm_called") is False
-                        step_event["result"] = {
-                            k: v for k, v in out.items() if k != "llm"
-                        }
-                        observations.append(step_event["result"])
-                        observations_since_monitor += 1
-                        last_classification = classify_after_step(
-                            step=step,
-                            execution_ok=bool(out.get("ok")),
-                            projection={
-                                "ok": out.get("ok"),
-                                "value": out.get("value"),
-                            },
-                            task_spec=task_spec,
-                            error=out.get("error"),
-                        )
-                        if out.get("error") == "missing_compute_operands":
-                            last_classification = {
-                                "action": "exception",
-                                "trigger": "missing_compute_operands",
-                                "reason": "missing_compute_operands",
+                            except LlmCallBudgetExhausted as exc:
+                                _fail_llm_budget(exc)
+                                step_event["result"] = {
+                                    "ok": False,
+                                    "error": str(exc),
+                                    "error_type": "resource_limit_failure",
+                                    "mcp_called": False,
+                                }
+                                trace.append(step_event)
+                                break
+                            _acc_tokens((out.get("binding") or {}).get("llm"))
+                            binding_meta = out.get("binding") or {}
+                            if out.get("binding_mode") == "deterministic":
+                                binding_decisions.append(
+                                    {
+                                        "step_id": step.step_id,
+                                        "decision": "select",
+                                        "selected_operation_id": out.get(
+                                            "binding_selected_operation"
+                                        ),
+                                        "ok": True,
+                                        "binding_mode": "deterministic",
+                                    }
+                                )
+                            elif binding_meta:
+                                binding_calls += 1
+                                binding_repair_count += int(
+                                    binding_meta.get("repair_count") or 0
+                                )
+                                binding_decisions.append(
+                                    {
+                                        "step_id": step.step_id,
+                                        "decision": binding_meta.get("decision"),
+                                        "selected_operation_id": binding_meta.get(
+                                            "selected_operation_id"
+                                        ),
+                                        "ok": binding_meta.get("ok"),
+                                        "error": binding_meta.get("error"),
+                                        "binding_mode": out.get("binding_mode"),
+                                        "raw_contents": binding_meta.get("raw_contents"),
+                                    }
+                                )
+                            if out.get("described_candidate_ids"):
+                                described_candidate_ids.extend(
+                                    out.get("described_candidate_ids") or []
+                                )
+                            if out.get("binding_selected_operation"):
+                                binding_selected_operations.append(
+                                    out["binding_selected_operation"]
+                                )
+                            if out.get("grounded_arguments") is not None:
+                                grounded_arguments_log.append(
+                                    {
+                                        "step_id": step.step_id,
+                                        "arguments": out.get("grounded_arguments"),
+                                    }
+                                )
+                            if out.get("argument_sources") is not None:
+                                argument_sources_log.append(
+                                    {
+                                        "step_id": step.step_id,
+                                        "sources": out.get("argument_sources"),
+                                    }
+                                )
+                            if out.get("argument_validation") is not None:
+                                argument_validation_log.append(
+                                    {
+                                        "step_id": step.step_id,
+                                        "validation": out.get("argument_validation"),
+                                    }
+                                )
+                            retrieval_reformulation_count += int(
+                                out.get("retrieval_reformulation_count") or 0
+                            )
+                            if out.get("forced_select_used") and self.live_mode:
+                                final_obj = controlled_failure_payload(
+                                    reason="forced_select_in_live_mode"
+                                )
+                                status = "failed"
+                                error = "forced_select_in_live_mode"
+                                self.budget.stopping_reason = error
+                                step_event["result"] = out
+                                trace.append(step_event)
+                                break
+                            resolver_calls["find_operations"] += 1
+                            if out.get("describe") is not None:
+                                resolver_calls["describe_operation"] += 1
+                            if out.get("rerank"):
+                                retrieved_candidates.append(
+                                    {
+                                        "step_id": step.step_id,
+                                        "query": out.get("query"),
+                                        "original_candidates": [
+                                            {
+                                                "operation_id": c.get("operation_id"),
+                                                "score": c.get("score"),
+                                                "original_rank": i + 1,
+                                            }
+                                            for i, c in enumerate(
+                                                (out.get("find") or {}).get("candidates")
+                                                or []
+                                            )
+                                        ],
+                                        "reranked": [
+                                            {
+                                                "operation_id": r["operation_id"],
+                                                "original_rank": r["original_rank"],
+                                                "final_rank": r.get("final_rank"),
+                                                "compatibility_tier": r.get(
+                                                    "compatibility_tier"
+                                                ),
+                                                "compatibility_reasons": r.get(
+                                                    "compatibility_reasons"
+                                                ),
+                                                "base_score": r.get("base_score"),
+                                            }
+                                            for r in (out["rerank"].get("reranked") or [])[
+                                                :20
+                                            ]
+                                        ],
+                                        "hard_filtered": out["rerank"].get("hard_filtered"),
+                                    }
+                                )
+                            if out.get("chosen_operation_id"):
+                                selected_operations.append(out["chosen_operation_id"])
+                                predicted_operations.append(out["chosen_operation_id"])
+                            if out.get("invoke") is not None:
+                                oid = out.get("chosen_operation_id")
+                                if oid:
+                                    invoked_operations.append(oid)
+                                # Gateway execution success ≠ required-output satisfaction.
+                                if out.get("mcp_execution_success") and oid:
+                                    successful_invoked.append(oid)
+                            step_event["result"] = {
+                                k: v for k, v in out.items() if k not in {"find"}
                             }
-                        progress = apply_deterministic_progress(
-                            plan_state=plan_state,
-                            step=step,
-                            classification=last_classification,
-                            observation_ids=[out.get("evidence_id")]
-                            if out.get("evidence_id")
-                            else None,
-                            projection={"ok": out.get("ok"), "value": out.get("value")},
-                        )
-                        if progress.get("resolved"):
-                            self.budget.deterministic_step_transitions += 1
-                        if out.get("ok"):
-                            self.budget.deterministic_compute_count += 1
-                        step_event["progress"] = progress
+                            observations.append(step_event["result"])
+                            observations_since_monitor += 1
+                            trace.extend(_ov_compatible_retrieve_events(out))
+                            last_classification = classify_after_step(
+                                step=step,
+                                execution_ok=bool(out.get("ok")),
+                                projection=out.get("projection"),
+                                task_spec=task_spec,
+                                error=out.get("error"),
+                                adapted=out.get("adapted"),
+                                mcp_execution_success=bool(out.get("mcp_execution_success")),
+                                pagination_recommended=bool(
+                                    out.get("pagination_recommended")
+                                ),
+                            )
+                            # MCP ok but missing outputs: keep classify decision
+                            # (paginate / expand_dependency / required_output_missing).
+                            # Never rewrite paginate/expand into mcp_execution_failed.
+                            adapted_deps = dict(out.get("adapted") or {})
+                            progress = apply_deterministic_progress(
+                                plan_state=plan_state,
+                                step=step,
+                                classification=last_classification,
+                                observation_ids=[out.get("evidence_id")]
+                                if out.get("evidence_id")
+                                else None,
+                                projection=out.get("projection")
+                                or {"adapted": out.get("adapted")},
+                                contracts=self.capability_contracts,
+                                available_deps={
+                                    k: adapted_deps[k]
+                                    for k in (
+                                        "local_key",
+                                        "news_id",
+                                        "release_date",
+                                        "page_number",
+                                        "stock_code",
+                                    )
+                                    if adapted_deps.get(k) is not None
+                                },
+                                already_invoked=invoked_operations,
+                            )
+                            if progress.get("resolved") or progress.get(
+                                "dependency_auto_expansion_count"
+                            ):
+                                self.budget.deterministic_step_transitions += 1
+                            self.budget.dependency_auto_expansion_count += int(
+                                progress.get("dependency_auto_expansion_count") or 0
+                            )
+                            step_event["progress"] = progress
+                            step.selected_operation = out.get("chosen_operation_id")
+                            step.invoked_operation = out.get("chosen_operation_id")
+                            step.execution_result = {
+                                "ok": out.get("ok"),
+                                "error": out.get("error"),
+                            }
 
-                    elif step.step_type in {"reason", "verify"}:
-                        try:
-                            out = execute_reason_step(
-                                llm=self.llm,
-                                question=question,
+                        elif step.step_type == "compute":
+                            out = execute_compute_step(
                                 step=step,
                                 ledger=ledger,
-                                temperature=self.temperature,
-                                max_tokens=self.max_tokens,
-                                scripted_payload=self._scripted_reason,
+                                scripted_payload=self._scripted_compute,
+                            )
+                            if out.get("compute_trace"):
+                                compute_traces.append(out["compute_trace"])
+                            assert out.get("mcp_called") is False
+                            assert out.get("llm_called") is False
+                            step_event["result"] = {
+                                k: v for k, v in out.items() if k != "llm"
+                            }
+                            observations.append(step_event["result"])
+                            observations_since_monitor += 1
+                            last_classification = classify_after_step(
+                                step=step,
+                                execution_ok=bool(out.get("ok")),
+                                projection={
+                                    "ok": out.get("ok"),
+                                    "value": out.get("value"),
+                                },
+                                task_spec=task_spec,
+                                error=out.get("error"),
+                            )
+                            if out.get("error") == "missing_compute_operands":
+                                last_classification = {
+                                    "action": "exception",
+                                    "trigger": "missing_compute_operands",
+                                    "reason": "missing_compute_operands",
+                                }
+                            progress = apply_deterministic_progress(
+                                plan_state=plan_state,
+                                step=step,
+                                classification=last_classification,
+                                observation_ids=[out.get("evidence_id")]
+                                if out.get("evidence_id")
+                                else None,
+                                projection={"ok": out.get("ok"), "value": out.get("value")},
+                            )
+                            if progress.get("resolved"):
+                                self.budget.deterministic_step_transitions += 1
+                            if out.get("ok"):
+                                self.budget.deterministic_compute_count += 1
+                            step_event["progress"] = progress
+
+                        elif step.step_type in {"reason", "verify"}:
+                            try:
+                                out = execute_reason_step(
+                                    llm=self.llm,
+                                    question=question,
+                                    step=step,
+                                    ledger=ledger,
+                                    temperature=self.temperature,
+                                    max_tokens=self.max_tokens,
+                                    scripted_payload=self._scripted_reason,
+                                )
+                            except LlmCallBudgetExhausted as exc:
+                                _fail_llm_budget(exc)
+                                break
+                            _acc_tokens(out.get("llm"))
+                            assert out.get("mcp_called") is False
+                            step_event["result"] = {
+                                k: v for k, v in out.items() if k != "llm"
+                            }
+                            observations.append(step_event["result"])
+                            observations_since_monitor += 1
+                            last_classification = classify_after_step(
+                                step=step,
+                                execution_ok=bool(out.get("ok")),
+                                projection={"ok": out.get("ok")},
+                                task_spec=task_spec,
+                                error=out.get("error"),
+                            )
+                            progress = apply_deterministic_progress(
+                                plan_state=plan_state,
+                                step=step,
+                                classification=last_classification,
+                                observation_ids=[out.get("evidence_id")]
+                                if out.get("evidence_id")
+                                else None,
+                                projection={"ok": out.get("ok")},
+                            )
+                            if progress.get("resolved"):
+                                self.budget.deterministic_step_transitions += 1
+                            step_event["progress"] = progress
+
+                        elif step.step_type == "answer":
+                            # Answer is synthesized by Final Answer LLM after non-answer
+                            # mandatory steps resolve — do not auto-resolve here.
+                            step_event["result"] = {
+                                "ok": True,
+                                "mcp_called": False,
+                                "terminal": "answer_ready",
+                            }
+                            observations.append(step_event["result"])
+                            observations_since_monitor += 1
+                            last_classification = {
+                                "action": "resolve",
+                                "trigger": None,
+                                "reason": "answer_ready_deferred_to_final",
+                            }
+
+                        elif step.step_type in {"clarify", "refuse"}:
+                            plan_state.mark_resolved(step.step_id)
+                            self.budget.deterministic_step_transitions += 1
+                            step_event["result"] = {
+                                "ok": True,
+                                "mcp_called": False,
+                                "terminal": step.step_type,
+                            }
+                            observations.append(step_event["result"])
+                            observations_since_monitor += 1
+                            last_classification = {
+                                "action": "resolve",
+                                "trigger": None,
+                                "reason": step.step_type,
+                            }
+                        else:
+                            plan_state.mark_failed(
+                                step.step_id, f"unknown_step_type:{step.step_type}"
+                            )
+                            step_event["result"] = {"ok": False, "mcp_called": False}
+                            observations_since_monitor += 1
+                            last_classification = {
+                                "action": "exception",
+                                "trigger": "capability_unsupported",
+                                "reason": f"unknown_step_type:{step.step_type}",
+                            }
+
+                        trace.append(step_event)
+                        executed_this_round += 1
+                        break
+
+                    if error == "forced_select_in_live_mode" or error_type == "resource_limit_failure":
+                        break
+
+                    # Final path: all mandatory non-answer steps resolved → Final Answer LLM.
+                    if plan_state.non_answer_mandatory_resolved():
+                        try:
+                            final_pack = self._synthesize_final(
+                                question=question,
+                                plan_state=plan_state,
+                                ledger=ledger,
+                                task_spec=task_spec,
+                                compute_traces=compute_traces,
                             )
                         except LlmCallBudgetExhausted as exc:
                             _fail_llm_budget(exc)
                             break
-                        _acc_tokens(out.get("llm"))
-                        assert out.get("mcp_called") is False
-                        step_event["result"] = {
-                            k: v for k, v in out.items() if k != "llm"
-                        }
-                        observations.append(step_event["result"])
-                        observations_since_monitor += 1
-                        last_classification = classify_after_step(
-                            step=step,
-                            execution_ok=bool(out.get("ok")),
-                            projection={"ok": out.get("ok")},
-                            task_spec=task_spec,
-                            error=out.get("error"),
+                        _acc_tokens(final_pack.pop("_llm", None))
+                        parse_repair_count += int(final_pack.pop("_repair_count", 0) or 0)
+                        validator_result = final_pack.get("validator")
+                        if not final_pack.get("ok"):
+                            status = "failed"
+                            error = final_pack.get("error")
+                            final_obj = final_pack.get("payload") or controlled_failure_payload(
+                                reason=error or "final_fail_closed"
+                            )
+                        else:
+                            final_obj = final_pack["payload"]
+                            status = "full"
+                            for sid, st in plan_state.steps.items():
+                                if st.step_type == "answer" and st.status != "resolved":
+                                    plan_state.mark_resolved(sid)
+                                    self.budget.deterministic_step_transitions += 1
+                            if (
+                                final_obj.get("status") == "answered"
+                                and validator_result
+                                and not validator_result.get("ok")
+                            ):
+                                if (
+                                    self.budget.final_repair_rounds
+                                    < self.budget.limits["max_final_repair_rounds"]
+                                ):
+                                    self.budget.final_repair_rounds += 1
+                                    final_obj = controlled_failure_payload(
+                                        reason="validator_failed:"
+                                        + ",".join(validator_result.get("failed_checks") or [])
+                                    )
+                                    self.budget.stopping_reason = "validator_controlled_failure"
+                                else:
+                                    final_obj = controlled_failure_payload(
+                                        reason="validator_failed_no_budget"
+                                    )
+                                    status = "failed"
+                                    error = "validator_failed_no_budget"
+                                    self.budget.stopping_reason = error
+                            else:
+                                self.budget.stopping_reason = "plan_complete"
+                        break
+
+                    # Exceptional Monitor only — never on normal deterministic success.
+                    trigger = needs_exceptional_replan(
+                        plan_state=plan_state, last_classification=last_classification
+                    )
+                    if trigger is None:
+                        # Normal progress: continue scheduling without Monitor LLM.
+                        if executed_this_round == 0:
+                            self.budget.idle_monitor_rounds += 1
+                            if self.budget.idle_monitor_rounds > self.budget.limits[
+                                "max_idle_monitor_rounds"
+                            ]:
+                                self.budget.stopping_reason = "max_idle_monitor_rounds"
+                                final_obj = controlled_failure_payload(
+                                    reason="max_idle_monitor_rounds"
+                                )
+                                status = "failed"
+                                error = "max_idle_monitor_rounds"
+                                break
+                        else:
+                            self.budget.idle_monitor_rounds = 0
+                        continue
+
+                    self.budget.exception_trigger = trigger
+                    # Check-before-increment: used must never exceed configured limits.
+                    replan_limit = int(
+                        self.budget.limits["max_exception_replan_calls_per_task"]
+                    )
+                    monitor_limit = int(self.budget.limits["max_llm_monitor_rounds"])
+                    if self.budget.exception_replan_calls >= replan_limit:
+                        self.budget.attempted_over_budget = True
+                        self.budget.stopping_reason = "max_exception_replan_calls_per_task"
+                        final_obj = controlled_failure_payload(
+                            reason="max_exception_replan_calls_per_task"
                         )
-                        progress = apply_deterministic_progress(
-                            plan_state=plan_state,
-                            step=step,
-                            classification=last_classification,
-                            observation_ids=[out.get("evidence_id")]
-                            if out.get("evidence_id")
-                            else None,
-                            projection={"ok": out.get("ok")},
+                        status = "failed"
+                        error = "max_exception_replan_calls_per_task"
+                        error_type = "resource_limit_failure"
+                        break
+                    if self.budget.monitor_rounds >= monitor_limit:
+                        self.budget.attempted_over_budget = True
+                        self.budget.stopping_reason = "max_llm_monitor_rounds"
+                        final_obj = controlled_failure_payload(
+                            reason="max_llm_monitor_rounds"
                         )
-                        if progress.get("resolved"):
-                            self.budget.deterministic_step_transitions += 1
-                        step_event["progress"] = progress
+                        status = "failed"
+                        error = "max_llm_monitor_rounds"
+                        error_type = "resource_limit_failure"
+                        break
+                    self.budget.exception_replan_calls += 1
+                    self.budget.monitor_rounds += 1
 
-                    elif step.step_type == "answer":
-                        # Answer is synthesized by Final Answer LLM after non-answer
-                        # mandatory steps resolve — do not auto-resolve here.
-                        step_event["result"] = {
-                            "ok": True,
-                            "mcp_called": False,
-                            "terminal": "answer_ready",
-                        }
-                        observations.append(step_event["result"])
-                        observations_since_monitor += 1
-                        last_classification = {
-                            "action": "resolve",
-                            "trigger": None,
-                            "reason": "answer_ready_deferred_to_final",
-                        }
-
-                    elif step.step_type in {"clarify", "refuse"}:
-                        plan_state.mark_resolved(step.step_id)
-                        self.budget.deterministic_step_transitions += 1
-                        step_event["result"] = {
-                            "ok": True,
-                            "mcp_called": False,
-                            "terminal": step.step_type,
-                        }
-                        observations.append(step_event["result"])
-                        observations_since_monitor += 1
-                        last_classification = {
-                            "action": "resolve",
-                            "trigger": None,
-                            "reason": step.step_type,
-                        }
-                    else:
-                        plan_state.mark_failed(
-                            step.step_id, f"unknown_step_type:{step.step_type}"
-                        )
-                        step_event["result"] = {"ok": False, "mcp_called": False}
-                        observations_since_monitor += 1
-                        last_classification = {
-                            "action": "exception",
-                            "trigger": "capability_unsupported",
-                            "reason": f"unknown_step_type:{step.step_type}",
-                        }
-
-                    trace.append(step_event)
-                    executed_this_round += 1
-                    break
-
-                if error == "forced_select_in_live_mode" or error_type == "resource_limit_failure":
-                    break
-
-                # Final path: all mandatory non-answer steps resolved → Final Answer LLM.
-                if plan_state.non_answer_mandatory_resolved():
                     try:
-                        final_pack = self._synthesize_final(
+                        mon = run_monitor(
+                            self.llm,
                             question=question,
                             plan_state=plan_state,
-                            ledger=ledger,
-                            task_spec=task_spec,
-                            compute_traces=compute_traces,
+                            observations=_compact_obs_for_monitor(),
+                            evidence_summary=compact_ledger_for_prompt(ledger.to_list()),
+                            budget=self.budget.snapshot(),
+                            exception_trigger=trigger,
+                            temperature=self.temperature,
+                            max_tokens=self.max_tokens,
                         )
                     except LlmCallBudgetExhausted as exc:
                         _fail_llm_budget(exc)
                         break
-                    _acc_tokens(final_pack.pop("_llm", None))
-                    parse_repair_count += int(final_pack.pop("_repair_count", 0) or 0)
-                    validator_result = final_pack.get("validator")
-                    if not final_pack.get("ok"):
-                        status = "failed"
-                        error = final_pack.get("error")
-                        final_obj = final_pack.get("payload") or controlled_failure_payload(
-                            reason=error or "final_fail_closed"
+                    _acc_tokens(mon.get("llm"))
+                    parse_repair_count += int(mon.get("repair_count") or 0)
+                    observations_since_monitor = 0
+                    last_classification = None
+                    if mon.get("patch_summary"):
+                        self.budget.plan_revisions = plan_state.revision
+                        plan_revisions.append(mon["patch_summary"])
+                    mon_rec = {
+                        "decision": mon.get("decision"),
+                        "decision_reason": mon.get("decision_reason"),
+                        "ready_step_ids": mon.get("ready_step_ids"),
+                        "ok": mon.get("ok"),
+                        "error": mon.get("error"),
+                        "patch_summary": mon.get("patch_summary"),
+                        "exception_trigger": trigger,
+                        "raw_contents": mon.get("raw_contents"),
+                    }
+                    monitor_decisions.append(mon_rec)
+                    trace.append({"type": "exceptional_monitor", "result": mon_rec})
+                    if not mon.get("ok"):
+                        final_obj = controlled_failure_payload(
+                            reason=mon.get("error") or "monitor_fail_closed"
                         )
-                    else:
-                        final_obj = final_pack["payload"]
-                        status = "full"
-                        for sid, st in plan_state.steps.items():
-                            if st.step_type == "answer" and st.status != "resolved":
-                                plan_state.mark_resolved(sid)
-                                self.budget.deterministic_step_transitions += 1
-                        if (
-                            final_obj.get("status") == "answered"
-                            and validator_result
-                            and not validator_result.get("ok")
-                        ):
-                            if (
-                                self.budget.final_repair_rounds
-                                < self.budget.limits["max_final_repair_rounds"]
-                            ):
-                                self.budget.final_repair_rounds += 1
-                                final_obj = controlled_failure_payload(
-                                    reason="validator_failed:"
-                                    + ",".join(validator_result.get("failed_checks") or [])
-                                )
-                                self.budget.stopping_reason = "validator_controlled_failure"
-                            else:
-                                final_obj = controlled_failure_payload(
-                                    reason="validator_failed_no_budget"
-                                )
-                                status = "failed"
-                                error = "validator_failed_no_budget"
-                                self.budget.stopping_reason = error
-                        else:
-                            self.budget.stopping_reason = "plan_complete"
-                    break
-
-                # Exceptional Monitor only — never on normal deterministic success.
-                trigger = needs_exceptional_replan(
-                    plan_state=plan_state, last_classification=last_classification
-                )
-                if trigger is None:
-                    # Normal progress: continue scheduling without Monitor LLM.
-                    if executed_this_round == 0:
-                        self.budget.idle_monitor_rounds += 1
-                        if self.budget.idle_monitor_rounds > self.budget.limits[
-                            "max_idle_monitor_rounds"
-                        ]:
-                            self.budget.stopping_reason = "max_idle_monitor_rounds"
-                            final_obj = controlled_failure_payload(
-                                reason="max_idle_monitor_rounds"
-                            )
-                            status = "failed"
-                            error = "max_idle_monitor_rounds"
-                            break
-                    else:
-                        self.budget.idle_monitor_rounds = 0
-                    continue
-
-                self.budget.exception_trigger = trigger
-                self.budget.exception_replan_calls += 1
-                self.budget.monitor_rounds += 1
-                if self.budget.exception_replan_calls > self.budget.limits[
-                    "max_exception_replan_calls_per_task"
-                ]:
-                    self.budget.stopping_reason = "max_exception_replan_calls_per_task"
-                    final_obj = controlled_failure_payload(
-                        reason="max_exception_replan_calls_per_task"
-                    )
-                    status = "failed"
-                    error = "max_exception_replan_calls_per_task"
-                    break
-
-                try:
-                    mon = run_monitor(
-                        self.llm,
-                        question=question,
-                        plan_state=plan_state,
-                        observations=_compact_obs_for_monitor(),
-                        evidence_summary=compact_ledger_for_prompt(ledger.to_list()),
-                        budget=self.budget.snapshot(),
-                        exception_trigger=trigger,
-                        temperature=self.temperature,
-                        max_tokens=self.max_tokens,
-                    )
-                except LlmCallBudgetExhausted as exc:
-                    _fail_llm_budget(exc)
-                    break
-                _acc_tokens(mon.get("llm"))
-                parse_repair_count += int(mon.get("repair_count") or 0)
-                observations_since_monitor = 0
-                last_classification = None
-                if mon.get("patch_summary"):
-                    self.budget.plan_revisions = plan_state.revision
-                    plan_revisions.append(mon["patch_summary"])
-                mon_rec = {
-                    "decision": mon.get("decision"),
-                    "decision_reason": mon.get("decision_reason"),
-                    "ready_step_ids": mon.get("ready_step_ids"),
-                    "ok": mon.get("ok"),
-                    "error": mon.get("error"),
-                    "patch_summary": mon.get("patch_summary"),
-                    "exception_trigger": trigger,
-                    "raw_contents": mon.get("raw_contents"),
-                }
-                monitor_decisions.append(mon_rec)
-                trace.append({"type": "exceptional_monitor", "result": mon_rec})
-                if not mon.get("ok"):
-                    final_obj = controlled_failure_payload(
-                        reason=mon.get("error") or "monitor_fail_closed"
-                    )
-                    status = "failed"
-                    error = mon.get("error")
-                    self.budget.stopping_reason = "monitor_fail_closed"
-                    break
-
-                decision = mon["decision"]
-                if decision == "replan":
-                    self.budget.plan_revisions = plan_state.revision
-                    if self.budget.plan_revisions > self.budget.limits["max_plan_revisions"]:
-                        self.budget.stopping_reason = "max_plan_revisions"
-                        final_obj = controlled_failure_payload(reason="max_plan_revisions")
                         status = "failed"
-                        error = "max_plan_revisions"
+                        error = mon.get("error")
+                        self.budget.stopping_reason = "monitor_fail_closed"
                         break
-                    continue
 
-                if decision in {"clarify", "refuse", "fail"}:
-                    self.budget.stopping_reason = f"monitor_{decision}"
-                    if decision == "clarify":
-                        final_obj = {
-                            "schema_version": "apv_fin_final_v1",
-                            "status": "clarification_needed",
-                            "final_answer": mon["payload"].get("clarify_question")
+                    decision = mon["decision"]
+                    if decision == "replan":
+                        self.budget.plan_revisions = plan_state.revision
+                        if (
+                            self.budget.plan_revisions
+                            > self.budget.limits["max_plan_revisions"]
+                        ):
+                            self.budget.attempted_over_budget = True
+                            self.budget.stopping_reason = "max_plan_revisions"
+                            final_obj = controlled_failure_payload(reason="max_plan_revisions")
+                            status = "failed"
+                            error = "max_plan_revisions"
+                            error_type = "resource_limit_failure"
+                            break
+                        continue
+
+                    if decision in {"clarify", "refuse", "fail"}:
+                        self.budget.stopping_reason = f"monitor_{decision}"
+                        if decision == "clarify":
+                            final_obj = {
+                                "schema_version": "apv_fin_final_v1",
+                                "status": "clarification_needed",
+                                "final_answer": mon["payload"].get("clarify_question")
+                                or mon.get("decision_reason")
+                                or "Clarification needed.",
+                                "reasoning_brief": mon.get("decision_reason") or "",
+                                "evidence_ids": [i.evidence_id for i in ledger.items],
+                                "clarification_question": mon["payload"].get(
+                                    "clarify_question"
+                                ),
+                                "refusal_reason": None,
+                                "currency": None,
+                                "unit": None,
+                                "metric_basis": None,
+                                "period": None,
+                                "entity": None,
+                            }
+                            status = "full"
+                            break
+                        reason = (
+                            mon["payload"].get("refuse_reason")
+                            or mon["payload"].get("fail_reason")
                             or mon.get("decision_reason")
-                            or "Clarification needed.",
-                            "reasoning_brief": mon.get("decision_reason") or "",
-                            "evidence_ids": [i.evidence_id for i in ledger.items],
-                            "clarification_question": mon["payload"].get(
-                                "clarify_question"
-                            ),
-                            "refusal_reason": None,
-                            "currency": None,
-                            "unit": None,
-                            "metric_basis": None,
-                            "period": None,
-                            "entity": None,
-                        }
-                        status = "full"
+                            or decision
+                        )
+                        final_obj = controlled_failure_payload(reason=str(reason))
+                        status = "full" if decision == "refuse" else "failed"
                         break
-                    reason = (
-                        mon["payload"].get("refuse_reason")
-                        or mon["payload"].get("fail_reason")
-                        or mon.get("decision_reason")
-                        or decision
+
+                    if decision in {"continue", "verify", "answer"}:
+                        # continue: resume deterministic scheduling; answer is Final path.
+                        continue
+
+                    final_obj = controlled_failure_payload(
+                        reason=f"unknown_monitor_decision:{decision}"
                     )
-                    final_obj = controlled_failure_payload(reason=str(reason))
-                    status = "full" if decision == "refuse" else "failed"
+                    status = "failed"
+                    error = f"unknown_monitor_decision:{decision}"
+                    self.budget.stopping_reason = error
                     break
-
-                if decision in {"continue", "verify", "answer"}:
-                    # continue: resume deterministic scheduling; answer is Final path.
-                    continue
-
-                final_obj = controlled_failure_payload(
-                    reason=f"unknown_monitor_decision:{decision}"
-                )
-                status = "failed"
-                error = f"unknown_monitor_decision:{decision}"
-                self.budget.stopping_reason = error
-                break
+            except LlmCallBudgetExhausted as exc:
+                # Safety net: structured failure; never raise to runner.
+                _fail_llm_budget(exc)
 
         if final_obj is None:
             final_obj = controlled_failure_payload(reason="no_final_payload")
@@ -860,6 +896,7 @@ class ApvFinAgent:
                 if self.budget.stopping_reason
                 in {
                     "resource_limit_failure",
+                    "llm_call_budget_exhausted",
                     "max_exception_replan_calls_per_task",
                     "max_plan_revisions",
                     "max_total_mcp_invocations",
@@ -971,7 +1008,7 @@ class ApvFinAgent:
                 "allow_mock_hooks": self._allow_mock_hooks,
             },
             "condition": "apv_fin",
-            "method_version": "apv_fin_v1_4_gateway_adapter_and_progression",
+            "method_version": "apv_fin_v1_4_1_crash_safe_runtime",
             "deterministic_binding_count": self.budget.deterministic_binding_count,
             "llm_binding_count": self.budget.llm_binding_count,
             "capability_injected_candidate_count": self.budget.capability_injected_candidate_count,
