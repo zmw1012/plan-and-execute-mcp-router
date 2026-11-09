@@ -170,12 +170,27 @@ def classify_compatibility(
 
     basis = str(meta.get("metric_basis") or "unknown")
     basis_hints = _as_set(ctx.metric_basis_hints)
+    accounting_bases = {
+        "reported_ifrs",
+        "adjusted_non_ifrs",
+        "mixed_or_unspecified",
+    }
+    price_bases = {"price_unadjusted", "price_adjusted", "price"}
     if basis_hints:
-        if basis in basis_hints or basis in {"unknown", "mixed_or_unspecified", "not_applicable"}:
+        if basis in basis_hints or basis in {
+            "unknown",
+            "mixed_or_unspecified",
+            "not_applicable",
+        }:
             if basis in basis_hints:
                 supports.append(f"basis:{basis}")
             else:
                 reasons.append(f"basis_partial:{basis}")
+        elif (basis in price_bases and basis_hints & accounting_bases) or (
+            basis in accounting_bases and basis_hints & price_bases
+        ):
+            # Cross-family basis mismatch is soft when domain/provides already speak.
+            reasons.append(f"basis_partial_cross_family:{basis}")
         else:
             conflicts.append(f"basis_conflict:{basis}")
 

@@ -35,7 +35,18 @@ PRIMARY_CATEGORIES = (
 )
 
 RESOURCE_ERRORS = frozenset(
-    {"max_llm_turns", "max_search_reformulations", "max_invocations"}
+    {
+        "max_llm_turns",
+        "max_search_reformulations",
+        "max_invocations",
+        "resource_limit_failure",
+        "llm_call_budget_exhausted",
+        "max_total_llm_calls_per_task",
+        "max_exception_replan_calls_per_task",
+        "max_plan_revisions",
+        "max_total_mcp_invocations",
+        "max_llm_monitor_rounds",
+    }
 )
 
 

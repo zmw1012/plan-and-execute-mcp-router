@@ -93,6 +93,22 @@ PLAN_COMPACT_LIMITS = {
     "planning_notes_max": 200,
 }
 
+COMPUTE_SPEC_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["expression", "operand_refs", "output_name"],
+    "properties": {
+        "expression": {"type": "string", "minLength": 1, "maxLength": 240},
+        "operand_refs": {
+            "type": "object",
+            "additionalProperties": {"type": "string", "minLength": 1, "maxLength": 120},
+        },
+        "output_name": {"type": "string", "minLength": 1, "maxLength": 80},
+        "output_unit": {"type": ["string", "null"], "maxLength": 40},
+        "rounding": {"type": ["integer", "null"]},
+    },
+}
+
 PLAN_STEP_SCHEMA: Dict[str, Any] = {
     "type": "object",
     "additionalProperties": False,
@@ -126,6 +142,12 @@ PLAN_STEP_SCHEMA: Dict[str, Any] = {
         "retrieval_query_hint": {
             "type": ["string", "null"],
             "maxLength": PLAN_COMPACT_LIMITS["retrieval_query_hint_max"],
+        },
+        "compute_spec": {
+            "type": ["object", "null"],
+            "additionalProperties": False,
+            "required": ["expression", "operand_refs", "output_name"],
+            "properties": dict(COMPUTE_SPEC_SCHEMA["properties"]),
         },
         "notes": {
             "type": ["string", "null"],
@@ -248,49 +270,53 @@ APV_FIN_PLAN_V1: Dict[str, Any] = {
     },
 }
 
+# Monitor exceptional-replan patch: model-owned fields only (no runtime state).
+_MONITOR_UPDATED_STEP_PROPERTIES: Dict[str, Any] = {
+    "step_id": {"type": "string"},
+    "objective": {"type": ["string", "null"]},
+    "depends_on": {
+        "type": ["array", "null"],
+        "items": {"type": "string"},
+    },
+    "mandatory": {"type": ["boolean", "null"]},
+    "success_criteria": {"type": ["string", "null"]},
+    "step_type": {
+        "type": ["string", "null"],
+        "enum": list(STEP_TYPES) + [None],
+    },
+    "retrieval_query_hint": {"type": ["string", "null"]},
+    "compute_spec": {"type": ["object", "null"]},
+    "notes": {"type": ["string", "null"]},
+}
+
 MONITOR_PATCH_SCHEMA: Dict[str, Any] = {
     "type": "object",
     "additionalProperties": False,
     "required": [
-        "completed_steps",
-        "updated_steps",
-        "new_steps",
-        "removed_steps",
+        "completed_plan_step_ids",
+        "updated_plan_steps",
+        "new_plan_steps",
+        "removed_plan_step_ids",
     ],
     "properties": {
-        "completed_steps": {
+        "completed_plan_step_ids": {
             "type": "array",
             "items": {"type": "string"},
         },
-        "updated_steps": {
+        "updated_plan_steps": {
             "type": "array",
             "items": {
                 "type": "object",
                 "additionalProperties": False,
                 "required": ["step_id"],
-                "properties": {
-                    "step_id": {"type": "string"},
-                    "objective": {"type": ["string", "null"]},
-                    "depends_on": {
-                        "type": ["array", "null"],
-                        "items": {"type": "string"},
-                    },
-                    "mandatory": {"type": ["boolean", "null"]},
-                    "success_criteria": {"type": ["string", "null"]},
-                    "step_type": {
-                        "type": ["string", "null"],
-                        "enum": list(STEP_TYPES) + [None],
-                    },
-                    "retrieval_query_hint": {"type": ["string", "null"]},
-                    "notes": {"type": ["string", "null"]},
-                },
+                "properties": _MONITOR_UPDATED_STEP_PROPERTIES,
             },
         },
-        "new_steps": {
+        "new_plan_steps": {
             "type": "array",
             "items": PLAN_STEP_SCHEMA,
         },
-        "removed_steps": {
+        "removed_plan_step_ids": {
             "type": "array",
             "items": {"type": "string"},
         },
@@ -634,6 +660,23 @@ def format_repair_user_message(schema_name: str, error: str) -> str:
             lines.append(
                 "Remove reasoning_brief. Use decision_reason for the short rationale."
             )
+        for banned in (
+            "observation_ids",
+            "attempt_count",
+            "status",
+            "execution_result",
+            "selected_operation",
+            "invoked_operation",
+            "resolved_at",
+            "failure_reason",
+        ):
+            if banned in err:
+                lines.append(
+                    f"Remove runtime field {banned!r}. Monitor may only patch "
+                    "model-owned plan fields (objective/depends_on/mandatory/"
+                    "success_criteria/retrieval_query_hint/compute_spec/notes)."
+                )
+                break
     if schema_name == "apv_fin_tool_binding_v1":
         lines.extend(
             [

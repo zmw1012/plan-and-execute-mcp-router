@@ -390,7 +390,10 @@ def test_same_operation_repeat_budget(tmp_path: Path):
         allow_forced_select=True,
     )
     assert out2.get("ok") is False
-    assert out2.get("error") == "max_same_operation_repeats"
+    assert out2.get("error") in {
+        "max_same_operation_repeats",
+        "identical_successful_or_failed_invocation_not_repeated",
+    }
     gateway.close()
 
 
@@ -453,8 +456,8 @@ def test_live_mode_rejects_mock_hooks():
         )
 
 
-def test_execution_order_planner_then_execute_then_monitor(tmp_path: Path):
-    """Spy: planner → retrieve (before first monitor) → monitor → … → final."""
+def test_execution_order_planner_then_execute_then_progressor(tmp_path: Path):
+    """Spy: planner → retrieve → deterministic progress (no Monitor on success)."""
     bundle = build_unified_catalog(root=ROOT)
     transport = ScriptedMockTransport()
     gateway = UnifiedRealMcpGateway(catalog_bundle=bundle, mock_transport=transport)
@@ -468,9 +471,7 @@ def test_execution_order_planner_then_execute_then_monitor(tmp_path: Path):
     meta = load_and_validate_metadata(catalog=bundle, root=ROOT)
     llm = _script(
         _plan_payload(),
-        _monitor("continue"),
         {"summary": "ok", "decision": "answer", "resolved": True, "claims": ["c"]},
-        _monitor("continue"),
         _final(),
     )
     agent = ApvFinAgent(
@@ -483,7 +484,7 @@ def test_execution_order_planner_then_execute_then_monitor(tmp_path: Path):
                 "aktools.stock_financial_hk_analysis_indicator_em"
             ),
             "limits": {
-                "max_llm_monitor_rounds": 6,
+                "max_exception_replan_calls_per_task": 2,
                 "max_idle_monitor_rounds": 1,
                 "max_total_mcp_invocations": 8,
             },
@@ -495,12 +496,11 @@ def test_execution_order_planner_then_execute_then_monitor(tmp_path: Path):
     result = agent.run("What is a sample HK equity indicator?")
     types = [t.get("type") for t in result["trace"]]
     assert types[0] == "planner"
-    # First scheduler/step_execution must precede first monitor.
-    first_sched = next(i for i, t in enumerate(types) if t in {"scheduler", "step_execution"})
-    first_mon = next(i for i, t in enumerate(types) if t == "monitor")
-    assert first_sched < first_mon
+    assert any(t in {"scheduler", "step_execution"} for t in types)
+    # Normal success path must not require Monitor LLM.
+    assert "monitor" not in types or "exceptional_monitor" in types
     assert result["execution_order"][0] == "planner"
-    assert "monitor" in result["execution_order"]
+    assert "deterministic_progressor" in result["execution_order"]
     assert transport.calls, "retrieve must hit UnifiedRealMcpGateway"
     assert result.get("selected_operations")
     assert result.get("invoked_operations")

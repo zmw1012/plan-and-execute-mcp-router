@@ -757,7 +757,7 @@ class UnifiedHkApvFinRunner:
             "lexical_weight": float(self.retrieval.get("lexical_weight", 0.12)),
             "limits": self.limits,
             "max_total_llm_calls_per_task": int(
-                self.limits.get("max_total_llm_calls_per_task", 14)
+                self.limits.get("max_total_llm_calls_per_task", 10)
             ),
             "worst_case_budget_estimate": worst_case,
             "system_prompt_hash": prompt_h,

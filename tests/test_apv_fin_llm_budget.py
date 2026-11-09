@@ -85,14 +85,15 @@ def _final() -> dict:
 
 def test_config_has_llm_call_cap_unchanged_other_limits():
     cfg = load_apv_fin_config(root=ROOT)
-    assert cfg["limits"]["max_total_llm_calls_per_task"] == 14
+    assert cfg["limits"]["max_total_llm_calls_per_task"] == 10
     assert cfg["limits"]["max_plan_revisions"] == 2
     assert cfg["limits"]["max_total_mcp_invocations"] == 8
-    assert cfg["limits"]["max_llm_monitor_rounds"] == 6
+    assert cfg["limits"]["max_exception_replan_calls_per_task"] == 2
+    assert cfg["limits"]["max_llm_monitor_rounds"] == 2
 
 
 def test_budgeted_client_counts_all_helper_and_repair_calls():
-    budget = BudgetTracker({"max_total_llm_calls_per_task": 14})
+    budget = BudgetTracker({"max_total_llm_calls_per_task": 10})
     plan = json.dumps(_plan())
     # First content invalid → planner repair; both must count.
     inner = ScriptedLLMClient(["not-json", plan])
@@ -104,24 +105,24 @@ def test_budgeted_client_counts_all_helper_and_repair_calls():
     assert budget.calls_by_stage.get("planner_repair") == 1
 
 
-def test_fourteenth_call_allowed_fifteenth_blocked():
-    budget = BudgetTracker({"max_total_llm_calls_per_task": 14})
+def test_tenth_call_allowed_eleventh_blocked():
+    budget = BudgetTracker({"max_total_llm_calls_per_task": 10})
     inner = ScriptedLLMClient(["{}"] * 20)
     llm = BudgetedLLMClient(inner, budget)
-    for i in range(14):
+    for i in range(10):
         llm.complete([{"role": "user", "content": "x"}], stage=f"s{i}")
-    assert budget.llm_calls == 14
+    assert budget.llm_calls == 10
     assert budget.llm_calls_remaining == 0
     assert budget.llm_budget_exhausted is True
     with pytest.raises(LlmCallBudgetExhausted) as ei:
-        llm.complete([{"role": "user", "content": "blocked"}], stage="s15")
-    assert ei.value.error_type == "llm_call_budget_exhausted"
-    assert ei.value.used == 14
-    assert budget.llm_calls == 14  # 15th not recorded
+        llm.complete([{"role": "user", "content": "blocked"}], stage="s11")
+    assert ei.value.error_type == "resource_limit_failure"
+    assert ei.value.used == 10
+    assert budget.llm_calls == 10  # 11th not recorded
 
 
 def test_compute_does_not_increment_llm_calls():
-    budget = BudgetTracker({"max_total_llm_calls_per_task": 14})
+    budget = BudgetTracker({"max_total_llm_calls_per_task": 10})
     before = budget.llm_calls
     step = PlanStep(
         step_id="c1",
@@ -191,7 +192,7 @@ def test_agent_budget_failure_keeps_trace(tmp_path: Path):
         live_mode=False,
     )
     result = agent.run("budget probe")
-    assert result["error_type"] == "llm_call_budget_exhausted"
+    assert result["error_type"] == "resource_limit_failure"
     assert result["llm_budget_exhausted"] is True
     assert result["llm_call_budget"] == 1
     assert result["llm_calls_used"] == 1
@@ -209,12 +210,12 @@ def test_resume_identity_rejects_llm_cap_mismatch(tmp_path: Path):
     out = tmp_path / "resume_cap"
     meta = {
         "condition": "apv_fin",
-        "method_version": "apv_fin_v1",
+        "method_version": "apv_fin_v1_1_deterministic_controller",
         "dry_run": False,
         "mock": True,
         "subset_kind": "smoke8",
-        "max_total_llm_calls_per_task": 14,
-        "limits": {"max_total_llm_calls_per_task": 14},
+        "max_total_llm_calls_per_task": 10,
+        "limits": {"max_total_llm_calls_per_task": 10},
     }
     out.mkdir()
     (out / "run_metadata.json").write_text(json.dumps(meta), encoding="utf-8")
@@ -238,5 +239,5 @@ def test_dry_run_records_llm_cap(tmp_path: Path):
         allow_dirty=True,
         root=ROOT,
     ).run()
-    assert meta["max_total_llm_calls_per_task"] == 14
-    assert meta["limits"]["max_total_llm_calls_per_task"] == 14
+    assert meta["max_total_llm_calls_per_task"] == 10
+    assert meta["limits"]["max_total_llm_calls_per_task"] == 10

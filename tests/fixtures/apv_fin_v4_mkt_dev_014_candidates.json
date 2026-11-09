@@ -1,0 +1,20 @@
+{
+  "task_id": "mkt_dev_014",
+  "note": "Offline fixture from Smoke-4 v4 retrieve trace; no embedding API.",
+  "query": "Retrieve latest Tencent 0700.HK closing price evidence.",
+  "original_candidates": [
+    {"operation_id": "aktools.stock_financial_hk_analysis_indicator_em", "score": 0.45325, "original_rank": 1},
+    {"operation_id": "aktools.stock_hk_financial_indicator_em", "score": 0.452851, "original_rank": 2},
+    {"operation_id": "aktools.stock_hk_fhpx_detail_ths", "score": 0.425064, "original_rank": 3},
+    {"operation_id": "aktools.stock_news_em", "score": 0.420203, "original_rank": 4},
+    {"operation_id": "aktools.stock_hk_hist", "score": 0.419137, "original_rank": 5},
+    {"operation_id": "aktools.stock_hk_valuation_baidu", "score": 0.418117, "original_rank": 6},
+    {"operation_id": "aktools.stock_hk_daily", "score": 0.416897, "original_rank": 7},
+    {"operation_id": "aktools.stock_hk_index_daily_em", "score": 0.414913, "original_rank": 8}
+  ],
+  "expected_described_must_include_one_of": [
+    "aktools.stock_hk_hist",
+    "aktools.stock_hk_daily"
+  ],
+  "expected_not_only_financial_top3": true
+}

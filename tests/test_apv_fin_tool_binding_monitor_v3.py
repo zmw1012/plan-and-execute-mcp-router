@@ -352,10 +352,10 @@ def test_monitor_repair_success_and_second_failure_fail_closed():
         "decision_reason": "Continue after observation.",
         "ready_step_ids": [],
         "patch": {
-            "completed_steps": [],
-            "updated_steps": [],
-            "new_steps": [],
-            "removed_steps": [],
+            "completed_plan_step_ids": [],
+            "updated_plan_steps": [],
+            "new_plan_steps": [],
+            "removed_plan_step_ids": [],
         },
         "clarify_question": None,
         "refuse_reason": None,
@@ -371,6 +371,7 @@ def test_monitor_repair_success_and_second_failure_fail_closed():
                     "depends_on": [],
                     "mandatory": True,
                     "success_criteria": "done",
+                    "compute_spec": None,
                 }
             ]
         }

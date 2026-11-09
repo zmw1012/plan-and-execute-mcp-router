@@ -135,18 +135,23 @@ def strict_answer_success(row: Dict[str, Any]) -> Optional[bool]:
     return None
 
 
-def tool_execution_success_flag(row: Dict[str, Any]) -> bool:
+def tool_execution_success_flag(row: Dict[str, Any]) -> Optional[bool]:
+    """null/N/A when zero MCP invocations; else True iff all invokes succeeded."""
     failed = int(row.get("failed_invocation_count") or 0)
     successful = int(row.get("successful_invocation_count") or 0)
+    mcp_n = int(row.get("real_mcp_execution_count") or 0)
+    flag = row.get("all_tool_invocations_successful")
+    if flag is None and successful == 0 and failed == 0 and mcp_n == 0:
+        return None
     if failed > 0:
         return False
-    if row.get("all_tool_invocations_successful") is False:
+    if flag is False:
         return False
-    if successful == 0 and int(row.get("real_mcp_execution_count") or 0) > 0:
+    if successful == 0 and mcp_n > 0:
         return False
-    return bool(row.get("all_tool_invocations_successful")) or (
-        successful > 0 and failed == 0
-    )
+    if successful == 0 and failed == 0:
+        return None
+    return True if flag is True or (successful > 0 and failed == 0) else False
 
 
 def plan_completion_flag(row: Dict[str, Any]) -> bool:
@@ -185,7 +190,9 @@ def aggregate_apv_fin_metrics(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     plan_revisions = []
     resource_limit_failures = 0
     refusal_flags = []
-    tool_exec = [tool_execution_success_flag(r) for r in rows]
+    tool_exec = [
+        f for f in (tool_execution_success_flag(r) for r in rows) if f is not None
+    ]
 
     for r in rows:
         steps = _plan_steps(r)
@@ -202,11 +209,24 @@ def aggregate_apv_fin_metrics(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
 
         plan_revisions.append(int(r.get("plan_revisions") or 0))
         stop = str(r.get("stopping_reason") or r.get("error") or "")
-        if "max_" in stop or stop in {
-            "max_plan_revisions",
-            "max_llm_monitor_rounds",
-            "max_total_mcp_invocations",
-        }:
+        err_type = str(r.get("error_type") or "")
+        if (
+            err_type
+            in {
+                "resource_limit_failure",
+                "llm_call_budget_exhausted",  # legacy v4 label
+            }
+            or stop
+            in {
+                "resource_limit_failure",
+                "llm_call_budget_exhausted",
+                "max_plan_revisions",
+                "max_llm_monitor_rounds",
+                "max_exception_replan_calls_per_task",
+                "max_total_mcp_invocations",
+            }
+            or stop.startswith("max_")
+        ):
             resource_limit_failures += 1
 
         if r.get("refusal_correctness") is not None and r.get("refusal_correctness") != "":
@@ -257,6 +277,31 @@ def aggregate_apv_fin_metrics(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
         "latency_ms_mean": _mean([r.get("latency_ms") for r in rows]),
         "resource_limit_failures": resource_limit_failures,
         "resource_limit_failure_rate": (resource_limit_failures / n) if n else None,
+        "deterministic_step_transitions_mean": _mean(
+            [r.get("deterministic_step_transitions") for r in rows]
+        ),
+        "exception_replan_calls_mean": _mean(
+            [r.get("exception_replan_calls") for r in rows]
+        ),
+        "raw_observation_chars_mean": _mean(
+            [r.get("raw_observation_chars") for r in rows]
+        ),
+        "projected_observation_chars_mean": _mean(
+            [r.get("projected_observation_chars") for r in rows]
+        ),
+        "compression_ratio_mean": _mean([r.get("compression_ratio") for r in rows]),
+        "repeated_signature_block_count_sum": sum(
+            int(r.get("repeated_signature_block_count") or 0) for r in rows
+        ),
+        "dependency_auto_expansion_count_sum": sum(
+            int(r.get("dependency_auto_expansion_count") or 0) for r in rows
+        ),
+        "schema_description_expansion_count_sum": sum(
+            int(r.get("schema_description_expansion_count") or 0) for r in rows
+        ),
+        "monitor_revision_count_mean": _mean(
+            [len(r.get("monitor_decisions") or []) for r in rows]
+        ),
         "cost_summary": _cost_summary(rows),
     }
 

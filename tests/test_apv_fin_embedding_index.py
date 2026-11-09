@@ -71,7 +71,7 @@ def test_config_embedding_transport_knobs():
     assert cfg["embedding_request_timeout_sec"] == 120
     assert cfg["embedding_max_retries"] == 3
     assert cfg["embedding_retry_backoff_seconds"] == [1, 2, 4]
-    assert cfg["limits"]["max_total_llm_calls_per_task"] == 14
+    assert cfg["limits"]["max_total_llm_calls_per_task"] == 10
 
 
 def test_timeout_then_success_via_backend(monkeypatch):

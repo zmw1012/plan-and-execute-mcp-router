@@ -8,6 +8,6 @@ find/describe/invoke boundary, dataset loader, and evaluator v1.2.
 from __future__ import annotations
 
 APV_FIN_CONDITION = "apv_fin"
-APV_FIN_METHOD_VERSION = "apv_fin_v1"
+APV_FIN_METHOD_VERSION = "apv_fin_v1_1_deterministic_controller"
 
 __all__ = ["APV_FIN_CONDITION", "APV_FIN_METHOD_VERSION"]

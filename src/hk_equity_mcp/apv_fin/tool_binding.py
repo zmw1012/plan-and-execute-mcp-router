@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List, Optional, Sequence, Set
+from typing import Any, Dict, List, Optional, Sequence, Set  # noqa: F401 — Optional used
 
 from hk_equity_mcp.agent.llm_client import LLMClient
 from hk_equity_mcp.apv_fin.argument_grounding import (
@@ -26,19 +26,93 @@ class ToolBindingValidationError(ValueError):
     pass
 
 
+def _capability_score(row: Dict[str, Any], required_provides: Sequence[str]) -> int:
+    if not required_provides:
+        return 0
+    reasons = row.get("compatibility_reasons") or {}
+    supports = set(reasons.get("supports") or [])
+    score = 0
+    if "provides_overlap" in supports:
+        score += 5
+    if "domain:market" in supports and any(
+        p in {"close", "ohlcv", "price"} for p in required_provides
+    ):
+        score += 3
+    if "domain:financial" in supports and any(
+        p in {"eps", "revenue", "net_income", "financial_indicators"}
+        for p in required_provides
+    ):
+        score += 3
+    # Prefer market hist/daily ids when close is required.
+    oid = str(row.get("operation_id") or "").lower()
+    if any(p in {"close", "ohlcv", "price"} for p in required_provides):
+        if "hist" in oid or "daily" in oid:
+            score += 4
+        if "financial" in oid or "indicator" in oid:
+            score -= 2
+    return score
+
+
 def select_candidates_to_describe(
-    reranked: Sequence[Dict[str, Any]], *, top_n: int = DESCRIBE_TOP_N
+    reranked: Sequence[Dict[str, Any]],
+    *,
+    top_n: int = DESCRIBE_TOP_N,
+    required_provides: Optional[Sequence[str]] = None,
 ) -> List[Dict[str, Any]]:
-    """Describe up to top_n compatible candidates, preferring A then B; C only if alone."""
+    """Describe up to top_n candidates from final compatibility order.
+
+    Prefer Tier A then B; C only when no A/B. Within a tier, prefer capability-
+    compatible ops (provides/domain) so market-close does not describe only
+    financial Tier-C heads when hist/daily sit lower in the same tier.
+    """
     if not reranked:
         return []
+    required = list(required_provides or [])
     a = [r for r in reranked if r.get("compatibility_tier") == "A"]
     b = [r for r in reranked if r.get("compatibility_tier") == "B"]
     c = [r for r in reranked if r.get("compatibility_tier") == "C"]
     pool = a + b
     if not pool:
-        pool = c
-    return list(pool[: max(1, int(top_n))])
+        pool = list(c)
+
+    def sort_key(row: Dict[str, Any]) -> tuple:
+        return (
+            -_capability_score(row, required),
+            int(row.get("final_rank") or 10**6),
+            -float(row.get("base_score") or 0.0),
+        )
+
+    pool = sorted(pool, key=sort_key)
+    # Guarantee: if required close/price and a provides-overlap market op exists
+    # in the same pool, it must appear in the described set when possible.
+    selected = list(pool[: max(1, int(top_n))])
+    if required and any(p in {"close", "ohlcv", "price"} for p in required):
+        marketish = [
+            r
+            for r in pool
+            if _capability_score(r, required) > 0
+            and (
+                "hist" in str(r.get("operation_id") or "").lower()
+                or "daily" in str(r.get("operation_id") or "").lower()
+                or "provides_overlap"
+                in ((r.get("compatibility_reasons") or {}).get("supports") or [])
+            )
+        ]
+        if marketish and not any(
+            r["operation_id"] == marketish[0]["operation_id"] for r in selected
+        ):
+            selected = selected[:-1] + [marketish[0]] if selected else [marketish[0]]
+            # re-unique preserve order
+            seen = set()
+            uniq = []
+            for r in selected:
+                oid = r["operation_id"]
+                if oid in seen:
+                    continue
+                seen.add(oid)
+                uniq.append(r)
+            selected = uniq[: max(1, int(top_n))]
+    return selected
 
 
 def annotate_selection_flags(

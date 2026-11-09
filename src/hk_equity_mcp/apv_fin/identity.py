@@ -25,6 +25,9 @@ PLANNER_PROTOCOL_CHANGE = "planner_protocol_v2_before_valid_method_evaluation"
 TOOL_BINDING_PROTOCOL_CHANGE = (
     "tool_binding_and_monitor_protocol_v3_before_valid_method_evaluation"
 )
+DETERMINISTIC_CONTROLLER_PROTOCOL_CHANGE = (
+    "deterministic_controller_refactor_before_valid_method_evaluation"
+)
 
 
 def schema_hashes() -> Dict[str, str]:
@@ -92,42 +95,58 @@ def assert_live_provider_identity(
 def worst_case_budget_estimate(limits: Dict[str, Any]) -> Dict[str, Any]:
     """Offline worst-case call budget from config limits (no retuning)."""
     max_revisions = int(limits.get("max_plan_revisions", 2))
-    max_monitor = int(limits.get("max_llm_monitor_rounds", 6))
+    max_exception = int(limits.get("max_exception_replan_calls_per_task", 2))
+    max_monitor = int(limits.get("max_llm_monitor_rounds", max_exception))
     max_mcp = int(limits.get("max_total_mcp_invocations", 8))
     max_retrievals_per_step = int(limits.get("max_targeted_retrievals_per_step", 2))
     max_final_repair = int(limits.get("max_final_repair_rounds", 1))
-    hard_cap = int(limits.get("max_total_llm_calls_per_task", 14))
+    hard_cap = int(limits.get("max_total_llm_calls_per_task", 10))
     # Planner: 1 + optional 1 repair
     planner_calls = 2
-    # Each monitor round: 1 + optional 1 repair
-    monitor_calls = max_monitor * 2
-    # Reason/verify may each call LLM once (+1 repair) per executed step.
-    # Compute is deterministic and does not consume LLM budget.
-    reason_verify_calls = max_monitor * 2 * 2
-    # Final synthesize: 1 + repair, plus optional controlled-failure path.
+    # Binding per retrieve: 1 + optional 1 repair (budgeted separately in hard cap)
+    binding_calls = 4
+    # Exceptional replan only: 1 + optional 1 repair each
+    monitor_calls = max_exception * 2
+    # Reason/verify optional; compute is deterministic.
+    reason_verify_calls = 2
+    # Final synthesize: 1 + repair
     final_calls = 2 + max_final_repair
-    structural_upper = planner_calls + monitor_calls + reason_verify_calls + final_calls
+    structural_upper = (
+        planner_calls + binding_calls + monitor_calls + reason_verify_calls + final_calls
+    )
     max_llm_turns = min(structural_upper, hard_cap)
-    # Embedding: one find_operations query per targeted retrieval attempt.
     max_embedding_queries = max_mcp * max_retrievals_per_step
     return {
         "per_task_max_planner_calls": planner_calls,
+        "per_task_max_binding_calls_including_repair": binding_calls,
+        "per_task_max_exception_replan_calls_including_repair": monitor_calls,
         "per_task_max_monitor_calls_including_repair": monitor_calls,
         "per_task_max_reason_verify_calls_including_repair": reason_verify_calls,
         "per_task_max_final_calls_including_repair": final_calls,
         "per_task_structural_llm_upper_bound": structural_upper,
         "per_task_max_llm_turns": max_llm_turns,
         "max_total_llm_calls_per_task": hard_cap,
+        "max_exception_replan_calls_per_task": max_exception,
         "per_task_max_mcp_invocations": max_mcp,
         "per_task_max_embedding_query_calls": max_embedding_queries,
         "diagnostic12_worst_case_llm_turns": 12 * max_llm_turns,
         "diagnostic12_worst_case_mcp_invocations": 12 * max_mcp,
         "diagnostic12_worst_case_embedding_queries": 12 * max_embedding_queries,
+        "budget_before": {
+            "max_total_llm_calls_per_task": 14,
+            "max_llm_monitor_rounds": 6,
+        },
+        "budget_after": {
+            "max_total_llm_calls_per_task": hard_cap,
+            "max_exception_replan_calls_per_task": max_exception,
+            "max_llm_monitor_rounds": max_monitor,
+        },
         "notes": (
-            "Hard-capped by max_total_llm_calls_per_task; structural upper is "
-            "informational. Compute steps do not consume LLM budget. "
-            "Does not change other budget values."
+            "v1.1 deterministic controller: normal progress has no Monitor LLM. "
+            "Hard-capped by max_total_llm_calls_per_task. Compute does not consume "
+            "LLM budget. Engineering contraction before valid method evaluation."
         ),
         "limits_snapshot": dict(limits),
         "max_plan_revisions": max_revisions,
+        "protocol_change": DETERMINISTIC_CONTROLLER_PROTOCOL_CHANGE,
     }

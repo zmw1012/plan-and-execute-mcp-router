@@ -10,14 +10,15 @@ from hk_equity_mcp.agent.llm_client import LLMClient
 class LlmCallBudgetExhausted(RuntimeError):
     """Raised before an LLM request when the per-task generation cap is reached."""
 
-    error_type = "llm_call_budget_exhausted"
+    # Canonical failure class for metrics/taxonomy (v1.1 controller).
+    error_type = "resource_limit_failure"
 
     def __init__(self, *, used: int, limit: int, stage: str):
         self.used = used
         self.limit = limit
         self.stage = stage
         super().__init__(
-            f"llm_call_budget_exhausted: used={used} limit={limit} stage={stage}"
+            f"resource_limit_failure: llm_call_budget used={used} limit={limit} stage={stage}"
         )
 
 

@@ -1,4 +1,4 @@
-"""Dynamic APV-Fin plan state: DAG validation, readiness, and patch application."""
+"""Dynamic APV-Fin plan state: model-owned plan fields vs runtime-only state."""
 
 from __future__ import annotations
 
@@ -8,13 +8,66 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Set
 
 from hk_equity_mcp.apv_fin.schemas import STEP_STATUSES, STEP_TYPES
 
+# Fields the model may emit / patch. Runtime owns everything else.
+MODEL_OWNED_STEP_FIELDS = (
+    "step_id",
+    "step_type",
+    "objective",
+    "depends_on",
+    "mandatory",
+    "success_criteria",
+    "retrieval_query_hint",
+    "compute_spec",
+    "notes",
+)
+
+RUNTIME_ONLY_STEP_FIELDS = (
+    "status",
+    "observation_ids",
+    "attempt_count",
+    "failure_reason",
+    "selected_operation",
+    "invoked_operation",
+    "execution_result",
+    "resolved_at",
+)
+
 
 class PlanStateError(ValueError):
     pass
 
 
+def normalize_compute_spec(raw: Any) -> Optional[Dict[str, Any]]:
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise PlanStateError("compute_spec must be an object or null")
+    expression = str(raw.get("expression") or "").strip()
+    if not expression:
+        raise PlanStateError("compute_spec.expression must be non-empty")
+    operand_refs = raw.get("operand_refs") or {}
+    if not isinstance(operand_refs, dict):
+        raise PlanStateError("compute_spec.operand_refs must be an object")
+    refs = {str(k): str(v) for k, v in operand_refs.items()}
+    rounding = raw.get("rounding")
+    if rounding is not None and not isinstance(rounding, int):
+        raise PlanStateError("compute_spec.rounding must be int or null")
+    return {
+        "expression": expression,
+        "operand_refs": refs,
+        "output_name": str(raw.get("output_name") or "result"),
+        "output_unit": str(raw.get("output_unit") or ""),
+        "rounding": rounding,
+    }
+
+
 @dataclass
 class PlanStep:
+    """Mixed view used by the scheduler: model fields + runtime fields.
+
+    Model JSON / Monitor patches may only set MODEL_OWNED_STEP_FIELDS.
+    """
+
     step_id: str
     step_type: str
     objective: str
@@ -22,28 +75,68 @@ class PlanStep:
     mandatory: bool = True
     success_criteria: str = ""
     retrieval_query_hint: Optional[str] = None
+    compute_spec: Optional[Dict[str, Any]] = None
     notes: Optional[str] = None
+    # Runtime-only:
     status: str = "pending"
     observation_ids: List[str] = field(default_factory=list)
+    attempt_count: int = 0
     failure_reason: Optional[str] = None
+    selected_operation: Optional[str] = None
+    invoked_operation: Optional[str] = None
+    execution_result: Optional[Dict[str, Any]] = None
+    resolved_at: Optional[str] = None
+
+    def model_dict(self) -> Dict[str, Any]:
+        return {
+            "step_id": self.step_id,
+            "step_type": self.step_type,
+            "objective": self.objective,
+            "depends_on": list(self.depends_on),
+            "mandatory": self.mandatory,
+            "success_criteria": self.success_criteria,
+            "retrieval_query_hint": self.retrieval_query_hint,
+            "compute_spec": deepcopy(self.compute_spec),
+            "notes": self.notes,
+        }
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, raw: Dict[str, Any]) -> "PlanStep":
+    def from_dict(cls, raw: Dict[str, Any], *, allow_runtime: bool = True) -> "PlanStep":
         step_type = str(raw.get("step_type") or "")
         if step_type not in STEP_TYPES:
             raise PlanStateError(f"invalid step_type: {step_type!r}")
-        status = str(raw.get("status") or "pending")
-        if status not in STEP_STATUSES:
-            raise PlanStateError(f"invalid step status: {status!r}")
         step_id = str(raw.get("step_id") or "").strip()
         if not step_id:
             raise PlanStateError("step_id must be non-empty")
         depends = list(raw.get("depends_on") or [])
         if not all(isinstance(d, str) and d for d in depends):
             raise PlanStateError(f"invalid depends_on for {step_id}")
+
+        # Reject runtime fields when loading model-owned plan JSON.
+        if not allow_runtime:
+            leaked = [k for k in RUNTIME_ONLY_STEP_FIELDS if k in raw]
+            if leaked:
+                raise PlanStateError(
+                    f"model plan must not include runtime fields: {sorted(set(leaked))}"
+                )
+
+        compute_spec = None
+        if "compute_spec" in raw:
+            compute_spec = normalize_compute_spec(raw.get("compute_spec"))
+        if step_type == "compute" and compute_spec is None:
+            raise PlanStateError(f"compute step {step_id!r} requires compute_spec")
+        if step_type != "compute" and compute_spec is not None:
+            raise PlanStateError(
+                f"non-compute step {step_id!r} must have compute_spec=null"
+            )
+
+        status = str(raw.get("status") or "pending") if allow_runtime else "pending"
+        if status not in STEP_STATUSES:
+            raise PlanStateError(f"invalid step status: {status!r}")
+
         return cls(
             step_id=step_id,
             step_type=step_type,
@@ -52,10 +145,16 @@ class PlanStep:
             mandatory=bool(raw.get("mandatory", True)),
             success_criteria=str(raw.get("success_criteria") or ""),
             retrieval_query_hint=raw.get("retrieval_query_hint"),
+            compute_spec=compute_spec,
             notes=raw.get("notes"),
             status=status,
-            observation_ids=list(raw.get("observation_ids") or []),
-            failure_reason=raw.get("failure_reason"),
+            observation_ids=list(raw.get("observation_ids") or []) if allow_runtime else [],
+            attempt_count=int(raw.get("attempt_count") or 0) if allow_runtime else 0,
+            failure_reason=raw.get("failure_reason") if allow_runtime else None,
+            selected_operation=raw.get("selected_operation") if allow_runtime else None,
+            invoked_operation=raw.get("invoked_operation") if allow_runtime else None,
+            execution_result=raw.get("execution_result") if allow_runtime else None,
+            resolved_at=raw.get("resolved_at") if allow_runtime else None,
         )
 
 
@@ -69,7 +168,7 @@ class PlanState:
     def from_initial_plan(cls, initial_plan: Dict[str, Any]) -> "PlanState":
         raw_steps = list((initial_plan or {}).get("steps") or [])
         state = cls()
-        state._replace_steps(raw_steps, revision_note="initial_plan")
+        state._replace_steps(raw_steps, revision_note="initial_plan", from_model=True)
         return state
 
     def to_dict(self) -> Dict[str, Any]:
@@ -79,6 +178,13 @@ class PlanState:
             "revision_log": deepcopy(self.revision_log),
         }
 
+    def model_plan_dict(self) -> Dict[str, Any]:
+        """Public plan view for LLM prompts — no runtime fields."""
+        return {
+            "revision": self.revision,
+            "steps": [step.model_dict() for step in self.steps.values()],
+        }
+
     def step_ids(self) -> List[str]:
         return list(self.steps.keys())
 
@@ -86,9 +192,15 @@ class PlanState:
         return [sid for sid, step in self.steps.items() if step.mandatory]
 
     def _replace_steps(
-        self, raw_steps: Sequence[Dict[str, Any]], *, revision_note: str
+        self,
+        raw_steps: Sequence[Dict[str, Any]],
+        *,
+        revision_note: str,
+        from_model: bool = False,
     ) -> None:
-        parsed = [PlanStep.from_dict(raw) for raw in raw_steps]
+        parsed = [
+            PlanStep.from_dict(raw, allow_runtime=not from_model) for raw in raw_steps
+        ]
         ids = [s.step_id for s in parsed]
         if len(ids) != len(set(ids)):
             raise PlanStateError("duplicate step_id in plan")
@@ -139,9 +251,7 @@ class PlanState:
         for sid, step in self.steps.items():
             if step.status in {"resolved", "failed", "skipped", "running"}:
                 continue
-            deps_ok = all(
-                self.steps[d].status == "resolved" for d in step.depends_on
-            )
+            deps_ok = all(self.steps[d].status == "resolved" for d in step.depends_on)
             step.status = "ready" if deps_ok else "pending"
 
     def ready_steps(self) -> List[PlanStep]:
@@ -154,17 +264,36 @@ class PlanState:
                 f"cannot mark {step_id} running from status={step.status}"
             )
         step.status = "running"
+        step.attempt_count = int(step.attempt_count or 0) + 1
 
     def mark_resolved(
         self, step_id: str, *, observation_ids: Optional[Sequence[str]] = None
     ) -> None:
+        from datetime import datetime, timezone
+
         step = self._require(step_id)
         step.status = "resolved"
+        step.failure_reason = None
+        step.resolved_at = datetime.now(timezone.utc).isoformat()
         if observation_ids:
             for oid in observation_ids:
                 if oid not in step.observation_ids:
                     step.observation_ids.append(oid)
         self._recompute_ready()
+
+    def resolve_steps_from_observation(
+        self, step_ids: Sequence[str], observation_id: str
+    ) -> List[str]:
+        """Runtime helper: resolve multiple steps from one observation id."""
+        resolved: List[str] = []
+        for sid in step_ids:
+            if sid not in self.steps:
+                continue
+            if self.steps[sid].status in {"resolved", "skipped"}:
+                continue
+            self.mark_resolved(sid, observation_ids=[observation_id])
+            resolved.append(sid)
+        return resolved
 
     def mark_failed(self, step_id: str, reason: str) -> None:
         step = self._require(step_id)
@@ -178,46 +307,52 @@ class PlanState:
         step.failure_reason = reason
         self._recompute_ready()
 
-    def resolve_steps_from_observation(
-        self,
-        step_ids: Sequence[str],
-        observation_id: str,
-    ) -> List[str]:
-        """One observation may resolve multiple plan steps."""
-        resolved: List[str] = []
-        for sid in step_ids:
-            if sid not in self.steps:
-                raise PlanStateError(f"unknown step_id in observation resolve: {sid}")
-            self.mark_resolved(sid, observation_ids=[observation_id])
-            resolved.append(sid)
-        return resolved
-
     def apply_monitor_patch(self, patch: Dict[str, Any]) -> Dict[str, Any]:
-        """Apply incremental patch from monitor (completed/updated/new/removed)."""
+        """Apply exceptional replan patch (model-owned fields only)."""
         patch = patch or {}
-        completed = list(patch.get("completed_steps") or [])
-        updated = list(patch.get("updated_steps") or [])
-        new_steps = list(patch.get("new_steps") or [])
-        removed = list(patch.get("removed_steps") or [])
+        # Accept both v1 names and v1.1 names.
+        completed = list(
+            patch.get("completed_plan_step_ids")
+            or patch.get("completed_steps")
+            or []
+        )
+        updated = list(
+            patch.get("updated_plan_steps") or patch.get("updated_steps") or []
+        )
+        new_steps = list(
+            patch.get("new_plan_steps") or patch.get("new_steps") or []
+        )
+        removed = list(
+            patch.get("removed_plan_step_ids")
+            or patch.get("removed_steps")
+            or []
+        )
 
         for sid in completed:
-            if sid in self.steps and self.steps[sid].status != "resolved":
-                self.mark_resolved(sid)
+            # Suggestion only — runtime must already have evidence; here we only
+            # record the suggestion in the summary. Do NOT auto-resolve.
+            if sid not in self.steps:
+                raise PlanStateError(f"completed_plan_step_ids unknown: {sid!r}")
 
         for rem in removed:
             if rem not in self.steps:
                 continue
-            # Do not remove already resolved mandatory evidence silently —
-            # mark skipped so coverage checks remain auditable.
             if self.steps[rem].status == "resolved":
                 continue
             self.mark_skipped(rem, "removed_by_replan")
             del self.steps[rem]
 
         for upd in updated:
+            if not isinstance(upd, dict):
+                raise PlanStateError("updated_plan_steps entries must be objects")
+            leaked = [k for k in RUNTIME_ONLY_STEP_FIELDS if k in upd]
+            if leaked:
+                raise PlanStateError(
+                    f"updated_plan_steps must not include runtime fields: {leaked}"
+                )
             sid = str(upd.get("step_id") or "")
             if sid not in self.steps:
-                raise PlanStateError(f"updated_steps references unknown step {sid!r}")
+                raise PlanStateError(f"updated_plan_steps references unknown step {sid!r}")
             step = self.steps[sid]
             if upd.get("objective") is not None:
                 step.objective = str(upd["objective"])
@@ -236,22 +371,29 @@ class PlanState:
                 step.retrieval_query_hint = upd.get("retrieval_query_hint")
             if "notes" in upd:
                 step.notes = upd.get("notes")
-            # Replan may revive a failed retrieve with an updated query — reset to
-            # pending so readiness can make it ready again (no silent skip).
+            if "compute_spec" in upd:
+                step.compute_spec = normalize_compute_spec(upd.get("compute_spec"))
             if step.status in {"failed", "skipped"} and (
                 "retrieval_query_hint" in upd
                 or upd.get("objective") is not None
                 or upd.get("notes") is not None
-                or bool(upd.get("reset_to_pending"))
+                or "compute_spec" in upd
             ):
                 step.status = "pending"
                 step.failure_reason = None
 
         for raw in new_steps:
-            step = PlanStep.from_dict(raw)
+            if not isinstance(raw, dict):
+                raise PlanStateError("new_plan_steps entries must be objects")
+            leaked = [k for k in RUNTIME_ONLY_STEP_FIELDS if k in raw]
+            if leaked:
+                raise PlanStateError(
+                    f"new_plan_steps must not include runtime fields: {leaked}"
+                )
+            step = PlanStep.from_dict(raw, allow_runtime=False)
             if step.step_id in self.steps:
                 raise PlanStateError(
-                    f"new_steps duplicates existing step_id {step.step_id!r}"
+                    f"new_plan_steps duplicates existing step_id {step.step_id!r}"
                 )
             self.steps[step.step_id] = step
 
@@ -261,19 +403,19 @@ class PlanState:
         self.revision += 1
         summary = {
             "revision": self.revision,
-            "completed_steps": completed,
-            "updated_steps": [u.get("step_id") for u in updated],
-            "new_steps": [s.get("step_id") for s in new_steps],
-            "removed_steps": removed,
+            "completed_plan_step_ids": completed,
+            "updated_plan_steps": [u.get("step_id") for u in updated],
+            "new_plan_steps": [
+                s.get("step_id") if isinstance(s, dict) else None for s in new_steps
+            ],
+            "removed_plan_step_ids": removed,
         }
         self.revision_log.append(summary)
         return summary
 
     def mandatory_coverage(self) -> Dict[str, Any]:
         mandatory = self.mandatory_step_ids()
-        resolved = [
-            sid for sid in mandatory if self.steps[sid].status == "resolved"
-        ]
+        resolved = [sid for sid in mandatory if self.steps[sid].status == "resolved"]
         unresolved = [
             sid
             for sid in mandatory
@@ -283,14 +425,22 @@ class PlanState:
             "mandatory_total": len(mandatory),
             "mandatory_resolved": len(resolved),
             "mandatory_unresolved": unresolved,
-            "coverage_rate": (
-                (len(resolved) / len(mandatory)) if mandatory else 1.0
-            ),
+            "coverage_rate": (len(resolved) / len(mandatory)) if mandatory else 1.0,
         }
 
     def is_complete(self) -> bool:
         cov = self.mandatory_coverage()
         return len(cov["mandatory_unresolved"]) == 0
+
+    def non_answer_mandatory_resolved(self) -> bool:
+        for sid, step in self.steps.items():
+            if not step.mandatory:
+                continue
+            if step.step_type == "answer":
+                continue
+            if step.status != "resolved":
+                return False
+        return True
 
     def _require(self, step_id: str) -> PlanStep:
         if step_id not in self.steps:

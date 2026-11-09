@@ -196,26 +196,53 @@ class BudgetTracker:
                 limits.get("max_targeted_retrievals_per_step", 2)
             ),
             "max_total_mcp_invocations": int(limits.get("max_total_mcp_invocations", 8)),
-            "max_llm_monitor_rounds": int(limits.get("max_llm_monitor_rounds", 6)),
+            # Exceptional replan Monitor only (normal progress is deterministic).
+            "max_exception_replan_calls_per_task": int(
+                limits.get("max_exception_replan_calls_per_task", 2)
+            ),
+            "max_llm_monitor_rounds": int(
+                limits.get(
+                    "max_llm_monitor_rounds",
+                    limits.get("max_exception_replan_calls_per_task", 2),
+                )
+            ),
             "max_same_operation_repeats": int(limits.get("max_same_operation_repeats", 1)),
-            "max_final_repair_rounds": int(limits.get("max_final_repair_rounds", 1)),
+            "max_final_repair_rounds": int(
+                limits.get("max_final_repair_rounds", limits.get("max_final_repairs", 1))
+            ),
+            "max_binding_repairs": int(limits.get("max_binding_repairs", 1)),
             "max_idle_monitor_rounds": int(limits.get("max_idle_monitor_rounds", 1)),
-            # Global per-task generation cap (planner/monitor/reason/verify/final + repairs).
+            # Global per-task generation cap (planner/binding/exceptional replan/final).
             "max_total_llm_calls_per_task": int(
-                limits.get("max_total_llm_calls_per_task", 14)
+                limits.get("max_total_llm_calls_per_task", 10)
+            ),
+            "max_projected_observation_chars_per_step": int(
+                limits.get("max_projected_observation_chars_per_step", 6000)
+            ),
+            "max_total_ledger_prompt_chars": int(
+                limits.get("max_total_ledger_prompt_chars", 16000)
             ),
         }
         self.plan_revisions = 0
         self.monitor_rounds = 0
+        self.exception_replan_calls = 0
         self.idle_monitor_rounds = 0
         self.mcp_invocations = 0
         self.retrievals_per_step: Dict[str, int] = {}
         self.operation_invoke_counts: Dict[str, int] = {}
         self.last_failed_invoke_signatures: set = set()
+        self.successful_invoke_signatures: set = set()
+        self.repeated_signature_block_count = 0
         self.final_repair_rounds = 0
         self.llm_calls = 0
         self.calls_by_stage: Dict[str, int] = {}
         self.stopping_reason: Optional[str] = None
+        self.deterministic_step_transitions = 0
+        self.dependency_auto_expansion_count = 0
+        self.schema_description_expansion_count = 0
+        self.raw_observation_chars = 0
+        self.projected_observation_chars = 0
+        self.exception_trigger: Optional[str] = None
 
     @property
     def llm_call_budget(self) -> int:
@@ -234,7 +261,7 @@ class BudgetTracker:
         from hk_equity_mcp.apv_fin.llm_budget import LlmCallBudgetExhausted
 
         if self.llm_calls >= self.llm_call_budget:
-            self.stopping_reason = "llm_call_budget_exhausted"
+            self.stopping_reason = "resource_limit_failure"
             raise LlmCallBudgetExhausted(
                 used=self.llm_calls, limit=self.llm_call_budget, stage=stage
             )
@@ -252,13 +279,20 @@ class BudgetTracker:
             "llm_calls_remaining": self.llm_calls_remaining,
             "llm_budget_exhausted": self.llm_budget_exhausted,
             "calls_by_stage": dict(self.calls_by_stage),
+            "exception_replan_calls": self.exception_replan_calls,
+            "max_exception_replan_calls_per_task": self.limits[
+                "max_exception_replan_calls_per_task"
+            ],
         }
 
     def snapshot(self) -> Dict[str, Any]:
+        raw = self.raw_observation_chars
+        proj = self.projected_observation_chars
         return {
             "limits": dict(self.limits),
             "plan_revisions": self.plan_revisions,
             "monitor_rounds": self.monitor_rounds,
+            "exception_replan_calls": self.exception_replan_calls,
             "idle_monitor_rounds": self.idle_monitor_rounds,
             "mcp_invocations": self.mcp_invocations,
             "retrievals_per_step": dict(self.retrievals_per_step),
@@ -267,6 +301,14 @@ class BudgetTracker:
             "llm_calls": self.llm_calls,
             "calls_by_stage": dict(self.calls_by_stage),
             "stopping_reason": self.stopping_reason,
+            "exception_trigger": self.exception_trigger,
+            "deterministic_step_transitions": self.deterministic_step_transitions,
+            "dependency_auto_expansion_count": self.dependency_auto_expansion_count,
+            "schema_description_expansion_count": self.schema_description_expansion_count,
+            "repeated_signature_block_count": self.repeated_signature_block_count,
+            "raw_observation_chars": raw,
+            "projected_observation_chars": proj,
+            "compression_ratio": (proj / raw) if raw else None,
             **self.llm_budget_fields(),
         }
 
@@ -275,6 +317,10 @@ class BudgetTracker:
         # (non-LLM steps may still proceed when the generation budget is spent).
         if self.plan_revisions > self.limits["max_plan_revisions"]:
             return "max_plan_revisions"
+        if self.exception_replan_calls > self.limits[
+            "max_exception_replan_calls_per_task"
+        ]:
+            return "max_exception_replan_calls_per_task"
         if self.monitor_rounds > self.limits["max_llm_monitor_rounds"]:
             return "max_llm_monitor_rounds"
         if self.mcp_invocations > self.limits["max_total_mcp_invocations"]:
@@ -363,7 +409,9 @@ def execute_retrieve_step(
             ranked = dict(ranked)
             ranked["reranked"] = reranked
 
-    to_describe = select_candidates_to_describe(reranked)
+    to_describe = select_candidates_to_describe(
+        reranked, required_provides=list(ctx.required_provides or [])
+    )
     described_ids: List[str] = []
     described_contracts: Dict[str, Dict[str, Any]] = {}
     describe_outputs: List[Dict[str, Any]] = []
@@ -523,6 +571,95 @@ def execute_retrieve_step(
         return base_out
 
     decision = binding.get("decision")
+    # One-shot schema-description expansion: describe a capability-compatible
+    # undescibed candidate without re-running embedding retrieval.
+    if (
+        decision in {"expand_search", "unsupported"}
+        and int(getattr(budget, "schema_description_expansion_count", 0) or 0) < 1
+    ):
+        undescribed = [
+            r
+            for r in reranked
+            if r["operation_id"] not in described_ids
+            and r.get("compatibility_tier") in {"A", "B", "C"}
+        ]
+        # Prefer provides-overlap / hist|daily when close required.
+        undescribed = sorted(
+            undescribed,
+            key=lambda r: (
+                0
+                if (
+                    "hist" in str(r.get("operation_id") or "").lower()
+                    or "daily" in str(r.get("operation_id") or "").lower()
+                    or "provides_overlap"
+                    in ((r.get("compatibility_reasons") or {}).get("supports") or [])
+                )
+                else 1,
+                int(r.get("final_rank") or 10**6),
+            ),
+        )
+        if undescribed:
+            expand_row = undescribed[0]
+            eoid = expand_row["operation_id"]
+            dout = resolver.describe_operation(eoid)
+            describe_outputs.append(dout)
+            budget.schema_description_expansion_count = (
+                int(getattr(budget, "schema_description_expansion_count", 0) or 0) + 1
+            )
+            if dout.get("success") and dout.get("contract"):
+                described_ids.append(eoid)
+                described_contracts[eoid] = dout["contract"]
+                to_describe = list(to_describe) + [expand_row]
+                if use_offline_binding:
+                    from hk_equity_mcp.agent.llm_client import ScriptedLLMClient
+                    from hk_equity_mcp.apv_fin.llm_budget import BudgetedLLMClient
+
+                    offline_proposal = build_deterministic_binding_proposal(
+                        described_rows=to_describe,
+                        described_contracts=described_contracts,
+                        grounding=grounding,
+                    )
+                    one_shot = ScriptedLLMClient(
+                        [json.dumps(offline_proposal, ensure_ascii=False)]
+                    )
+                    binder_llm = BudgetedLLMClient(one_shot, budget)
+                binding = run_tool_binder(
+                    binder_llm,
+                    question=question
+                    or str(task_spec.get("goal") or step.objective or ""),
+                    task_spec=task_spec,
+                    step={
+                        "step_id": step.step_id,
+                        "objective": step.objective,
+                        "retrieval_query_hint": step.retrieval_query_hint,
+                        "success_criteria": step.success_criteria,
+                        "notes": step.notes,
+                    },
+                    reranked_summaries=candidate_summaries,
+                    described_contracts=described_contracts,
+                    grounding=grounding,
+                    budget_snapshot=budget.snapshot(),
+                    allowed_operation_ids=allowed_ids,
+                    blocked_operation_ids=blocked_ids,
+                    tier_by_id=tier_by_id,
+                    offline_proposal=None,
+                )
+                base_out["binding"] = binding
+                base_out["binding_decision"] = binding.get("decision")
+                base_out["binding_selected_operation"] = binding.get(
+                    "selected_operation_id"
+                )
+                base_out["grounded_arguments"] = binding.get("arguments")
+                base_out["argument_sources"] = binding.get("argument_sources")
+                base_out["argument_validation"] = binding.get("argument_validation")
+                base_out["described_candidate_ids"] = described_ids
+                base_out["schema_description_expansion"] = {
+                    "operation_id": eoid,
+                    "described_rank": expand_row.get("final_rank"),
+                    "source": "schema_description_expansion",
+                }
+                decision = binding.get("decision") if binding.get("ok") else decision
+
     if decision == "expand_search":
         reform = (binding.get("payload") or {}).get("reformulated_query")
         if (
@@ -575,21 +712,29 @@ def execute_retrieve_step(
         )
         return base_out
 
-    # Identical failed invocation guard.
+    # Identical failed OR successful invocation guard (no empty re-list loops).
     invoke_sig = json.dumps(
         {"operation_id": oid, "arguments": args}, sort_keys=True, ensure_ascii=False
     )
-    prior = getattr(budget, "last_failed_invoke_signatures", None)
-    if prior is None:
+    prior_fail = getattr(budget, "last_failed_invoke_signatures", None)
+    if prior_fail is None:
         budget.last_failed_invoke_signatures = set()
-        prior = budget.last_failed_invoke_signatures
-    if invoke_sig in prior:
+        prior_fail = budget.last_failed_invoke_signatures
+    prior_ok = getattr(budget, "successful_invoke_signatures", None)
+    if prior_ok is None:
+        budget.successful_invoke_signatures = set()
+        prior_ok = budget.successful_invoke_signatures
+    if invoke_sig in prior_fail or invoke_sig in prior_ok:
+        budget.repeated_signature_block_count = (
+            int(getattr(budget, "repeated_signature_block_count", 0) or 0) + 1
+        )
         base_out.update(
             {
                 "ok": False,
-                "error": "identical_failed_invocation_not_repeated",
+                "error": "identical_successful_or_failed_invocation_not_repeated",
                 "chosen_operation_id": oid,
                 "grounded_arguments": args,
+                "repeated_signature_blocked": True,
             }
         )
         return base_out
@@ -620,22 +765,47 @@ def execute_retrieve_step(
     budget.operation_invoke_counts[oid] = repeats + 1
     success = bool(invoke_out.get("success"))
     if not success:
-        prior.add(invoke_sig)
+        prior_fail.add(invoke_sig)
+    else:
+        prior_ok.add(invoke_sig)
+
+    from hk_equity_mcp.apv_fin.projection import project_mcp_result
+
+    projection = None
+    if success:
+        projection = project_mcp_result(
+            operation_id=str(oid),
+            arguments=args,
+            raw_result=(invoke_out or {}).get("result"),
+            task_spec=task_spec,
+            step_objective=str(step.objective or ""),
+        )
+        budget.raw_observation_chars += int(projection.get("raw_chars") or 0)
+        budget.projected_observation_chars += int(
+            projection.get("projected_chars") or 0
+        )
+
     ev = ledger.add(
         step_id=step.step_id,
         claim=f"retrieve/invoke {oid}",
         source_type="mcp_invoke",
         operation_id=oid,
         raw_value=invoke_out,
-        normalized_value=(invoke_out or {}).get("result"),
+        normalized_value=(
+            (projection or {}).get("projected")
+            if projection
+            else (invoke_out or {}).get("result")
+        ),
         provenance="UnifiedRealMcpGateway via OperationResolverServer",
         validation_status="valid" if success else "invalid",
+        **({"projection": projection} if projection else {}),
     )
     base_out.update(
         {
             "ok": success,
             "chosen_operation_id": oid,
             "invoke": invoke_out,
+            "projection": projection,
             "evidence_id": ev.evidence_id,
             "mcp_called": True,
             "invoked": True,
@@ -643,16 +813,137 @@ def execute_retrieve_step(
             "error": None if success else invoke_out.get("error"),
         }
     )
+    # Compact observation for subsequent LLM prompts (raw stays in ledger/artifact).
+    if projection:
+        base_out["compact_observation"] = {
+            "step_id": step.step_id,
+            "operation_id": oid,
+            "arguments": args,
+            "projected": projection.get("projected"),
+            "raw_artifact_hash": projection.get("raw_artifact_hash"),
+            "truncated": projection.get("truncated"),
+        }
     return base_out
 
 
+def _resolve_operand_refs(
+    operand_refs: Dict[str, str], ledger: EvidenceLedger
+) -> tuple[Dict[str, float], List[str]]:
+    """Bind compute_spec.operand_refs from verified ledger values.
+
+    Ref formats: "s1.net_income", "evidence_id.field", or plain evidence field name.
+    """
+    operands: Dict[str, float] = {}
+    missing: List[str] = []
+    items = list(ledger.items)
+
+    def _numeric_from(value: Any) -> Optional[float]:
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, dict):
+            for k in ("value", "result", "amount", "close", "normalized_value"):
+                if isinstance(value.get(k), (int, float)) and not isinstance(
+                    value.get(k), bool
+                ):
+                    return float(value[k])
+        return None
+
+    for name, ref in operand_refs.items():
+        ref_s = str(ref or "").strip()
+        found: Optional[float] = None
+        step_prefix = None
+        field = ref_s
+        if "." in ref_s:
+            step_prefix, field = ref_s.split(".", 1)
+        for item in reversed(items):
+            if str(item.validation_status or "") not in {"valid", "verified"}:
+                continue
+            if step_prefix and item.step_id != step_prefix and item.evidence_id != step_prefix:
+                continue
+            candidates = [
+                item.normalized_value,
+                item.raw_value,
+                (item.extras or {}).get("projection"),
+            ]
+            for cand in candidates:
+                if cand is None:
+                    continue
+                if isinstance(cand, dict):
+                    # Search rows / flat keys.
+                    if field in cand and _numeric_from(cand[field]) is not None:
+                        found = _numeric_from(cand[field])
+                        break
+                    rows = cand.get("rows") if isinstance(cand.get("rows"), list) else None
+                    if rows is None and isinstance(cand.get("projected"), dict):
+                        rows = cand["projected"].get("rows")
+                    if isinstance(rows, list):
+                        for row in rows:
+                            if isinstance(row, dict) and field in row:
+                                found = _numeric_from(row[field])
+                                if found is not None:
+                                    break
+                    if found is not None:
+                        break
+                    # Case-insensitive key match.
+                    for k, v in cand.items():
+                        if str(k).lower() == field.lower():
+                            found = _numeric_from(v)
+                            if found is not None:
+                                break
+                else:
+                    if not step_prefix or field in {"value", "result", "amount"}:
+                        found = _numeric_from(cand)
+                if found is not None:
+                    break
+            if found is not None:
+                break
+        if found is None:
+            missing.append(name)
+        else:
+            operands[name] = found
+    return operands, missing
+
+
 def _extract_compute_payload_from_step(
-    step: PlanStep, scripted_payload: Optional[Dict[str, Any]] = None
-) -> Optional[Dict[str, Any]]:
-    """Resolve compute expression/operands without any LLM call."""
+    step: PlanStep,
+    ledger: EvidenceLedger,
+    scripted_payload: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Resolve compute_spec → expression/operands without any LLM call / eval()."""
     if scripted_payload is not None:
-        return dict(scripted_payload)
-    # Prefer structured JSON in notes; otherwise accept notes already shaped as payload.
+        return {"ok": True, "payload": dict(scripted_payload), "missing": []}
+
+    spec = step.compute_spec
+    if isinstance(spec, dict) and spec.get("expression"):
+        refs = dict(spec.get("operand_refs") or {})
+        operands, missing = _resolve_operand_refs(refs, ledger)
+        if missing:
+            return {
+                "ok": False,
+                "error": "missing_compute_operands",
+                "missing": missing,
+                "payload": {
+                    "schema_version": "apv_fin_compute_v1",
+                    "expression": spec["expression"],
+                    "operands": operands,
+                    "unit": spec.get("output_unit"),
+                    "notes": spec.get("output_name"),
+                    "rounding": spec.get("rounding"),
+                },
+            }
+        payload = {
+            "schema_version": "apv_fin_compute_v1",
+            "expression": spec["expression"],
+            "operands": operands,
+            "unit": spec.get("output_unit"),
+            "notes": spec.get("output_name"),
+            "rounding": spec.get("rounding"),
+        }
+        return {"ok": True, "payload": payload, "missing": []}
+
+    # Legacy fallback: structured JSON in notes (offline fixtures).
     for raw in (step.notes, step.objective):
         if not raw or not isinstance(raw, str):
             continue
@@ -671,8 +962,13 @@ def _extract_compute_payload_from_step(
                 "unit": obj.get("unit"),
                 "notes": obj.get("notes"),
             }
-            return payload
-    return None
+            return {"ok": True, "payload": payload, "missing": []}
+    return {
+        "ok": False,
+        "error": "compute_missing_expression_operands",
+        "missing": [],
+        "payload": None,
+    }
 
 
 def execute_compute_step(
@@ -685,32 +981,36 @@ def execute_compute_step(
     max_tokens: int = 1024,
     scripted_payload: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Deterministic compute: safe arithmetic only. Never calls LLM or MCP.
-
-    If expression/operands are missing, mark unresolved for monitor/replan
-    (no hidden compute LLM call).
-    """
+    """Deterministic compute via compute_spec. Never calls LLM/MCP/eval()."""
     del llm, question, temperature, max_tokens  # unused; keep signature stable
-    payload = _extract_compute_payload_from_step(step, scripted_payload)
-    if payload is None:
+    extracted = _extract_compute_payload_from_step(step, ledger, scripted_payload)
+    if not extracted.get("ok"):
+        err = extracted.get("error") or "compute_missing_expression_operands"
+        payload = extracted.get("payload") or {}
         return {
             "ok": False,
             "mcp_called": False,
             "llm_called": False,
-            "error": "compute_missing_expression_operands",
+            "error": err,
+            "missing_operands": extracted.get("missing") or [],
             "unresolved": True,
             "repair_count": 0,
             "llm": None,
-            "payload": None,
+            "payload": payload or None,
             "compute_trace": compute_trace_record(
                 step_id=step.step_id,
-                payload={},
-                error="compute_missing_expression_operands",
+                payload=payload or {},
+                error=err,
             ),
         }
 
+    payload = extracted["payload"]
     try:
         evaluated = evaluate_compute_payload(payload)
+        rounding = payload.get("rounding")
+        if rounding is not None and isinstance(evaluated.get("result"), (int, float)):
+            evaluated = dict(evaluated)
+            evaluated["result"] = round(float(evaluated["result"]), int(rounding))
         trace = compute_trace_record(
             step_id=step.step_id, payload=payload, evaluated=evaluated
         )
@@ -738,6 +1038,7 @@ def execute_compute_step(
             "evaluated": evaluated,
             "compute_trace": trace,
             "evidence_id": ev.evidence_id,
+            "value": evaluated.get("result"),
         }
     except CalculatorError as exc:
         trace = compute_trace_record(

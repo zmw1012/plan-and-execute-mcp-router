@@ -48,7 +48,8 @@ Required fields:
 - task_spec.answerability_reason: one short sentence (≤180 chars) explaining
   the hypothesis — NEVER put that explanation inside answerability_hypothesis
 - initial_plan.steps: unique step_id, depends_on, step_type, objective (≤180),
-  mandatory, success_criteria (≤160)
+  mandatory, success_criteria (≤160), compute_spec (required for compute; else null)
+- Do NOT emit runtime fields: status, observation_ids, attempt_count, etc.
 
 Company-generic compact example (illustrative only; adapt to the question):
 {{
@@ -76,26 +77,38 @@ Company-generic compact example (illustrative only; adapt to the question):
         "mandatory": true,
         "success_criteria": "Evidence rows obtained",
         "retrieval_query_hint": "hong kong equity metric",
+        "compute_spec": null,
         "notes": null
       }},
       {{
-        "step_id": "s2_reason",
-        "step_type": "reason",
-        "objective": "Summarize evidence for the answer.",
+        "step_id": "s2_compute",
+        "step_type": "compute",
+        "objective": "Compute attributable net margin percent.",
         "depends_on": ["s1_retrieve"],
         "mandatory": true,
-        "success_criteria": "Concise summary ready",
+        "success_criteria": "Margin computed",
         "retrieval_query_hint": null,
+        "compute_spec": {{
+          "expression": "(net_income / revenue) * 100",
+          "operand_refs": {{
+            "net_income": "s1_retrieve.net_income",
+            "revenue": "s1_retrieve.revenue"
+          }},
+          "output_name": "attributable_net_margin",
+          "output_unit": "percent",
+          "rounding": 2
+        }},
         "notes": null
       }},
       {{
         "step_id": "s3_answer",
         "step_type": "answer",
         "objective": "Emit final answer.",
-        "depends_on": ["s2_reason"],
+        "depends_on": ["s2_compute"],
         "mandatory": true,
         "success_criteria": "Final JSON ready",
         "retrieval_query_hint": null,
+        "compute_spec": null,
         "notes": null
       }}
     ],
@@ -108,45 +121,61 @@ APV_FIN_MONITOR_USER_TEMPLATE = """Question:
 {question}
 
 Current plan revision: {revision}
-Plan steps JSON:
+Model-owned plan steps JSON (no runtime fields):
 {plan_json}
 
-Recent observations JSON:
+Compact projected observations JSON:
 {observations_json}
 
-Evidence ledger summary JSON:
+Compact verified evidence summary JSON:
 {evidence_summary_json}
 
 Budget counters JSON:
 {budget_json}
 
-Output ONE compact JSON object only matching schema apv_fin_monitor_v1.
-Required fields:
-- schema_version: MUST be "apv_fin_monitor_v1"
-- decision: continue|replan|verify|answer|clarify|refuse|fail
-- decision_reason: short non-empty string (do NOT use reasoning_brief)
-- ready_step_ids: array
-- patch: {{completed_steps, updated_steps, new_steps, removed_steps}}
+Exception trigger: {exception_trigger}
 
-Rules:
-- schema_version must exist.
-- decision_reason must exist; never substitute reasoning_brief.
-- No markdown fences. No chain-of-thought.
-- No operation_id in new/updated steps.
-- Prefer compact patches. On failed retrieve, replan may update
-  retrieval_query_hint and reset the step rather than repeating the same invoke.
+You are the EXCEPTIONAL replan Monitor only. Normal step completion is handled
+by the deterministic runtime controller — do NOT mark runtime status.
+
+Output ONE compact JSON object matching schema apv_fin_monitor_v1:
+- schema_version: "apv_fin_monitor_v1"
+- decision: replan|clarify|refuse|fail|continue
+- decision_reason: short non-empty string (NOT reasoning_brief)
+- ready_step_ids: []
+- patch: {{
+    "completed_plan_step_ids": [],
+    "updated_plan_steps": [],
+    "new_plan_steps": [],
+    "removed_plan_step_ids": []
+  }}
+
+Patch rules:
+- updated_plan_steps / new_plan_steps may ONLY include model-owned fields:
+  step_id, step_type, objective, depends_on, mandatory, success_criteria,
+  retrieval_query_hint, compute_spec, notes.
+- FORBIDDEN runtime fields: status, observation_ids, attempt_count,
+  failure_reason, selected_operation, invoked_operation, execution_result,
+  resolved_at.
+- completed_plan_step_ids are suggestions only; runtime verifies evidence.
+- No operation_id. No markdown fences.
 
 Minimal example:
 {{
   "schema_version": "apv_fin_monitor_v1",
-  "decision": "continue",
-  "decision_reason": "Ready steps remain after successful observation.",
+  "decision": "replan",
+  "decision_reason": "Required output missing; update retrieve query hint.",
   "ready_step_ids": [],
   "patch": {{
-    "completed_steps": [],
-    "updated_steps": [],
-    "new_steps": [],
-    "removed_steps": []
+    "completed_plan_step_ids": [],
+    "updated_plan_steps": [
+      {{
+        "step_id": "s1_retrieve",
+        "retrieval_query_hint": "hong kong equity close price history"
+      }}
+    ],
+    "new_plan_steps": [],
+    "removed_plan_step_ids": []
   }},
   "clarify_question": null,
   "refuse_reason": null,
@@ -243,21 +272,32 @@ No markdown fences.
 APV_FIN_FINAL_USER_TEMPLATE = """Question:
 {question}
 
+Normalized task_spec JSON:
+{task_spec_json}
+
 Plan coverage JSON:
 {coverage_json}
-Evidence ledger JSON:
+
+Compact verified ledger JSON (projected evidence only; no raw tool dumps):
 {evidence_json}
+
+Compute results JSON:
+{compute_json}
+
+Evidence citation ids:
+{citation_json}
+
 Validator notes JSON:
 {validator_json}
 
 Return ONE JSON object matching schema apv_fin_final_v1.
 status must be answered|clarification_needed|unavailable.
-Cite only evidence_ids actually present. No markdown fences.
+Cite only evidence_ids actually present. No raw MCP dumps. No markdown fences.
 """
 
 
 def apv_fin_prompt_hash() -> str:
-    # System + planner + tool-binding + monitor contracts (protocol v3).
+    # System + planner + tool-binding + exceptional-monitor + final (v1.1).
     return prompt_hash(
         APV_FIN_SYSTEM_PROMPT
         + "\n---\n"
@@ -266,6 +306,8 @@ def apv_fin_prompt_hash() -> str:
         + APV_FIN_TOOL_BINDING_USER_TEMPLATE
         + "\n---\n"
         + APV_FIN_MONITOR_USER_TEMPLATE
+        + "\n---\n"
+        + APV_FIN_FINAL_USER_TEMPLATE
     )
 
 

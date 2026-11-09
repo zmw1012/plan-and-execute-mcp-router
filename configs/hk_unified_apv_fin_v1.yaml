@@ -1,7 +1,8 @@
-# APV-Fin proposed method v1 (separated from Operation-Visible baseline)
+# APV-Fin proposed method v1.1 — deterministic controller (pre-valid method eval)
 condition: apv_fin
-method_version: apv_fin_v1
+method_version: apv_fin_v1_1_deterministic_controller
 execution_backend: real_mcp
+protocol_change: deterministic_controller_refactor_before_valid_method_evaluation
 
 # Formal live identity (fail-closed; no Aliyun silent fallback)
 generation_provider: openai_compatible
@@ -37,17 +38,21 @@ embedding_max_retries: 3
 embedding_retry_backoff_seconds: [1, 2, 4]
 
 limits:
-  # Bounded replanning — config-driven (do not retune for mock pass).
+  # Frozen before first valid method evaluation (engineering contraction, not retune).
   max_plan_revisions: 2
   max_targeted_retrievals_per_step: 2
   max_total_mcp_invocations: 8
-  max_llm_monitor_rounds: 6
+  max_exception_replan_calls_per_task: 2
+  max_llm_monitor_rounds: 2
   max_same_operation_repeats: 1
   max_final_repair_rounds: 1
+  max_binding_repairs: 1
   max_idle_monitor_rounds: 1
-  # Global per-task generation cap (planner/monitor/reason/verify/final + repairs).
+  # Global per-task generation cap (planner/binding/exceptional replan/final + repairs).
   # Does not include embedding, MCP, or catalog indexing.
-  max_total_llm_calls_per_task: 14
+  max_total_llm_calls_per_task: 10
+  max_projected_observation_chars_per_step: 6000
+  max_total_ledger_prompt_chars: 16000
   timeout_sec: 180
 
 catalogs:
