@@ -119,6 +119,15 @@ class ApvFinAgent:
         invoked_operations: List[str] = []
         successful_invoked: List[str] = []
         retrieved_candidates: List[Any] = []
+        binding_calls = 0
+        binding_repair_count = 0
+        binding_decisions: List[Any] = []
+        described_candidate_ids: List[str] = []
+        binding_selected_operations: List[str] = []
+        grounded_arguments_log: List[Any] = []
+        argument_sources_log: List[Any] = []
+        argument_validation_log: List[Any] = []
+        retrieval_reformulation_count = 0
         executed_step_ids: Set[str] = set()
         status = "failed"
         error: Optional[str] = None
@@ -253,12 +262,68 @@ class ApvFinAgent:
                             ledger=ledger,
                             budget=self.budget,
                             top_k=self.top_k,
+                            llm=self.llm,
+                            question=question,
                             invoke_arguments=(
                                 self._scripted_retrieve_args.get(step.step_id)
                                 or self._scripted_retrieve_args.get("*")
                             ),
                             select_operation_id=self._scripted_select_op,
                             allow_forced_select=self._allow_mock_hooks,
+                            # Mock/offline: synthetic binding through the same validator;
+                            # never empty-arg invoke and never skip Tool Binding.
+                            offline_tool_binding=bool(self._allow_mock_hooks),
+                        )
+                        _acc_tokens((out.get("binding") or {}).get("llm"))
+                        binding_meta = out.get("binding") or {}
+                        if binding_meta:
+                            binding_calls += 1
+                            binding_repair_count += int(
+                                binding_meta.get("repair_count") or 0
+                            )
+                            binding_decisions.append(
+                                {
+                                    "step_id": step.step_id,
+                                    "decision": binding_meta.get("decision"),
+                                    "selected_operation_id": binding_meta.get(
+                                        "selected_operation_id"
+                                    ),
+                                    "ok": binding_meta.get("ok"),
+                                    "error": binding_meta.get("error"),
+                                    "raw_contents": binding_meta.get("raw_contents"),
+                                }
+                            )
+                        if out.get("described_candidate_ids"):
+                            described_candidate_ids.extend(
+                                out.get("described_candidate_ids") or []
+                            )
+                        if out.get("binding_selected_operation"):
+                            binding_selected_operations.append(
+                                out["binding_selected_operation"]
+                            )
+                        if out.get("grounded_arguments") is not None:
+                            grounded_arguments_log.append(
+                                {
+                                    "step_id": step.step_id,
+                                    "arguments": out.get("grounded_arguments"),
+                                }
+                            )
+                        if out.get("argument_sources") is not None:
+                            argument_sources_log.append(
+                                {
+                                    "step_id": step.step_id,
+                                    "sources": out.get("argument_sources"),
+                                }
+                            )
+                        if out.get("argument_validation") is not None:
+                            argument_validation_log.append(
+                                {
+                                    "step_id": step.step_id,
+                                    "validation": out.get("argument_validation"),
+                                }
+                            )
+                        retrieval_reformulation_count += int(
+                            out.get("retrieval_reformulation_count") or 0
                         )
                         if out.get("forced_select_used") and self.live_mode:
                             final_obj = controlled_failure_payload(
@@ -703,6 +768,18 @@ class ApvFinAgent:
             "invoked_operations": _dedupe(invoked_operations),
             "successful_invoked_operations": _dedupe(successful_invoked),
             "retrieved_candidates": retrieved_candidates,
+            "binding_calls": binding_calls,
+            "binding_repair_count": binding_repair_count,
+            "binding_decisions": binding_decisions,
+            "described_candidate_ids": _dedupe(described_candidate_ids),
+            "binding_selected_operation": binding_selected_operations[-1]
+            if binding_selected_operations
+            else None,
+            "binding_selected_operations": _dedupe(binding_selected_operations),
+            "grounded_arguments": grounded_arguments_log,
+            "argument_sources": argument_sources_log,
+            "argument_validation": argument_validation_log,
+            "retrieval_reformulation_count": retrieval_reformulation_count,
             "describe_calls": [
                 t for t in trace if t.get("type") == "step_execution"
             ],
@@ -947,7 +1024,11 @@ def _invoke_counts(trace: List[Dict[str, Any]]) -> tuple:
 
 
 def _tool_execution_success(trace: List[Dict[str, Any]]) -> bool:
+    """True only when every MCP invoke succeeded and at least one succeeded.
+
+    Validation errors / empty-arg failures count as unsuccessful.
+    """
     ok, fail = _invoke_counts(trace)
-    if ok + fail == 0:
-        return True
-    return fail == 0
+    if fail > 0:
+        return False
+    return ok > 0

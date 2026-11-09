@@ -75,6 +75,7 @@ def test_retrieve_uses_resolver_compute_does_not_call_mcp(tmp_path: Path):
         step=step,
         task_spec={
             "goal": "close price",
+            "entities": ["09992.HK"],
             "metrics": ["close"],
             "periods": ["2026-07-31"],
             "cutoff_date": "2026-08-12",
@@ -84,6 +85,7 @@ def test_retrieve_uses_resolver_compute_does_not_call_mcp(tmp_path: Path):
         runtime_operation_ids=bundle.stats.runtime_operation_ids,
         ledger=ledger,
         budget=budget,
+        question="What is the close for 09992.HK?",
         invoke_arguments={
             "symbol": "09992",
             "adjust": "",
@@ -93,6 +95,7 @@ def test_retrieve_uses_resolver_compute_does_not_call_mcp(tmp_path: Path):
         },
         select_operation_id="aktools.stock_hk_hist",
         allow_forced_select=True,
+        offline_tool_binding=True,
     )
     assert out.get("ok") is True, out.get("error")
     assert out["mcp_called"] is True

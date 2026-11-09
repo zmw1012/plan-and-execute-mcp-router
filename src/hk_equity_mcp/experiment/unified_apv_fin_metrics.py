@@ -18,57 +18,187 @@ def _rate(flags: Sequence[bool]) -> Optional[float]:
     return sum(1 for f in flags if f) / len(flags)
 
 
+def _plan_steps(row: Dict[str, Any]) -> Dict[str, Any]:
+    plan = row.get("plan_state") or {}
+    if not isinstance(plan, dict):
+        return {}
+    steps = plan.get("steps") or {}
+    return steps if isinstance(steps, dict) else {}
+
+
+def evidence_chain_complete(row: Dict[str, Any]) -> bool:
+    """True only when mandatory retrieves resolved with valid/verified MCP evidence.
+
+    Failed MCP invocations, planner task_spec alone, or empty ledgers do not count.
+    """
+    steps = _plan_steps(row)
+    mandatory_retrieve = [
+        s
+        for s in steps.values()
+        if s.get("mandatory") and s.get("step_type") == "retrieve"
+    ]
+    if mandatory_retrieve:
+        if not all(s.get("status") == "resolved" for s in mandatory_retrieve):
+            return False
+        # Dependency edges among mandatory retrieves must be satisfied via resolved deps.
+        for s in mandatory_retrieve:
+            for dep in s.get("depends_on") or []:
+                dep_step = steps.get(dep) or {}
+                if dep_step.get("mandatory") and dep_step.get("status") != "resolved":
+                    return False
+
+    ledger = row.get("evidence_ledger") or []
+    if isinstance(ledger, dict):
+        items = ledger.get("items") or []
+    else:
+        items = ledger
+    valid_mcp = [
+        i
+        for i in items
+        if isinstance(i, dict)
+        and i.get("source_type") == "mcp_invoke"
+        and str(i.get("validation_status") or "") in {"valid", "verified"}
+    ]
+    if not valid_mcp:
+        return False
+    # Any failed invocation without a later success for that step blocks completion.
+    if int(row.get("failed_invocation_count") or 0) > 0 and int(
+        row.get("successful_invocation_count") or 0
+    ) == 0:
+        return False
+    if str(row.get("status") or "").lower() in {"failed", "error", "fail"}:
+        # Failed task cannot claim completed evidence chain.
+        return False
+    return True
+
+
+def calculation_validation_flag(row: Dict[str, Any]) -> Optional[bool]:
+    """null when no mandatory compute; false if present but not ok; true if ok."""
+    steps = _plan_steps(row)
+    mandatory_compute = [
+        s
+        for s in steps.values()
+        if s.get("mandatory") and s.get("step_type") == "compute"
+    ]
+    if not mandatory_compute:
+        # Optional compute absence → N/A
+        any_compute = [s for s in steps.values() if s.get("step_type") == "compute"]
+        if not any_compute:
+            return None
+        # Non-mandatory compute present: require traces if executed; else N/A.
+        traces = row.get("compute_traces") or []
+        if not traces:
+            return None
+        return all(bool(t.get("ok")) for t in traces)
+
+    # Mandatory compute must be resolved with successful deterministic traces.
+    if not all(s.get("status") == "resolved" for s in mandatory_compute):
+        return False
+    traces = row.get("compute_traces") or []
+    if not traces:
+        return False
+    if not all(bool(t.get("ok")) for t in traces):
+        return False
+    validator = row.get("validator") or {}
+    calc_check = next(
+        (
+            c
+            for c in (validator.get("checks") or [])
+            if c.get("name") == "calculation_operands"
+        ),
+        None,
+    )
+    if calc_check is not None and not bool(calc_check.get("ok")):
+        return False
+    return True
+
+
+def strict_answer_success(row: Dict[str, Any]) -> Optional[bool]:
+    """Common/strict answer success — failed/partial tasks are false, never gold-matched refusal credit."""
+    status = str(row.get("status") or row.get("result_status") or "").lower()
+    if status in {"failed", "error", "fail", "partial"}:
+        return False
+    predicted_status = str(row.get("predicted_status") or "").lower()
+    if status == "failed" or predicted_status in {"failed"}:
+        return False
+    ac = row.get("answer_correct")
+    if ac is True:
+        # Guard: unavailable/failed trajectory must not count as strict success.
+        if predicted_status in {"unavailable", "clarification_needed"} and status in {
+            "failed",
+            "partial",
+        }:
+            return False
+        return True
+    if ac is False:
+        return False
+    return None
+
+
+def tool_execution_success_flag(row: Dict[str, Any]) -> bool:
+    failed = int(row.get("failed_invocation_count") or 0)
+    successful = int(row.get("successful_invocation_count") or 0)
+    if failed > 0:
+        return False
+    if row.get("all_tool_invocations_successful") is False:
+        return False
+    if successful == 0 and int(row.get("real_mcp_execution_count") or 0) > 0:
+        return False
+    return bool(row.get("all_tool_invocations_successful")) or (
+        successful > 0 and failed == 0
+    )
+
+
+def plan_completion_flag(row: Dict[str, Any]) -> bool:
+    steps = _plan_steps(row)
+    if not steps:
+        return False
+    mandatory = [s for s in steps.values() if s.get("mandatory")]
+    if not mandatory:
+        return False
+    return all(s.get("status") == "resolved" for s in mandatory)
+
+
 def aggregate_apv_fin_metrics(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     rows = list(rows)
     n = len(rows)
 
-    answer_correct_flags = []
+    answer_correct_flags: List[bool] = []
+    descriptive_auto_grade_flags: List[bool] = []
     for r in rows:
-        ac = r.get("answer_correct")
-        if ac is True:
-            answer_correct_flags.append(True)
-        elif ac is False:
-            answer_correct_flags.append(False)
+        strict = strict_answer_success(r)
+        if strict is not None:
+            answer_correct_flags.append(strict)
+        # Descriptive auto-grade retained separately; not used as common strict answer.
+        if r.get("auto_grade_status") == "graded" and r.get("answer_correct") is True:
+            if str(r.get("status") or "").lower() not in {"failed", "error", "fail", "partial"}:
+                descriptive_auto_grade_flags.append(True)
+            else:
+                descriptive_auto_grade_flags.append(False)
+        elif r.get("auto_grade_status") == "graded" and r.get("answer_correct") is False:
+            descriptive_auto_grade_flags.append(False)
 
-    plan_complete = []
-    mandatory_cov = []
-    evidence_complete = []
-    calc_valid = []
+    plan_complete = [plan_completion_flag(r) for r in rows]
+    mandatory_cov: List[Optional[float]] = []
+    evidence_complete = [evidence_chain_complete(r) for r in rows]
+    calc_valid: List[Optional[bool]] = []
     plan_revisions = []
     resource_limit_failures = 0
     refusal_flags = []
+    tool_exec = [tool_execution_success_flag(r) for r in rows]
 
     for r in rows:
-        plan = r.get("plan_state") or {}
-        steps = (plan.get("steps") or {}) if isinstance(plan, dict) else {}
+        steps = _plan_steps(r)
         if steps:
             mandatory = [s for s in steps.values() if s.get("mandatory")]
             resolved = [s for s in mandatory if s.get("status") == "resolved"]
-            plan_complete.append(len(resolved) == len(mandatory))
             mandatory_cov.append(
-                (len(resolved) / len(mandatory)) if mandatory else 1.0
+                (len(resolved) / len(mandatory)) if mandatory else None
             )
         else:
-            plan_complete.append(False)
             mandatory_cov.append(None)
 
-        ledger = r.get("evidence_ledger") or r.get("evidence") or []
-        evidence_complete.append(bool(ledger))
-
-        traces = r.get("compute_traces") or []
-        if traces:
-            calc_valid.append(all(bool(t.get("ok")) for t in traces))
-        validator = r.get("validator") or {}
-        calc_check = next(
-            (
-                c
-                for c in (validator.get("checks") or [])
-                if c.get("name") == "calculation_operands"
-            ),
-            None,
-        )
-        if calc_check is not None:
-            calc_valid.append(bool(calc_check.get("ok")))
+        calc_valid.append(calculation_validation_flag(r))
 
         plan_revisions.append(int(r.get("plan_revisions") or 0))
         stop = str(r.get("stopping_reason") or r.get("error") or "")
@@ -85,13 +215,17 @@ def aggregate_apv_fin_metrics(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
             except (TypeError, ValueError):
                 refusal_flags.append(bool(r.get("refusal_correctness")))
 
+    calc_bools = [c for c in calc_valid if c is not None]
+
     return {
         "n_tasks": n,
         "final_answer_accuracy": _rate(answer_correct_flags),
         "common_strict_answer_success": _rate(answer_correct_flags),
+        "descriptive_auto_grade_accuracy": _rate(descriptive_auto_grade_flags),
         "plan_completion_rate": _rate(plan_complete),
         "mandatory_node_coverage_mean": _mean(mandatory_cov),
         "evidence_chain_completion_rate": _rate(evidence_complete),
+        "tool_execution_success_rate": _rate(tool_exec),
         "tool_set_exact_rate": _rate(
             [bool(r.get("exact_tool_set")) for r in rows if r.get("exact_tool_set") is not None]
         ),
@@ -106,7 +240,7 @@ def aggregate_apv_fin_metrics(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
             ]
         ),
         "refusal_clarification_accuracy": _rate(refusal_flags),
-        "calculation_validation_rate": _rate(calc_valid) if calc_valid else None,
+        "calculation_validation_rate": _rate(calc_bools) if calc_bools else None,
         "plan_revisions_per_task_mean": _mean(plan_revisions),
         "llm_calls_mean": _mean([r.get("llm_calls") for r in rows]),
         "mcp_invocations_mean": _mean(
@@ -172,14 +306,6 @@ def _cost_summary(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
             except (TypeError, ValueError):
                 pass
 
-    planner_calls = int(stage_totals.get("planner") or 0)
-    planner_repair_calls = int(stage_totals.get("planner_repair") or 0)
-    embedding_query_calls = _sum_int(rows, "embedding_calls")
-    # Catalog index build is separate from per-task query embeddings.
-    catalog_index_embedding_calls = _sum_int(
-        rows, "catalog_index_embedding_calls", "embedding_index_calls"
-    )
-
     return {
         "n_tasks": len(rows),
         "successful_tasks": sum(
@@ -194,16 +320,22 @@ def _cost_summary(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
             if str(r.get("status") or r.get("result_status") or "").lower()
             in {"failed", "error", "fail"}
         ),
-        "planner_calls": planner_calls,
-        "planner_repair_calls": planner_repair_calls,
+        "planner_calls": int(stage_totals.get("planner") or 0),
+        "planner_repair_calls": int(stage_totals.get("planner_repair") or 0),
+        "tool_binding_calls": int(stage_totals.get("tool_binding") or 0),
+        "tool_binding_repair_calls": int(stage_totals.get("tool_binding_repair") or 0),
+        "monitor_calls": int(stage_totals.get("monitor") or 0),
+        "monitor_repair_calls": int(stage_totals.get("monitor_repair") or 0),
         "calls_by_stage": stage_totals,
         "total_input_tokens": _sum_int(rows, "tokens.input_tokens"),
         "total_output_tokens": _sum_int(rows, "tokens.output_tokens"),
         "total_tokens": _sum_int(rows, "tokens.total_tokens"),
         "total_llm_calls": _sum_int(rows, "llm_calls_used", "llm_calls"),
         "total_real_mcp_executions": _sum_int(rows, "real_mcp_execution_count"),
-        "total_embedding_query_calls": embedding_query_calls,
-        "catalog_index_embedding_calls": catalog_index_embedding_calls,
+        "total_embedding_query_calls": _sum_int(rows, "embedding_calls"),
+        "catalog_index_embedding_calls": _sum_int(
+            rows, "catalog_index_embedding_calls", "embedding_index_calls"
+        ),
         "mean_latency_ms": _mean(latencies),
         "total_latency_ms": sum(latencies) if latencies else 0.0,
         "tasks_hitting_llm_call_cap": hitting_cap,

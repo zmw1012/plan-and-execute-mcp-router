@@ -236,6 +236,16 @@ class PlanState:
                 step.retrieval_query_hint = upd.get("retrieval_query_hint")
             if "notes" in upd:
                 step.notes = upd.get("notes")
+            # Replan may revive a failed retrieve with an updated query — reset to
+            # pending so readiness can make it ready again (no silent skip).
+            if step.status in {"failed", "skipped"} and (
+                "retrieval_query_hint" in upd
+                or upd.get("objective") is not None
+                or upd.get("notes") is not None
+                or bool(upd.get("reset_to_pending"))
+            ):
+                step.status = "pending"
+                step.failure_reason = None
 
         for raw in new_steps:
             step = PlanStep.from_dict(raw)

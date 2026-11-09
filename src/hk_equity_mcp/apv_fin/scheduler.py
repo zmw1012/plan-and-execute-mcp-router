@@ -18,6 +18,13 @@ from hk_equity_mcp.apv_fin.prompts import (
     APV_FIN_SYSTEM_PROMPT,
 )
 from hk_equity_mcp.apv_fin.reranker import RetrievalContext, rerank_candidates
+from hk_equity_mcp.apv_fin.tool_binding import (
+    annotate_selection_flags,
+    build_deterministic_binding_proposal,
+    grounding_from_context,
+    run_tool_binder,
+    select_candidates_to_describe,
+)
 from hk_equity_mcp.operation_resolver.server import OperationResolverServer
 
 
@@ -33,34 +40,149 @@ def build_retrieval_query(step: PlanStep, task_spec: Optional[Dict[str, Any]] = 
     return " | ".join(p for p in parts if p).strip()
 
 
-def context_from_task_spec(task_spec: Optional[Dict[str, Any]] = None) -> RetrievalContext:
+def _intent_blob(
+    task_spec: Optional[Dict[str, Any]] = None,
+    step: Optional[PlanStep] = None,
+    question: str = "",
+) -> str:
+    task_spec = task_spec or {}
+    parts = [
+        str(task_spec.get("goal") or ""),
+        " ".join(str(v) for v in (task_spec.get("metrics") or [])),
+        " ".join(str(v) for v in (task_spec.get("constraints") or [])),
+        str(question or ""),
+    ]
+    if step is not None:
+        parts.extend(
+            [
+                str(step.objective or ""),
+                str(step.retrieval_query_hint or ""),
+                str(step.success_criteria or ""),
+                str(step.notes or ""),
+            ]
+        )
+    return " ".join(parts).lower()
+
+
+def context_from_task_spec(
+    task_spec: Optional[Dict[str, Any]] = None,
+    step: Optional[PlanStep] = None,
+    question: str = "",
+) -> RetrievalContext:
+    """Build retrieval context from question + task_spec + retrieve step text.
+
+    Step/question text is required so market-close retrieves do not inherit empty
+    domain hints when the planner used a generic metric token.
+    """
     task_spec = task_spec or {}
     domain_hints: List[str] = []
-    # Lightweight heuristic from metrics/constraints text — company-generic.
-    blob = " ".join(
-        [str(task_spec.get("goal") or "")]
-        + list(task_spec.get("metrics") or [])
-        + list(task_spec.get("constraints") or [])
-    ).lower()
-    if any(k in blob for k in ("price", "close", "ohlc", "volume", "return", "index")):
-        domain_hints.append("market")
-    if any(k in blob for k in ("revenue", "eps", "ifrs", "profit", "filing", "announcement")):
-        domain_hints.append("financial")
-    if any(k in blob for k in ("news", "media", "headline", "annual report")):
-        domain_hints.append("news")
+    required_provides: List[str] = []
+    source_prefs: List[str] = [
+        "official_disclosure",
+        "exchange_feed",
+        "structured_vendor",
+    ]
+    market_keys = (
+        "price",
+        "close",
+        "ohlc",
+        "ohlcv",
+        "volume",
+        "turnover",
+        "return",
+        "index",
+        "quote",
+        "market",
+        "hist",
+        "history",
+        "open",
+        "high",
+        "low",
+    )
+    financial_keys = (
+        "revenue",
+        "eps",
+        "ifrs",
+        "profit",
+        "net income",
+        "net_income",
+        "filing",
+        "financial",
+        "balance sheet",
+        "income statement",
+        "indicator",
+        "ratio",
+    )
+    news_keys = ("news", "media", "headline", "press")
+    disclosure_keys = (
+        "announcement",
+        "disclosure",
+        "hkex",
+        "filing pdf",
+        "annual report",
+        "interim report",
+    )
+
+    def _domains_from(text: str) -> List[str]:
+        found: List[str] = []
+        if any(k in text for k in market_keys):
+            found.append("market")
+        if any(k in text for k in financial_keys):
+            found.append("financial")
+        if any(k in text for k in news_keys):
+            found.append("news")
+        if any(k in text for k in disclosure_keys):
+            found.append("financial")
+        return list(dict.fromkeys(found))
+
+    # Prefer question + task_spec domain signals. Step retrieval hints must not
+    # broaden a clear market/financial intent (e.g. stale "financial indicator" hint
+    # on a close-price question).
+    primary_blob = _intent_blob(task_spec, step=None, question=question)
+    step_blob = _intent_blob({}, step, question="")
+    blob = _intent_blob(task_spec, step, question=question)
+    primary_domains = _domains_from(primary_blob)
+    if primary_domains:
+        domain_hints.extend(primary_domains)
+    else:
+        domain_hints.extend(_domains_from(blob))
+
+    if "market" in domain_hints:
+        required_provides.extend(["close", "ohlcv", "price"])
+    if "financial" in domain_hints:
+        required_provides.extend(
+            ["eps", "revenue", "net_income", "financial_indicators", "financial_report_rows"]
+        )
+    if "news" in domain_hints:
+        pass
+    if any(k in primary_blob or k in step_blob for k in disclosure_keys):
+        if "financial" not in domain_hints:
+            domain_hints.append("financial")
+        source_prefs = [
+            "official_disclosure",
+            "structured_vendor",
+            "exchange_feed",
+        ]
+        required_provides.extend(
+            ["announcement_list", "announcement_pdf", "filing_text", "disclosure"]
+        )
+    # Deduplicate while preserving order.
+    domain_hints = list(dict.fromkeys(domain_hints))
+    required_provides = list(dict.fromkeys(required_provides))
     temporal: List[str] = []
-    if task_spec.get("periods"):
-        temporal.append("fiscal_period")
-        temporal.append("date_range")
-        temporal.append("point_in_time")
+    if task_spec.get("periods") or any(
+        k in blob for k in ("fy", "date", "period", "day", "as of", "as-of")
+    ):
+        temporal.extend(["fiscal_period", "date_range", "point_in_time"])
     return RetrievalContext(
         domain_hints=domain_hints,
         market_scope="hk",
         entity_scope_hints=["hk_listed_issuer", "hk_equity", "index"],
         identifier_types=["hk_code_5digit", "hk_code_4digit", "hk_ticker_dot", "index_symbol"],
         temporal_needs=temporal,
-        source_type_prefs=["official_disclosure", "exchange_feed", "structured_vendor"],
+        source_type_prefs=source_prefs,
         metric_basis_hints=list(task_spec.get("metric_basis_hints") or []),
+        required_provides=required_provides,
         cutoff_date=task_spec.get("cutoff_date") or "2026-08-12",
         disallow_post_cutoff_spot=True,
     )
@@ -89,6 +211,7 @@ class BudgetTracker:
         self.mcp_invocations = 0
         self.retrievals_per_step: Dict[str, int] = {}
         self.operation_invoke_counts: Dict[str, int] = {}
+        self.last_failed_invoke_signatures: set = set()
         self.final_repair_rounds = 0
         self.llm_calls = 0
         self.calls_by_stage: Dict[str, int] = {}
@@ -171,17 +294,26 @@ def execute_retrieve_step(
     ledger: EvidenceLedger,
     budget: BudgetTracker,
     top_k: int = 20,
+    llm: Optional[LLMClient] = None,
+    question: str = "",
     invoke_arguments: Optional[Dict[str, Any]] = None,
     select_operation_id: Optional[str] = None,
     allow_forced_select: bool = False,
+    offline_tool_binding: bool = False,
+    _reformulation_depth: int = 0,
 ) -> Dict[str, Any]:
-    """Retrieve path: find → hard-filter/rerank → describe → invoke via gateway."""
+    """Retrieve: find → hard-filter/rerank → describe Top-N → Tool Binding → validate → invoke.
+
+    Empty-argument invoke is forbidden. Forced select is live-forbidden and must not
+    bypass Tool Binding validation when used in offline unit tests.
+    """
     if select_operation_id and not allow_forced_select:
         return {
             "ok": False,
             "error": "forced_select_forbidden_in_live_mode",
             "step_id": step.step_id,
             "mcp_called": False,
+            "binding_decision": None,
         }
     count = budget.retrievals_per_step.get(step.step_id, 0)
     if count >= budget.limits["max_targeted_retrievals_per_step"]:
@@ -190,135 +322,328 @@ def execute_retrieve_step(
             "error": "max_targeted_retrievals_per_step",
             "step_id": step.step_id,
             "mcp_called": False,
+            "retrieval_reformulation_count": _reformulation_depth,
         }
     budget.retrievals_per_step[step.step_id] = count + 1
 
     query = build_retrieval_query(step, task_spec)
     find_out = resolver.find_operations(query, top_k=top_k)
     candidates = list(find_out.get("candidates") or [])
-    ctx = context_from_task_spec(task_spec)
+    ctx = context_from_task_spec(task_spec, step, question=question)
     ranked = rerank_candidates(
         candidates,
         metadata_by_id,
         ctx,
         runtime_operation_ids=runtime_operation_ids,
     )
-    reranked = ranked["reranked"]
-    chosen = None
+    reranked = list(ranked["reranked"] or [])
+
+    # Unit-test escape hatch: inject a candidate so binding can select it, still
+    # requiring describe + binding validation (never empty-arg invoke).
     forced_select_used = False
-    if select_operation_id:
-        chosen = next(
-            (r for r in reranked if r["operation_id"] == select_operation_id), None
-        )
-        if chosen is None and select_operation_id in metadata_by_id:
-            if not allow_forced_select:
-                return {
-                    "ok": False,
-                    "error": "forced_select_forbidden_in_live_mode",
-                    "step_id": step.step_id,
-                    "query": query,
-                    "find": find_out,
-                    "rerank": ranked,
-                    "mcp_called": False,
-                }
-            # Offline mock / unit-test override when hash retrieval misses the target.
+    if select_operation_id and allow_forced_select:
+        if not any(r["operation_id"] == select_operation_id for r in reranked):
             forced_select_used = True
-            chosen = {
-                "operation_id": select_operation_id,
-                "original_rank": None,
-                "base_score": 0.0,
-                "compatibility_tier": "A",
-                "compatibility_reasons": {
-                    "supports": ["forced_select_override"],
-                    "partial": [],
-                    "conflicts": [],
-                },
-                "hard_filtered": False,
-                "final_rank": 0,
-                "candidate": {"operation_id": select_operation_id, "score": 0.0},
-            }
-    if chosen is None and reranked:
-        # Prefer Tier A/B; allow C only as fallback.
-        for tier in ("A", "B", "C"):
-            chosen = next(
-                (r for r in reranked if r["compatibility_tier"] == tier), None
-            )
-            if chosen is not None:
-                break
-
-    describe_out = None
-    invoke_out = None
-    mcp_called = False
-    if chosen is not None:
-        oid = chosen["operation_id"]
-        describe_out = resolver.describe_operation(oid)
-        repeats = budget.operation_invoke_counts.get(oid, 0)
-        if repeats > budget.limits["max_same_operation_repeats"]:
-            return {
-                "ok": False,
-                "error": "max_same_operation_repeats",
-                "step_id": step.step_id,
-                "query": query,
-                "find": find_out,
-                "rerank": ranked,
-                "describe": describe_out,
-                "mcp_called": False,
-            }
-        if describe_out.get("success"):
-            if budget.mcp_invocations >= budget.limits["max_total_mcp_invocations"]:
-                return {
-                    "ok": False,
-                    "error": "max_total_mcp_invocations",
-                    "step_id": step.step_id,
-                    "query": query,
-                    "find": find_out,
-                    "rerank": ranked,
-                    "describe": describe_out,
-                    "mcp_called": False,
+            reranked = [
+                {
+                    "operation_id": select_operation_id,
+                    "original_rank": None,
+                    "base_score": 0.0,
+                    "compatibility_tier": "A",
+                    "compatibility_reasons": {
+                        "supports": ["forced_select_override"],
+                        "partial": [],
+                        "conflicts": [],
+                    },
+                    "hard_filtered": False,
+                    "final_rank": 0,
+                    "candidate": {"operation_id": select_operation_id, "score": 0.0},
                 }
-            args = dict(invoke_arguments or {})
-            invoke_out = resolver.invoke_api(oid, args)
-            mcp_called = True
-            budget.mcp_invocations += 1
-            budget.operation_invoke_counts[oid] = repeats + 1
-            ev = ledger.add(
-                step_id=step.step_id,
-                claim=f"retrieve/invoke {oid}",
-                source_type="mcp_invoke",
-                operation_id=oid,
-                raw_value=invoke_out,
-                normalized_value=(invoke_out or {}).get("result"),
-                provenance="UnifiedRealMcpGateway via OperationResolverServer",
-                validation_status="valid" if invoke_out.get("success") else "invalid",
-            )
-            return {
-                "ok": bool(invoke_out.get("success")),
-                "step_id": step.step_id,
-                "query": query,
-                "find": find_out,
-                "rerank": ranked,
-                "chosen_operation_id": oid,
-                "describe": describe_out,
-                "invoke": invoke_out,
-                "evidence_id": ev.evidence_id,
-                "mcp_called": mcp_called,
-                "forced_select_used": forced_select_used,
-                "error": None if invoke_out.get("success") else invoke_out.get("error"),
-            }
+            ] + reranked
+            ranked = dict(ranked)
+            ranked["reranked"] = reranked
 
-    return {
-        "ok": False,
+    to_describe = select_candidates_to_describe(reranked)
+    described_ids: List[str] = []
+    described_contracts: Dict[str, Dict[str, Any]] = {}
+    describe_outputs: List[Dict[str, Any]] = []
+    for row in to_describe:
+        oid = row["operation_id"]
+        dout = resolver.describe_operation(oid)
+        describe_outputs.append(dout)
+        if dout.get("success") and dout.get("contract"):
+            described_ids.append(oid)
+            described_contracts[oid] = dout["contract"]
+
+    grounding = grounding_from_context(
+        question=question, task_spec=task_spec, step=step, ledger=ledger
+    )
+    tier_by_id = {r["operation_id"]: r.get("compatibility_tier") for r in reranked}
+    allowed_ids = [r["operation_id"] for r in reranked]
+    blocked_ids = [
+        r["operation_id"]
+        for r in (ranked.get("hard_filtered") or [])
+        if "blocked" in str(r.get("hard_filter_reason") or "")
+        or "unavailable" in str(r.get("hard_filter_reason") or "")
+    ]
+    candidate_summaries = [
+        {
+            "operation_id": r["operation_id"],
+            "final_rank": r.get("final_rank"),
+            "original_rank": r.get("original_rank"),
+            "base_score": r.get("base_score"),
+            "compatibility_tier": r.get("compatibility_tier"),
+            "compatibility_reasons": r.get("compatibility_reasons"),
+        }
+        for r in reranked[:10]
+    ]
+
+    # Offline / mock: build a synthetic binding that still passes the same validator.
+    # Use a one-shot ScriptedLLM under BudgetedLLMClient so tool_binding counts toward
+    # the per-task cap without consuming the main trajectory script queue.
+    use_offline_binding = bool(offline_tool_binding) or llm is None
+    offline_proposal = None
+    if use_offline_binding:
+        offline_proposal = build_deterministic_binding_proposal(
+            described_rows=to_describe,
+            described_contracts=described_contracts,
+            grounding=grounding,
+        )
+        if (
+            select_operation_id
+            and allow_forced_select
+            and select_operation_id in described_contracts
+        ):
+            from hk_equity_mcp.apv_fin.argument_grounding import (
+                propose_arguments_for_schema,
+            )
+
+            args, sources, missing = propose_arguments_for_schema(
+                json_schema=(
+                    described_contracts[select_operation_id].get("json_schema") or {}
+                ),
+                grounding=grounding,
+            )
+            if invoke_arguments:
+                args.update(dict(invoke_arguments))
+                for k in invoke_arguments:
+                    sources.setdefault(k, "plan_step")
+            schema_req = list(
+                (
+                    described_contracts[select_operation_id].get("json_schema") or {}
+                ).get("required")
+                or []
+            )
+            if all(k in args for k in schema_req):
+                offline_proposal = {
+                    "schema_version": "apv_fin_tool_binding_v1",
+                    "decision": "select",
+                    "selected_operation_id": select_operation_id,
+                    "arguments": args,
+                    "argument_sources": sources,
+                    "expected_output": "rows",
+                    "decision_reason": (
+                        "Offline forced-select binding with grounded/supplied args."
+                    ),
+                    "reformulated_query": None,
+                }
+
+    if use_offline_binding:
+        from hk_equity_mcp.agent.llm_client import ScriptedLLMClient
+        from hk_equity_mcp.apv_fin.llm_budget import BudgetedLLMClient
+
+        one_shot = ScriptedLLMClient(
+            [json.dumps(offline_proposal, ensure_ascii=False)]
+        )
+        binder_llm: LLMClient = BudgetedLLMClient(one_shot, budget)
+    else:
+        binder_llm = llm  # type: ignore[assignment]
+
+    binding = run_tool_binder(
+        binder_llm,
+        question=question or str(task_spec.get("goal") or step.objective or ""),
+        task_spec=task_spec,
+        step={
+            "step_id": step.step_id,
+            "objective": step.objective,
+            "retrieval_query_hint": step.retrieval_query_hint,
+            "success_criteria": step.success_criteria,
+            "notes": step.notes,
+        },
+        reranked_summaries=candidate_summaries,
+        described_contracts=described_contracts,
+        grounding=grounding,
+        budget_snapshot=budget.snapshot(),
+        allowed_operation_ids=allowed_ids,
+        blocked_operation_ids=blocked_ids,
+        tier_by_id=tier_by_id,
+        offline_proposal=None,
+    )
+
+    annotated = annotate_selection_flags(
+        reranked,
+        described_ids=described_ids,
+        selected_id=(binding.get("selected_operation_id") if binding.get("ok") else None),
+    )
+    ranked = dict(ranked)
+    ranked["reranked"] = annotated
+
+    base_out: Dict[str, Any] = {
         "step_id": step.step_id,
         "query": query,
         "find": find_out,
         "rerank": ranked,
-        "chosen_operation_id": None,
-        "describe": describe_out,
-        "invoke": invoke_out,
-        "mcp_called": mcp_called,
+        "described_candidate_ids": described_ids,
+        "describe_outputs": describe_outputs,
+        "describe": describe_outputs[0] if describe_outputs else None,
+        "binding": binding,
+        "binding_decision": binding.get("decision"),
+        "binding_selected_operation": binding.get("selected_operation_id"),
+        "grounded_arguments": binding.get("arguments"),
+        "argument_sources": binding.get("argument_sources"),
+        "argument_validation": binding.get("argument_validation"),
+        "binding_repair_count": binding.get("repair_count"),
+        "retrieval_reformulation_count": _reformulation_depth,
         "forced_select_used": forced_select_used,
-        "error": "no_compatible_operation",
+        "mcp_called": False,
+        "chosen_operation_id": None,
+        "invoke": None,
+        "validation_passed": False,
+        "invoked": False,
+        "successful": False,
     }
+
+    if not binding.get("ok"):
+        base_out.update(
+            {
+                "ok": False,
+                "error": binding.get("error") or "tool_binding_fail_closed",
+            }
+        )
+        return base_out
+
+    decision = binding.get("decision")
+    if decision == "expand_search":
+        reform = (binding.get("payload") or {}).get("reformulated_query")
+        if (
+            reform
+            and _reformulation_depth + 1
+            < budget.limits["max_targeted_retrievals_per_step"]
+        ):
+            step.retrieval_query_hint = str(reform)
+            return execute_retrieve_step(
+                step=step,
+                task_spec=task_spec,
+                resolver=resolver,
+                metadata_by_id=metadata_by_id,
+                runtime_operation_ids=runtime_operation_ids,
+                ledger=ledger,
+                budget=budget,
+                top_k=top_k,
+                llm=llm,
+                question=question,
+                invoke_arguments=invoke_arguments,
+                select_operation_id=select_operation_id,
+                allow_forced_select=allow_forced_select,
+                offline_tool_binding=offline_tool_binding,
+                _reformulation_depth=_reformulation_depth + 1,
+            )
+        base_out.update(
+            {
+                "ok": False,
+                "error": "binding_expand_search_exhausted",
+            }
+        )
+        return base_out
+
+    if decision != "select":
+        base_out.update({"ok": False, "error": f"binding_decision_{decision}"})
+        return base_out
+
+    oid = binding.get("selected_operation_id")
+    args = dict(binding.get("arguments") or {})
+    # Never allow empty required invoke — validator already enforces, belt-and-suspenders:
+    if args == {} and described_contracts.get(oid or "", {}).get("json_schema", {}).get(
+        "required"
+    ):
+        base_out.update(
+            {
+                "ok": False,
+                "error": "refusing_empty_arguments_invoke",
+                "chosen_operation_id": oid,
+            }
+        )
+        return base_out
+
+    # Identical failed invocation guard.
+    invoke_sig = json.dumps(
+        {"operation_id": oid, "arguments": args}, sort_keys=True, ensure_ascii=False
+    )
+    prior = getattr(budget, "last_failed_invoke_signatures", None)
+    if prior is None:
+        budget.last_failed_invoke_signatures = set()
+        prior = budget.last_failed_invoke_signatures
+    if invoke_sig in prior:
+        base_out.update(
+            {
+                "ok": False,
+                "error": "identical_failed_invocation_not_repeated",
+                "chosen_operation_id": oid,
+                "grounded_arguments": args,
+            }
+        )
+        return base_out
+
+    repeats = budget.operation_invoke_counts.get(oid, 0)
+    if repeats > budget.limits["max_same_operation_repeats"]:
+        base_out.update(
+            {
+                "ok": False,
+                "error": "max_same_operation_repeats",
+                "chosen_operation_id": oid,
+            }
+        )
+        return base_out
+    if budget.mcp_invocations >= budget.limits["max_total_mcp_invocations"]:
+        base_out.update(
+            {
+                "ok": False,
+                "error": "max_total_mcp_invocations",
+                "chosen_operation_id": oid,
+            }
+        )
+        return base_out
+
+    base_out["validation_passed"] = True
+    invoke_out = resolver.invoke_api(oid, args)
+    budget.mcp_invocations += 1
+    budget.operation_invoke_counts[oid] = repeats + 1
+    success = bool(invoke_out.get("success"))
+    if not success:
+        prior.add(invoke_sig)
+    ev = ledger.add(
+        step_id=step.step_id,
+        claim=f"retrieve/invoke {oid}",
+        source_type="mcp_invoke",
+        operation_id=oid,
+        raw_value=invoke_out,
+        normalized_value=(invoke_out or {}).get("result"),
+        provenance="UnifiedRealMcpGateway via OperationResolverServer",
+        validation_status="valid" if success else "invalid",
+    )
+    base_out.update(
+        {
+            "ok": success,
+            "chosen_operation_id": oid,
+            "invoke": invoke_out,
+            "evidence_id": ev.evidence_id,
+            "mcp_called": True,
+            "invoked": True,
+            "successful": success,
+            "error": None if success else invoke_out.get("error"),
+        }
+    )
+    return base_out
 
 
 def _extract_compute_payload_from_step(

@@ -16,7 +16,17 @@ SCHEMA_VERSIONS = {
     "monitor": "apv_fin_monitor_v1",
     "compute": "apv_fin_compute_v1",
     "final": "apv_fin_final_v1",
+    "tool_binding": "apv_fin_tool_binding_v1",
 }
+
+TOOL_BINDING_DECISIONS = ("select", "expand_search", "unsupported")
+
+ARGUMENT_SOURCE_ENUM = (
+    "task_spec",
+    "plan_step",
+    "evidence_ledger",
+    "default",
+)
 
 STEP_TYPES = (
     "retrieve",
@@ -368,11 +378,46 @@ APV_FIN_FINAL_V1: Dict[str, Any] = {
     },
 }
 
+APV_FIN_TOOL_BINDING_V1: Dict[str, Any] = {
+    "$id": "apv_fin_tool_binding_v1",
+    "type": "object",
+    "additionalProperties": False,
+    "required": [
+        "schema_version",
+        "decision",
+        "selected_operation_id",
+        "arguments",
+        "argument_sources",
+        "expected_output",
+        "decision_reason",
+    ],
+    "properties": {
+        "schema_version": {"type": "string", "const": "apv_fin_tool_binding_v1"},
+        "decision": {"type": "string", "enum": list(TOOL_BINDING_DECISIONS)},
+        "selected_operation_id": {"type": ["string", "null"], "maxLength": 160},
+        "arguments": {
+            "type": "object",
+            "additionalProperties": True,
+        },
+        "argument_sources": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "string",
+                "enum": list(ARGUMENT_SOURCE_ENUM),
+            },
+        },
+        "expected_output": {"type": "string", "minLength": 1, "maxLength": 200},
+        "decision_reason": {"type": "string", "minLength": 1, "maxLength": 240},
+        "reformulated_query": {"type": ["string", "null"], "maxLength": 240},
+    },
+}
+
 SCHEMA_BY_NAME = {
     "apv_fin_plan_v1": APV_FIN_PLAN_V1,
     "apv_fin_monitor_v1": APV_FIN_MONITOR_V1,
     "apv_fin_compute_v1": APV_FIN_COMPUTE_V1,
     "apv_fin_final_v1": APV_FIN_FINAL_V1,
+    "apv_fin_tool_binding_v1": APV_FIN_TOOL_BINDING_V1,
 }
 
 
@@ -564,8 +609,42 @@ def format_repair_user_message(schema_name: str, error: str) -> str:
         f"Your previous response was not valid {schema_name}.",
         f"Error: {err}",
         "Re-output ONE complete compact JSON object that matches the schema exactly.",
-        "No markdown fences. No chain-of-thought. Prefer 3–6 plan steps.",
+        "No markdown fences. No chain-of-thought.",
     ]
+    if schema_name == "apv_fin_plan_v1":
+        lines.append("Prefer 3–6 plan steps.")
+    if schema_name == "apv_fin_monitor_v1":
+        lines.extend(
+            [
+                "Required: schema_version=\"apv_fin_monitor_v1\", decision, "
+                "decision_reason (non-empty), ready_step_ids, patch.",
+                "Do NOT use reasoning_brief; put short rationale in decision_reason only.",
+            ]
+        )
+        if "schema_version" in err and "missing" in err:
+            lines.append(
+                "JSON path: $.schema_version — add "
+                '"schema_version": "apv_fin_monitor_v1".'
+            )
+        if "decision_reason" in err and "missing" in err:
+            lines.append(
+                "JSON path: $.decision_reason — add a short non-empty decision_reason string."
+            )
+        if "reasoning_brief" in err:
+            lines.append(
+                "Remove reasoning_brief. Use decision_reason for the short rationale."
+            )
+    if schema_name == "apv_fin_tool_binding_v1":
+        lines.extend(
+            [
+                "Required: schema_version, decision (select|expand_search|unsupported), "
+                "selected_operation_id, arguments, argument_sources, expected_output, "
+                "decision_reason.",
+                "selected_operation_id must be one of the described candidate ids "
+                "(or null when not select).",
+                "arguments must include every required schema field; never invoke with {}.",
+            ]
+        )
     if is_json_decode:
         lines.extend(
             [

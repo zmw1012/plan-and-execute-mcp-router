@@ -120,10 +120,93 @@ Evidence ledger summary JSON:
 Budget counters JSON:
 {budget_json}
 
-Return ONE JSON object matching schema apv_fin_monitor_v1 with decision in
-continue|replan|verify|answer|clarify|refuse|fail and an incremental patch
-(completed_steps/updated_steps/new_steps/removed_steps). No operation_id in new
-steps. No markdown fences.
+Output ONE compact JSON object only matching schema apv_fin_monitor_v1.
+Required fields:
+- schema_version: MUST be "apv_fin_monitor_v1"
+- decision: continue|replan|verify|answer|clarify|refuse|fail
+- decision_reason: short non-empty string (do NOT use reasoning_brief)
+- ready_step_ids: array
+- patch: {{completed_steps, updated_steps, new_steps, removed_steps}}
+
+Rules:
+- schema_version must exist.
+- decision_reason must exist; never substitute reasoning_brief.
+- No markdown fences. No chain-of-thought.
+- No operation_id in new/updated steps.
+- Prefer compact patches. On failed retrieve, replan may update
+  retrieval_query_hint and reset the step rather than repeating the same invoke.
+
+Minimal example:
+{{
+  "schema_version": "apv_fin_monitor_v1",
+  "decision": "continue",
+  "decision_reason": "Ready steps remain after successful observation.",
+  "ready_step_ids": [],
+  "patch": {{
+    "completed_steps": [],
+    "updated_steps": [],
+    "new_steps": [],
+    "removed_steps": []
+  }},
+  "clarify_question": null,
+  "refuse_reason": null,
+  "fail_reason": null
+}}
+"""
+
+APV_FIN_TOOL_BINDING_USER_TEMPLATE = """Question:
+{question}
+
+Normalized task_spec JSON:
+{task_spec_json}
+
+Current retrieve step JSON:
+{step_json}
+
+Grounding candidates JSON (normalized; do not invent missing facts):
+{grounding_json}
+
+Reranked candidate summaries (Top-K; not full schemas):
+{candidates_json}
+
+Described operation contracts (full input schemas for these only):
+{described_json}
+
+Budget JSON:
+{budget_json}
+
+Output ONE compact JSON object matching schema apv_fin_tool_binding_v1:
+{{
+  "schema_version": "apv_fin_tool_binding_v1",
+  "decision": "select | expand_search | unsupported",
+  "selected_operation_id": "string or null",
+  "arguments": {{}},
+  "argument_sources": {{"argument_name": "task_spec|plan_step|evidence_ledger|default"}},
+  "expected_output": "short string",
+  "decision_reason": "short string",
+  "reformulated_query": null
+}}
+
+Rules:
+- selected_operation_id MUST be one of the described candidates when decision=select.
+- Never choose blocked/unavailable ops. Prefer Tier A then B; Tier C only if no A/B.
+- arguments may only use schema-allowed fields; all required fields must be present.
+- argument_sources must cover every provided argument.
+- If a required argument cannot be reliably grounded, use expand_search or unsupported.
+- Never select with empty {{}} arguments when required fields exist.
+- No gold operations / reference answers. No markdown fences.
+
+Minimal select example (illustrative ids only):
+{{
+  "schema_version": "apv_fin_tool_binding_v1",
+  "decision": "select",
+  "selected_operation_id": "example.market_history",
+  "arguments": {{"symbol": "00700", "adjust": ""}},
+  "argument_sources": {{"symbol": "task_spec", "adjust": "default"}},
+  "expected_output": "OHLCV rows",
+  "decision_reason": "Compatible market-history op with grounded symbol.",
+  "reformulated_query": null
+}}
 """
 
 APV_FIN_COMPUTE_USER_TEMPLATE = """Question:
@@ -174,9 +257,16 @@ Cite only evidence_ids actually present. No markdown fences.
 
 
 def apv_fin_prompt_hash() -> str:
-    # System + planner contract (planner_protocol_v2). Other templates remain
-    # versioned in code; resume identity keys on this combined hash.
-    return prompt_hash(APV_FIN_SYSTEM_PROMPT + "\n---\n" + APV_FIN_PLANNER_USER_TEMPLATE)
+    # System + planner + tool-binding + monitor contracts (protocol v3).
+    return prompt_hash(
+        APV_FIN_SYSTEM_PROMPT
+        + "\n---\n"
+        + APV_FIN_PLANNER_USER_TEMPLATE
+        + "\n---\n"
+        + APV_FIN_TOOL_BINDING_USER_TEMPLATE
+        + "\n---\n"
+        + APV_FIN_MONITOR_USER_TEMPLATE
+    )
 
 
 def assert_prompts_clean() -> None:
@@ -184,6 +274,7 @@ def assert_prompts_clean() -> None:
         APV_FIN_SYSTEM_PROMPT,
         APV_FIN_PLANNER_USER_TEMPLATE,
         APV_FIN_MONITOR_USER_TEMPLATE,
+        APV_FIN_TOOL_BINDING_USER_TEMPLATE,
         APV_FIN_COMPUTE_USER_TEMPLATE,
         APV_FIN_REASON_USER_TEMPLATE,
         APV_FIN_FINAL_USER_TEMPLATE,

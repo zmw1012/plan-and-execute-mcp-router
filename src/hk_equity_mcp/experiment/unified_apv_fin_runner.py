@@ -25,6 +25,7 @@ from hk_equity_mcp.apv_fin.identity import (
     EXPECTED_GENERATION_MODEL,
     EXPECTED_GENERATION_PROVIDER,
     PLANNER_PROTOCOL_CHANGE,
+    TOOL_BINDING_PROTOCOL_CHANGE,
     assert_live_provider_identity,
     combined_schema_hash,
     host_from_base_url,
@@ -764,6 +765,7 @@ class UnifiedHkApvFinRunner:
             "schema_hash": schema_h,
             "schema_hashes": schema_hashes(),
             "planner_protocol_change": PLANNER_PROTOCOL_CHANGE,
+            "tool_binding_protocol_change": TOOL_BINDING_PROTOCOL_CHANGE,
             "max_tokens_unchanged": self.max_tokens == 2048,
             "catalog_fingerprint": fingerprint,
             "operation_metadata_path": str(self.metadata_path),
@@ -1020,12 +1022,9 @@ class UnifiedHkApvFinRunner:
             "retrieval": dict(self.retrieval),
             "allow_mock_hooks": bool(self.mock),
         }
-        if self.mock:
-            # Mock-only hooks — unreachable in live_mode.
-            cfg["mock_retrieve_arguments"] = {"*": {"symbol": "0700"}}
-            cfg["mock_select_operation_id"] = (
-                "aktools.stock_financial_hk_analysis_indicator_em"
-            )
+        # Mock must use the same Tool Binding validator as live (offline synthetic
+        # binding via execute_retrieve_step). Do not inject forced_select / hardcoded
+        # issuer codes — that masked empty-arg and wrong-op failures.
         return ApvFinAgent(
             llm=llm,
             resolver=resolver,
@@ -1096,6 +1095,18 @@ class UnifiedHkApvFinRunner:
             "successful_invoked_operations": result.get(
                 "successful_invoked_operations"
             ),
+            "binding_calls": result.get("binding_calls"),
+            "binding_repair_count": result.get("binding_repair_count"),
+            "binding_decisions": result.get("binding_decisions"),
+            "described_candidate_ids": result.get("described_candidate_ids"),
+            "binding_selected_operation": result.get("binding_selected_operation"),
+            "binding_selected_operations": result.get("binding_selected_operations"),
+            "grounded_arguments": result.get("grounded_arguments"),
+            "argument_sources": result.get("argument_sources"),
+            "argument_validation": result.get("argument_validation"),
+            "retrieval_reformulation_count": result.get(
+                "retrieval_reformulation_count"
+            ),
             "describe_calls": result.get("describe_calls"),
             "invoke_calls": result.get("invoke_calls"),
             "evidence_ledger": result.get("evidence_ledger"),
@@ -1110,6 +1121,13 @@ class UnifiedHkApvFinRunner:
             "llm_budget_exhausted": result.get("llm_budget_exhausted"),
             "calls_by_stage": result.get("calls_by_stage"),
             "execution_order": result.get("execution_order"),
+            "tool_execution_success": result.get("tool_execution_success"),
+            "all_tool_invocations_successful": result.get(
+                "all_tool_invocations_successful"
+            ),
+            "successful_invocation_count": result.get("successful_invocation_count"),
+            "failed_invocation_count": result.get("failed_invocation_count"),
+            "real_mcp_execution_count": result.get("real_mcp_execution_count"),
             "auto_grade_status": grade.get("auto_grade_status"),
             "answer_correct": grade.get("answer_correct"),
             "auto_grade_reason": grade.get("reason"),
