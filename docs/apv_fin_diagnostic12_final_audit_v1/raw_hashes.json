@@ -1,0 +1,115 @@
+{
+  "before": {
+    "predictions.jsonl": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_diagnostic12_live_v1_4_1/predictions.jsonl",
+      "bytes": 2648448,
+      "sha256": "c97a85dccaadc52e9d0538afe7e3e98ff11a00d66014bb615ff65ee9c89802f3",
+      "rows": 12
+    },
+    "run_metadata.json": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_diagnostic12_live_v1_4_1/run_metadata.json",
+      "bytes": 19999,
+      "sha256": "d1a002b7e491b2105e6674b87cccfd49ec3b64ea70ab04e1216a8e4aa6027924",
+      "rows": null
+    },
+    "per_task_metrics.csv": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_diagnostic12_live_v1_4_1/per_task_metrics.csv",
+      "bytes": 2541,
+      "sha256": "9d7172cd4d308bb0c30ac7da7375ad4181e29a75a824177f98caadbcff25177a",
+      "rows": 12
+    },
+    "manual_grading.csv": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_diagnostic12_live_v1_4_1/manual_grading.csv",
+      "bytes": 647166,
+      "sha256": "60585c202dcaebf6ff292425a7cbf6257ce95703345975bb15e4e30e4475b0f1",
+      "rows": 12
+    },
+    "cost_summary.json": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_diagnostic12_live_v1_4_1/cost_summary.json",
+      "bytes": 1121,
+      "sha256": "9d46f3216913fd30a39f0fac26704fa958c13c790be2b0d57e23b0ec857f0764",
+      "rows": null
+    },
+    "error_summary.json": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_diagnostic12_live_v1_4_1/error_summary.json",
+      "bytes": 33207,
+      "sha256": "17ada3843a9244f4fc6bb8cf56961403e62d3e4a6fd656f063a4e717aff2f121",
+      "rows": null
+    },
+    "grouped_aggregates.json": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_diagnostic12_live_v1_4_1/grouped_aggregates.json",
+      "bytes": 27210,
+      "sha256": "c87d33d6172a1ac740ccfbefb1f662aa57eef204c810ce6af0d6643efd5ebe76",
+      "rows": null
+    },
+    "grading_summary.json": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_diagnostic12_live_v1_4_1/grading_summary.json",
+      "bytes": 359,
+      "sha256": "f00dc02009d2fe1a74b248473da6d5ac2f31269afc285b668ae9c3ab40031167",
+      "rows": null
+    },
+    "apv_fin_metrics.json": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_diagnostic12_live_v1_4_1/apv_fin_metrics.json",
+      "bytes": 2820,
+      "sha256": "f3898b7f08e764f8e8df7e6aefdc0d06374084d8e488e243172ef77e45a7242e",
+      "rows": null
+    }
+  },
+  "after": {
+    "predictions.jsonl": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_diagnostic12_live_v1_4_1/predictions.jsonl",
+      "bytes": 2648448,
+      "sha256": "c97a85dccaadc52e9d0538afe7e3e98ff11a00d66014bb615ff65ee9c89802f3",
+      "rows": 12
+    },
+    "run_metadata.json": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_diagnostic12_live_v1_4_1/run_metadata.json",
+      "bytes": 19999,
+      "sha256": "d1a002b7e491b2105e6674b87cccfd49ec3b64ea70ab04e1216a8e4aa6027924",
+      "rows": null
+    },
+    "per_task_metrics.csv": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_diagnostic12_live_v1_4_1/per_task_metrics.csv",
+      "bytes": 2541,
+      "sha256": "9d7172cd4d308bb0c30ac7da7375ad4181e29a75a824177f98caadbcff25177a",
+      "rows": 12
+    },
+    "manual_grading.csv": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_diagnostic12_live_v1_4_1/manual_grading.csv",
+      "bytes": 647166,
+      "sha256": "60585c202dcaebf6ff292425a7cbf6257ce95703345975bb15e4e30e4475b0f1",
+      "rows": 12
+    },
+    "cost_summary.json": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_diagnostic12_live_v1_4_1/cost_summary.json",
+      "bytes": 1121,
+      "sha256": "9d46f3216913fd30a39f0fac26704fa958c13c790be2b0d57e23b0ec857f0764",
+      "rows": null
+    },
+    "error_summary.json": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_diagnostic12_live_v1_4_1/error_summary.json",
+      "bytes": 33207,
+      "sha256": "17ada3843a9244f4fc6bb8cf56961403e62d3e4a6fd656f063a4e717aff2f121",
+      "rows": null
+    },
+    "grouped_aggregates.json": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_diagnostic12_live_v1_4_1/grouped_aggregates.json",
+      "bytes": 27210,
+      "sha256": "c87d33d6172a1ac740ccfbefb1f662aa57eef204c810ce6af0d6643efd5ebe76",
+      "rows": null
+    },
+    "grading_summary.json": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_diagnostic12_live_v1_4_1/grading_summary.json",
+      "bytes": 359,
+      "sha256": "f00dc02009d2fe1a74b248473da6d5ac2f31269afc285b668ae9c3ab40031167",
+      "rows": null
+    },
+    "apv_fin_metrics.json": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_diagnostic12_live_v1_4_1/apv_fin_metrics.json",
+      "bytes": 2820,
+      "sha256": "f3898b7f08e764f8e8df7e6aefdc0d06374084d8e488e243172ef77e45a7242e",
+      "rows": null
+    }
+  },
+  "unchanged": true
+}

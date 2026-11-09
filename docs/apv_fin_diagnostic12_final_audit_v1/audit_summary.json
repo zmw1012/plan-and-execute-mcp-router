@@ -1,0 +1,327 @@
+{
+  "audit_version": "apv_fin_diagnostic12_final_audit_v1",
+  "descriptive_only": true,
+  "method_version": "apv_fin_v1_4_1_crash_safe_runtime",
+  "git_commit": "3411a28f1c05dad87007626e31dfa3f4ecadfcc4",
+  "run_dir": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-apv-fin/outputs/apv_fin_diagnostic12_live_v1_4_1",
+  "identity": {
+    "checks": {
+      "n_rows_12": true,
+      "unique_ids_12": true,
+      "ordered_ids_match_manifest": true,
+      "manifest_hash_match": true,
+      "ordered_id_hash_match": true,
+      "run_status_completed": true,
+      "processed_task_count_12": true,
+      "method_version": true,
+      "git_commit": true,
+      "git_dirty_false": true,
+      "no_catalog_index_rebuild": true,
+      "resume_no_duplicate_ids": true
+    },
+    "all_passed": true,
+    "ordered_task_ids": [
+      "fin_cf_003",
+      "fin_cf_011",
+      "fin_cf_020",
+      "fin_cf_023",
+      "fin_ht_016",
+      "xd_dev_002",
+      "xd_ht_007",
+      "xd_ht_014",
+      "mkt_dev_014",
+      "fin_cf_024",
+      "mkt_dev_001",
+      "news_ht_004"
+    ],
+    "prediction_task_ids": [
+      "fin_cf_003",
+      "fin_cf_011",
+      "fin_cf_020",
+      "fin_cf_023",
+      "fin_ht_016",
+      "xd_dev_002",
+      "xd_ht_007",
+      "xd_ht_014",
+      "mkt_dev_014",
+      "fin_cf_024",
+      "mkt_dev_001",
+      "news_ht_004"
+    ],
+    "manifest_hash": "3b67b1f03746181bcb856bda60f8954a0db0ca8c8f42a881e9c93ff032ac5f17",
+    "ordered_id_hash": "96b633f00f2ec67daa47deae5c1e4252fff6cdb111a5759a121d66f5d09153d9",
+    "generation": {
+      "model": "deepseek-v4.1-flash",
+      "provider": "openai_compatible",
+      "host": "api.zhizengzeng.com"
+    },
+    "embedding": {
+      "model": "text-embedding-3-small",
+      "provider": "openai_compatible",
+      "host": "api.zhizengzeng.com"
+    },
+    "hashes": {
+      "system_prompt_hash": "a2af2f7d152f7121abdf3161818c1a2216b6de93c7bbc0afa4e17c5db23d973e",
+      "schema_hash": "2c9ad56210d1418cc5ac9e601449ed5e88ff30b3aeb6df47943a2ea704fb5dc6",
+      "capability_compiler_hash": "eba3c0172c0fa7f15f95b1779c0d02596abedb88836e97515c3838d477bf67ee",
+      "capability_contract_hash": "ca0bb9ef8b4392a1637225fcf60f10ae2a5accff141239e4250d9af178096968",
+      "output_adapter_hash": "93000f4bb9388b144e8513f7d926298064d99e64e16393189d62573f84427779",
+      "result_envelope_hash": "e3f3cf9000b610609cfce8ba4eda1cea02cb7b24ff0c733c57f6dac12d67c940",
+      "catalog_fingerprint": "unique=42|runtime=39|namespaced=54|cross_domain:a21a0cdf6c73|financial:18634ccfb733|market:2b201872c109|news:9121e9b7ca8d"
+    },
+    "budgets": {
+      "max_plan_revisions": 2,
+      "max_targeted_retrievals_per_step": 2,
+      "max_total_mcp_invocations": 8,
+      "max_exception_replan_calls_per_task": 2,
+      "max_llm_monitor_rounds": 2,
+      "max_same_operation_repeats": 1,
+      "max_final_repair_rounds": 1,
+      "max_binding_repairs": 1,
+      "max_idle_monitor_rounds": 1,
+      "max_total_llm_calls_per_task": 10,
+      "max_projected_observation_chars_per_step": 6000,
+      "max_total_ledger_prompt_chars": 16000,
+      "timeout_sec": 180
+    },
+    "resume": true,
+    "full_count": 1,
+    "failed_count": 11,
+    "completed_ids": [
+      "fin_cf_024"
+    ],
+    "failed_ids": [
+      "fin_cf_003",
+      "fin_cf_011",
+      "fin_cf_020",
+      "fin_cf_023",
+      "fin_ht_016",
+      "xd_dev_002",
+      "xd_ht_007",
+      "xd_ht_014",
+      "mkt_dev_014",
+      "mkt_dev_001",
+      "news_ht_004"
+    ]
+  },
+  "strict_metrics": {
+    "n": 12,
+    "strict_correct": 0,
+    "descriptive_auto_correct": 1,
+    "full": 1,
+    "failed": 11,
+    "resource_limit": 8,
+    "exact_tool_set": 3,
+    "operation_f1_mean": 0.44880950000000003,
+    "expected": {
+      "strict_correct": 0,
+      "descriptive_auto_correct": 1,
+      "full": 1,
+      "failed": 11,
+      "resource_limit": 8,
+      "exact_tool_set": 3,
+      "operation_f1_mean": 0.4488095
+    },
+    "matches_expected": {
+      "strict_correct": true,
+      "descriptive_auto_correct": true,
+      "full": true,
+      "failed": true,
+      "resource_limit": true,
+      "exact_tool_set": true,
+      "operation_f1_mean": true
+    },
+    "notes": "apv_fin_metrics.descriptive_auto_grade_accuracy disagrees with prediction-level answer_correct (0.0 vs 0.08333333333333333); grading_summary.auto_graded_correct=1. Audit uses prediction answer_correct for descriptive.",
+    "condition_specific_overall_success": null,
+    "condition_specific_overall_success_note": "overall success deferred; manual grading fields incomplete / not used in this offline audit",
+    "grading_summary": {
+      "n": 12,
+      "auto_gradable_count": 12,
+      "auto_graded_correct": 1,
+      "auto_graded_accuracy": 0.08333333333333333,
+      "manual_required_count": 0,
+      "overall_accuracy": null,
+      "overall_accuracy_note": "overall accuracy only after manual grading fields are completed",
+      "grader_version": "deterministic_v1.2",
+      "grading_version": "hk_unified_grading_v1.2"
+    },
+    "grouped_overall_excerpt": {
+      "auto_graded_correct": 1,
+      "auto_graded_accuracy": 0.08333333333333333,
+      "exact_tool_set_rate": 0.25,
+      "mean_operation_f1": 0.44880950000000003,
+      "completed_count": 1,
+      "failed_count": 11
+    },
+    "apv_fin_metrics_excerpt": {
+      "common_strict_answer_success": 0.0,
+      "final_answer_accuracy": 0.0,
+      "descriptive_auto_grade_accuracy": 0.0,
+      "tool_set_exact_rate": 0.25,
+      "tool_set_f1_mean": 0.44880950000000003,
+      "resource_limit_failures": 8
+    }
+  },
+  "error_taxonomy": {
+    "taxonomy": [
+      "exact_success",
+      "planner_parse_or_schema",
+      "capability_or_tool_selection",
+      "incomplete_disclosure_chain",
+      "required_output_not_satisfied",
+      "evidence_conflict_or_verification",
+      "calculation_not_reached",
+      "final_schema_or_synthesis",
+      "resource_limit_exception_replan",
+      "incorrect_refusal",
+      "tool_execution_failure"
+    ],
+    "primary_counts": {
+      "exact_success": 0,
+      "planner_parse_or_schema": 1,
+      "capability_or_tool_selection": 0,
+      "incomplete_disclosure_chain": 8,
+      "required_output_not_satisfied": 0,
+      "evidence_conflict_or_verification": 0,
+      "calculation_not_reached": 0,
+      "final_schema_or_synthesis": 2,
+      "resource_limit_exception_replan": 0,
+      "incorrect_refusal": 1,
+      "tool_execution_failure": 0
+    },
+    "per_task_primary": {
+      "fin_cf_003": "incomplete_disclosure_chain",
+      "fin_cf_011": "incomplete_disclosure_chain",
+      "fin_cf_020": "incomplete_disclosure_chain",
+      "fin_cf_023": "incomplete_disclosure_chain",
+      "fin_ht_016": "incomplete_disclosure_chain",
+      "xd_dev_002": "incomplete_disclosure_chain",
+      "xd_ht_007": "incomplete_disclosure_chain",
+      "xd_ht_014": "planner_parse_or_schema",
+      "mkt_dev_014": "final_schema_or_synthesis",
+      "fin_cf_024": "incorrect_refusal",
+      "mkt_dev_001": "final_schema_or_synthesis",
+      "news_ht_004": "incomplete_disclosure_chain"
+    },
+    "note": "Primary errors prefer upstream root causes; resource_limit is secondary when disclosure/required-output/capability failures precede the replan cap."
+  },
+  "mechanism_funnel": {
+    "n_tasks": 12,
+    "counts": {
+      "planner_valid": 11,
+      "capability_compiled": 11,
+      "compatible_candidate_found": 10,
+      "operation_selected": 10,
+      "mcp_invoked": 10,
+      "mcp_successful": 9,
+      "adapter_successful": 6,
+      "required_outputs_satisfied": 4,
+      "retrieve_steps_resolved": 5,
+      "compute_executed": 1,
+      "verify_resolved": 2,
+      "final_contract_valid": 1,
+      "strict_answer_correct": 0
+    },
+    "rates": {
+      "planner_valid": 0.9166666666666666,
+      "capability_compiled": 0.9166666666666666,
+      "compatible_candidate_found": 0.8333333333333334,
+      "operation_selected": 0.8333333333333334,
+      "mcp_invoked": 0.8333333333333334,
+      "mcp_successful": 0.75,
+      "adapter_successful": 0.5,
+      "required_outputs_satisfied": 0.3333333333333333,
+      "retrieve_steps_resolved": 0.4166666666666667,
+      "compute_executed": 0.08333333333333333,
+      "verify_resolved": 0.16666666666666666,
+      "final_contract_valid": 0.08333333333333333,
+      "strict_answer_correct": 0.0
+    },
+    "note": "Funnel explains 0/12 strict answer success; stages are descriptive offline flags."
+  },
+  "resources": {
+    "n_tasks": 12,
+    "llm_calls_total": 60,
+    "llm_calls_mean": 5,
+    "llm_calls_median": 4.5,
+    "input_tokens_total": 189386,
+    "output_tokens_total": 67903,
+    "total_tokens": 257289,
+    "tokens_mean": 21440.75,
+    "embedding_query_calls_total": 108,
+    "embedding_tokens_total": 0,
+    "catalog_index_embedding_calls": 0,
+    "mcp_executions_total": 16,
+    "mcp_executions_mean": 1.3333333333333333,
+    "latency_ms_mean": 62357.33125,
+    "latency_ms_median": 62989.9905,
+    "latency_ms_p95": 94370.1827,
+    "pagination_count_sum": 2,
+    "rows_scanned_sum": 311,
+    "dependency_auto_expansion_count_sum": 9,
+    "deterministic_binding_count_sum": 11,
+    "llm_binding_count_sum": 6,
+    "monitor_calls": 19,
+    "monitor_repair_calls": 3,
+    "planner_calls": 12,
+    "planner_repair_calls": 10,
+    "tool_binding_calls": 6,
+    "tool_binding_repair_calls": 4,
+    "calls_by_stage": {
+      "planner": 12,
+      "planner_repair": 10,
+      "monitor": 19,
+      "tool_binding": 6,
+      "tool_binding_repair": 4,
+      "monitor_repair": 3,
+      "verify": 2,
+      "final": 2,
+      "final_repair": 2
+    },
+    "estimated_cost_usd": null,
+    "estimated_cost_note": "Token/call totals only; estimated_cost_usd is null without a provider price table. Catalog index embedding reuse is recorded separately from per-task embedding query calls. Artifacts are written even when all tasks fail."
+  },
+  "baseline_comparison_verification": {
+    "operation_visible": {
+      "expected_correct": 2,
+      "observed_correct": 2,
+      "match": true,
+      "metric": "descriptive_answer_correct_from_frozen_reference"
+    },
+    "mcp_zero": {
+      "expected_correct": 2,
+      "observed_correct": 2,
+      "match": true,
+      "metric": "descriptive_answer_correct_from_frozen_reference"
+    },
+    "flat_all_tools": {
+      "expected_correct": 2,
+      "observed_correct": 2,
+      "match": true,
+      "metric": "descriptive_answer_correct_from_frozen_reference"
+    },
+    "mcp_free": {
+      "expected_correct": 1,
+      "observed_correct": 1,
+      "match": true,
+      "metric": "descriptive_answer_correct_from_frozen_reference"
+    },
+    "apv_fin": {
+      "expected_correct": 0,
+      "observed_correct": 0,
+      "match": true,
+      "metric": "strict_answer_correct"
+    }
+  },
+  "research_conclusion_titles": [
+    "1. Capability-aware routing improved candidate/tool selection selectively",
+    "2. Better selection did not convert into answer correctness",
+    "3. Plan/Monitor/Verify/Final control cost is high relative to yield",
+    "4. Disclosure dependency chains still do not complete",
+    "5. Resource-limit is usually a downstream stop, not the first root cause",
+    "6. Current APV-Fin behaves like an over-engineered controller on this slice",
+    "7. Simpler follow-on direction (not implemented)"
+  ],
+  "raw_hashes_unchanged": true,
+  "no_api_no_rerun_no_raw_mutation": true
+}
