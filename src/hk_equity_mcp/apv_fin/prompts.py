@@ -49,6 +49,9 @@ Required fields:
   the hypothesis — NEVER put that explanation inside answerability_hypothesis
 - initial_plan.steps: unique step_id, depends_on, step_type, objective (≤180),
   mandatory, success_criteria (≤160), compute_spec (required for compute; else null)
+- Every retrieve step MUST include required_capability (capability ontology id),
+  required_outputs (list), argument_slots (object), optional source_preference /
+  fallback_capabilities. Never put operation_id in the plan.
 - Do NOT emit runtime fields: status, observation_ids, attempt_count, etc.
 
 Company-generic compact example (illustrative only; adapt to the question):
@@ -77,6 +80,11 @@ Company-generic compact example (illustrative only; adapt to the question):
         "mandatory": true,
         "success_criteria": "Evidence rows obtained",
         "retrieval_query_hint": "hong kong equity metric",
+        "required_capability": "financial.reported_metric_bundle",
+        "required_outputs": ["revenue", "attributable_profit"],
+        "argument_slots": {{"ticker": "00700"}},
+        "source_preference": ["structured_vendor"],
+        "fallback_capabilities": [],
         "compute_spec": null,
         "notes": null
       }},
@@ -88,11 +96,16 @@ Company-generic compact example (illustrative only; adapt to the question):
         "mandatory": true,
         "success_criteria": "Margin computed",
         "retrieval_query_hint": null,
+        "required_capability": null,
+        "required_outputs": null,
+        "argument_slots": null,
+        "source_preference": null,
+        "fallback_capabilities": null,
         "compute_spec": {{
           "expression": "(net_income / revenue) * 100",
           "operand_refs": {{
-            "net_income": "s1_retrieve.net_income",
-            "revenue": "s1_retrieve.revenue"
+            "net_income": "s1_retrieve.metrics.attributable_profit",
+            "revenue": "s1_retrieve.metrics.revenue"
           }},
           "output_name": "attributable_net_margin",
           "output_unit": "percent",
@@ -108,6 +121,11 @@ Company-generic compact example (illustrative only; adapt to the question):
         "mandatory": true,
         "success_criteria": "Final JSON ready",
         "retrieval_query_hint": null,
+        "required_capability": null,
+        "required_outputs": null,
+        "argument_slots": null,
+        "source_preference": null,
+        "fallback_capabilities": null,
         "compute_spec": null,
         "notes": null
       }}

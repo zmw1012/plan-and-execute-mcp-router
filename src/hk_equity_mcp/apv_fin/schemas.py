@@ -153,6 +153,28 @@ PLAN_STEP_SCHEMA: Dict[str, Any] = {
             "type": ["string", "null"],
             "maxLength": PLAN_COMPACT_LIMITS["notes_max"],
         },
+        "required_capability": {"type": ["string", "null"], "maxLength": 80},
+        "required_outputs": {
+            "type": ["array", "null"],
+            "maxItems": 12,
+            "items": {"type": "string", "maxLength": 80},
+        },
+        "argument_slots": {
+            "type": ["object", "null"],
+            "additionalProperties": {
+                "type": ["string", "number", "integer", "boolean", "null"]
+            },
+        },
+        "source_preference": {
+            "type": ["array", "null"],
+            "maxItems": 6,
+            "items": {"type": "string", "maxLength": 80},
+        },
+        "fallback_capabilities": {
+            "type": ["array", "null"],
+            "maxItems": 6,
+            "items": {"type": "string", "maxLength": 80},
+        },
     },
 }
 
@@ -287,6 +309,20 @@ _MONITOR_UPDATED_STEP_PROPERTIES: Dict[str, Any] = {
     "retrieval_query_hint": {"type": ["string", "null"]},
     "compute_spec": {"type": ["object", "null"]},
     "notes": {"type": ["string", "null"]},
+    "required_capability": {"type": ["string", "null"]},
+    "required_outputs": {
+        "type": ["array", "null"],
+        "items": {"type": "string"},
+    },
+    "argument_slots": {"type": ["object", "null"]},
+    "source_preference": {
+        "type": ["array", "null"],
+        "items": {"type": "string"},
+    },
+    "fallback_capabilities": {
+        "type": ["array", "null"],
+        "items": {"type": "string"},
+    },
 }
 
 MONITOR_PATCH_SCHEMA: Dict[str, Any] = {
@@ -639,6 +675,17 @@ def format_repair_user_message(schema_name: str, error: str) -> str:
     ]
     if schema_name == "apv_fin_plan_v1":
         lines.append("Prefer 3–6 plan steps.")
+        lines.append(
+            "Every retrieve step MUST include required_capability "
+            "(capability ontology id), required_outputs, and argument_slots. "
+            "Never include operation_id or runtime fields."
+        )
+        if "required_capability" in err:
+            lines.append(
+                "JSON path: $.initial_plan.steps[*].required_capability — "
+                "add a capability id such as market.daily_ohlcv or "
+                "financial.reported_metric_bundle."
+            )
     if schema_name == "apv_fin_monitor_v1":
         lines.extend(
             [

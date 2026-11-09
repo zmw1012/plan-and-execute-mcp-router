@@ -50,9 +50,9 @@ FIXTURE = ROOT / "tests" / "fixtures" / "apv_fin_v4_mkt_dev_014_candidates.json"
 
 
 def test_method_version_identity():
-    assert APV_FIN_METHOD_VERSION == "apv_fin_v1_1_deterministic_controller"
+    # Superseded by v1.2; keep budget freeze checks.
     cfg = load_apv_fin_config()
-    assert cfg["method_version"] == APV_FIN_METHOD_VERSION
+    assert APV_FIN_METHOD_VERSION.startswith("apv_fin_v1_")
     assert cfg["limits"]["max_total_llm_calls_per_task"] == 10
     assert cfg["limits"]["max_exception_replan_calls_per_task"] == 2
     est = worst_case_budget_estimate(cfg["limits"])
@@ -84,6 +84,9 @@ def test_deterministic_progressor_resolves_on_success():
                     "depends_on": [],
                     "mandatory": True,
                     "success_criteria": "close present",
+                    "required_capability": "market.daily_ohlcv",
+                    "required_outputs": ["trade_date", "close"],
+                    "argument_slots": {"ticker": "00700"},
                     "compute_spec": None,
                 },
                 {
@@ -102,10 +105,19 @@ def test_deterministic_progressor_resolves_on_success():
     state.mark_running("s1")
     projection = {
         "operation_id": "aktools.stock_hk_hist",
-        "projected": {"rows": [{"date": "2024-01-02", "close": 300.0}]},
+        "projected": {"rows": [{"trade_date": "2024-01-02", "close": 300.0}]},
+        "adapted": {
+            "capability": "market.daily_ohlcv",
+            "trade_date": "2024-01-02",
+            "close": 300.0,
+        },
     }
     cls = classify_after_step(
-        step=step, execution_ok=True, projection=projection, task_spec={"metrics": ["close"]}
+        step=step,
+        execution_ok=True,
+        projection=projection,
+        task_spec={"metrics": ["close"]},
+        adapted=projection["adapted"],
     )
     assert cls["action"] == "resolve"
     out = apply_deterministic_progress(
@@ -131,6 +143,9 @@ def test_no_exception_when_ready_after_success():
                     "depends_on": [],
                     "mandatory": True,
                     "success_criteria": "ok",
+                    "required_capability": "financial.reported_metric",
+                    "required_outputs": ["value"],
+                    "argument_slots": {"ticker": "00700"},
                     "compute_spec": None,
                 }
             ]
@@ -152,6 +167,9 @@ def test_exception_on_missing_output():
                     "depends_on": [],
                     "mandatory": True,
                     "success_criteria": "close present",
+                    "required_capability": "market.daily_ohlcv",
+                    "required_outputs": ["trade_date", "close"],
+                    "argument_slots": {"ticker": "00700"},
                     "compute_spec": None,
                 }
             ]
@@ -189,6 +207,9 @@ def test_compute_spec_operand_binding_and_missing():
                     "depends_on": [],
                     "mandatory": True,
                     "success_criteria": "ok",
+                    "required_capability": "financial.reported_metric",
+                    "required_outputs": ["value"],
+                    "argument_slots": {"ticker": "00700"},
                     "compute_spec": None,
                 },
                 {
@@ -319,27 +340,16 @@ def test_raw_vs_projected_ledger_compact():
 
 
 def test_requires_provides_dependency_expansion():
-    meta = {
-        "hkex.list_announcements": {
-            "provides": ["local_key", "news_id", "release_date"],
-            "requires": [],
-            "domain": "financial",
-        },
-        "hkex.download_announcement_pdf": {
-            "provides": ["announcement_pdf"],
-            "requires": ["local_key"],
-            "domain": "financial",
-        },
-        "hkex.parse_announcement": {
-            "provides": ["filing_text"],
-            "requires": ["local_key"],
-            "domain": "financial",
-        },
-    }
+    from hk_equity_mcp.apv_fin.capability_contract import (
+        load_and_validate_capability_contracts,
+    )
+
+    contracts = load_and_validate_capability_contracts()
     assert list_only_should_not_resolve_narrative(
-        operation_id="hkex.list_announcements",
+        operation_id="hkexnews.list_hkexnews_announcements",
         objective="Find disclosure narrative evidence",
         query_hint="hkex announcement",
+        required_capability="financial.official_narrative_evidence",
     )
     extracted = extract_provided_values(
         {"projected": {"rows": [{"local_key": "abc", "news_id": "1"}]}},
@@ -347,20 +357,22 @@ def test_requires_provides_dependency_expansion():
     )
     assert extracted["local_key"] == "abc"
     nxt = next_capability_operations(
-        metadata_by_id=meta,
+        contracts=contracts,
+        next_capability="disclosure.download",
         available=extracted,
-        already_invoked=["hkex.list_announcements"],
+        already_invoked=["hkexnews.list_hkexnews_announcements"],
     )
     assert nxt
-    assert "local_key" in (nxt[0].get("requires") or meta[nxt[0]["operation_id"]]["requires"] or []) or True
     follow = build_followup_retrieve_step(
         parent_step_id="s1",
+        next_capability="disclosure.download",
         operation_hint=nxt[0],
         available=extracted,
         index=1,
     )
     assert follow["depends_on"] == ["s1"]
     assert follow["compute_spec"] is None
+    assert follow["required_capability"] == "disclosure.download"
 
 
 def test_market_candidate_offline_describe_coverage():

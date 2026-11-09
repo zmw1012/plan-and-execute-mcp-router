@@ -18,6 +18,9 @@ from typing import Any, Dict, List, Optional, Set
 from hk_equity_mcp.agent.llm_client import LLMClient
 from hk_equity_mcp.apv_fin.evidence_ledger import EvidenceLedger
 from hk_equity_mcp.apv_fin.llm_budget import BudgetedLLMClient, LlmCallBudgetExhausted
+from hk_equity_mcp.apv_fin.capability_contract import (
+    load_and_validate_capability_contracts,
+)
 from hk_equity_mcp.apv_fin.metadata import load_and_validate_metadata
 from hk_equity_mcp.apv_fin.monitor import run_monitor
 from hk_equity_mcp.apv_fin.planner import _merge_usage, run_initial_planner
@@ -57,6 +60,7 @@ class ApvFinAgent:
         config: Optional[Dict[str, Any]] = None,
         metadata_by_id: Optional[Dict[str, Dict[str, Any]]] = None,
         runtime_operation_ids: Optional[List[str]] = None,
+        capability_contracts: Optional[Dict[str, Dict[str, Any]]] = None,
         live_mode: bool = True,
     ):
         assert_prompts_clean()
@@ -71,6 +75,9 @@ class ApvFinAgent:
         self.max_tokens = int(self.config.get("llm", {}).get("max_tokens", 2048))
         self.top_k = int((self.config.get("retrieval") or {}).get("top_k", 20))
         self.metadata_by_id = metadata_by_id or load_and_validate_metadata()
+        self.capability_contracts = (
+            capability_contracts or load_and_validate_capability_contracts()
+        )
         self.runtime_operation_ids = list(
             runtime_operation_ids
             or sorted(self.resolver.list_underlying_operation_ids())
@@ -303,10 +310,23 @@ class ApvFinAgent:
                             # Mock/offline: synthetic binding through the same validator;
                             # never empty-arg invoke and never skip Tool Binding.
                             offline_tool_binding=bool(self._allow_mock_hooks),
+                            contracts=self.capability_contracts,
                         )
                         _acc_tokens((out.get("binding") or {}).get("llm"))
                         binding_meta = out.get("binding") or {}
-                        if binding_meta:
+                        if out.get("binding_mode") == "deterministic":
+                            binding_decisions.append(
+                                {
+                                    "step_id": step.step_id,
+                                    "decision": "select",
+                                    "selected_operation_id": out.get(
+                                        "binding_selected_operation"
+                                    ),
+                                    "ok": True,
+                                    "binding_mode": "deterministic",
+                                }
+                            )
+                        elif binding_meta:
                             binding_calls += 1
                             binding_repair_count += int(
                                 binding_meta.get("repair_count") or 0
@@ -320,6 +340,7 @@ class ApvFinAgent:
                                     ),
                                     "ok": binding_meta.get("ok"),
                                     "error": binding_meta.get("error"),
+                                    "binding_mode": out.get("binding_mode"),
                                     "raw_contents": binding_meta.get("raw_contents"),
                                 }
                             )
@@ -421,11 +442,26 @@ class ApvFinAgent:
                         trace.extend(_ov_compatible_retrieve_events(out))
                         last_classification = classify_after_step(
                             step=step,
-                            execution_ok=bool(out.get("ok")),
+                            execution_ok=bool(out.get("ok") or out.get("mcp_execution_success")),
                             projection=out.get("projection"),
                             task_spec=task_spec,
                             error=out.get("error"),
+                            adapted=out.get("adapted"),
                         )
+                        # MCP failed → exceptional; MCP ok but missing outputs → exception
+                        # unless narrative list expansion.
+                        if out.get("mcp_execution_success") and not out.get("ok"):
+                            if last_classification.get("action") != "expand_dependency":
+                                last_classification = {
+                                    "action": "exception",
+                                    "trigger": "required_output_missing",
+                                    "reason": out.get("error") or "required_output_missing",
+                                    "missing_outputs": (
+                                        (out.get("required_outputs_check") or {}).get(
+                                            "missing"
+                                        )
+                                    ),
+                                }
                         progress = apply_deterministic_progress(
                             plan_state=plan_state,
                             step=step,
@@ -433,8 +469,8 @@ class ApvFinAgent:
                             observation_ids=[out.get("evidence_id")]
                             if out.get("evidence_id")
                             else None,
-                            projection=out.get("projection"),
-                            metadata_by_id=self.metadata_by_id,
+                            projection=out.get("projection") or {"adapted": out.get("adapted")},
+                            contracts=self.capability_contracts,
                             available_deps={},
                             already_invoked=invoked_operations,
                         )
@@ -495,6 +531,8 @@ class ApvFinAgent:
                         )
                         if progress.get("resolved"):
                             self.budget.deterministic_step_transitions += 1
+                        if out.get("ok"):
+                            self.budget.deterministic_compute_count += 1
                         step_event["progress"] = progress
 
                     elif step.step_type in {"reason", "verify"}:
@@ -927,9 +965,17 @@ class ApvFinAgent:
                 "allow_mock_hooks": self._allow_mock_hooks,
             },
             "condition": "apv_fin",
-            "method_version": "apv_fin_v1_1_deterministic_controller",
+            "method_version": "apv_fin_v1_2_capability_contract",
+            "deterministic_binding_count": self.budget.deterministic_binding_count,
+            "llm_binding_count": self.budget.llm_binding_count,
+            "capability_injected_candidate_count": self.budget.capability_injected_candidate_count,
+            "capability_filter_candidate_count": self.budget.capability_filter_candidate_count,
+            "output_adapter_success_count": self.budget.output_adapter_success_count,
+            "required_output_missing_count": self.budget.required_output_missing_count,
+            "deterministic_compute_count": self.budget.deterministic_compute_count,
             "execution_order": [
                 "planner",
+                "capability_filter",
                 "scheduler_ready",
                 "execute_steps",
                 "deterministic_progressor",

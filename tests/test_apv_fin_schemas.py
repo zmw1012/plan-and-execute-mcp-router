@@ -40,6 +40,9 @@ def _valid_plan() -> dict:
                     "depends_on": [],
                     "mandatory": True,
                     "success_criteria": "value found",
+                    "required_capability": "financial.reported_metric",
+                    "required_outputs": ["value"],
+                    "argument_slots": {"ticker": "00700"},
                     "retrieval_query_hint": "hk eps",
                     "notes": None,
                 }

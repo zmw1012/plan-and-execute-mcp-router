@@ -32,6 +32,9 @@ def _steps():
             "depends_on": [],
             "mandatory": True,
             "success_criteria": "ok",
+            "required_capability": "financial.reported_metric",
+            "required_outputs": ["value"],
+            "argument_slots": {"ticker": "00700"},
             "compute_spec": None,
         },
         {
@@ -119,6 +122,9 @@ def test_cyclic_plan():
             "depends_on": ["b"],
             "mandatory": True,
             "success_criteria": "ok",
+            "required_capability": "market.daily_ohlcv",
+            "required_outputs": ["close"],
+            "argument_slots": {},
             "compute_spec": None,
         },
         {

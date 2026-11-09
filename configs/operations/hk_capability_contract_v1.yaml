@@ -1,0 +1,701 @@
+contract_version: hk_capability_contract_v1
+ontology_version: apv_fin_capability_ontology_v1
+description: Company-generic capability contracts for APV-Fin v1.2. No task IDs, issuers,
+  or gold.
+operations:
+- operation_id: ah_disclosure.resolve_company
+  capabilities:
+  - disclosure.company_lookup
+  required_arguments: []
+  provides_fields:
+  - issuer_code
+  requires_fields: []
+  supported_market: hk
+  temporal_granularity: none
+  source_type: official_disclosure
+  accounting_basis_support:
+  - not_applicable
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: news
+- operation_id: ah_disclosure.search_annual_report
+  capabilities:
+  - disclosure.list
+  - news.official_announcement
+  required_arguments: []
+  provides_fields:
+  - title
+  - release_date
+  requires_fields:
+  - issuer_identity
+  supported_market: hk
+  temporal_granularity: fiscal_period
+  source_type: official_disclosure
+  accounting_basis_support:
+  - not_applicable
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: news
+- operation_id: ah_disclosure.search_filings
+  capabilities:
+  - disclosure.list
+  required_arguments: []
+  provides_fields:
+  - title
+  requires_fields:
+  - issuer_identity
+  supported_market: hk
+  temporal_granularity: date_range
+  source_type: official_disclosure
+  accounting_basis_support:
+  - not_applicable
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: news
+- operation_id: aktools.bond_zh_hk_rate
+  capabilities:
+  - market.trading_calendar
+  required_arguments: []
+  provides_fields:
+  - hk_rate
+  requires_fields: []
+  supported_market: hk
+  temporal_granularity: as_of
+  source_type: structured_vendor
+  accounting_basis_support:
+  - not_applicable
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: market
+- operation_id: aktools.describe_interface
+  capabilities:
+  - news.media_latest
+  required_arguments: []
+  provides_fields:
+  - interface_schema
+  requires_fields: []
+  supported_market: unknown
+  temporal_granularity: none
+  source_type: meta
+  accounting_basis_support:
+  - not_applicable
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: meta
+- operation_id: aktools.get_data
+  capabilities:
+  - news.media_latest
+  required_arguments: []
+  provides_fields:
+  - raw_table
+  requires_fields:
+  - interface_name
+  supported_market: hk_and_global
+  temporal_granularity: unknown
+  source_type: structured_vendor
+  accounting_basis_support:
+  - unknown
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: financial
+- operation_id: aktools.news_cctv
+  capabilities:
+  - news.media_latest
+  required_arguments: []
+  provides_fields:
+  - media_headline
+  requires_fields: []
+  supported_market: cn_mainland
+  temporal_granularity: point_in_time
+  source_type: media
+  accounting_basis_support:
+  - not_applicable
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: news
+- operation_id: aktools.search_interfaces
+  capabilities:
+  - news.media_latest
+  required_arguments: []
+  provides_fields:
+  - interface_candidates
+  requires_fields: []
+  supported_market: unknown
+  temporal_granularity: none
+  source_type: meta
+  accounting_basis_support:
+  - not_applicable
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: meta
+- operation_id: aktools.stock_financial_hk_analysis_indicator_em
+  capabilities:
+  - financial.reported_metric_bundle
+  - financial.reported_metric
+  - financial.ratio
+  required_arguments:
+  - stock
+  provides_fields:
+  - revenue
+  - attributable_profit
+  - basic_eps
+  - currency
+  - report_date
+  - entity
+  requires_fields:
+  - issuer_identity
+  supported_market: hk
+  temporal_granularity: fiscal_period
+  source_type: structured_vendor
+  accounting_basis_support:
+  - mixed_or_unspecified
+  runtime_availability: runtime
+  field_aliases:
+    OPERATE_INCOME: revenue
+    HOLDER_PROFIT: attributable_profit
+    BASIC_EPS: basic_eps
+    CURRENCY: currency
+    STD_ITEM_NAME: metric_name
+    AMOUNT: value
+    REPORT_DATE: report_date
+  domain: financial
+- operation_id: aktools.stock_financial_hk_report_em
+  capabilities:
+  - financial.reported_metric_bundle
+  - financial.reported_metric
+  required_arguments:
+  - stock
+  provides_fields:
+  - revenue
+  - attributable_profit
+  - report_date
+  - currency
+  requires_fields:
+  - issuer_identity
+  supported_market: hk
+  temporal_granularity: fiscal_period
+  source_type: structured_vendor
+  accounting_basis_support:
+  - reported_ifrs
+  runtime_availability: runtime
+  field_aliases:
+    OPERATE_INCOME: revenue
+    HOLDER_PROFIT: attributable_profit
+    CURRENCY: currency
+    REPORT_DATE: report_date
+  domain: financial
+- operation_id: aktools.stock_gsrl_gsdt_em
+  capabilities:
+  - news.media_latest
+  required_arguments: []
+  provides_fields:
+  - event_headline
+  requires_fields: []
+  supported_market: cn_mainland
+  temporal_granularity: spot_latest
+  source_type: media
+  accounting_basis_support:
+  - not_applicable
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: news
+- operation_id: aktools.stock_hk_company_profile_em
+  capabilities:
+  - financial.company_profile
+  - disclosure.company_lookup
+  required_arguments:
+  - symbol
+  provides_fields:
+  - entity
+  requires_fields: []
+  supported_market: hk
+  temporal_granularity: as_of
+  source_type: structured_vendor
+  accounting_basis_support:
+  - not_applicable
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: financial
+- operation_id: aktools.stock_hk_daily
+  capabilities:
+  - market.daily_ohlcv
+  - market.latest_close
+  required_arguments:
+  - symbol
+  provides_fields:
+  - trade_date
+  - open
+  - high
+  - low
+  - close
+  - volume
+  requires_fields:
+  - issuer_identity
+  supported_market: hk
+  temporal_granularity: date_range
+  source_type: exchange_feed
+  accounting_basis_support:
+  - price_unadjusted
+  runtime_availability: runtime
+  field_aliases:
+    date: trade_date
+    close: close
+  domain: market
+- operation_id: aktools.stock_hk_dividend_payout_em
+  capabilities:
+  - financial.reported_metric
+  required_arguments: []
+  provides_fields:
+  - dividend_rows
+  requires_fields:
+  - issuer_identity
+  supported_market: hk
+  temporal_granularity: fiscal_period
+  source_type: structured_vendor
+  accounting_basis_support:
+  - not_applicable
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: financial
+- operation_id: aktools.stock_hk_famous_spot_em
+  capabilities:
+  - market.latest_close
+  required_arguments: []
+  provides_fields:
+  - spot_board
+  requires_fields: []
+  supported_market: hk
+  temporal_granularity: spot_latest
+  source_type: structured_vendor
+  accounting_basis_support:
+  - price_unadjusted
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: market
+- operation_id: aktools.stock_hk_fhpx_detail_ths
+  capabilities:
+  - financial.reported_metric
+  required_arguments: []
+  provides_fields:
+  - dividend_detail
+  requires_fields:
+  - issuer_identity
+  supported_market: hk
+  temporal_granularity: date_range
+  source_type: structured_vendor
+  accounting_basis_support:
+  - not_applicable
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: financial
+- operation_id: aktools.stock_hk_financial_indicator_em
+  capabilities:
+  - financial.ratio
+  - financial.reported_metric
+  required_arguments:
+  - symbol
+  provides_fields:
+  - value
+  - report_date
+  requires_fields:
+  - issuer_identity
+  supported_market: hk
+  temporal_granularity: fiscal_period
+  source_type: structured_vendor
+  accounting_basis_support:
+  - mixed_or_unspecified
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: financial
+- operation_id: aktools.stock_hk_growth_comparison_em
+  capabilities:
+  - financial.ratio
+  required_arguments: []
+  provides_fields:
+  - growth_comparison
+  requires_fields:
+  - issuer_identity
+  supported_market: hk
+  temporal_granularity: fiscal_period
+  source_type: structured_vendor
+  accounting_basis_support:
+  - mixed_or_unspecified
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: financial
+- operation_id: aktools.stock_hk_hist
+  capabilities:
+  - market.daily_ohlcv
+  - market.latest_close
+  required_arguments:
+  - symbol
+  - start_date
+  - end_date
+  provides_fields:
+  - trade_date
+  - open
+  - high
+  - low
+  - close
+  - volume
+  - adjust
+  requires_fields:
+  - issuer_identity
+  supported_market: hk
+  temporal_granularity: date_range
+  source_type: exchange_feed
+  accounting_basis_support:
+  - price_unadjusted
+  runtime_availability: runtime
+  field_aliases:
+    日期: trade_date
+    收盘: close
+    开盘: open
+    最高: high
+    最低: low
+    成交量: volume
+  domain: market
+- operation_id: aktools.stock_hk_hot_rank_em
+  capabilities:
+  - market.latest_close
+  required_arguments: []
+  provides_fields:
+  - hot_rank
+  requires_fields: []
+  supported_market: hk
+  temporal_granularity: spot_latest
+  source_type: structured_vendor
+  accounting_basis_support:
+  - not_applicable
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: market
+- operation_id: aktools.stock_hk_index_daily_em
+  capabilities:
+  - market.index_daily
+  required_arguments:
+  - symbol
+  provides_fields:
+  - trade_date
+  - open
+  - high
+  - low
+  - close
+  requires_fields: []
+  supported_market: hk
+  temporal_granularity: date_range
+  source_type: exchange_feed
+  accounting_basis_support:
+  - index_points
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: market
+- operation_id: aktools.stock_hk_index_daily_sina
+  capabilities:
+  - market.index_daily
+  required_arguments:
+  - symbol
+  provides_fields:
+  - trade_date
+  - open
+  - high
+  - low
+  - close
+  requires_fields: []
+  supported_market: hk
+  temporal_granularity: date_range
+  source_type: exchange_feed
+  accounting_basis_support:
+  - index_points
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: market
+- operation_id: aktools.stock_hk_index_spot_sina
+  capabilities:
+  - market.latest_close
+  - market.index_daily
+  required_arguments: []
+  provides_fields:
+  - index_spot
+  requires_fields: []
+  supported_market: hk
+  temporal_granularity: spot_latest
+  source_type: exchange_feed
+  accounting_basis_support:
+  - index_points
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: market
+- operation_id: aktools.stock_hk_indicator_eniu
+  capabilities:
+  - financial.ratio
+  required_arguments: []
+  provides_fields:
+  - valuation_series
+  requires_fields:
+  - issuer_identity
+  supported_market: hk
+  temporal_granularity: as_of
+  source_type: structured_vendor
+  accounting_basis_support:
+  - mixed_or_unspecified
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: financial
+- operation_id: aktools.stock_hk_scale_comparison_em
+  capabilities:
+  - financial.ratio
+  required_arguments: []
+  provides_fields:
+  - scale_comparison
+  requires_fields:
+  - issuer_identity
+  supported_market: hk
+  temporal_granularity: fiscal_period
+  source_type: structured_vendor
+  accounting_basis_support:
+  - mixed_or_unspecified
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: financial
+- operation_id: aktools.stock_hk_security_profile_em
+  capabilities:
+  - financial.company_profile
+  - disclosure.company_lookup
+  required_arguments:
+  - symbol
+  provides_fields:
+  - entity
+  requires_fields: []
+  supported_market: hk
+  temporal_granularity: as_of
+  source_type: structured_vendor
+  accounting_basis_support:
+  - not_applicable
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: financial
+- operation_id: aktools.stock_hk_valuation_baidu
+  capabilities:
+  - financial.ratio
+  required_arguments: []
+  provides_fields:
+  - valuation_snapshot
+  requires_fields:
+  - issuer_identity
+  supported_market: hk
+  temporal_granularity: as_of
+  source_type: structured_vendor
+  accounting_basis_support:
+  - mixed_or_unspecified
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: financial
+- operation_id: aktools.stock_hk_valuation_comparison_em
+  capabilities:
+  - financial.ratio
+  required_arguments: []
+  provides_fields:
+  - valuation_comparison
+  requires_fields:
+  - issuer_identity
+  supported_market: hk
+  temporal_granularity: as_of
+  source_type: structured_vendor
+  accounting_basis_support:
+  - mixed_or_unspecified
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: financial
+- operation_id: aktools.stock_info_global_em
+  capabilities:
+  - news.media_latest
+  required_arguments: []
+  provides_fields:
+  - global_headline
+  requires_fields: []
+  supported_market: global
+  temporal_granularity: spot_latest
+  source_type: media
+  accounting_basis_support:
+  - not_applicable
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: news
+- operation_id: aktools.stock_news_em
+  capabilities:
+  - news.media_latest
+  required_arguments: []
+  provides_fields:
+  - media_snippets
+  requires_fields:
+  - issuer_identity
+  supported_market: hk_and_global
+  temporal_granularity: date_range
+  source_type: media
+  accounting_basis_support:
+  - not_applicable
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: news
+- operation_id: aktools.stock_news_main_cx
+  capabilities:
+  - news.media_latest
+  required_arguments: []
+  provides_fields:
+  - media_main
+  requires_fields: []
+  supported_market: cn_mainland
+  temporal_granularity: spot_latest
+  source_type: media
+  accounting_basis_support:
+  - not_applicable
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: news
+- operation_id: aktools.stock_notice_report
+  capabilities:
+  - disclosure.list
+  required_arguments: []
+  provides_fields:
+  - notice_rows
+  requires_fields: []
+  supported_market: cn_mainland
+  temporal_granularity: date_range
+  source_type: structured_vendor
+  accounting_basis_support:
+  - not_applicable
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: news
+- operation_id: aktools.tool_trade_date_hist_sina
+  capabilities:
+  - market.trading_calendar
+  required_arguments: []
+  provides_fields:
+  - trade_date
+  requires_fields: []
+  supported_market: cn_mainland
+  temporal_granularity: calendar
+  source_type: structured_vendor
+  accounting_basis_support:
+  - not_applicable
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: market
+- operation_id: hkexnews.download_hkexnews_announcement
+  capabilities:
+  - disclosure.download
+  required_arguments:
+  - local_key
+  provides_fields:
+  - local_key
+  requires_fields:
+  - local_key
+  supported_market: hk
+  temporal_granularity: point_in_time
+  source_type: official_disclosure
+  accounting_basis_support:
+  - not_applicable
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: financial
+- operation_id: hkexnews.get_announcement_pages
+  capabilities:
+  - disclosure.page_read
+  - financial.official_narrative_evidence
+  required_arguments:
+  - local_key
+  - page_number
+  provides_fields:
+  - snippet
+  - page_number
+  - local_key
+  requires_fields:
+  - local_key
+  - page_number
+  supported_market: hk
+  temporal_granularity: none
+  source_type: official_disclosure
+  accounting_basis_support:
+  - not_applicable
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: financial
+- operation_id: hkexnews.keyword_search
+  capabilities:
+  - disclosure.keyword_search
+  - financial.official_narrative_evidence
+  required_arguments:
+  - local_key
+  - keywords
+  provides_fields:
+  - snippet
+  - local_key
+  - page_number
+  requires_fields:
+  - local_key
+  supported_market: hk
+  temporal_granularity: none
+  source_type: official_disclosure
+  accounting_basis_support:
+  - mixed_or_unspecified
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: financial
+- operation_id: hkexnews.list_hkexnews_announcements
+  capabilities:
+  - disclosure.list
+  - news.official_announcement
+  required_arguments:
+  - stock_code
+  provides_fields:
+  - title
+  - release_date
+  - news_id
+  - local_key
+  - file_link
+  requires_fields:
+  - issuer_identity
+  supported_market: hk
+  temporal_granularity: date_range
+  source_type: official_disclosure
+  accounting_basis_support:
+  - not_applicable
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: financial
+- operation_id: hkexnews.lookup_stock_code
+  capabilities:
+  - disclosure.company_lookup
+  required_arguments:
+  - stock_code
+  provides_fields:
+  - issuer_code
+  requires_fields: []
+  supported_market: hk
+  temporal_granularity: none
+  source_type: official_disclosure
+  accounting_basis_support:
+  - not_applicable
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: financial
+- operation_id: hkexnews.parse_hkexnews_announcement
+  capabilities:
+  - disclosure.parse
+  required_arguments:
+  - local_key
+  provides_fields:
+  - local_key
+  - snippet
+  requires_fields:
+  - local_key
+  supported_market: hk
+  temporal_granularity: none
+  source_type: official_disclosure
+  accounting_basis_support:
+  - mixed_or_unspecified
+  runtime_availability: runtime
+  field_aliases: {}
+  domain: financial

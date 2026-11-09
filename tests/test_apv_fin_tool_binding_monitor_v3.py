@@ -163,6 +163,9 @@ def test_market_close_rerank_prefers_market_hist_over_financial():
         depends_on=[],
         mandatory=True,
         success_criteria="close obtained",
+        required_capability="financial.reported_metric",
+        required_outputs=["value"],
+        argument_slots={"ticker": "00700"},
         retrieval_query_hint="stock hk hist close",
     )
     ctx = context_from_task_spec(
@@ -214,6 +217,9 @@ def test_financial_metric_rerank_prefers_financial_over_market_price():
         depends_on=[],
         mandatory=True,
         success_criteria="eps found",
+        required_capability="financial.reported_metric",
+        required_outputs=["value"],
+        argument_slots={"ticker": "00700"},
         retrieval_query_hint="financial indicator eps",
     )
     ctx = context_from_task_spec(
@@ -256,6 +262,9 @@ def test_official_disclosure_dependency_metadata_applied():
         depends_on=[],
         mandatory=True,
         success_criteria="announcement list",
+        required_capability="financial.reported_metric",
+        required_outputs=["value"],
+        argument_slots={"ticker": "00700"},
         retrieval_query_hint="hkexnews announcements list",
     )
     ctx = context_from_task_spec(
@@ -417,6 +426,9 @@ def test_replan_patch_resets_failed_retrieve_and_increments_revision():
                     "depends_on": [],
                     "mandatory": True,
                     "success_criteria": "got",
+                    "required_capability": "financial.reported_metric",
+                    "required_outputs": ["value"],
+                    "argument_slots": {"ticker": "00700"},
                     "retrieval_query_hint": "bad query",
                 }
             ]
@@ -467,6 +479,9 @@ def test_identical_failed_invocation_not_repeated(tmp_path: Path):
         depends_on=[],
         mandatory=True,
         success_criteria="close",
+        required_capability="financial.reported_metric",
+        required_outputs=["value"],
+        argument_slots={"ticker": "00700"},
         retrieval_query_hint="stock hk hist close",
     )
     # First call with incomplete args via forced select missing symbol → fail
@@ -637,6 +652,9 @@ def test_no_empty_invoke_when_required_args_ungroundable(tmp_path: Path):
             depends_on=[],
             mandatory=True,
             success_criteria="close",
+        required_capability="financial.reported_metric",
+        required_outputs=["value"],
+        argument_slots={"ticker": "00700"},
             retrieval_query_hint="close price history",
         ),
         task_spec={

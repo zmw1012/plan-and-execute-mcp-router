@@ -18,12 +18,14 @@ import yaml
 
 from hk_equity_mcp.agent.llm_client import OpenAICompatibleChatClient, ScriptedLLMClient
 from hk_equity_mcp.apv_fin import APV_FIN_CONDITION, APV_FIN_METHOD_VERSION
+from hk_equity_mcp.apv_fin.capability_contract import capability_contract_hash
 from hk_equity_mcp.apv_fin.agent import ApvFinAgent
 from hk_equity_mcp.apv_fin.identity import (
     EXPECTED_EMBEDDING_MODEL,
     EXPECTED_GENERATION_HOST,
     EXPECTED_GENERATION_MODEL,
     EXPECTED_GENERATION_PROVIDER,
+    CAPABILITY_CONTRACT_PROTOCOL_CHANGE,
     PLANNER_PROTOCOL_CHANGE,
     TOOL_BINDING_PROTOCOL_CHANGE,
     assert_live_provider_identity,
@@ -766,6 +768,8 @@ class UnifiedHkApvFinRunner:
             "schema_hashes": schema_hashes(),
             "planner_protocol_change": PLANNER_PROTOCOL_CHANGE,
             "tool_binding_protocol_change": TOOL_BINDING_PROTOCOL_CHANGE,
+            "capability_contract_protocol_change": CAPABILITY_CONTRACT_PROTOCOL_CHANGE,
+            "capability_contract_hash": capability_contract_hash(),
             "max_tokens_unchanged": self.max_tokens == 2048,
             "catalog_fingerprint": fingerprint,
             "operation_metadata_path": str(self.metadata_path),

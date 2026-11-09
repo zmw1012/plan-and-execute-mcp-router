@@ -1,4 +1,4 @@
-"""Deterministic normal-state progress controller (no Monitor LLM on success)."""
+"""Deterministic normal-state progress controller (v1.2 required_outputs + workflows)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,9 @@ from hk_equity_mcp.apv_fin.dependency_expansion import (
     extract_provided_values,
     list_only_should_not_resolve_narrative,
     next_capability_operations,
+    next_disclosure_capability,
 )
+from hk_equity_mcp.apv_fin.output_adapters import required_outputs_present
 from hk_equity_mcp.apv_fin.plan_state import PlanState, PlanStep
 
 
@@ -25,43 +27,6 @@ EXCEPTION_TRIGGERS = (
 )
 
 
-def success_criteria_fields_present(
-    *,
-    step: PlanStep,
-    projection: Optional[Dict[str, Any]],
-    task_spec: Optional[Dict[str, Any]] = None,
-) -> bool:
-    """Lightweight check that projected observation supports the step objective."""
-    if not projection:
-        return False
-    proj = projection.get("projected") or projection
-    rows = proj.get("rows") or []
-    if step.step_type == "retrieve":
-        if not rows and not proj.get("document_identified"):
-            return False
-        criteria = (step.success_criteria or "").lower()
-        objective = (step.objective or "").lower()
-        blob = " ".join(
-            [
-                criteria,
-                objective,
-                " ".join(str(m) for m in (task_spec or {}).get("metrics") or []),
-            ]
-        )
-        if "close" in blob or "ohlc" in blob:
-            # Need at least one close-like field.
-            for row in rows:
-                if isinstance(row, dict) and any(
-                    str(k).lower() == "close" for k in row.keys()
-                ):
-                    return True
-            return False
-        return True
-    if step.step_type == "compute":
-        return bool(projection.get("ok") or projection.get("value") is not None)
-    return True
-
-
 def classify_after_step(
     *,
     step: PlanStep,
@@ -69,15 +34,28 @@ def classify_after_step(
     projection: Optional[Dict[str, Any]],
     task_spec: Optional[Dict[str, Any]] = None,
     error: Optional[str] = None,
+    adapted: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Decide whether to auto-resolve or raise an exceptional replan trigger."""
+    del task_spec  # reserved
     if not execution_ok:
         return {
             "action": "exception",
             "trigger": "mcp_execution_failed",
             "reason": error or "execution_failed",
         }
-    if list_only_should_not_resolve_narrative(
+
+    adapted_view = adapted or (projection or {}).get("adapted") or {}
+    if not adapted_view and projection:
+        # Fallback: treat projected rows as adapted for offline unit checks.
+        proj = projection.get("projected") or projection
+        adapted_view = dict(proj) if isinstance(proj, dict) else {}
+        rows = adapted_view.get("rows") or []
+        if rows and isinstance(rows[0], dict):
+            for k, v in rows[0].items():
+                adapted_view.setdefault(k, v)
+
+    if step.step_type == "retrieve" and list_only_should_not_resolve_narrative(
         operation_id=str(
             (projection or {}).get("operation_id")
             or step.selected_operation
@@ -86,21 +64,44 @@ def classify_after_step(
         ),
         objective=step.objective,
         query_hint=step.retrieval_query_hint,
+        required_capability=step.required_capability,
     ):
         return {
             "action": "expand_dependency",
             "trigger": None,
             "reason": "list_identifies_document_not_final_narrative_evidence",
         }
-    if not success_criteria_fields_present(
-        step=step, projection=projection, task_spec=task_spec
-    ):
+
+    if step.step_type == "retrieve":
+        required = list(step.required_outputs or [])
+        check = required_outputs_present(adapted_view, required)
+        if required and not check["ok"]:
+            # Try fallback capability path via exceptional replan if configured.
+            if step.fallback_capabilities:
+                return {
+                    "action": "exception",
+                    "trigger": "required_output_missing",
+                    "reason": f"missing_outputs:{check['missing']};try_fallback",
+                    "missing_outputs": check["missing"],
+                }
+            return {
+                "action": "exception",
+                "trigger": "required_output_missing",
+                "reason": f"missing_outputs:{check['missing']}",
+                "missing_outputs": check["missing"],
+            }
+        return {"action": "resolve", "trigger": None, "reason": "required_outputs_met"}
+
+    if step.step_type == "compute":
+        if adapted_view.get("ok") or adapted_view.get("value") is not None:
+            return {"action": "resolve", "trigger": None, "reason": "compute_ok"}
         return {
             "action": "exception",
             "trigger": "required_output_missing",
-            "reason": "projected_result_missing_required_fields",
+            "reason": "compute_result_missing",
         }
-    return {"action": "resolve", "trigger": None, "reason": "success_criteria_met"}
+
+    return {"action": "resolve", "trigger": None, "reason": "success"}
 
 
 def apply_deterministic_progress(
@@ -110,11 +111,13 @@ def apply_deterministic_progress(
     classification: Dict[str, Any],
     observation_ids: Optional[Sequence[str]] = None,
     projection: Optional[Dict[str, Any]] = None,
-    metadata_by_id: Optional[Dict[str, Dict[str, Any]]] = None,
+    contracts: Optional[Dict[str, Dict[str, Any]]] = None,
     available_deps: Optional[Dict[str, Any]] = None,
     already_invoked: Optional[Sequence[str]] = None,
+    metadata_by_id: Optional[Dict[str, Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
-    """Mutate plan_state for normal progress / dependency expansion."""
+    """Mutate plan_state for normal progress / capability workflow expansion."""
+    del metadata_by_id  # replaced by contracts in v1.2
     action = classification.get("action")
     out: Dict[str, Any] = {
         "action": action,
@@ -129,20 +132,29 @@ def apply_deterministic_progress(
         return out
 
     if action == "expand_dependency":
-        metadata_by_id = metadata_by_id or {}
+        contracts = contracts or {}
         available = dict(available_deps or {})
         extracted = extract_provided_values(
             projection or {},
             provides=["local_key", "news_id", "release_date", "page_number"],
         )
         available.update(extracted)
+        nxt_cap = next_disclosure_capability(
+            current_capability="disclosure.list",
+            target_capability=step.required_capability
+            or "financial.official_narrative_evidence",
+        )
+        if not nxt_cap:
+            out["action"] = "exception"
+            out["exception_trigger"] = "capability_unsupported"
+            plan_state.mark_failed(step.step_id, "disclosure_workflow_exhausted")
+            return out
         suggestions = next_capability_operations(
-            metadata_by_id=metadata_by_id,
+            contracts=contracts,
+            next_capability=nxt_cap,
             available=available,
             already_invoked=already_invoked or [],
         )
-        # Mark current list step resolved as "document identified" only if we can
-        # unlock a follow-up; otherwise exceptional.
         if not suggestions:
             out["action"] = "exception"
             out["exception_trigger"] = "capability_unsupported"
@@ -150,14 +162,18 @@ def apply_deterministic_progress(
                 step.step_id, "disclosure_list_without_followup_capability"
             )
             return out
+        # List step resolves as document identified; follow-up carries narrative goal.
         plan_state.mark_resolved(step.step_id, observation_ids=observation_ids)
         out["resolved"] = True
-        # Insert at most one follow-up retrieve step.
         follow = build_followup_retrieve_step(
             parent_step_id=step.step_id,
+            next_capability=nxt_cap,
             operation_hint=suggestions[0],
             available=available,
             index=1,
+            required_outputs=["snippet", "local_key"]
+            if nxt_cap != "disclosure.download"
+            else ["local_key"],
         )
         if follow["step_id"] not in plan_state.steps:
             from hk_equity_mcp.apv_fin.plan_state import PlanStep as PS
@@ -170,7 +186,6 @@ def apply_deterministic_progress(
             out["dependency_auto_expansion_count"] = 1
         return out
 
-    # exception — leave step failed for replan
     plan_state.mark_failed(
         step.step_id, classification.get("reason") or "exceptional_state"
     )

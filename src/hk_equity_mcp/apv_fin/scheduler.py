@@ -243,6 +243,13 @@ class BudgetTracker:
         self.raw_observation_chars = 0
         self.projected_observation_chars = 0
         self.exception_trigger: Optional[str] = None
+        self.deterministic_binding_count = 0
+        self.llm_binding_count = 0
+        self.capability_injected_candidate_count = 0
+        self.capability_filter_candidate_count = 0
+        self.output_adapter_success_count = 0
+        self.required_output_missing_count = 0
+        self.deterministic_compute_count = 0
 
     @property
     def llm_call_budget(self) -> int:
@@ -309,6 +316,13 @@ class BudgetTracker:
             "raw_observation_chars": raw,
             "projected_observation_chars": proj,
             "compression_ratio": (proj / raw) if raw else None,
+            "deterministic_binding_count": self.deterministic_binding_count,
+            "llm_binding_count": self.llm_binding_count,
+            "capability_injected_candidate_count": self.capability_injected_candidate_count,
+            "capability_filter_candidate_count": self.capability_filter_candidate_count,
+            "output_adapter_success_count": self.output_adapter_success_count,
+            "required_output_missing_count": self.required_output_missing_count,
+            "deterministic_compute_count": self.deterministic_compute_count,
             **self.llm_budget_fields(),
         }
 
@@ -346,13 +360,21 @@ def execute_retrieve_step(
     select_operation_id: Optional[str] = None,
     allow_forced_select: bool = False,
     offline_tool_binding: bool = False,
+    contracts: Optional[Dict[str, Dict[str, Any]]] = None,
     _reformulation_depth: int = 0,
 ) -> Dict[str, Any]:
-    """Retrieve: find → hard-filter/rerank → describe Top-N → Tool Binding → validate → invoke.
+    """Retrieve: find → capability filter/inject → describe → bind → invoke.
 
-    Empty-argument invoke is forbidden. Forced select is live-forbidden and must not
-    bypass Tool Binding validation when used in offline unit tests.
+    Empty-argument invoke is forbidden. Forced select is live-forbidden.
     """
+    from hk_equity_mcp.apv_fin.argument_slots import can_deterministic_bind, map_slots_to_arguments
+    from hk_equity_mcp.apv_fin.capability_contract import load_and_validate_capability_contracts
+    from hk_equity_mcp.apv_fin.capability_filter import filter_by_capability_contract
+    from hk_equity_mcp.apv_fin.output_adapters import (
+        adapt_mcp_result,
+        required_outputs_present,
+    )
+
     if select_operation_id and not allow_forced_select:
         return {
             "ok": False,
@@ -360,6 +382,13 @@ def execute_retrieve_step(
             "step_id": step.step_id,
             "mcp_called": False,
             "binding_decision": None,
+        }
+    if not step.required_capability:
+        return {
+            "ok": False,
+            "error": "retrieve_missing_required_capability",
+            "step_id": step.step_id,
+            "mcp_called": False,
         }
     count = budget.retrievals_per_step.get(step.step_id, 0)
     if count >= budget.limits["max_targeted_retrievals_per_step"]:
@@ -372,6 +401,7 @@ def execute_retrieve_step(
         }
     budget.retrievals_per_step[step.step_id] = count + 1
 
+    contracts = contracts or load_and_validate_capability_contracts()
     query = build_retrieval_query(step, task_spec)
     find_out = resolver.find_operations(query, top_k=top_k)
     candidates = list(find_out.get("candidates") or [])
@@ -384,8 +414,6 @@ def execute_retrieve_step(
     )
     reranked = list(ranked["reranked"] or [])
 
-    # Unit-test escape hatch: inject a candidate so binding can select it, still
-    # requiring describe + binding validation (never empty-arg invoke).
     forced_select_used = False
     if select_operation_id and allow_forced_select:
         if not any(r["operation_id"] == select_operation_id for r in reranked):
@@ -409,9 +437,43 @@ def execute_retrieve_step(
             ranked = dict(ranked)
             ranked["reranked"] = reranked
 
+    # v1.2 capability contract filter + catalog injection (not gold injection).
+    cap_filter = filter_by_capability_contract(
+        candidates=reranked,
+        contracts=contracts,
+        required_capability=str(step.required_capability),
+        required_outputs=list(step.required_outputs or []),
+        runtime_operation_ids=runtime_operation_ids,
+        source_preference=list(step.source_preference or []),
+    )
+    budget.capability_filter_candidate_count += int(
+        cap_filter.get("capability_filter_candidate_count") or 0
+    )
+    budget.capability_injected_candidate_count += int(
+        cap_filter.get("capability_injected_candidate_count") or 0
+    )
+    reranked = list(cap_filter.get("binder_candidates") or [])
+    ranked = dict(ranked)
+    ranked["reranked"] = reranked
+    ranked["capability_filter"] = {
+        k: cap_filter[k]
+        for k in (
+            "capability_filter_candidate_count",
+            "capability_injected_candidate_count",
+            "required_capability",
+            "required_outputs",
+        )
+    }
+    ranked["hard_filtered"] = list(ranked.get("hard_filtered") or []) + list(
+        cap_filter.get("hard_filtered") or []
+    )
+
     to_describe = select_candidates_to_describe(
         reranked, required_provides=list(ctx.required_provides or [])
     )
+    # Prefer describing capability-compatible binder pool heads.
+    if reranked:
+        to_describe = list(reranked[: max(1, min(3, len(reranked)))])
     described_ids: List[str] = []
     described_contracts: Dict[str, Dict[str, Any]] = {}
     describe_outputs: List[Dict[str, Any]] = []
@@ -496,37 +558,106 @@ def execute_retrieve_step(
                     "reformulated_query": None,
                 }
 
-    if use_offline_binding:
-        from hk_equity_mcp.agent.llm_client import ScriptedLLMClient
-        from hk_equity_mcp.apv_fin.llm_budget import BudgetedLLMClient
+    slots = dict(step.argument_slots or {})
+    if invoke_arguments:
+        # Merge scripted/mock args into slots for offline tests.
+        for k, v in dict(invoke_arguments).items():
+            slots.setdefault(k, v)
 
-        one_shot = ScriptedLLMClient(
-            [json.dumps(offline_proposal, ensure_ascii=False)]
+    binding_mode = "unsupported"
+    binding: Dict[str, Any]
+
+    # Deterministic bind when exactly one described op and slots cover schema.
+    det_ok = False
+    det_mapped: Dict[str, Any] = {}
+    if len(described_ids) == 1:
+        only_id = described_ids[0]
+        schema = (described_contracts.get(only_id) or {}).get("json_schema") or {}
+        det_ok, det_mapped = can_deterministic_bind(
+            argument_slots=slots,
+            json_schema=schema,
+            candidate_count=1,
         )
-        binder_llm: LLMClient = BudgetedLLMClient(one_shot, budget)
-    else:
-        binder_llm = llm  # type: ignore[assignment]
+        if det_ok:
+            binding_mode = "deterministic"
+            budget.deterministic_binding_count += 1
+            binding = {
+                "ok": True,
+                "decision": "select",
+                "selected_operation_id": only_id,
+                "arguments": det_mapped["arguments"],
+                "argument_sources": {
+                    t["target_parameter"]: "plan_step"
+                    for t in det_mapped["argument_trace"]
+                    if t.get("target_parameter")
+                },
+                "argument_validation": {
+                    "ok": True,
+                    "missing_required": [],
+                    "trace": det_mapped["argument_trace"],
+                },
+                "argument_trace": det_mapped["argument_trace"],
+                "repair_count": 0,
+                "binding_mode": "deterministic",
+                "payload": {
+                    "schema_version": "apv_fin_tool_binding_v1",
+                    "decision": "select",
+                    "selected_operation_id": only_id,
+                    "arguments": det_mapped["arguments"],
+                },
+            }
 
-    binding = run_tool_binder(
-        binder_llm,
-        question=question or str(task_spec.get("goal") or step.objective or ""),
-        task_spec=task_spec,
-        step={
-            "step_id": step.step_id,
-            "objective": step.objective,
-            "retrieval_query_hint": step.retrieval_query_hint,
-            "success_criteria": step.success_criteria,
-            "notes": step.notes,
-        },
-        reranked_summaries=candidate_summaries,
-        described_contracts=described_contracts,
-        grounding=grounding,
-        budget_snapshot=budget.snapshot(),
-        allowed_operation_ids=allowed_ids,
-        blocked_operation_ids=blocked_ids,
-        tier_by_id=tier_by_id,
-        offline_proposal=None,
-    )
+    if binding_mode != "deterministic":
+        # Ambiguity / incomplete slots → LLM Tool Binding (max 1 + 1 repair).
+        if use_offline_binding:
+            from hk_equity_mcp.agent.llm_client import ScriptedLLMClient
+            from hk_equity_mcp.apv_fin.llm_budget import BudgetedLLMClient
+
+            one_shot = ScriptedLLMClient(
+                [json.dumps(offline_proposal, ensure_ascii=False)]
+            )
+            binder_llm: LLMClient = BudgetedLLMClient(one_shot, budget)
+        else:
+            binder_llm = llm  # type: ignore[assignment]
+
+        binding = run_tool_binder(
+            binder_llm,
+            question=question or str(task_spec.get("goal") or step.objective or ""),
+            task_spec=task_spec,
+            step={
+                "step_id": step.step_id,
+                "objective": step.objective,
+                "retrieval_query_hint": step.retrieval_query_hint,
+                "success_criteria": step.success_criteria,
+                "notes": step.notes,
+                "required_capability": step.required_capability,
+                "required_outputs": step.required_outputs,
+                "argument_slots": slots,
+            },
+            reranked_summaries=candidate_summaries,
+            described_contracts=described_contracts,
+            grounding=grounding,
+            budget_snapshot=budget.snapshot(),
+            allowed_operation_ids=allowed_ids,
+            blocked_operation_ids=blocked_ids,
+            tier_by_id=tier_by_id,
+            offline_proposal=None,
+        )
+        if binding.get("ok") and binding.get("decision") == "select":
+            binding_mode = "llm_disambiguation"
+            budget.llm_binding_count += 1
+            # Overlay slot mapping for any missing args.
+            oid = binding.get("selected_operation_id")
+            schema = (described_contracts.get(oid or "") or {}).get("json_schema") or {}
+            mapped = map_slots_to_arguments(argument_slots=slots, json_schema=schema)
+            args = dict(binding.get("arguments") or {})
+            for k, v in (mapped.get("arguments") or {}).items():
+                args.setdefault(k, v)
+            binding["arguments"] = args
+            binding["argument_trace"] = mapped.get("argument_trace")
+        else:
+            binding_mode = str(binding.get("decision") or "unsupported")
+        binding["binding_mode"] = binding_mode
 
     annotated = annotate_selection_flags(
         reranked,
@@ -545,14 +676,22 @@ def execute_retrieve_step(
         "describe_outputs": describe_outputs,
         "describe": describe_outputs[0] if describe_outputs else None,
         "binding": binding,
+        "binding_mode": binding_mode,
         "binding_decision": binding.get("decision"),
         "binding_selected_operation": binding.get("selected_operation_id"),
         "grounded_arguments": binding.get("arguments"),
         "argument_sources": binding.get("argument_sources"),
         "argument_validation": binding.get("argument_validation"),
+        "argument_trace": binding.get("argument_trace"),
         "binding_repair_count": binding.get("repair_count"),
         "retrieval_reformulation_count": _reformulation_depth,
         "forced_select_used": forced_select_used,
+        "capability_filter_candidate_count": cap_filter.get(
+            "capability_filter_candidate_count"
+        ),
+        "capability_injected_candidate_count": cap_filter.get(
+            "capability_injected_candidate_count"
+        ),
         "mcp_called": False,
         "chosen_operation_id": None,
         "invoke": None,
@@ -683,6 +822,7 @@ def execute_retrieve_step(
                 select_operation_id=select_operation_id,
                 allow_forced_select=allow_forced_select,
                 offline_tool_binding=offline_tool_binding,
+                contracts=contracts,
                 _reformulation_depth=_reformulation_depth + 1,
             )
         base_out.update(
@@ -772,7 +912,23 @@ def execute_retrieve_step(
     from hk_equity_mcp.apv_fin.projection import project_mcp_result
 
     projection = None
+    adapted = None
+    output_check = None
     if success:
+        contract = contracts.get(str(oid)) or {}
+        adapted = adapt_mcp_result(
+            capability=str(step.required_capability),
+            raw_result=(invoke_out or {}).get("result"),
+            contract=contract,
+            arguments=args,
+        )
+        output_check = required_outputs_present(
+            adapted, list(step.required_outputs or [])
+        )
+        if output_check.get("ok"):
+            budget.output_adapter_success_count += 1
+        else:
+            budget.required_output_missing_count += 1
         projection = project_mcp_result(
             operation_id=str(oid),
             arguments=args,
@@ -780,10 +936,29 @@ def execute_retrieve_step(
             task_spec=task_spec,
             step_objective=str(step.objective or ""),
         )
+        projection["adapted"] = adapted
+        projection["required_outputs_check"] = output_check
         budget.raw_observation_chars += int(projection.get("raw_chars") or 0)
         budget.projected_observation_chars += int(
             projection.get("projected_chars") or 0
         )
+
+    # MCP success alone is not step success when required_outputs missing.
+    evidence_valid = bool(success) and (
+        not list(step.required_outputs or [])
+        or bool((output_check or {}).get("ok"))
+    )
+    from hk_equity_mcp.apv_fin.dependency_expansion import (
+        list_only_should_not_resolve_narrative as _list_only,
+    )
+
+    narrative_list = bool(success) and _list_only(
+        operation_id=str(oid),
+        objective=step.objective,
+        query_hint=step.retrieval_query_hint,
+        required_capability=step.required_capability,
+    )
+    step_ok = bool(success) and (evidence_valid or narrative_list)
 
     ev = ledger.add(
         step_id=step.step_id,
@@ -791,34 +966,49 @@ def execute_retrieve_step(
         source_type="mcp_invoke",
         operation_id=oid,
         raw_value=invoke_out,
-        normalized_value=(
-            (projection or {}).get("projected")
-            if projection
-            else (invoke_out or {}).get("result")
-        ),
+        normalized_value=adapted
+        if adapted is not None
+        else (invoke_out or {}).get("result"),
         provenance="UnifiedRealMcpGateway via OperationResolverServer",
-        validation_status="valid" if success else "invalid",
-        **({"projection": projection} if projection else {}),
+        validation_status="valid" if step_ok else ("invalid" if not success else "ambiguous"),
+        **(
+            {
+                "projection": projection,
+                "adapted": adapted,
+                "required_outputs_check": output_check,
+            }
+            if projection
+            else {}
+        ),
     )
     base_out.update(
         {
-            "ok": success,
+            "ok": step_ok,
+            "mcp_execution_success": success,
             "chosen_operation_id": oid,
             "invoke": invoke_out,
             "projection": projection,
+            "adapted": adapted,
+            "required_outputs_check": output_check,
             "evidence_id": ev.evidence_id,
             "mcp_called": True,
             "invoked": True,
             "successful": success,
-            "error": None if success else invoke_out.get("error"),
+            "error": None
+            if step_ok
+            else (
+                invoke_out.get("error")
+                if not success
+                else f"required_outputs_missing:{(output_check or {}).get('missing')}"
+            ),
         }
     )
-    # Compact observation for subsequent LLM prompts (raw stays in ledger/artifact).
     if projection:
         base_out["compact_observation"] = {
             "step_id": step.step_id,
             "operation_id": oid,
             "arguments": args,
+            "adapted": adapted,
             "projected": projection.get("projected"),
             "raw_artifact_hash": projection.get("raw_artifact_hash"),
             "truncated": projection.get("truncated"),
@@ -829,10 +1019,12 @@ def execute_retrieve_step(
 def _resolve_operand_refs(
     operand_refs: Dict[str, str], ledger: EvidenceLedger
 ) -> tuple[Dict[str, float], List[str]]:
-    """Bind compute_spec.operand_refs from verified ledger values.
+    """Bind compute_spec.operand_refs from verified ledger / adapted fields.
 
-    Ref formats: "s1.net_income", "evidence_id.field", or plain evidence field name.
+    Ref formats: "s1.metrics.attributable_profit", "s1.close", "s1.revenue".
     """
+    from hk_equity_mcp.apv_fin.output_adapters import flatten_projected_fields
+
     operands: Dict[str, float] = {}
     missing: List[str] = []
     items = list(ledger.items)
@@ -856,45 +1048,51 @@ def _resolve_operand_refs(
         step_prefix = None
         field = ref_s
         if "." in ref_s:
-            step_prefix, field = ref_s.split(".", 1)
+            parts = ref_s.split(".", 1)
+            # s1.metrics.revenue → step=s1, field=metrics.revenue
+            step_prefix, field = parts[0], parts[1]
         for item in reversed(items):
             if str(item.validation_status or "") not in {"valid", "verified"}:
                 continue
             if step_prefix and item.step_id != step_prefix and item.evidence_id != step_prefix:
                 continue
+            adapted = (item.extras or {}).get("adapted")
+            if adapted is None and isinstance(item.normalized_value, dict):
+                adapted = item.normalized_value
+            flat = flatten_projected_fields(adapted) if isinstance(adapted, dict) else {}
+            if field in flat and _numeric_from(flat[field]) is not None:
+                found = _numeric_from(flat[field])
+                break
+            # Also try last path segment (attributable_profit).
+            short = field.split(".")[-1]
+            if short in flat and _numeric_from(flat[short]) is not None:
+                found = _numeric_from(flat[short])
+                break
             candidates = [
                 item.normalized_value,
                 item.raw_value,
                 (item.extras or {}).get("projection"),
             ]
             for cand in candidates:
-                if cand is None:
+                if cand is None or not isinstance(cand, dict):
                     continue
-                if isinstance(cand, dict):
-                    # Search rows / flat keys.
-                    if field in cand and _numeric_from(cand[field]) is not None:
-                        found = _numeric_from(cand[field])
-                        break
-                    rows = cand.get("rows") if isinstance(cand.get("rows"), list) else None
-                    if rows is None and isinstance(cand.get("projected"), dict):
-                        rows = cand["projected"].get("rows")
-                    if isinstance(rows, list):
-                        for row in rows:
-                            if isinstance(row, dict) and field in row:
-                                found = _numeric_from(row[field])
-                                if found is not None:
-                                    break
+                if field in cand and _numeric_from(cand[field]) is not None:
+                    found = _numeric_from(cand[field])
+                    break
+                metrics = cand.get("metrics") if isinstance(cand.get("metrics"), dict) else None
+                if metrics and short in metrics:
+                    found = _numeric_from(metrics[short])
                     if found is not None:
                         break
-                    # Case-insensitive key match.
-                    for k, v in cand.items():
-                        if str(k).lower() == field.lower():
-                            found = _numeric_from(v)
+                rows = cand.get("rows") if isinstance(cand.get("rows"), list) else None
+                if isinstance(rows, list):
+                    for row in rows:
+                        if isinstance(row, dict) and (
+                            field in row or short in row
+                        ):
+                            found = _numeric_from(row.get(field, row.get(short)))
                             if found is not None:
                                 break
-                else:
-                    if not step_prefix or field in {"value", "result", "amount"}:
-                        found = _numeric_from(cand)
                 if found is not None:
                     break
             if found is not None:
@@ -1039,6 +1237,7 @@ def execute_compute_step(
             "compute_trace": trace,
             "evidence_id": ev.evidence_id,
             "value": evaluated.get("result"),
+            "deterministic_compute": True,
         }
     except CalculatorError as exc:
         trace = compute_trace_record(

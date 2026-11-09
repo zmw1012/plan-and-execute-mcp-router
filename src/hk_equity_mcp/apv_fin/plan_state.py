@@ -19,6 +19,12 @@ MODEL_OWNED_STEP_FIELDS = (
     "retrieval_query_hint",
     "compute_spec",
     "notes",
+    # v1.2 retrieve contract (planner-owned; never operation_id)
+    "required_capability",
+    "required_outputs",
+    "argument_slots",
+    "source_preference",
+    "fallback_capabilities",
 )
 
 RUNTIME_ONLY_STEP_FIELDS = (
@@ -77,6 +83,11 @@ class PlanStep:
     retrieval_query_hint: Optional[str] = None
     compute_spec: Optional[Dict[str, Any]] = None
     notes: Optional[str] = None
+    required_capability: Optional[str] = None
+    required_outputs: List[str] = field(default_factory=list)
+    argument_slots: Dict[str, Any] = field(default_factory=dict)
+    source_preference: List[str] = field(default_factory=list)
+    fallback_capabilities: List[str] = field(default_factory=list)
     # Runtime-only:
     status: str = "pending"
     observation_ids: List[str] = field(default_factory=list)
@@ -98,6 +109,11 @@ class PlanStep:
             "retrieval_query_hint": self.retrieval_query_hint,
             "compute_spec": deepcopy(self.compute_spec),
             "notes": self.notes,
+            "required_capability": self.required_capability,
+            "required_outputs": list(self.required_outputs),
+            "argument_slots": deepcopy(self.argument_slots),
+            "source_preference": list(self.source_preference),
+            "fallback_capabilities": list(self.fallback_capabilities),
         }
 
     def to_dict(self) -> Dict[str, Any]:
@@ -133,6 +149,22 @@ class PlanStep:
                 f"non-compute step {step_id!r} must have compute_spec=null"
             )
 
+        required_capability = raw.get("required_capability")
+        required_outputs = list(raw.get("required_outputs") or [])
+        argument_slots = dict(raw.get("argument_slots") or {})
+        source_preference = list(raw.get("source_preference") or [])
+        fallback_capabilities = list(raw.get("fallback_capabilities") or [])
+        if step_type == "retrieve":
+            if not required_capability or not str(required_capability).strip():
+                raise PlanStateError(
+                    f"retrieve step {step_id!r} requires required_capability"
+                )
+            required_capability = str(required_capability).strip()
+        else:
+            required_capability = (
+                str(required_capability).strip() if required_capability else None
+            )
+
         status = str(raw.get("status") or "pending") if allow_runtime else "pending"
         if status not in STEP_STATUSES:
             raise PlanStateError(f"invalid step status: {status!r}")
@@ -147,6 +179,11 @@ class PlanStep:
             retrieval_query_hint=raw.get("retrieval_query_hint"),
             compute_spec=compute_spec,
             notes=raw.get("notes"),
+            required_capability=required_capability,
+            required_outputs=[str(x) for x in required_outputs],
+            argument_slots=argument_slots,
+            source_preference=[str(x) for x in source_preference],
+            fallback_capabilities=[str(x) for x in fallback_capabilities],
             status=status,
             observation_ids=list(raw.get("observation_ids") or []) if allow_runtime else [],
             attempt_count=int(raw.get("attempt_count") or 0) if allow_runtime else 0,
@@ -373,6 +410,16 @@ class PlanState:
                 step.notes = upd.get("notes")
             if "compute_spec" in upd:
                 step.compute_spec = normalize_compute_spec(upd.get("compute_spec"))
+            if "required_capability" in upd:
+                step.required_capability = upd.get("required_capability")
+            if "required_outputs" in upd:
+                step.required_outputs = list(upd.get("required_outputs") or [])
+            if "argument_slots" in upd:
+                step.argument_slots = dict(upd.get("argument_slots") or {})
+            if "source_preference" in upd:
+                step.source_preference = list(upd.get("source_preference") or [])
+            if "fallback_capabilities" in upd:
+                step.fallback_capabilities = list(upd.get("fallback_capabilities") or [])
             if step.status in {"failed", "skipped"} and (
                 "retrieval_query_hint" in upd
                 or upd.get("objective") is not None

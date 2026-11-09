@@ -278,18 +278,29 @@ def aggregate_apv_fin_metrics(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
         "resource_limit_failures": resource_limit_failures,
         "resource_limit_failure_rate": (resource_limit_failures / n) if n else None,
         "deterministic_step_transitions_mean": _mean(
-            [r.get("deterministic_step_transitions") for r in rows]
+            [int(r.get("deterministic_step_transitions") or 0) for r in rows]
         ),
         "exception_replan_calls_mean": _mean(
-            [r.get("exception_replan_calls") for r in rows]
+            [int(r.get("exception_replan_calls") or 0) for r in rows]
         ),
         "raw_observation_chars_mean": _mean(
-            [r.get("raw_observation_chars") for r in rows]
+            [int(r.get("raw_observation_chars") or 0) for r in rows]
         ),
         "projected_observation_chars_mean": _mean(
-            [r.get("projected_observation_chars") for r in rows]
+            [int(r.get("projected_observation_chars") or 0) for r in rows]
         ),
-        "compression_ratio_mean": _mean([r.get("compression_ratio") for r in rows]),
+        "compression_ratio_mean": _mean(
+            [
+                float(r["compression_ratio"])
+                if r.get("compression_ratio") is not None
+                else (
+                    (int(r.get("projected_observation_chars") or 0) / int(r.get("raw_observation_chars")))
+                    if int(r.get("raw_observation_chars") or 0) > 0
+                    else 0.0
+                )
+                for r in rows
+            ]
+        ),
         "repeated_signature_block_count_sum": sum(
             int(r.get("repeated_signature_block_count") or 0) for r in rows
         ),
@@ -299,8 +310,30 @@ def aggregate_apv_fin_metrics(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
         "schema_description_expansion_count_sum": sum(
             int(r.get("schema_description_expansion_count") or 0) for r in rows
         ),
+        "deterministic_binding_count_sum": sum(
+            int(r.get("deterministic_binding_count") or 0) for r in rows
+        ),
+        "llm_binding_count_sum": sum(int(r.get("llm_binding_count") or 0) for r in rows),
+        "capability_injected_candidate_count_sum": sum(
+            int(r.get("capability_injected_candidate_count") or 0) for r in rows
+        ),
+        "capability_filter_candidate_count_sum": sum(
+            int(r.get("capability_filter_candidate_count") or 0) for r in rows
+        ),
+        "output_adapter_success_count_sum": sum(
+            int(r.get("output_adapter_success_count") or 0) for r in rows
+        ),
+        "required_output_missing_count_sum": sum(
+            int(r.get("required_output_missing_count") or 0) for r in rows
+        ),
+        "deterministic_compute_count_sum": sum(
+            int(r.get("deterministic_compute_count") or 0) for r in rows
+        ),
         "monitor_revision_count_mean": _mean(
             [len(r.get("monitor_decisions") or []) for r in rows]
+        ),
+        "exception_replan_calls_sum": sum(
+            int(r.get("exception_replan_calls") or 0) for r in rows
         ),
         "cost_summary": _cost_summary(rows),
     }
@@ -357,13 +390,13 @@ def _cost_summary(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
             1
             for r in rows
             if str(r.get("status") or r.get("result_status") or "").lower()
-            in {"ok", "success", "answered", "completed"}
+            in {"ok", "success", "answered", "completed", "full"}
         ),
         "failed_tasks": sum(
             1
             for r in rows
             if str(r.get("status") or r.get("result_status") or "").lower()
-            in {"failed", "error", "fail"}
+            in {"failed", "error", "fail", "partial"}
         ),
         "planner_calls": int(stage_totals.get("planner") or 0),
         "planner_repair_calls": int(stage_totals.get("planner_repair") or 0),

@@ -75,7 +75,16 @@ def _plan_payload(steps: Optional[List[Dict[str, Any]]] = None) -> dict:
                         "depends_on": [],
                         "mandatory": True,
                         "success_criteria": "mcp evidence",
+                    "required_capability": "financial.reported_metric",
+                    "required_outputs": ["value"],
+                    "argument_slots": {"ticker": "00700"},
                         "retrieval_query_hint": "hong kong equity",
+                        "required_capability": "financial.reported_metric_bundle",
+                        "required_outputs": ["revenue"],
+                        "argument_slots": {"ticker": "0700"},
+                        "source_preference": ["structured_vendor"],
+                        "fallback_capabilities": [],
+                        "compute_spec": None,
                         "notes": None,
                     },
                     {
@@ -86,6 +95,10 @@ def _plan_payload(steps: Optional[List[Dict[str, Any]]] = None) -> dict:
                         "mandatory": True,
                         "success_criteria": "summary",
                         "retrieval_query_hint": None,
+                        "required_capability": None,
+                        "required_outputs": None,
+                        "argument_slots": None,
+                        "compute_spec": None,
                         "notes": None,
                     },
                     {
@@ -96,6 +109,10 @@ def _plan_payload(steps: Optional[List[Dict[str, Any]]] = None) -> dict:
                         "mandatory": True,
                         "success_criteria": "final",
                         "retrieval_query_hint": None,
+                        "required_capability": None,
+                        "required_outputs": None,
+                        "argument_slots": None,
+                        "compute_spec": None,
                         "notes": None,
                     },
                 ]
@@ -262,6 +279,9 @@ def test_invalid_dependency_rejected_by_plan_state():
                 "depends_on": ["missing"],
                 "mandatory": True,
                 "success_criteria": "x",
+                    "required_capability": "financial.reported_metric",
+                    "required_outputs": ["value"],
+                    "argument_slots": {"ticker": "00700"},
                 "retrieval_query_hint": None,
                 "notes": None,
             }
@@ -308,6 +328,9 @@ def test_ready_dependencies_and_multi_resolve():
                     "depends_on": [],
                     "mandatory": True,
                     "success_criteria": "x",
+                    "required_capability": "financial.reported_metric",
+                    "required_outputs": ["value"],
+                    "argument_slots": {"ticker": "00700"},
                 },
                 {
                     "step_id": "b",
@@ -350,6 +373,14 @@ def test_same_operation_repeat_budget(tmp_path: Path):
         depends_on=[],
         mandatory=True,
         success_criteria="rows",
+        required_capability="market.daily_ohlcv",
+        required_outputs=[],
+        argument_slots={
+            "ticker": "0700",
+            "start_date": "20260701",
+            "end_date": "20260731",
+            "adjust": "",
+        },
         retrieval_query_hint="stock_hk_hist",
     )
     out1 = execute_retrieve_step(
@@ -420,6 +451,9 @@ def test_forced_select_forbidden_without_allow(tmp_path: Path):
             depends_on=[],
             mandatory=True,
             success_criteria="y",
+        required_capability="financial.reported_metric",
+        required_outputs=["value"],
+        argument_slots={"ticker": "00700"},
         ),
         task_spec={"goal": "x"},
         resolver=resolver,
@@ -531,6 +565,9 @@ def test_idle_monitor_stops_without_infinite_loop():
                     "depends_on": [],
                     "mandatory": False,
                     "success_criteria": "x",
+                    "required_capability": "financial.reported_metric",
+                    "required_outputs": ["value"],
+                    "argument_slots": {"ticker": "00700"},
                 },
                 {
                     "step_id": "stuck",
@@ -579,6 +616,9 @@ def test_retrieval_query_from_task_spec():
         depends_on=[],
         mandatory=True,
         success_criteria="value",
+        required_capability="financial.reported_metric",
+        required_outputs=["value"],
+        argument_slots={"ticker": "00700"},
         retrieval_query_hint="earnings per share",
     )
     q = build_retrieval_query(

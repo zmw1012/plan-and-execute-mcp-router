@@ -69,6 +69,14 @@ def test_retrieve_uses_resolver_compute_does_not_call_mcp(tmp_path: Path):
         depends_on=[],
         mandatory=True,
         success_criteria="got rows",
+        required_capability="market.daily_ohlcv",
+        required_outputs=[],
+        argument_slots={
+            "ticker": "09992",
+            "start_date": "20260701",
+            "end_date": "20260731",
+            "adjust": "",
+        },
         retrieval_query_hint="stock_hk_hist close",
     )
     out = execute_retrieve_step(
