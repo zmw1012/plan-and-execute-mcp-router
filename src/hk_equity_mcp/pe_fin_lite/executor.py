@@ -6,13 +6,13 @@ import json
 from typing import Any, Dict, List, Optional, Sequence, Set
 
 from hk_equity_mcp.agent.llm_client import LLMClient
-from hk_equity_mcp.apv_fin.result_envelope import normalize_gateway_envelope
 from hk_equity_mcp.pe_fin_lite.budget import BudgetTracker
 from hk_equity_mcp.pe_fin_lite.calculator import CalculatorError, compute_record, run_compute_spec
 from hk_equity_mcp.pe_fin_lite.disclosure_workflow import (
     is_disclosure_composite_step,
     run_disclosure_composite,
 )
+from hk_equity_mcp.pe_fin_lite.envelope_projection import project_invoke_to_required_outputs
 from hk_equity_mcp.pe_fin_lite.evidence_store import EvidenceStore
 from hk_equity_mcp.pe_fin_lite.prompts import (
     PE_FIN_LITE_SYSTEM_PROMPT,
@@ -24,7 +24,6 @@ from hk_equity_mcp.pe_fin_lite.schemas import (
 )
 from hk_equity_mcp.pe_fin_lite.step_result import (
     check_scope_match,
-    extract_values_from_envelope,
     finalize_retrieve_status,
     make_step_result,
     retrieve_step_succeeded,
@@ -180,36 +179,15 @@ def _evaluate_invoke(
     operation_id: str,
     arguments: Dict[str, Any],
 ) -> Dict[str, Any]:
-    transport_ok = bool(invoke_result.get("success")) or invoke_result.get("error_type") not in {
-        "execution_error",
-        "unknown_operation",
-    }
-    # Protocol/transport failure: success False with execution_error
-    if invoke_result.get("error_type") in {"execution_error"}:
+    transport_ok = bool(invoke_result.get("success"))
+    if invoke_result.get("error_type") in {"execution_error", "unknown_operation"}:
         transport_ok = False
-    envelope = {}
-    tool_valid = False
-    values: Dict[str, Any] = {}
     try:
-        raw = invoke_result.get("result")
-        if isinstance(raw, dict):
-            envelope = normalize_gateway_envelope(raw)
-        else:
-            envelope = {"raw": raw}
-        values = extract_values_from_envelope(
-            envelope if isinstance(envelope, dict) else {},
-            required_outputs,
+        projected = project_invoke_to_required_outputs(
+            invoke_result=invoke_result,
+            required_outputs=required_outputs,
+            domain=str(step.get("domain") or "general"),
         )
-        # Also scrape top-level normalized fields from invoke wrapper
-        if isinstance(raw, dict):
-            values.update(
-                extract_values_from_envelope(raw, required_outputs)
-            )
-        tool_valid = bool(invoke_result.get("success")) and (
-            bool(values) or not required_outputs
-        )
-        if not invoke_result.get("success"):
-            tool_valid = False
     except Exception as exc:  # noqa: BLE001
         return finalize_retrieve_status(
             make_step_result(
@@ -224,7 +202,21 @@ def _evaluate_invoke(
             )
         )
 
-    missing = [r for r in required_outputs if r not in values or values.get(r) in (None, "")]
+    values = dict(projected.get("values") or {})
+    missing = list(projected.get("missing_outputs") or [])
+    envelope = projected.get("envelope") or {}
+    rows = envelope.get("rows") if isinstance(envelope, dict) else None
+    has_payload = bool(values) or bool(rows) or bool(
+        isinstance(envelope, dict) and envelope.get("textual_content")
+    )
+    tool_valid = bool(invoke_result.get("success")) and (
+        has_payload or not required_outputs
+    )
+    if not invoke_result.get("success"):
+        tool_valid = False
+    if projected.get("normalization_error") and not has_payload:
+        tool_valid = False
+
     scope = check_scope_match(
         values,
         entity=step.get("entity"),
@@ -243,13 +235,13 @@ def _evaluate_invoke(
             },
             missing_outputs=missing,
             scope_match=scope,
-            mcp_transport_ok=bool(invoke_result.get("success")) or transport_ok,
-            tool_result_valid=tool_valid and bool(invoke_result.get("success")),
-            # Prefer distinguishing transport success vs output satisfaction:
-            # if HTTP/tool returned success but missing outputs → unavailable.
+            mcp_transport_ok=transport_ok,
+            tool_result_valid=tool_valid,
+            # Transport success with missing required outputs → unavailable, not completed.
             extra={
                 "invoke_success": bool(invoke_result.get("success")),
                 "invoke_error": invoke_result.get("error"),
+                "projection_pool_keys": projected.get("pool_keys"),
             },
         )
     )

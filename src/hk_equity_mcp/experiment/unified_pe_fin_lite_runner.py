@@ -97,6 +97,7 @@ from hk_equity_mcp.pe_fin_lite.operation_embedding_index import (
     build_index_identity,
     build_or_resume_index,
     default_shared_cache_dir,
+    identity_digest,
     index_status,
     load_complete_index,
     resolve_embedding_cache_dir,
@@ -127,6 +128,7 @@ PE_RESUME_IDENTITY_KEYS = (
     "capability_profile_hash",
     "operation_metadata_hash",
     "catalog_fingerprint",
+    "embedding_index_identity_sha256",
     "dataset_split",
     "subset_kind",
     "subset_manifest_hash",
@@ -555,6 +557,8 @@ class UnifiedHkPeFinLiteRunner:
             subset_kind = "smoke"
 
         cat_fp = catalog_fingerprint(self.bundle.stats, self.bundle.source_catalogs)
+        index_identity = self._embedding_index_identity()
+        index_identity_sha = identity_digest(index_identity)
         limits = dict(self.limits)
         run_meta: Dict[str, Any] = {
             "condition": self.condition,
@@ -582,6 +586,7 @@ class UnifiedHkPeFinLiteRunner:
                 "metadata_count": len(self.metadata_by_id),
             },
             "catalog_fingerprint": cat_fp,
+            "embedding_index_identity_sha256": index_identity_sha,
             "dataset_split": self.split,
             "subset_kind": subset_kind,
             "subset_manifest_hash": subset_manifest_hash,
@@ -1203,5 +1208,41 @@ class UnifiedHkPeFinLiteRunner:
             print(f"Predictions: {predictions_path}")
             print(f"Run metadata: {meta_path}")
             return run_meta
+        except (KeyboardInterrupt, SystemExit) as exc:
+            run_meta["run_status"] = "aborted"
+            run_meta["abort_reason"] = type(exc).__name__
+            run_meta["aborted_at"] = datetime.now(timezone.utc).isoformat()
+            run_meta["processed_task_count"] = len(predictions_by_id)
+            try:
+                if predictions_path.exists():
+                    fsync_file(predictions_path)
+                self._write_side_artifacts(
+                    items=items,
+                    predictions_by_id=predictions_by_id,
+                    run_meta=run_meta,
+                )
+                atomic_write_json(meta_path, run_meta)
+            finally:
+                raise
+        except Exception as exc:
+            # build_agent / unexpected runner failures must not leave status=running
+            if run_meta.get("run_status") in {"running", "mock_running"}:
+                run_meta["run_status"] = "aborted"
+                run_meta["abort_reason"] = "internal_error"
+                run_meta["abort_error_type"] = type(exc).__name__
+                run_meta["abort_error"] = str(exc)[:2000]
+                run_meta["aborted_at"] = datetime.now(timezone.utc).isoformat()
+                run_meta["processed_task_count"] = len(predictions_by_id)
+            try:
+                if predictions_path.exists():
+                    fsync_file(predictions_path)
+                self._write_side_artifacts(
+                    items=items,
+                    predictions_by_id=predictions_by_id,
+                    run_meta=run_meta,
+                )
+                atomic_write_json(meta_path, run_meta)
+            finally:
+                raise
         finally:
             self.close()

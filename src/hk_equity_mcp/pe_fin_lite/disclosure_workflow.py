@@ -232,21 +232,48 @@ def run_disclosure_composite(
                 }
             )
             break
-        result = invoke_fn(oid, args)
+        try:
+            result = invoke_fn(oid, args)
+        except Exception as exc:  # noqa: BLE001 — convert to StepResult, do not crash runner
+            last_error = f"stage_exception:{stage}:{type(exc).__name__}:{exc}"
+            trace.append(
+                {
+                    "stage": stage,
+                    "operation_id": oid,
+                    "arguments": {
+                        k: args[k] for k in args if "key" not in k.lower() or k == "local_key"
+                    },
+                    "success": False,
+                    "extracted_fields": [],
+                    "error": last_error,
+                }
+            )
+            break
         invoked.append(oid)
-        success = bool(result.get("success"))
-        extracted = _extract_chain_fields(result.get("result") if isinstance(result, dict) else result)
-        extracted.update(_extract_chain_fields(result))
+        success = bool(result.get("success")) if isinstance(result, dict) else False
+        extracted = _extract_chain_fields(
+            result.get("result") if isinstance(result, dict) else result
+        )
+        if isinstance(result, dict):
+            extracted.update(_extract_chain_fields(result))
         chain_state.update({k: v for k, v in extracted.items() if v is not None})
         values.update({k: v for k, v in extracted.items() if v is not None})
         trace.append(
             {
                 "stage": stage,
                 "operation_id": oid,
-                "arguments": {k: args[k] for k in args if "key" not in k.lower() or k == "local_key"},
+                "arguments": {
+                    k: args[k] for k in args if "key" not in k.lower() or k == "local_key"
+                },
                 "success": success,
                 "extracted_fields": sorted(extracted.keys()),
-                "error": None if success else (result.get("error") if isinstance(result, dict) else "invoke_failed"),
+                "error": None
+                if success
+                else (
+                    result.get("error")
+                    if isinstance(result, dict)
+                    else "invoke_failed"
+                ),
             }
         )
         if not success:
