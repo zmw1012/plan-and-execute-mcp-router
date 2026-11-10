@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
@@ -11,17 +13,11 @@ from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit import (
 )
 from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.identity import (
     assert_identity_match,
-    planner_only_cache_identity,
     sha256_text,
-    stable_json_hash,
 )
 from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.ranking import build_step_query
-from hk_equity_mcp.pe_fin_lite.capability_profile import (
-    capability_profile_hash,
-    load_capability_profile,
-)
+from hk_equity_mcp.pe_fin_lite.capability_profile import load_capability_profile
 from hk_equity_mcp.pe_fin_lite.planner import run_planner
-from hk_equity_mcp.pe_fin_lite.tool_retrieval import build_step_search_query
 
 
 FORBIDDEN_PLANNER_KEYS = (
@@ -133,6 +129,8 @@ def _append_jsonl(path: Path, row: Dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as f:
         f.write(json.dumps(row, ensure_ascii=False) + "\n")
+        f.flush()
+        os.fsync(f.fileno())
 
 
 def _load_completed_ids(path: Path) -> Dict[str, Dict[str, Any]]:
@@ -158,30 +156,42 @@ def run_planner_only(
     llm: Any = None,
     mock: bool = False,
     dry_run: bool = False,
+    live: bool = False,
     resume: bool = True,
     capability_profile: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Write planner_outputs.jsonl with checkpoint/resume support."""
+    """Write planner_outputs.jsonl with checkpoint/resume support.
+
+    Live mode requires a real ``llm`` and never falls back to mock plans.
+    Does not call embedding, MCP, Binder, Reason, or Final.
+    """
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     out_path = output_dir / "planner_outputs.jsonl"
     meta_path = output_dir / "planner_cache_identity.json"
 
+    if live:
+        if mock or dry_run:
+            raise RuntimeError("planner-only live cannot combine mock/dry-run")
+        if llm is None:
+            raise RuntimeError(
+                "planner-only live requires a real llm client (llm=None refused; "
+                "no mock_plan_for_question fallback)"
+            )
+
     if meta_path.exists() and resume:
         prev = json.loads(meta_path.read_text(encoding="utf-8"))
         assert_identity_match(cache_identity, prev, label="planner_only_cache")
     else:
-        meta_path.write_text(
-            json.dumps(cache_identity, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
+        with meta_path.open("w", encoding="utf-8") as handle:
+            handle.write(json.dumps(cache_identity, ensure_ascii=False, indent=2) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
 
     completed = _load_completed_ids(out_path) if resume else {}
     profile = capability_profile
     if profile is None and not dry_run:
-        profile = load_capability_profile(
-            root / "configs/capabilities/hk155_capability_profile_v1.yaml"
-        )
+        profile = load_capability_profile(root)
 
     errors: List[Dict[str, Any]] = []
     written = 0
@@ -203,7 +213,9 @@ def run_planner_only(
             written += 1
             continue
 
-        if mock or llm is None:
+        if mock:
+            if live:
+                raise RuntimeError("unreachable: live+mock")
             plan = mock_plan_for_question(task)
             retrieve_steps = extract_retrieve_steps(plan)
             row = {
@@ -223,7 +235,8 @@ def run_planner_only(
             written += 1
             continue
 
-        # Live planner path (not executed this round).
+        # Live planner path — llm already validated non-None.
+        t0 = time.perf_counter()
         result = run_planner(
             llm=llm,
             question=str(task.get("question") or ""),
@@ -233,12 +246,15 @@ def run_planner_only(
                 "max_total_mcp_invocations": 8,
             },
         )
+        latency_ms = (time.perf_counter() - t0) * 1000.0
         plan = result.get("plan") if result.get("ok") else None
         retrieve_steps = extract_retrieve_steps(plan or {})
+        usage = dict(result.get("usage") or {})
         row = {
             "task_id": tid,
             "ok": bool(result.get("ok")),
             "mock": False,
+            "live": True,
             "plan": plan,
             "retrieve_steps": retrieve_steps,
             "raw_planner_response": result.get("raw_content"),
@@ -247,8 +263,16 @@ def run_planner_only(
             "error": result.get("error"),
             "error_type": result.get("error_type"),
             "repair_count": result.get("repair_count"),
-            "usage": result.get("usage"),
+            "usage": usage,
+            "latency_ms": latency_ms,
+            "llm_calls": int(usage.get("calls") or usage.get("llm_calls") or (1 + int(result.get("repair_count") or 0))),
+            "tokens_in": usage.get("input_tokens") or usage.get("prompt_tokens"),
+            "tokens_out": usage.get("output_tokens") or usage.get("completion_tokens"),
+            "tokens_total": usage.get("total_tokens"),
             "planner_only_protocol_version": PLANNER_ONLY_PROTOCOL_VERSION,
+            "no_embedding": True,
+            "no_mcp": True,
+            "no_binder": True,
         }
         _assert_no_gold_leakage(
             {

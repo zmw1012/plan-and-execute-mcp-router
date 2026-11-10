@@ -26,6 +26,25 @@ VARIANT_COMPLEXITY = {
     "R3": 3,
 }
 
+REAL_EMBEDDING_BACKEND = "real_text_embedding_3_small"
+
+
+def assert_formal_formula_lock_allowed(
+    *,
+    embedding_backend: str,
+    mock: bool,
+) -> None:
+    """Refuse formal lock from mock/hash rankings."""
+    if mock:
+        raise RuntimeError(
+            "mock results cannot generate formal formula lock (fail-closed)"
+        )
+    if embedding_backend != REAL_EMBEDDING_BACKEND:
+        raise RuntimeError(
+            "Formal formula lock requires embedding_backend="
+            f"{REAL_EMBEDDING_BACKEND!r} real cache; got {embedding_backend!r}"
+        )
+
 
 def _selection_key(agg: Dict[str, Any], *, variant: str, alpha: Optional[float]) -> tuple:
     """Priority: complete-route@3, macro Recall@3, min-domain Recall@3, MRR,

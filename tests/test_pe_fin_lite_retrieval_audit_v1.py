@@ -320,7 +320,7 @@ def test_cache_identity_fail_closed_and_deterministic_rerun(tmp_path: Path):
 def test_offline_runner_mock_pipeline_no_network(tmp_path: Path):
     out = tmp_path / "retrieval_audit"
     runner = RetrievalAuditRunner(
-        root=ROOT, output_dir=out, mock=True, dry_run=False, allow_network=False
+        root=ROOT, output_dir=out, mock=True, dry_run=False
     )
     # Catalog stats sanity (42 / 39 / 18 / 21 / 3 expected band).
     stats = runner.catalog["stats"]
@@ -345,24 +345,30 @@ def test_offline_runner_mock_pipeline_no_network(tmp_path: Path):
     assert (out / "formula_selection" / "run_metadata.json").exists()
     assert (out / "all155_report" / "all155_report.json").exists()
     assert (out / "run_metadata.json").exists()
+    # Mock cannot write formal lock.
+    assert not (out / "formula_selection" / "formula_lock.json").exists()
 
     # Deterministic rerun: same identity hashes.
     q1 = json.loads((out / "question_level" / "cache_identity.json").read_text())
     runner2 = RetrievalAuditRunner(
-        root=ROOT, output_dir=out, mock=True, dry_run=False, allow_network=False
+        root=ROOT, output_dir=out, mock=True, dry_run=False
     )
     runner2.run_question_level()
     q2 = json.loads((out / "question_level" / "cache_identity.json").read_text())
     assert q1["identity_sha256"] == q2["identity_sha256"]
 
 
-def test_dry_run_and_network_refused(tmp_path: Path):
-    with pytest.raises(RuntimeError, match="allow_network"):
+def test_dry_run_and_ambiguous_network_refused(tmp_path: Path):
+    from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.live_path import (
+        LivePathError,
+    )
+
+    with pytest.raises(LivePathError, match="allow_network"):
         RetrievalAuditRunner(
             root=ROOT, output_dir=tmp_path / "x", allow_network=True
         )
     runner = RetrievalAuditRunner(
-        root=ROOT, output_dir=tmp_path / "dry", mock=True, dry_run=True
+        root=ROOT, output_dir=tmp_path / "dry", dry_run=True
     )
     meta = runner.run_question_level()
     assert meta["dry_run"] is True

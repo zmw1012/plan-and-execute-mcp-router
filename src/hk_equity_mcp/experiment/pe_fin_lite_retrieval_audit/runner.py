@@ -1,4 +1,4 @@
-"""Orchestrate Retrieval Audit modes (offline mock/dry-run safe)."""
+"""Orchestrate Retrieval Audit modes (mock / dry-run / live / offline-rank)."""
 
 from __future__ import annotations
 
@@ -20,6 +20,8 @@ from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.catalog_audit import (
     analyze_catalog_coverage,
 )
 from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.formula_selection import (
+    REAL_EMBEDDING_BACKEND,
+    assert_formal_formula_lock_allowed,
     assert_frozen_evaluation_allowed,
     attach_min_domain_recall,
     build_formula_lock,
@@ -37,6 +39,19 @@ from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.identity import (
     sha256_text,
     step_retrieval_cache_identity,
 )
+from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.live_path import (
+    AuditMode,
+    LivePathError,
+    ResolvedMode,
+    build_embedding_backend,
+    build_generation_llm,
+    load_and_assert_embedding,
+    load_and_assert_generation,
+    public_meta_without_secrets,
+    require_live_env_files,
+    resolve_cache_dir,
+    resolve_mode,
+)
 from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.metrics import (
     aggregate_metric_rows,
     cross_domain_route_coverage,
@@ -49,14 +64,40 @@ from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.operation_documents im
 from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.planner_only import (
     run_planner_only,
 )
+from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.query_cache import (
+    QueryCacheError,
+    embed_planner_step_queries,
+    embed_question_queries,
+    load_complete_question_query_cache,
+    load_complete_step_query_cache,
+    question_query_cache_identity,
+    step_cache_key,
+    step_query_cache_identity,
+)
 from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.ranking import (
     OfflineEmbeddingIndex,
     build_question_query,
+    build_step_query,
     rank_operations,
 )
 from hk_equity_mcp.pe_fin_lite.capability_profile import (
     capability_profile_hash,
     load_capability_profile,
+)
+from hk_equity_mcp.pe_fin_lite.identity import (
+    EXPECTED_EMBEDDING_MODEL,
+    EXPECTED_GENERATION_HOST,
+    EXPECTED_GENERATION_MODEL,
+    EXPECTED_GENERATION_PROVIDER,
+    host_from_base_url,
+)
+from hk_equity_mcp.pe_fin_lite.operation_embedding_index import (
+    IncompleteOperationIndexError,
+    build_index_identity,
+    build_or_resume_index,
+    identity_digest,
+    index_status,
+    load_complete_index,
 )
 
 
@@ -141,62 +182,431 @@ class RetrievalAuditRunner:
         *,
         root: Path,
         output_dir: Optional[Path] = None,
-        mock: bool = True,
+        mode: Optional[ResolvedMode] = None,
+        mock: bool = False,
         dry_run: bool = False,
+        live: bool = False,
+        no_mock: bool = False,
+        offline_rank: bool = False,
+        env_file: Optional[str] = None,
+        embedding_env_file: Optional[str] = None,
+        embedding_cache_dir: Optional[str | Path] = None,
+        require_complete_index: bool = False,
         allow_network: bool = False,
     ):
+        if allow_network and not live:
+            raise LivePathError(
+                "allow_network is removed; use explicit --live (fail-closed)"
+            )
         self.root = Path(root)
         self.output_dir = Path(output_dir or (self.root / DEFAULT_OUTPUT_DIR))
-        self.mock = bool(mock)
-        self.dry_run = bool(dry_run)
-        self.allow_network = bool(allow_network)
-        if self.allow_network:
-            raise RuntimeError(
-                "Retrieval Audit runner refuses allow_network=True in this offline round"
-            )
+        self.resolved = mode or resolve_mode(
+            mock=mock,
+            dry_run=dry_run,
+            live=live or allow_network,
+            no_mock=no_mock,
+            offline_rank=offline_rank,
+        )
+        self.mock = self.resolved.mock
+        self.dry_run = self.resolved.dry_run
+        self.live = self.resolved.live
+        self.allow_network = self.resolved.allow_network
+        self.env_file = env_file
+        self.embedding_env_file = embedding_env_file
+        self.embedding_cache_dir = resolve_cache_dir(self.root, embedding_cache_dir)
+        self.require_complete_index = bool(require_complete_index)
+        self.gen_meta: Optional[Dict[str, Any]] = None
+        self.emb_meta: Optional[Dict[str, Any]] = None
+        self._index_identity: Optional[Dict[str, Any]] = None
+        self._catalog_vectors: Optional[Dict[str, List[float]]] = None
+        self._llm = None
+
         self.dataset = load_hk155_locked(self.root)
         self.catalog = build_catalog_context(self.root)
         self.docs = build_all_operation_documents(self.catalog["bundle"])
         self.meta_by_id = _metadata_by_id(self.catalog["bundle"])
         self.tasks_by_id = _task_map(self.dataset["tasks"])
-        self.index = OfflineEmbeddingIndex(
-            documents=self.docs["documents"],
-            metadata_by_id=self.meta_by_id,
-            runtime_operation_ids=self.catalog["runtime_operation_ids"],
-            allow_network=False,
-        )
+        self.registry = self.catalog["bundle"].registry
+
+        # Mock hash index only for mock mode ranking that embeds on the fly.
+        # Live/offline ranking uses preloaded catalog + query caches.
+        if self.mock:
+            self.index = OfflineEmbeddingIndex(
+                documents=self.docs["documents"],
+                metadata_by_id=self.meta_by_id,
+                runtime_operation_ids=self.catalog["runtime_operation_ids"],
+            )
+            self.embedding_backend_kind = "mock_hash"
+        else:
+            self.index = None  # constructed from caches when ranking
+            self.embedding_backend_kind = (
+                REAL_EMBEDDING_BACKEND
+                if self.live or self.resolved.mode == AuditMode.OFFLINE_RANK
+                else "none"
+            )
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def _base_run_metadata(self, mode: str) -> Dict[str, Any]:
-        return {
+        emb_model = (
+            self.index.embedding_model
+            if self.index is not None
+            else (
+                (self.emb_meta or {}).get("model")
+                if self.emb_meta
+                else (
+                    EXPECTED_EMBEDDING_MODEL
+                    if not self.mock
+                    else "mock-hash-embedding-v1"
+                )
+            )
+        )
+        emb_dim = self.index.embedding_dim if self.index is not None else None
+        meta = {
             "audit_version": AUDIT_VERSION,
             "result_role": RESULT_ROLE,
             "mode": mode,
+            "audit_mode": self.resolved.mode.value,
             "mock": self.mock,
             "dry_run": self.dry_run,
-            "allow_network": False,
+            "live": self.live,
+            "allow_network": bool(self.allow_network),
+            "embedding_backend": self.embedding_backend_kind,
             "dataset": self.dataset["identities"],
             "catalog_stats": self.catalog["stats"],
             "catalog_fingerprint": self.catalog["catalog_fingerprint"],
             "operation_documents_sha256": self.docs["operation_documents_sha256"],
             "operation_document_integrity": self.docs["integrity"],
-            "embedding_model": self.index.embedding_model,
-            "embedding_dim": self.index.embedding_dim,
+            "embedding_model": emb_model,
+            "embedding_dim": emb_dim,
+            "embedding_cache_dir": str(self.embedding_cache_dir),
             "top_k": TOP_K,
             "describe_n": DESCRIBE_N,
             "output_dir": str(self.output_dir),
             "no_unseen_heldout_claim": True,
         }
+        if self.gen_meta:
+            meta["generation"] = public_meta_without_secrets(self.gen_meta)
+        if self.emb_meta:
+            meta["embedding"] = public_meta_without_secrets(self.emb_meta)
+        return meta
+
+    def _catalog_index_identity(self) -> Dict[str, Any]:
+        if self.mock:
+            emb_model = "mock-hash-embedding-v1"
+            emb_host = "local_hash"
+        else:
+            if self.emb_meta is None and self.live:
+                raise LivePathError("emb_meta required before catalog index identity")
+            emb_model = str(
+                (self.emb_meta or {}).get("model") or EXPECTED_EMBEDDING_MODEL
+            )
+            emb_host = host_from_base_url((self.emb_meta or {}).get("base_url"))
+            if emb_model != EXPECTED_EMBEDDING_MODEL and not self.dry_run:
+                # dry-run / index-status may use expected model without env
+                if self.emb_meta is not None:
+                    raise LivePathError(
+                        f"embedding model locked to {EXPECTED_EMBEDDING_MODEL}"
+                    )
+        identity = build_index_identity(
+            registry=self.registry,
+            catalog_fingerprint=self.catalog["catalog_fingerprint"],
+            embedding_model=emb_model,
+            embedding_provider_host=emb_host,
+        )
+        self._index_identity = identity
+        return identity
+
+    def _ensure_embedding_meta_for_status(self) -> None:
+        """index-status is zero-network; may use locked model without loading secrets."""
+        if self.emb_meta is not None:
+            return
+        if self.embedding_env_file:
+            # Load only if file exists; still no network calls.
+            try:
+                self.emb_meta = load_and_assert_embedding(
+                    self.root, self.embedding_env_file
+                )
+            except (LivePathError, FileNotFoundError, RuntimeError):
+                self.emb_meta = {
+                    "model": EXPECTED_EMBEDDING_MODEL,
+                    "base_url": None,
+                    "host": None,
+                    "provider": "openai_compatible",
+                }
+        else:
+            self.emb_meta = {
+                "model": EXPECTED_EMBEDDING_MODEL,
+                "base_url": None,
+                "host": None,
+                "provider": "openai_compatible",
+            }
+
+    def get_index_status(self) -> Dict[str, Any]:
+        """Zero-network catalog index status."""
+        self._ensure_embedding_meta_for_status()
+        identity = self._catalog_index_identity()
+        status = index_status(
+            registry=self.registry,
+            identity=identity,
+            cache_dir=self.embedding_cache_dir,
+        ).to_dict()
+        out_dir = self.output_dir / "catalog_index"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        payload = {
+            **status,
+            "final_complete": bool(status.get("complete")),
+            "expected": status.get("total"),
+            "identity_digest": identity_digest(identity),
+            "zero_network": True,
+        }
+        _write_json(out_dir / "index_status.json", payload)
+        meta = self._base_run_metadata("index_status")
+        meta["index_status"] = {
+            "completed": status.get("completed"),
+            "expected": status.get("total"),
+            "final_complete": status.get("complete"),
+            "identity_sha256": status.get("identity_sha256"),
+        }
+        _write_json(out_dir / "run_metadata.json", meta)
+        return payload
+
+    def build_index_only(self) -> Dict[str, Any]:
+        """Live embedding only: build/resume catalog index. No generation/planner."""
+        if self.dry_run:
+            meta = self._base_run_metadata("build_index_only")
+            meta["dry_run_note"] = "Skipped embedding calls"
+            _write_json(self.output_dir / "catalog_index" / "run_metadata.json", meta)
+            return meta
+        if not self.live and not self.mock:
+            raise LivePathError(
+                "build-index-only requires --live (or --mock for hash index)"
+            )
+        if self.live:
+            require_live_env_files(
+                env_file=self.env_file,
+                embedding_env_file=self.embedding_env_file,
+                need_generation=False,
+                need_embedding=True,
+            )
+            self.emb_meta = load_and_assert_embedding(
+                self.root, self.embedding_env_file  # type: ignore[arg-type]
+            )
+            self.embedding_backend_kind = REAL_EMBEDDING_BACKEND
+        identity = self._catalog_index_identity()
+        backend = build_embedding_backend(
+            mode=self.resolved, emb_meta=self.emb_meta, for_index_build=True
+        )
+        result = build_or_resume_index(
+            registry=self.registry,
+            identity=identity,
+            cache_dir=self.embedding_cache_dir,
+            embed_fn=backend.embed,
+            batch_size=16,
+            ov_cache_dir=None,
+        )
+        out_dir = self.output_dir / "catalog_index"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        _write_json(out_dir / "build_index_result.json", public_meta_without_secrets(result))
+        meta = self._base_run_metadata("build_index_only")
+        meta["build_index_result"] = {
+            "completed": result.get("completed"),
+            "total": result.get("total"),
+            "complete": result.get("complete"),
+            "action": result.get("action"),
+            "identity_sha256": result.get("identity_sha256"),
+        }
+        _write_json(out_dir / "run_metadata.json", meta)
+        return meta
+
+    def _load_complete_catalog_index(self) -> OfflineEmbeddingIndex:
+        if self.mock:
+            assert self.index is not None
+            return self.index
+        self._ensure_embedding_meta_for_status()
+        identity = self._catalog_index_identity()
+        try:
+            vectors = load_complete_index(
+                registry=self.registry,
+                identity=identity,
+                cache_dir=self.embedding_cache_dir,
+            )
+        except IncompleteOperationIndexError as exc:
+            raise LivePathError(
+                f"Incomplete catalog embedding index (fail-closed): {exc}"
+            ) from exc
+        self._catalog_vectors = vectors
+        dim = len(next(iter(vectors.values()))) if vectors else None
+        self.embedding_backend_kind = REAL_EMBEDDING_BACKEND
+        index = OfflineEmbeddingIndex.from_preloaded_vectors(
+            documents=self.docs["documents"],
+            metadata_by_id=self.meta_by_id,
+            runtime_operation_ids=self.catalog["runtime_operation_ids"],
+            vectors=vectors,
+            embedding_model=str(
+                (self.emb_meta or {}).get("model") or EXPECTED_EMBEDDING_MODEL
+            ),
+        )
+        index.embedding_dim = dim
+        self.index = index
+        return index
+
+    def embed_question_queries_stage(self) -> Dict[str, Any]:
+        """Live: embed 155 question queries. No planner/MCP/ranking."""
+        out_dir = self.output_dir / "question_query_cache"
+        if self.dry_run:
+            meta = self._base_run_metadata("embed_question_queries")
+            meta["dry_run_note"] = "Skipped embedding"
+            _write_json(out_dir / "run_metadata.json", meta)
+            return meta
+        if not self.live and not self.mock:
+            raise LivePathError("embed-question-queries requires --live or --mock")
+        if self.live:
+            require_live_env_files(
+                env_file=self.env_file,
+                embedding_env_file=self.embedding_env_file,
+                need_generation=False,
+                need_embedding=True,
+            )
+            self.emb_meta = load_and_assert_embedding(
+                self.root, self.embedding_env_file  # type: ignore[arg-type]
+            )
+            self.embedding_backend_kind = REAL_EMBEDDING_BACKEND
+        backend = build_embedding_backend(
+            mode=self.resolved, emb_meta=self.emb_meta, for_index_build=True
+        )
+        identity = question_query_cache_identity(
+            dataset_identities=self.dataset["identities"],
+            embedding_model=str(
+                (self.emb_meta or {}).get("model")
+                or getattr(backend, "model_name", EXPECTED_EMBEDDING_MODEL)
+            ),
+            embedding_provider_host=(
+                host_from_base_url((self.emb_meta or {}).get("base_url"))
+                if self.emb_meta
+                else "local_hash"
+            ),
+            embedding_dim=None,
+        )
+        summary = embed_question_queries(
+            tasks=self.dataset["tasks"],
+            output_dir=out_dir,
+            identity=identity,
+            embed_fn=backend.embed,
+            batch_size=16,
+            resume=True,
+        )
+        meta = self._base_run_metadata("embed_question_queries")
+        meta["question_query_cache"] = summary
+        _write_json(out_dir / "run_metadata.json", meta)
+        return meta
+
+    def embed_planner_step_queries_stage(self) -> Dict[str, Any]:
+        """Live: embed retrieve-step queries from frozen planner cache."""
+        out_dir = self.output_dir / "step_query_cache"
+        if self.dry_run:
+            meta = self._base_run_metadata("embed_planner_step_queries")
+            meta["dry_run_note"] = "Skipped embedding"
+            _write_json(out_dir / "run_metadata.json", meta)
+            return meta
+        if not self.live and not self.mock:
+            raise LivePathError("embed-planner-step-queries requires --live or --mock")
+        cache = self._load_planner_cache()
+        if self.live:
+            require_live_env_files(
+                env_file=self.env_file,
+                embedding_env_file=self.embedding_env_file,
+                need_generation=False,
+                need_embedding=True,
+            )
+            self.emb_meta = load_and_assert_embedding(
+                self.root, self.embedding_env_file  # type: ignore[arg-type]
+            )
+            self.embedding_backend_kind = REAL_EMBEDDING_BACKEND
+        backend = build_embedding_backend(
+            mode=self.resolved, emb_meta=self.emb_meta, for_index_build=True
+        )
+        identity = step_query_cache_identity(
+            dataset_identities=self.dataset["identities"],
+            planner_cache_sha256=cache["planner_cache_sha256"],
+            embedding_model=str(
+                (self.emb_meta or {}).get("model")
+                or getattr(backend, "model_name", EXPECTED_EMBEDDING_MODEL)
+            ),
+            embedding_provider_host=(
+                host_from_base_url((self.emb_meta or {}).get("base_url"))
+                if self.emb_meta
+                else "local_hash"
+            ),
+            embedding_dim=None,
+        )
+        summary = embed_planner_step_queries(
+            planner_rows=cache["rows"],
+            output_dir=out_dir,
+            identity=identity,
+            embed_fn=backend.embed,
+            batch_size=16,
+            resume=True,
+        )
+        meta = self._base_run_metadata("embed_planner_step_queries")
+        meta["step_query_cache"] = summary
+        meta["planner_cache_sha256"] = cache["planner_cache_sha256"]
+        _write_json(out_dir / "run_metadata.json", meta)
+        return meta
 
     def run_question_level(self) -> Dict[str, Any]:
         out_dir = self.output_dir / "question_level"
         out_dir.mkdir(parents=True, exist_ok=True)
+
+        if self.dry_run:
+            meta = self._base_run_metadata("question_level")
+            meta["dry_run_note"] = "No rankings computed"
+            _write_json(out_dir / "run_metadata.json", meta)
+            _write_json(out_dir / "error_summary.json", {"errors": []})
+            return meta
+
+        if self.live:
+            raise LivePathError(
+                "question-level ranking is zero-network offline; "
+                "use --embed-question-queries --live first, then --question-level "
+                "without --live"
+            )
+
+        query_vectors: Optional[Dict[str, List[float]]] = None
+        if self.mock:
+            index = self.index
+            assert index is not None
+            emb_model = index.embedding_model
+            emb_host = "local_hash"
+            self.embedding_backend_kind = "mock_hash"
+        else:
+            # Offline ranking from complete caches.
+            index = self._load_complete_catalog_index()
+            qpath = out_dir.parent / "question_query_cache" / "question_query_vectors.json"
+            try:
+                qcache = load_complete_question_query_cache(qpath)
+            except QueryCacheError as exc:
+                raise LivePathError(
+                    f"Incomplete question-query cache (fail-closed): {exc}"
+                ) from exc
+            query_vectors = {
+                str(k): list(v)
+                for k, v in (qcache.get("vectors_by_task_id") or {}).items()
+            }
+            emb_model = str(
+                ((qcache.get("identity") or {}).get("embedding_model"))
+                or EXPECTED_EMBEDDING_MODEL
+            )
+            emb_host = str(
+                ((qcache.get("identity") or {}).get("embedding_provider_host")) or ""
+            )
+            self.embedding_backend_kind = REAL_EMBEDDING_BACKEND
+
         q_identity = question_level_cache_identity(
             dataset_identities=self.dataset["identities"],
             operation_documents_sha256=self.docs["operation_documents_sha256"],
             catalog_fingerprint=self.catalog["catalog_fingerprint"],
-            embedding_model=self.index.embedding_model,
-            embedding_provider_host="local_hash",
+            embedding_model=emb_model,
+            embedding_provider_host=emb_host,
         )
         _write_json(out_dir / "cache_identity.json", q_identity)
 
@@ -206,26 +616,23 @@ class RetrievalAuditRunner:
         no_tool_rows: List[Dict[str, Any]] = []
         errors: List[Dict[str, Any]] = []
 
-        if self.dry_run:
-            meta = self._base_run_metadata("question_level")
-            meta["dry_run_note"] = "No rankings computed"
-            _write_json(out_dir / "run_metadata.json", meta)
-            _write_json(out_dir / "error_summary.json", {"errors": []})
-            return meta
-
         for task in self.dataset["tasks"]:
             tid = str(task.get("task_id") or task.get("id"))
             ref = build_evaluation_reference(task)
             query = build_question_query(str(task.get("question") or ""))
             try:
+                qvec = None if query_vectors is None else query_vectors.get(tid)
+                if query_vectors is not None and qvec is None:
+                    raise LivePathError(f"Missing question query vector for {tid}")
                 ranked = rank_operations(
-                    index=self.index,
+                    index=index,
                     query=query,
                     variant="R0",
                     step_domain=str(task.get("domain") or "general"),
                     required_outputs=[],
                     top_k=TOP_K,
                     gold_ops_for_filter_diag=ref["acceptable_ops_union"],
+                    query_vector=qvec,
                 )
             except Exception as exc:  # noqa: BLE001
                 errors.append({"task_id": tid, "error": f"{type(exc).__name__}:{exc}"})
@@ -261,6 +668,7 @@ class RetrievalAuditRunner:
                     "include_in_tool_recall_denominator"
                 ],
                 "evaluation_reference_task_id_only": tid,
+                "embedding_backend": self.embedding_backend_kind,
             }
             rankings.append(row)
             if ref["is_no_tool_task"]:
@@ -318,6 +726,7 @@ class RetrievalAuditRunner:
             "per_difficulty": per_diff,
             "filter_miss_count": filter_miss,
             "embedding_miss_count": embedding_miss,
+            "embedding_backend": self.embedding_backend_kind,
         }
         route_coverage = {
             "complete_route@3_tool": tool_metrics.get("complete_route@3"),
@@ -345,6 +754,7 @@ class RetrievalAuditRunner:
         meta = self._base_run_metadata("question_level")
         meta["n_rankings"] = len(rankings)
         meta["cache_identity"] = q_identity
+        meta["zero_network"] = True
         _write_json(out_dir / "run_metadata.json", meta)
         _write_json(out_dir / "error_summary.json", {"errors": errors})
         return meta
@@ -352,25 +762,59 @@ class RetrievalAuditRunner:
     def run_planner_only(self) -> Dict[str, Any]:
         out_dir = self.output_dir / "planner_cache"
         profile = load_capability_profile(self.root)
+
+        if self.live:
+            require_live_env_files(
+                env_file=self.env_file,
+                embedding_env_file=self.embedding_env_file,
+                need_generation=True,
+                need_embedding=False,
+            )
+            self.gen_meta = load_and_assert_generation(
+                self.root, self.env_file  # type: ignore[arg-type]
+            )
+            self._llm = build_generation_llm(json_mode=True)
+            gen_provider = EXPECTED_GENERATION_PROVIDER
+            gen_host = EXPECTED_GENERATION_HOST
+            gen_model = EXPECTED_GENERATION_MODEL
+        elif self.mock or self.dry_run:
+            gen_provider = "offline_mock"
+            gen_host = "local"
+            gen_model = "mock_plan_v1"
+            self._llm = None
+        else:
+            raise LivePathError(
+                "planner-only without --mock/--dry-run requires --live "
+                "(fail-closed; no silent mock)"
+            )
+
         identity = planner_only_cache_identity(
             dataset_identities=self.dataset["identities"],
             capability_profile_hash=capability_profile_hash(profile),
-            generation_provider="offline_mock" if self.mock or self.dry_run else "live",
-            generation_host="local",
-            generation_model="mock_plan_v1" if self.mock or self.dry_run else "unset",
+            generation_provider=gen_provider,
+            generation_host=gen_host,
+            generation_model=gen_model,
         )
         summary = run_planner_only(
             root=self.root,
             tasks=self.dataset["tasks"],
             output_dir=out_dir,
             cache_identity=identity,
-            mock=self.mock or self.dry_run,
+            llm=self._llm,
+            mock=self.mock,
             dry_run=self.dry_run,
+            live=self.live,
             resume=True,
             capability_profile=profile,
         )
         meta = self._base_run_metadata("planner_only")
-        meta["planner_only_summary"] = summary
+        meta["planner_only_summary"] = {
+            k: v
+            for k, v in summary.items()
+            if k != "identity" or isinstance(v, dict)
+        }
+        # Ensure secrets never land in metadata.
+        meta = public_meta_without_secrets(meta)
         _write_json(out_dir / "run_metadata.json", meta)
         _write_json(out_dir / "error_summary.json", {"errors": summary.get("errors") or []})
         return meta
@@ -398,6 +842,13 @@ class RetrievalAuditRunner:
         alphas = list(alphas or HYBRID_ALPHAS)
         out_dir = self.output_dir / "ranking_variants"
         out_dir.mkdir(parents=True, exist_ok=True)
+
+        if self.live:
+            raise LivePathError(
+                "--rank-from-planner-cache is zero-network; do not pass --live. "
+                "Use --embed-planner-step-queries --live first."
+            )
+
         cache = self._load_planner_cache()
         if self.dry_run:
             meta = self._base_run_metadata("rank_from_planner_cache")
@@ -409,6 +860,7 @@ class RetrievalAuditRunner:
                     "formulas": {},
                     "development70_selection_inputs": {},
                     "dry_run": True,
+                    "embedding_backend": self.embedding_backend_kind,
                 },
             )
             _write_json(out_dir / "retrieval_metrics.json", {"dry_run": True})
@@ -417,6 +869,30 @@ class RetrievalAuditRunner:
             _write_jsonl(out_dir / "per_step_rankings.jsonl", [])
             _write_json(out_dir / "error_summary.json", {"errors": []})
             return meta
+
+        step_vectors: Optional[Dict[str, Dict[str, Any]]] = None
+        if self.mock:
+            index = self.index
+            assert index is not None
+            emb_model = index.embedding_model
+            self.embedding_backend_kind = "mock_hash"
+        else:
+            index = self._load_complete_catalog_index()
+            spath = (
+                self.output_dir / "step_query_cache" / "step_query_vectors.json"
+            )
+            try:
+                scache = load_complete_step_query_cache(spath)
+            except QueryCacheError as exc:
+                raise LivePathError(
+                    f"Incomplete step-query cache (fail-closed): {exc}"
+                ) from exc
+            step_vectors = dict(scache.get("vectors_by_task_step") or {})
+            emb_model = str(
+                ((scache.get("identity") or {}).get("embedding_model"))
+                or EXPECTED_EMBEDDING_MODEL
+            )
+            self.embedding_backend_kind = REAL_EMBEDDING_BACKEND
 
         all_step_rankings: List[Dict[str, Any]] = []
         formula_metrics: Dict[str, Dict[str, Any]] = {}
@@ -437,7 +913,7 @@ class RetrievalAuditRunner:
                     catalog_fingerprint=self.catalog["catalog_fingerprint"],
                     ranking_variant=variant,
                     alpha=alpha,
-                    embedding_model=self.index.embedding_model,
+                    embedding_model=emb_model,
                 )
                 scored_tool: List[Dict[str, Any]] = []
                 scored_disc: List[Dict[str, Any]] = []
@@ -452,16 +928,39 @@ class RetrievalAuditRunner:
                     for step in steps:
                         if not isinstance(step, dict):
                             continue
-                        q = str(step.get("search_query") or build_question_query(""))
+                        q = str(step.get("search_query") or build_step_query(step))
+                        sid = str(step.get("id") or step.get("step_id") or "")
+                        qvec = None
+                        if step_vectors is not None:
+                            entry = step_vectors.get(f"{tid}::{sid}")
+                            if entry is None:
+                                # Fallback key lookup via cache_key.
+                                key = step_cache_key(tid, sid, q)
+                                entry = next(
+                                    (
+                                        v
+                                        for v in step_vectors.values()
+                                        if v.get("cache_key") == key
+                                    ),
+                                    None,
+                                )
+                            if entry is None:
+                                raise LivePathError(
+                                    f"Missing step query vector for {tid}/{sid}"
+                                )
+                            qvec = entry.get("vector")
                         ranked = rank_operations(
-                            index=self.index,
+                            index=index,
                             query=q,
                             variant=variant,
                             alpha=float(alpha) if alpha is not None else 1.0,
-                            step_domain=str(step.get("domain") or task.get("domain") or "general"),
+                            step_domain=str(
+                                step.get("domain") or task.get("domain") or "general"
+                            ),
                             required_outputs=list(step.get("required_outputs") or []),
                             top_k=TOP_K,
                             gold_ops_for_filter_diag=ref["acceptable_ops_union"],
+                            query_vector=qvec,
                         )
                         step_ranked.append(ranked["ranked_ids"])
                         all_step_rankings.append(
@@ -475,19 +974,23 @@ class RetrievalAuditRunner:
                                 "filter": ranked["filter"],
                                 "blocked_leakage": ranked["blocked_leakage"],
                                 "identity_sha256": identity["identity_sha256"],
+                                "embedding_backend": self.embedding_backend_kind,
                             }
                         )
                     if not step_ranked:
-                        # Planner failure / no retrieve steps.
                         metrics = score_ranked_list(
                             ranked_ids=[],
-                            equivalents_by_node=[set(x) for x in ref["equivalents_by_node"]],
+                            equivalents_by_node=[
+                                set(x) for x in ref["equivalents_by_node"]
+                            ],
                             acceptable_union=set(ref["acceptable_ops_union"]),
                         )
                     else:
                         metrics = score_multi_step_route(
                             step_ranked_ids=step_ranked,
-                            equivalents_by_node=[set(x) for x in ref["equivalents_by_node"]],
+                            equivalents_by_node=[
+                                set(x) for x in ref["equivalents_by_node"]
+                            ],
                             acceptable_union=set(ref["acceptable_ops_union"]),
                         )
                     row = {
@@ -519,7 +1022,6 @@ class RetrievalAuditRunner:
                     aggregate_metric_rows([r["metrics"] for r in scored_tool]),
                     per_domain_recall_at_3=domain_means,
                 )
-                # Split metrics for later selection / reserved eval.
                 by_split = {}
                 for name, ids in self.dataset["splits"].items():
                     subset = _split_filter(scored_tool, split_ids=ids)
@@ -543,6 +1045,7 @@ class RetrievalAuditRunner:
                         [r["metrics"] for r in scored_disc]
                     ),
                     "identity": identity,
+                    "embedding_backend": self.embedding_backend_kind,
                 }
                 comparison_rows[formula_key] = by_split.get("development70") or agg
 
@@ -550,6 +1053,8 @@ class RetrievalAuditRunner:
         _write_json(out_dir / "formula_comparison.json", {
             "formulas": formula_metrics,
             "development70_selection_inputs": comparison_rows,
+            "embedding_backend": self.embedding_backend_kind,
+            "zero_network": True,
         })
         catalog_cov = analyze_catalog_coverage(
             formal_gold_ids=self.catalog["formal_gold_eligible_ids"],
@@ -562,10 +1067,12 @@ class RetrievalAuditRunner:
         meta = self._base_run_metadata("rank_from_planner_cache")
         meta["n_step_rankings"] = len(all_step_rankings)
         meta["formulas"] = list(formula_metrics.keys())
+        meta["zero_network"] = True
         _write_json(out_dir / "run_metadata.json", meta)
         _write_json(out_dir / "error_summary.json", {"errors": []})
         _write_json(out_dir / "retrieval_metrics.json", {
-            "formulas": {k: v["aggregate_all_tool"] for k, v in formula_metrics.items()}
+            "formulas": {k: v["aggregate_all_tool"] for k, v in formula_metrics.items()},
+            "embedding_backend": self.embedding_backend_kind,
         })
         _write_json(out_dir / "route_coverage.json", {
             k: {
@@ -581,35 +1088,39 @@ class RetrievalAuditRunner:
         return meta
 
     def run_select_formula(self, *, formal: bool = False) -> Dict[str, Any]:
-        """Select formula using development-70 metrics only.
-
-        Formal ``formula_lock.json`` is written only when ``formal=True`` and
-        metrics are from a real (non-mock) ranking run. Offline/mock rounds
-        validate the selection machinery and emit schema-only artifacts.
-        """
+        """Select formula using development-70 metrics only (zero network)."""
+        if self.live:
+            raise LivePathError("--select-formula is zero-network; do not pass --live")
         out_dir = self.output_dir / "formula_selection"
         out_dir.mkdir(parents=True, exist_ok=True)
         cmp_path = self.output_dir / "ranking_variants" / "formula_comparison.json"
         if not cmp_path.exists():
             if self.dry_run:
-                payload = {"formulas": {}, "development70_selection_inputs": {}}
+                payload = {
+                    "formulas": {},
+                    "development70_selection_inputs": {},
+                    "embedding_backend": self.embedding_backend_kind,
+                }
             else:
                 raise FileNotFoundError(
                     f"Missing {cmp_path}; run --rank-from-planner-cache first"
                 )
         else:
             payload = json.loads(cmp_path.read_text(encoding="utf-8"))
+        embedding_backend = str(
+            payload.get("embedding_backend") or self.embedding_backend_kind
+        )
         dev_inputs = payload.get("development70_selection_inputs") or {}
         comparison = compare_formulas(development_metrics_by_formula=dev_inputs)
+        comparison["embedding_backend"] = embedding_backend
         _write_json(out_dir / "formula_comparison.json", comparison)
 
         schema_only = {
             "lock_version": "retrieval_formula_lock_v1",
             "status": "schema_only_no_formal_selection",
             "note": (
-                "Formal formula lock requires real ranking metrics on "
-                "development-origin 70 after a non-mock embedding run. "
-                "This offline/mock round only validates selection machinery."
+                "Formal formula lock requires real text-embedding-3-small ranking "
+                "caches on development-origin 70. Mock/hash results cannot formal-lock."
             ),
             "selection_policy": [
                 "complete_route@3",
@@ -620,15 +1131,27 @@ class RetrievalAuditRunner:
                 "larger_alpha",
             ],
             "no_retune_on_reserved85": True,
+            "embedding_backend": embedding_backend,
             "mock_selection_preview": comparison.get("selected"),
         }
         _write_json(out_dir / "formula_lock_schema.json", schema_only)
 
-        write_formal = bool(formal) and (not self.mock) and (not self.dry_run) and bool(
-            comparison.get("selected")
-        )
         meta = self._base_run_metadata("select_formula")
         meta["formal_lock_written"] = False
+        meta["embedding_backend"] = embedding_backend
+        meta["zero_network"] = True
+
+        write_formal = bool(formal) and bool(comparison.get("selected"))
+        if write_formal:
+            try:
+                assert_formal_formula_lock_allowed(
+                    embedding_backend=embedding_backend,
+                    mock=self.mock,
+                )
+            except RuntimeError as exc:
+                meta["formal_lock_refused"] = str(exc)
+                write_formal = False
+
         if write_formal:
             selected = comparison["selected"]
             lock = build_formula_lock(
@@ -637,7 +1160,8 @@ class RetrievalAuditRunner:
                 config={
                     "catalog_fingerprint": self.catalog["catalog_fingerprint"],
                     "operation_documents_sha256": self.docs["operation_documents_sha256"],
-                    "embedding_model": self.index.embedding_model,
+                    "embedding_model": EXPECTED_EMBEDDING_MODEL,
+                    "embedding_backend": embedding_backend,
                     "dataset": self.dataset["identities"],
                 },
             )
@@ -652,21 +1176,32 @@ class RetrievalAuditRunner:
         return meta
 
     def run_evaluate_frozen_formula(self) -> Dict[str, Any]:
+        if self.live:
+            raise LivePathError(
+                "--evaluate-frozen-formula is zero-network; do not pass --live"
+            )
         out_dir = self.output_dir / "reserved_evaluation"
         out_dir.mkdir(parents=True, exist_ok=True)
         lock_path = self.output_dir / "formula_selection" / "formula_lock.json"
         cmp_path = self.output_dir / "ranking_variants" / "formula_comparison.json"
         if not lock_path.exists():
-            # Schema-only path: refuse retune demonstration without claiming results.
             meta = self._base_run_metadata("evaluate_frozen_formula")
             meta["status"] = "skipped_no_formal_lock"
             meta["note"] = (
-                "No formal formula_lock.json yet (expected in offline round without "
-                "real embeddings). Reserved-85 retune guard is unit-tested."
+                "No formal formula_lock.json yet. Reserved-85 retune guard is "
+                "unit-tested. Mock/hash cannot produce formal lock."
             )
+            meta["zero_network"] = True
             _write_json(out_dir / "run_metadata.json", meta)
             return meta
         lock = json.loads(lock_path.read_text(encoding="utf-8"))
+        backend = str(
+            ((lock.get("config") or {}).get("embedding_backend"))
+            or REAL_EMBEDDING_BACKEND
+        )
+        assert_formal_formula_lock_allowed(
+            embedding_backend=backend, mock=False
+        )
         payload = json.loads(cmp_path.read_text(encoding="utf-8"))
         formulas = payload.get("formulas") or {}
         key = lock.get("formula_key")
@@ -683,11 +1218,13 @@ class RetrievalAuditRunner:
                 "variant": variant,
                 "alpha": alpha,
                 "lock_sha256": lock.get("lock_sha256"),
+                "embedding_backend": backend,
             },
             "development70": by_split.get("development70"),
             "previously_reserved85": by_split.get("previously_reserved85"),
             "all155": by_split.get("all155"),
             "retune_forbidden": True,
+            "zero_network": True,
         }
         _write_json(out_dir / "frozen_formula_evaluation.json", report)
         meta = self._base_run_metadata("evaluate_frozen_formula")
@@ -695,14 +1232,15 @@ class RetrievalAuditRunner:
             "variant": variant,
             "alpha": alpha,
             "has_reserved85": by_split.get("previously_reserved85") is not None,
+            "embedding_backend": backend,
         }
+        meta["zero_network"] = True
         _write_json(out_dir / "run_metadata.json", meta)
         return meta
 
     def run_catalog_coverage(self) -> Dict[str, Any]:
         out_dir = self.output_dir / "catalog_coverage"
         out_dir.mkdir(parents=True, exist_ok=True)
-        # Prefer question-level rankings if present; else step rankings.
         rows: List[Dict[str, Any]] = []
         qpath = self.output_dir / "question_level" / "per_query_rankings.jsonl"
         spath = self.output_dir / "ranking_variants" / "per_step_rankings.jsonl"
@@ -717,6 +1255,12 @@ class RetrievalAuditRunner:
             excluded_ids=self.catalog["excluded_ids"],
             per_query_rankings=rows,
         )
+        emb_model = (
+            self.index.embedding_model
+            if self.index is not None
+            else ("mock-hash-embedding-v1" if self.mock else EXPECTED_EMBEDDING_MODEL)
+        )
+        emb_dim = self.index.embedding_dim if self.index is not None else None
         _write_json(out_dir / "operation_coverage.json", cov)
         _write_json(out_dir / "distractor_analysis.json", cov["distractors"])
         _write_json(
@@ -726,12 +1270,13 @@ class RetrievalAuditRunner:
                 "integrity": self.docs["integrity"],
                 "n_documents": self.docs["n_documents"],
                 "catalog_fingerprint": self.catalog["catalog_fingerprint"],
-                "embedding_model": self.index.embedding_model,
-                "embedding_dim": self.index.embedding_dim,
+                "embedding_model": emb_model,
+                "embedding_dim": emb_dim,
                 "stats": self.catalog["stats"],
             },
         )
         meta = self._base_run_metadata("catalog_coverage")
+        meta["zero_network"] = True
         _write_json(out_dir / "run_metadata.json", meta)
         _write_json(out_dir / "error_summary.json", {"errors": []})
         return meta
@@ -758,6 +1303,9 @@ class RetrievalAuditRunner:
                 "formula_selection": (self.output_dir / "formula_selection").exists(),
                 "reserved_evaluation": (self.output_dir / "reserved_evaluation").exists(),
                 "catalog_coverage": (self.output_dir / "catalog_coverage").exists(),
+                "question_query_cache": (self.output_dir / "question_query_cache").exists(),
+                "step_query_cache": (self.output_dir / "step_query_cache").exists(),
+                "catalog_index": (self.output_dir / "catalog_index").exists(),
             },
             "notes": [
                 "exploratory/descriptive only",
@@ -765,19 +1313,20 @@ class RetrievalAuditRunner:
                 "gold/accepted ops used only in offline scoring",
             ],
         }
-        # Attach available metrics snapshots.
         for rel in (
             "question_level/retrieval_metrics.json",
             "ranking_variants/retrieval_metrics.json",
             "formula_selection/formula_comparison.json",
             "reserved_evaluation/frozen_formula_evaluation.json",
             "catalog_coverage/operation_coverage.json",
+            "catalog_index/index_status.json",
         ):
             path = self.output_dir / rel
             if path.exists():
                 report[rel.replace("/", "__")] = json.loads(path.read_text(encoding="utf-8"))
         _write_json(out_dir / "all155_report.json", report)
         meta = self._base_run_metadata("report_all")
+        meta["zero_network"] = True
         _write_json(out_dir / "run_metadata.json", meta)
         _write_json(self.output_dir / "run_metadata.json", meta)
         _write_json(self.output_dir / "error_summary.json", {"errors": []})

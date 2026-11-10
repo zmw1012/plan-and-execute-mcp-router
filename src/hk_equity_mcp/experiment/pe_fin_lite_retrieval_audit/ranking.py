@@ -42,7 +42,12 @@ def required_output_coverage(
 
 
 class OfflineEmbeddingIndex:
-    """In-memory operation embedding index (hash backend by default; offline)."""
+    """In-memory operation embedding index.
+
+    - mock mode: DeterministicHashEmbeddingBackend
+    - offline ranking: construct via ``from_preloaded_vectors`` (zero network)
+    - never silently falls back from real → hash
+    """
 
     def __init__(
         self,
@@ -51,24 +56,80 @@ class OfflineEmbeddingIndex:
         metadata_by_id: Dict[str, Dict[str, Any]],
         runtime_operation_ids: Sequence[str],
         embedding_backend: Optional[Any] = None,
-        allow_network: bool = False,
+        preloaded_vectors: Optional[Dict[str, Sequence[float]]] = None,
+        embedding_model: Optional[str] = None,
+        allow_query_embed: bool = True,
+        refuse_network: bool = True,
     ):
-        if allow_network:
-            raise RuntimeError(
-                "OfflineEmbeddingIndex refuse network this round; use hash backend"
-            )
-        self.backend = embedding_backend or DeterministicHashEmbeddingBackend()
         self.documents = documents
         self.metadata_by_id = metadata_by_id
         self.runtime_operation_ids = list(runtime_operation_ids)
-        self.ordered_ids = sorted(documents.keys())
-        texts = [documents[oid]["document_text"] for oid in self.ordered_ids]
-        vectors = self.backend.embed(texts)
-        self.vectors = {oid: vec for oid, vec in zip(self.ordered_ids, vectors)}
-        self.embedding_model = getattr(self.backend, "model_name", "mock-hash-embedding-v1")
-        self.embedding_dim = len(vectors[0]) if vectors else None
+        self.ordered_ids = sorted(
+            oid for oid in documents.keys() if oid in set(runtime_operation_ids) or oid in (preloaded_vectors or {})
+        )
+        if not self.ordered_ids:
+            self.ordered_ids = sorted(documents.keys())
+        self.allow_query_embed = bool(allow_query_embed)
+        self.backend = None
+        if preloaded_vectors is not None:
+            missing = [oid for oid in self.ordered_ids if oid not in preloaded_vectors]
+            # Prefer intersection with preloaded runtime ids.
+            self.ordered_ids = [oid for oid in sorted(preloaded_vectors.keys())]
+            self.vectors = {
+                oid: [float(x) for x in preloaded_vectors[oid]] for oid in self.ordered_ids
+            }
+            self.embedding_model = embedding_model or "preloaded"
+            self.embedding_dim = len(next(iter(self.vectors.values()))) if self.vectors else None
+            self.backend = None
+            del missing
+        else:
+            if refuse_network and embedding_backend is not None:
+                # Explicit backend allowed for mock hash only.
+                name = getattr(embedding_backend, "model_name", "")
+                if "mock-hash" not in str(name) and not isinstance(
+                    embedding_backend, DeterministicHashEmbeddingBackend
+                ):
+                    raise RuntimeError(
+                        "OfflineEmbeddingIndex refuse non-hash backend without "
+                        "preloaded vectors (use query/catalog caches for live ranking)"
+                    )
+            self.backend = embedding_backend or DeterministicHashEmbeddingBackend()
+            texts = [
+                (documents.get(oid) or {}).get("document_text") or oid
+                for oid in self.ordered_ids
+            ]
+            vectors = self.backend.embed(texts)
+            self.vectors = {oid: vec for oid, vec in zip(self.ordered_ids, vectors)}
+            self.embedding_model = embedding_model or getattr(
+                self.backend, "model_name", "mock-hash-embedding-v1"
+            )
+            self.embedding_dim = len(vectors[0]) if vectors else None
+
+    @classmethod
+    def from_preloaded_vectors(
+        cls,
+        *,
+        documents: Dict[str, Dict[str, Any]],
+        metadata_by_id: Dict[str, Dict[str, Any]],
+        runtime_operation_ids: Sequence[str],
+        vectors: Dict[str, Sequence[float]],
+        embedding_model: str,
+    ) -> "OfflineEmbeddingIndex":
+        return cls(
+            documents=documents,
+            metadata_by_id=metadata_by_id,
+            runtime_operation_ids=runtime_operation_ids,
+            preloaded_vectors=vectors,
+            embedding_model=embedding_model,
+            allow_query_embed=False,
+            refuse_network=True,
+        )
 
     def embed_query(self, text: str) -> List[float]:
+        if not self.allow_query_embed or self.backend is None:
+            raise RuntimeError(
+                "Query embedding disabled for this index; pass precomputed query_vector"
+            )
         return self.backend.embed([text])[0]
 
 
@@ -109,6 +170,7 @@ def rank_operations(
     required_outputs: Optional[Sequence[str]] = None,
     top_k: int = TOP_K,
     gold_ops_for_filter_diag: Optional[Sequence[str]] = None,
+    query_vector: Optional[Sequence[float]] = None,
 ) -> Dict[str, Any]:
     """Rank catalog ops for one query.
 
@@ -116,6 +178,8 @@ def rank_operations(
       R0/R1: global cosine (no domain filter)
       R2: domain-filtered cosine
       R3: domain-filtered hybrid
+
+    Prefer ``query_vector`` for zero-network ranking from caches.
     """
     if variant not in {"R0", "R1", "R2", "R3"}:
         raise ValueError(f"Unknown ranking variant: {variant}")
@@ -124,7 +188,10 @@ def rank_operations(
 
     runtime = set(index.runtime_operation_ids)
     excluded, exclusion_reasons = _hard_exclusions(index.metadata_by_id, runtime)
-    qvec = index.embed_query(query)
+    if query_vector is not None:
+        qvec = [float(x) for x in query_vector]
+    else:
+        qvec = index.embed_query(query)
 
     use_domain = variant in {"R2", "R3"}
     use_hybrid = variant == "R3"
