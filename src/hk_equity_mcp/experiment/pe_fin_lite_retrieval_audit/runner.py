@@ -196,6 +196,7 @@ class RetrievalAuditRunner:
         embedding_cache_dir: Optional[str | Path] = None,
         require_complete_index: bool = False,
         allow_incomplete_planner_cache: bool = False,
+        planner_diagnostic10: bool = False,
         allow_network: bool = False,
     ):
         if allow_network and not live:
@@ -203,7 +204,15 @@ class RetrievalAuditRunner:
                 "allow_network is removed; use explicit --live (fail-closed)"
             )
         self.root = Path(root)
-        self.output_dir = Path(output_dir or (self.root / DEFAULT_OUTPUT_DIR))
+        self.planner_diagnostic10 = bool(planner_diagnostic10)
+        default_out = DEFAULT_OUTPUT_DIR
+        if self.planner_diagnostic10:
+            from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit import (
+                DEFAULT_PLANNER_DIAGNOSTIC10_OUTPUT_DIR,
+            )
+
+            default_out = DEFAULT_PLANNER_DIAGNOSTIC10_OUTPUT_DIR
+        self.output_dir = Path(output_dir or (self.root / default_out))
         self.resolved = mode or resolve_mode(
             mock=mock,
             dry_run=dry_run,
@@ -795,16 +804,50 @@ class RetrievalAuditRunner:
                 "(fail-closed; no silent mock)"
             )
 
-        identity = planner_only_cache_identity(
-            dataset_identities=self.dataset["identities"],
-            capability_profile_hash=capability_profile_hash(profile),
-            generation_provider=gen_provider,
-            generation_host=gen_host,
-            generation_model=gen_model,
+        from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit import (
+            PLANNER_ONLY_PROTOCOL_VERSION,
         )
+        from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.planner_diagnostic10 import (
+            build_planner_protocol_diagnostic,
+            planner_diagnostic10_cache_identity,
+            select_diagnostic10_tasks,
+        )
+        from hk_equity_mcp.pe_fin_lite.identity import combined_schema_hash
+        from hk_equity_mcp.pe_fin_lite.plan_canonicalizer import plan_canonicalizer_hash
+        from hk_equity_mcp.pe_fin_lite.prompts import pe_fin_lite_prompt_hash
+
+        if self.planner_diagnostic10:
+            selected = select_diagnostic10_tasks(
+                root=self.root, all_tasks=self.dataset["tasks"]
+            )
+            tasks = selected["tasks"]
+            identity = planner_diagnostic10_cache_identity(
+                diagnostic_manifest=selected["manifest"],
+                planner_prompt_hash=pe_fin_lite_prompt_hash(),
+                planner_schema_hash=combined_schema_hash(),
+                plan_canonicalizer_hash=plan_canonicalizer_hash(),
+                capability_profile_hash=capability_profile_hash(profile),
+                generation_provider=gen_provider,
+                generation_host=gen_host,
+                generation_model=gen_model,
+                planner_only_protocol_version=PLANNER_ONLY_PROTOCOL_VERSION,
+            )
+            mode_name = "planner_only_diagnostic10"
+        else:
+            tasks = self.dataset["tasks"]
+            identity = planner_only_cache_identity(
+                dataset_identities=self.dataset["identities"],
+                capability_profile_hash=capability_profile_hash(profile),
+                generation_provider=gen_provider,
+                generation_host=gen_host,
+                generation_model=gen_model,
+            )
+            selected = None
+            mode_name = "planner_only"
+
         summary = run_planner_only(
             root=self.root,
-            tasks=self.dataset["tasks"],
+            tasks=tasks,
             output_dir=out_dir,
             cache_identity=identity,
             llm=self._llm,
@@ -814,7 +857,9 @@ class RetrievalAuditRunner:
             resume=True,
             capability_profile=profile,
         )
-        meta = self._base_run_metadata("planner_only")
+        meta = self._base_run_metadata(mode_name)
+        meta["planner_diagnostic10"] = bool(self.planner_diagnostic10)
+        meta["explicitly_not_formal_accuracy"] = bool(self.planner_diagnostic10)
         meta["planner_only_summary"] = {
             k: v
             for k, v in summary.items()
@@ -824,6 +869,48 @@ class RetrievalAuditRunner:
         meta = public_meta_without_secrets(meta)
         _write_json(out_dir / "run_metadata.json", meta)
         _write_json(out_dir / "error_summary.json", {"errors": summary.get("errors") or []})
+
+        if self.planner_diagnostic10 and selected is not None:
+            # Reload rows for diagnostic metrics (includes resumed prior rows).
+            rows = []
+            out_path = out_dir / "planner_outputs.jsonl"
+            if out_path.exists():
+                for line in out_path.read_text(encoding="utf-8").splitlines():
+                    if line.strip():
+                        rows.append(json.loads(line))
+            diagnostic = build_planner_protocol_diagnostic(
+                rows=rows,
+                manifest=selected["manifest"],
+                manifest_task_meta_by_id=selected["manifest_task_meta_by_id"],
+                cache_identity=identity,
+            )
+            if self.dry_run or self.mock:
+                # Do not fabricate a live protocol pass under mock/dry-run.
+                diagnostic["dry_run"] = bool(self.dry_run)
+                diagnostic["mock"] = bool(self.mock)
+                diagnostic["engineering_pass"] = False
+                diagnostic["engineering_pass_criteria"] = {
+                    **(diagnostic.get("engineering_pass_criteria") or {}),
+                    "live_backend": False,
+                }
+                diagnostic["structural_complete_under_current_mode"] = diagnostic.get(
+                    "complete_for_diagnostic10"
+                )
+                diagnostic["note"] = (
+                    "mock/dry-run cannot satisfy live engineering_pass; "
+                    "structural completeness is recorded separately. "
+                    + str(diagnostic.get("note") or "")
+                )
+            _write_json(out_dir / "planner_protocol_diagnostic.json", diagnostic)
+            meta["planner_protocol_diagnostic"] = {
+                "complete_for_diagnostic10": diagnostic.get("complete_for_diagnostic10"),
+                "ok": diagnostic.get("ok"),
+                "failed": diagnostic.get("failed"),
+                "repair_rate": diagnostic.get("repair_rate"),
+                "engineering_pass": diagnostic.get("engineering_pass"),
+                "explicitly_not_formal_accuracy": True,
+            }
+            _write_json(out_dir / "run_metadata.json", public_meta_without_secrets(meta))
         return meta
 
     def _load_planner_cache(self) -> Dict[str, Any]:
@@ -850,11 +937,21 @@ class RetrievalAuditRunner:
         }
 
     def _require_planner_for_step_stage(self, *, stage: str, formal: bool = False) -> Dict[str, Any]:
+        identity_path = (
+            self.output_dir / "planner_cache" / "planner_cache_identity.json"
+        )
+        if identity_path.exists():
+            ident = json.loads(identity_path.read_text(encoding="utf-8"))
+            if ident.get("kind") == "planner_only_diagnostic10_cache":
+                raise LivePathError(
+                    f"{stage}: Diagnostic-10 planner cache cannot drive step "
+                    "embedding / ranking / formal formula selection"
+                )
         cache = self._load_planner_cache()
         # Mock offline pipeline may have 155 ok mock plans — still gate on failures.
         allow = bool(self.allow_incomplete_planner_cache) and not formal
         if self.mock and not formal:
-            # Mock diagnostic paths may still proceed; formal never.
+            # Mock offline paths may still proceed; formal never.
             allow = True
         summary = assert_planner_cache_for_step_pipeline(
             rows=cache["rows"],
@@ -1131,6 +1228,20 @@ class RetrievalAuditRunner:
             raise LivePathError("--select-formula is zero-network; do not pass --live")
         # Formal lock always requires a complete Planner cache in the same output tree.
         if formal and not self.dry_run:
+            if self.planner_diagnostic10:
+                raise LivePathError(
+                    "Diagnostic-10 cannot generate formal formula lock "
+                    "(engineering_protocol_diagnostic_only)"
+                )
+            identity_path = (
+                self.output_dir / "planner_cache" / "planner_cache_identity.json"
+            )
+            if identity_path.exists():
+                ident = json.loads(identity_path.read_text(encoding="utf-8"))
+                if ident.get("kind") == "planner_only_diagnostic10_cache":
+                    raise LivePathError(
+                        "Diagnostic-10 planner cache cannot generate formal formula lock"
+                    )
             planner_path = self.output_dir / "planner_cache" / "planner_outputs.jsonl"
             if planner_path.exists():
                 self._require_planner_for_step_stage(

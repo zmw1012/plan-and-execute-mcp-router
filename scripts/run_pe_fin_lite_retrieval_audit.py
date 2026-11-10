@@ -47,6 +47,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--embed-planner-step-queries", action="store_true")
     p.add_argument("--question-level", action="store_true")
     p.add_argument("--planner-only", action="store_true")
+    p.add_argument(
+        "--planner-diagnostic10",
+        action="store_true",
+        help=(
+            "Run frozen Planner protocol Diagnostic-10 with --planner-only only "
+            "(engineering verification; not accuracy / not formal)"
+        ),
+    )
     p.add_argument("--rank-from-planner-cache", action="store_true")
     p.add_argument("--catalog-coverage", action="store_true")
     p.add_argument("--select-formula", action="store_true")
@@ -160,7 +168,7 @@ def _classify_stages(args: argparse.Namespace) -> dict:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     stages = _classify_stages(args)
-    if not stages["any"]:
+    if not stages["any"] and not args.planner_diagnostic10:
         print("Select at least one stage flag.", file=sys.stderr)
         return 2
 
@@ -170,6 +178,29 @@ def main(argv: list[str] | None = None) -> int:
                 "--no-mock is deprecated and refused. Use explicit --live, "
                 "--mock, or --dry-run."
             )
+
+        if args.planner_diagnostic10:
+            if not args.planner_only:
+                raise LivePathError(
+                    "--planner-diagnostic10 must be combined with --planner-only"
+                )
+            other = [
+                args.index_status,
+                args.build_index_only,
+                args.embed_question_queries,
+                args.embed_planner_step_queries,
+                args.question_level,
+                args.rank_from_planner_cache,
+                args.catalog_coverage,
+                args.select_formula,
+                args.evaluate_frozen_formula,
+                args.report_all,
+            ]
+            if any(other):
+                raise LivePathError(
+                    "--planner-diagnostic10 only supports --planner-only "
+                    "(no ranking / embeddings / formula / report)"
+                )
 
         # Default: offline ranking stages without mode → offline_rank;
         # live stages without --live → fail; else mock when --mock or default tooling.
@@ -235,6 +266,7 @@ def main(argv: list[str] | None = None) -> int:
             allow_incomplete_planner_cache=bool(
                 args.allow_incomplete_planner_cache
             ),
+            planner_diagnostic10=bool(args.planner_diagnostic10),
         )
 
         results = {}
@@ -272,6 +304,14 @@ def main(argv: list[str] | None = None) -> int:
     print(f"output_dir={runner.output_dir}")
     print(f"audit_mode={resolved.mode.value}")
     print(f"modes={list(results)}")
+    if args.planner_diagnostic10:
+        print("role=engineering_protocol_diagnostic_only")
+        print("explicitly_not_formal_accuracy=True")
+        diag = (results.get("planner_only") or {}).get("planner_protocol_diagnostic")
+        if diag is not None:
+            print(f"diagnostic10_ok={diag.get('ok')}")
+            print(f"diagnostic10_failed={diag.get('failed')}")
+            print(f"diagnostic10_engineering_pass={diag.get('engineering_pass')}")
     print("result_role=exploratory_descriptive")
     print("no_unseen_heldout_claim=True")
     return 0

@@ -181,6 +181,12 @@ def run_planner_only(
 
     if meta_path.exists() and resume:
         prev = json.loads(meta_path.read_text(encoding="utf-8"))
+        # Refuse diagnostic10 ↔ all155 cross-resume even before hash compare.
+        from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.planner_diagnostic10 import (
+            assert_not_cross_resume,
+        )
+
+        assert_not_cross_resume(cache_identity, prev)
         assert_identity_match(cache_identity, prev, label="planner_only_cache")
     else:
         with meta_path.open("w", encoding="utf-8") as handle:
