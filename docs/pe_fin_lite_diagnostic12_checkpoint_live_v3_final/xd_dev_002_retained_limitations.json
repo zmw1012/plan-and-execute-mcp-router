@@ -1,0 +1,20 @@
+{
+  "task_id": "xd_dev_002",
+  "run": "outputs/pe_fin_lite_diagnostic12_checkpoint_live_v3",
+  "method_version": "pe_fin_lite_v1.2",
+  "reason_stage": {
+    "reason_parse_failed": true,
+    "runtime_recovered": false,
+    "repair_count": 1,
+    "initial_parse_error": "$: unexpected property 'basic_eps'",
+    "status": "failed",
+    "note": "Reason stage must not count pass"
+  },
+  "eps_semantic_limitation": {
+    "reported_basic_eps": 8.504848,
+    "benchmark_eps": 1.21,
+    "retained": true,
+    "no_gold_specific_adapter_patch": true,
+    "interpretation": "operation execution and required-field completeness do not guarantee metric-basis/unit semantic correctness"
+  }
+}

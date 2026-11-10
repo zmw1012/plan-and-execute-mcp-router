@@ -1,0 +1,11 @@
+{
+  "n": 12,
+  "auto_gradable_count": 12,
+  "auto_graded_correct": 3,
+  "auto_graded_accuracy": 0.25,
+  "manual_required_count": 0,
+  "overall_accuracy": null,
+  "overall_accuracy_note": "overall accuracy only after manual grading fields are completed",
+  "grader_version": "deterministic_v1.2.1",
+  "grading_version": "hk_unified_grading_v1.2.1"
+}

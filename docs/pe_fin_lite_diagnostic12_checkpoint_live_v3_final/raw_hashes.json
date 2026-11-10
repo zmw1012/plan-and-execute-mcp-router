@@ -1,0 +1,55 @@
+{
+  "before": {
+    "predictions.jsonl": {
+      "sha256": "e1420f3c4d4bbb8832cc1bdcdc5e52bb2e80193e35f8fb1d9e40edbdb7ad573c",
+      "bytes": 942775
+    },
+    "run_metadata.json": {
+      "sha256": "b024cc2b35e50c8c1405e011857546d7b4cf7c58b0088a0de92c918215e0d6ba",
+      "bytes": 8825
+    },
+    "error_summary.json": {
+      "sha256": "5d7955c3c010ca2561531c8e85438683493b07bb44727a5561b4e4bbe17fe3d8",
+      "bytes": 31529
+    },
+    "cost_summary.json": {
+      "sha256": "00f72ac9966ce3a273a7a644805f02f8f9a6038f0ee1a20bfa712751525b5aee",
+      "bytes": 359
+    },
+    "grading_summary.json": {
+      "sha256": "bb4b3d33cea466f9b54c5143f02c67a69c31ce885a91428e3045ebbcc9a09c7f",
+      "bytes": 348
+    },
+    "per_task_metrics.csv": {
+      "sha256": "85179fe73da6051f322b1a9e60c6df74cf8d24d32fe6724f8c0fc10f9e3feef1",
+      "bytes": 2442
+    }
+  },
+  "after": {
+    "predictions.jsonl": {
+      "sha256": "e1420f3c4d4bbb8832cc1bdcdc5e52bb2e80193e35f8fb1d9e40edbdb7ad573c",
+      "bytes": 942775
+    },
+    "run_metadata.json": {
+      "sha256": "b024cc2b35e50c8c1405e011857546d7b4cf7c58b0088a0de92c918215e0d6ba",
+      "bytes": 8825
+    },
+    "error_summary.json": {
+      "sha256": "5d7955c3c010ca2561531c8e85438683493b07bb44727a5561b4e4bbe17fe3d8",
+      "bytes": 31529
+    },
+    "cost_summary.json": {
+      "sha256": "00f72ac9966ce3a273a7a644805f02f8f9a6038f0ee1a20bfa712751525b5aee",
+      "bytes": 359
+    },
+    "grading_summary.json": {
+      "sha256": "bb4b3d33cea466f9b54c5143f02c67a69c31ce885a91428e3045ebbcc9a09c7f",
+      "bytes": 348
+    },
+    "per_task_metrics.csv": {
+      "sha256": "85179fe73da6051f322b1a9e60c6df74cf8d24d32fe6724f8c0fc10f9e3feef1",
+      "bytes": 2442
+    }
+  },
+  "unchanged": true
+}
