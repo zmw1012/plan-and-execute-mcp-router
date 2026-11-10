@@ -77,6 +77,10 @@ from hk_equity_mcp.pe_fin_lite import (
 )
 from hk_equity_mcp.pe_fin_lite.agent import PeFinLiteAgent
 from hk_equity_mcp.pe_fin_lite.budget import McpBudgetExhausted, structured_budget_failure
+from hk_equity_mcp.pe_fin_lite.checkpoint_observability import (
+    CHECKPOINT_TRACE_CONTRACT_VERSION,
+    checkpoint_observability_hash,
+)
 from hk_equity_mcp.pe_fin_lite.capability_profile import (
     capability_profile_hash,
     load_capability_profile,
@@ -145,6 +149,7 @@ PE_RESUME_IDENTITY_KEYS = (
     "max_total_llm_calls_per_task",
     "mock",
     "dry_run",
+    "checkpoint_trace_contract_version",
 )
 
 
@@ -617,6 +622,8 @@ class UnifiedHkPeFinLiteRunner:
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
             "planner_max_tokens": self.planner_max_tokens,
+            "checkpoint_trace_contract_version": CHECKPOINT_TRACE_CONTRACT_VERSION,
+            "checkpoint_observability_hash": checkpoint_observability_hash(),
             "json_mode": self.json_mode,
             "limits": limits,
             "max_total_llm_calls_per_task": int(
@@ -928,6 +935,13 @@ class UnifiedHkPeFinLiteRunner:
             "manual_unsupported_claim": "",
             "manual_causal_overclaim": "",
             "manual_overall_task_success": "",
+            "checkpoint_observability": result.get("checkpoint_observability"),
+            "checkpoint_trace_contract_version": result.get(
+                "checkpoint_trace_contract_version"
+            ),
+            "checkpoint_observability_hash": result.get(
+                "checkpoint_observability_hash"
+            ),
         }
         agent_tool_ok = result.get("all_tool_invocations_successful")
         agent_succ = result.get("successful_invocation_count")

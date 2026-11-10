@@ -1,0 +1,299 @@
+{
+  "checkpoint": "C08_normalize",
+  "counts": {
+    "pass": 11,
+    "fail": 1
+  },
+  "tasks": [
+    {
+      "task_id": "fin_cf_003",
+      "status": "pass",
+      "detail": {
+        "items": [
+          {
+            "step_id": "s1",
+            "normalization_success": true,
+            "missing_outputs": [],
+            "gateway_success": true
+          },
+          {
+            "funnel_normalize": {
+              "raw_result_ref": null,
+              "normalization_success": null,
+              "normalization_error": null,
+              "pool_keys": null,
+              "missing_outputs": []
+            }
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_011",
+      "status": "pass",
+      "detail": {
+        "items": [
+          {
+            "step_id": "s1",
+            "normalization_success": true,
+            "missing_outputs": [],
+            "gateway_success": true
+          },
+          {
+            "funnel_normalize": {
+              "raw_result_ref": null,
+              "normalization_success": null,
+              "normalization_error": null,
+              "pool_keys": null,
+              "missing_outputs": []
+            }
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_020",
+      "status": "fail",
+      "detail": {
+        "items": [
+          {
+            "step_id": "s1",
+            "normalization_success": false,
+            "missing_outputs": [
+              "revenue"
+            ],
+            "gateway_success": true
+          },
+          {
+            "funnel_normalize": {
+              "raw_result_ref": null,
+              "normalization_success": null,
+              "normalization_error": null,
+              "pool_keys": null,
+              "missing_outputs": []
+            }
+          }
+        ]
+      },
+      "primary_blocking": true
+    },
+    {
+      "task_id": "fin_cf_023",
+      "status": "pass",
+      "detail": {
+        "items": [
+          {
+            "step_id": "s1",
+            "normalization_success": true,
+            "missing_outputs": [],
+            "gateway_success": true
+          },
+          {
+            "funnel_normalize": {
+              "raw_result_ref": null,
+              "normalization_success": null,
+              "normalization_error": null,
+              "pool_keys": null,
+              "missing_outputs": []
+            }
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_ht_016",
+      "status": "pass",
+      "detail": {
+        "items": [
+          {
+            "step_id": "s1",
+            "normalization_success": true,
+            "missing_outputs": [],
+            "gateway_success": true
+          },
+          {
+            "funnel_normalize": {
+              "raw_result_ref": null,
+              "normalization_success": null,
+              "normalization_error": null,
+              "pool_keys": null,
+              "missing_outputs": []
+            }
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_dev_002",
+      "status": "pass",
+      "detail": {
+        "items": [
+          {
+            "step_id": "s1",
+            "normalization_success": true,
+            "missing_outputs": [],
+            "gateway_success": true
+          },
+          {
+            "funnel_normalize": {
+              "raw_result_ref": null,
+              "normalization_success": null,
+              "normalization_error": null,
+              "pool_keys": null,
+              "missing_outputs": []
+            }
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_ht_007",
+      "status": "pass",
+      "detail": {
+        "items": [
+          {
+            "step_id": "s1",
+            "normalization_success": true,
+            "missing_outputs": [],
+            "gateway_success": true
+          },
+          {
+            "funnel_normalize": {
+              "raw_result_ref": null,
+              "normalization_success": null,
+              "normalization_error": null,
+              "pool_keys": null,
+              "missing_outputs": []
+            }
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_ht_014",
+      "status": "pass",
+      "detail": {
+        "items": [
+          {
+            "step_id": "s1",
+            "normalization_success": true,
+            "missing_outputs": [],
+            "gateway_success": true
+          },
+          {
+            "funnel_normalize": {
+              "raw_result_ref": null,
+              "normalization_success": null,
+              "normalization_error": null,
+              "pool_keys": null,
+              "missing_outputs": []
+            }
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "mkt_dev_014",
+      "status": "pass",
+      "detail": {
+        "items": [
+          {
+            "step_id": "s1",
+            "normalization_success": true,
+            "missing_outputs": [],
+            "gateway_success": true
+          },
+          {
+            "funnel_normalize": {
+              "raw_result_ref": null,
+              "normalization_success": null,
+              "normalization_error": null,
+              "pool_keys": null,
+              "missing_outputs": []
+            }
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_024",
+      "status": "pass",
+      "detail": {
+        "items": [
+          {
+            "step_id": "s1",
+            "normalization_success": true,
+            "missing_outputs": [],
+            "gateway_success": true
+          },
+          {
+            "funnel_normalize": {
+              "raw_result_ref": null,
+              "normalization_success": null,
+              "normalization_error": null,
+              "pool_keys": null,
+              "missing_outputs": []
+            }
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "mkt_dev_001",
+      "status": "pass",
+      "detail": {
+        "items": [
+          {
+            "step_id": "s1",
+            "normalization_success": true,
+            "missing_outputs": [],
+            "gateway_success": true
+          },
+          {
+            "funnel_normalize": {
+              "raw_result_ref": null,
+              "normalization_success": null,
+              "normalization_error": null,
+              "pool_keys": null,
+              "missing_outputs": []
+            }
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "news_ht_004",
+      "status": "pass",
+      "detail": {
+        "items": [
+          {
+            "step_id": "s1",
+            "normalization_success": true,
+            "missing_outputs": [],
+            "gateway_success": true
+          },
+          {
+            "funnel_normalize": {
+              "raw_result_ref": null,
+              "normalization_success": null,
+              "normalization_error": null,
+              "pool_keys": null,
+              "missing_outputs": []
+            }
+          }
+        ]
+      },
+      "primary_blocking": false
+    }
+  ]
+}

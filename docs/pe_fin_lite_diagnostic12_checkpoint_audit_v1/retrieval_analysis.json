@@ -1,0 +1,750 @@
+{
+  "C03": {
+    "checkpoint": "C03_embedding",
+    "counts": {
+      "pass": 12
+    },
+    "tasks": [
+      {
+        "task_id": "fin_cf_003",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "query": "financial | retrieve",
+              "top_k_size": 5,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "op.a",
+                  "score": 0.9
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "op.b",
+                  "score": 0.8
+                },
+                {
+                  "rank": 3,
+                  "operation_id": "op.c",
+                  "score": 0.7
+                },
+                {
+                  "rank": 4,
+                  "operation_id": "op.d",
+                  "score": 0.6
+                },
+                {
+                  "rank": 5,
+                  "operation_id": "op.e",
+                  "score": 0.5
+                }
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_011",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "query": "financial | retrieve",
+              "top_k_size": 5,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "op.a",
+                  "score": 0.9
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "op.b",
+                  "score": 0.8
+                },
+                {
+                  "rank": 3,
+                  "operation_id": "op.c",
+                  "score": 0.7
+                },
+                {
+                  "rank": 4,
+                  "operation_id": "op.d",
+                  "score": 0.6
+                },
+                {
+                  "rank": 5,
+                  "operation_id": "op.e",
+                  "score": 0.5
+                }
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_020",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "query": "financial | retrieve",
+              "top_k_size": 5,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "op.a",
+                  "score": 0.9
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "op.b",
+                  "score": 0.8
+                },
+                {
+                  "rank": 3,
+                  "operation_id": "op.c",
+                  "score": 0.7
+                },
+                {
+                  "rank": 4,
+                  "operation_id": "op.d",
+                  "score": 0.6
+                },
+                {
+                  "rank": 5,
+                  "operation_id": "op.e",
+                  "score": 0.5
+                }
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_023",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "query": "financial | retrieve",
+              "top_k_size": 5,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "op.a",
+                  "score": 0.9
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "op.b",
+                  "score": 0.8
+                },
+                {
+                  "rank": 3,
+                  "operation_id": "op.c",
+                  "score": 0.7
+                },
+                {
+                  "rank": 4,
+                  "operation_id": "op.d",
+                  "score": 0.6
+                },
+                {
+                  "rank": 5,
+                  "operation_id": "op.e",
+                  "score": 0.5
+                }
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_ht_016",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "query": "financial | retrieve",
+              "top_k_size": 5,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "op.a",
+                  "score": 0.9
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "op.b",
+                  "score": 0.8
+                },
+                {
+                  "rank": 3,
+                  "operation_id": "op.c",
+                  "score": 0.7
+                },
+                {
+                  "rank": 4,
+                  "operation_id": "op.d",
+                  "score": 0.6
+                },
+                {
+                  "rank": 5,
+                  "operation_id": "op.e",
+                  "score": 0.5
+                }
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_dev_002",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "query": "financial | retrieve",
+              "top_k_size": 5,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "op.a",
+                  "score": 0.9
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "op.b",
+                  "score": 0.8
+                },
+                {
+                  "rank": 3,
+                  "operation_id": "op.c",
+                  "score": 0.7
+                },
+                {
+                  "rank": 4,
+                  "operation_id": "op.d",
+                  "score": 0.6
+                },
+                {
+                  "rank": 5,
+                  "operation_id": "op.e",
+                  "score": 0.5
+                }
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_007",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "query": "financial | retrieve",
+              "top_k_size": 5,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "op.a",
+                  "score": 0.9
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "op.b",
+                  "score": 0.8
+                },
+                {
+                  "rank": 3,
+                  "operation_id": "op.c",
+                  "score": 0.7
+                },
+                {
+                  "rank": 4,
+                  "operation_id": "op.d",
+                  "score": 0.6
+                },
+                {
+                  "rank": 5,
+                  "operation_id": "op.e",
+                  "score": 0.5
+                }
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_014",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "query": "financial | retrieve",
+              "top_k_size": 5,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "op.a",
+                  "score": 0.9
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "op.b",
+                  "score": 0.8
+                },
+                {
+                  "rank": 3,
+                  "operation_id": "op.c",
+                  "score": 0.7
+                },
+                {
+                  "rank": 4,
+                  "operation_id": "op.d",
+                  "score": 0.6
+                },
+                {
+                  "rank": 5,
+                  "operation_id": "op.e",
+                  "score": 0.5
+                }
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_014",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "query": "financial | retrieve",
+              "top_k_size": 5,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "op.a",
+                  "score": 0.9
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "op.b",
+                  "score": 0.8
+                },
+                {
+                  "rank": 3,
+                  "operation_id": "op.c",
+                  "score": 0.7
+                },
+                {
+                  "rank": 4,
+                  "operation_id": "op.d",
+                  "score": 0.6
+                },
+                {
+                  "rank": 5,
+                  "operation_id": "op.e",
+                  "score": 0.5
+                }
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_024",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "query": "financial | retrieve",
+              "top_k_size": 5,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "op.a",
+                  "score": 0.9
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "op.b",
+                  "score": 0.8
+                },
+                {
+                  "rank": 3,
+                  "operation_id": "op.c",
+                  "score": 0.7
+                },
+                {
+                  "rank": 4,
+                  "operation_id": "op.d",
+                  "score": 0.6
+                },
+                {
+                  "rank": 5,
+                  "operation_id": "op.e",
+                  "score": 0.5
+                }
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_001",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "query": "financial | retrieve",
+              "top_k_size": 5,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "op.a",
+                  "score": 0.9
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "op.b",
+                  "score": 0.8
+                },
+                {
+                  "rank": 3,
+                  "operation_id": "op.c",
+                  "score": 0.7
+                },
+                {
+                  "rank": 4,
+                  "operation_id": "op.d",
+                  "score": 0.6
+                },
+                {
+                  "rank": 5,
+                  "operation_id": "op.e",
+                  "score": 0.5
+                }
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "news_ht_004",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "query": "financial | retrieve",
+              "top_k_size": 5,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "op.a",
+                  "score": 0.9
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "op.b",
+                  "score": 0.8
+                },
+                {
+                  "rank": 3,
+                  "operation_id": "op.c",
+                  "score": 0.7
+                },
+                {
+                  "rank": 4,
+                  "operation_id": "op.d",
+                  "score": 0.6
+                },
+                {
+                  "rank": 5,
+                  "operation_id": "op.e",
+                  "score": 0.5
+                }
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      }
+    ]
+  },
+  "C04": {
+    "checkpoint": "C04_describe",
+    "counts": {
+      "pass": 12
+    },
+    "tasks": [
+      {
+        "task_id": "fin_cf_003",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "described_ids": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "described_count": 3,
+              "rank4_5_not_described": [
+                "op.d",
+                "op.e"
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_011",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "described_ids": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "described_count": 3,
+              "rank4_5_not_described": [
+                "op.d",
+                "op.e"
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_020",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "described_ids": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "described_count": 3,
+              "rank4_5_not_described": [
+                "op.d",
+                "op.e"
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_023",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "described_ids": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "described_count": 3,
+              "rank4_5_not_described": [
+                "op.d",
+                "op.e"
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_ht_016",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "described_ids": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "described_count": 3,
+              "rank4_5_not_described": [
+                "op.d",
+                "op.e"
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_dev_002",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "described_ids": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "described_count": 3,
+              "rank4_5_not_described": [
+                "op.d",
+                "op.e"
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_007",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "described_ids": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "described_count": 3,
+              "rank4_5_not_described": [
+                "op.d",
+                "op.e"
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_014",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "described_ids": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "described_count": 3,
+              "rank4_5_not_described": [
+                "op.d",
+                "op.e"
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_014",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "described_ids": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "described_count": 3,
+              "rank4_5_not_described": [
+                "op.d",
+                "op.e"
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_024",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "described_ids": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "described_count": 3,
+              "rank4_5_not_described": [
+                "op.d",
+                "op.e"
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_001",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "described_ids": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "described_count": 3,
+              "rank4_5_not_described": [
+                "op.d",
+                "op.e"
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "news_ht_004",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "described_ids": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "described_count": 3,
+              "rank4_5_not_described": [
+                "op.d",
+                "op.e"
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      }
+    ]
+  }
+}

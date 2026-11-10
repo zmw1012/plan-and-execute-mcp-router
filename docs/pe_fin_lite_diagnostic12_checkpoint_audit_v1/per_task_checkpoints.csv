@@ -1,0 +1,13 @@
+task_id,domain,primary_blocking_checkpoint,answer_correct,status,C01_planner,C02_filter,C03_embedding,C04_describe,C05_binder,C06_arguments,C07_mcp,C08_normalize,C09_evidence_acceptance,C10_fallback_unavailable,C11_compute,C12_reason,C13_final,C14_evaluator
+fin_cf_003,financial,C05_binder,False,completed,pass,pass,pass,pass,fail,pass,pass,pass,pass,pass,N/A,N/A,pass,pass
+fin_cf_011,financial,C07_mcp,False,completed,pass,pass,pass,pass,pass,pass,fail,pass,pass,pass,N/A,N/A,pass,pass
+fin_cf_020,financial,C08_normalize,False,completed,pass,pass,pass,pass,pass,pass,pass,fail,pass,pass,N/A,N/A,pass,pass
+fin_cf_023,financial,C11_compute,False,completed,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,fail,N/A,pass,pass
+fin_ht_016,financial,C12_reason,False,completed,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,N/A,fail,pass,pass
+xd_dev_002,cross_domain,,False,completed,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,N/A,N/A,pass,pass
+xd_ht_007,cross_domain,,False,completed,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,N/A,N/A,pass,pass
+xd_ht_014,cross_domain,,False,completed,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,N/A,N/A,pass,pass
+mkt_dev_014,market,,False,completed,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,N/A,N/A,pass,pass
+fin_cf_024,financial,,False,completed,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,N/A,N/A,pass,pass
+mkt_dev_001,market,,False,completed,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,N/A,N/A,pass,pass
+news_ht_004,news,,False,completed,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,N/A,N/A,pass,pass

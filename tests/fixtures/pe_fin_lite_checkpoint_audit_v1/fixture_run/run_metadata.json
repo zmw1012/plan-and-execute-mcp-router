@@ -1,0 +1,10 @@
+{
+  "run_status": "completed",
+  "mock": false,
+  "dry_run": false,
+  "condition": "pe_fin_lite",
+  "architecture": "plan_first_step_level_retrieval_v1",
+  "checkpoint_trace_contract_version": "pe_fin_lite_checkpoint_trace_v1",
+  "n_tasks": 12,
+  "completed": true
+}

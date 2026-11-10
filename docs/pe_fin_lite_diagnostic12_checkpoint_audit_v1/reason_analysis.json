@@ -1,0 +1,113 @@
+{
+  "checkpoint": "C12_reason",
+  "counts": {
+    "N/A": 11,
+    "fail": 1
+  },
+  "tasks": [
+    {
+      "task_id": "fin_cf_003",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_011",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_020",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_023",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_ht_016",
+      "status": "fail",
+      "detail": {
+        "artifacts": [
+          {
+            "summary": "ok",
+            "unsupported_claim": true,
+            "gaps": [
+              "missing revenue"
+            ]
+          }
+        ]
+      },
+      "primary_blocking": true
+    },
+    {
+      "task_id": "xd_dev_002",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_ht_007",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_ht_014",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "mkt_dev_014",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_024",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "mkt_dev_001",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "news_ht_004",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    }
+  ]
+}

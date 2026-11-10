@@ -1,0 +1,214 @@
+{
+  "checkpoint": "C09_evidence_acceptance",
+  "counts": {
+    "pass": 12
+  },
+  "tasks": [
+    {
+      "task_id": "fin_cf_003",
+      "status": "pass",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": true,
+            "missing_outputs": [],
+            "scope_match": true,
+            "required_outputs_satisfied": true,
+            "false_accept_or_reject_review": null
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_011",
+      "status": "pass",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": true,
+            "missing_outputs": [],
+            "scope_match": true,
+            "required_outputs_satisfied": true,
+            "false_accept_or_reject_review": null
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_020",
+      "status": "pass",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": false,
+            "missing_outputs": [
+              "revenue"
+            ],
+            "scope_match": true,
+            "required_outputs_satisfied": false,
+            "false_accept_or_reject_review": null
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_023",
+      "status": "pass",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": true,
+            "missing_outputs": [],
+            "scope_match": true,
+            "required_outputs_satisfied": true,
+            "false_accept_or_reject_review": null
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_ht_016",
+      "status": "pass",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": true,
+            "missing_outputs": [],
+            "scope_match": true,
+            "required_outputs_satisfied": true,
+            "false_accept_or_reject_review": null
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_dev_002",
+      "status": "pass",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": true,
+            "missing_outputs": [],
+            "scope_match": true,
+            "required_outputs_satisfied": true,
+            "false_accept_or_reject_review": null
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_ht_007",
+      "status": "pass",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": true,
+            "missing_outputs": [],
+            "scope_match": true,
+            "required_outputs_satisfied": true,
+            "false_accept_or_reject_review": null
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_ht_014",
+      "status": "pass",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": true,
+            "missing_outputs": [],
+            "scope_match": true,
+            "required_outputs_satisfied": true,
+            "false_accept_or_reject_review": null
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "mkt_dev_014",
+      "status": "pass",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": true,
+            "missing_outputs": [],
+            "scope_match": true,
+            "required_outputs_satisfied": true,
+            "false_accept_or_reject_review": null
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_024",
+      "status": "pass",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": true,
+            "missing_outputs": [],
+            "scope_match": true,
+            "required_outputs_satisfied": true,
+            "false_accept_or_reject_review": null
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "mkt_dev_001",
+      "status": "pass",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": true,
+            "missing_outputs": [],
+            "scope_match": true,
+            "required_outputs_satisfied": true,
+            "false_accept_or_reject_review": null
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "news_ht_004",
+      "status": "pass",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": true,
+            "missing_outputs": [],
+            "scope_match": true,
+            "required_outputs_satisfied": true,
+            "false_accept_or_reject_review": null
+          }
+        ]
+      },
+      "primary_blocking": false
+    }
+  ]
+}

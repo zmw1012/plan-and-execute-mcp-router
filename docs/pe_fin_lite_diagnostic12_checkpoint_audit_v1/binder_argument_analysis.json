@@ -1,0 +1,475 @@
+{
+  "C05": {
+    "checkpoint": "C05_binder",
+    "counts": {
+      "fail": 1,
+      "pass": 11
+    },
+    "tasks": [
+      {
+        "task_id": "fin_cf_003",
+        "status": "fail",
+        "detail": {
+          "funnels": [
+            {
+              "primary": "op.outside",
+              "fallback": "op.b",
+              "described": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "selected_outside_described": true,
+              "binding_ok": true
+            }
+          ]
+        },
+        "primary_blocking": true
+      },
+      {
+        "task_id": "fin_cf_011",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "primary": "op.a",
+              "fallback": "op.b",
+              "described": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_020",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "primary": "op.a",
+              "fallback": "op.b",
+              "described": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_023",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "primary": "op.a",
+              "fallback": "op.b",
+              "described": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_ht_016",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "primary": "op.a",
+              "fallback": "op.b",
+              "described": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_dev_002",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "primary": "op.a",
+              "fallback": "op.b",
+              "described": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_007",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "primary": "op.a",
+              "fallback": "op.b",
+              "described": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_014",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "primary": "op.a",
+              "fallback": "op.b",
+              "described": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_014",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "primary": "op.a",
+              "fallback": "op.b",
+              "described": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_024",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "primary": "op.a",
+              "fallback": "op.b",
+              "described": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_001",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "primary": "op.a",
+              "fallback": "op.b",
+              "described": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "news_ht_004",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "primary": "op.a",
+              "fallback": "op.b",
+              "described": [
+                "op.a",
+                "op.b",
+                "op.c"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      }
+    ]
+  },
+  "C06": {
+    "checkpoint": "C06_arguments",
+    "counts": {
+      "pass": 12
+    },
+    "tasks": [
+      {
+        "task_id": "fin_cf_003",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "operation_id": "op.outside",
+              "argument_keys": [
+                "stock_code"
+              ],
+              "grounding": {
+                "stock_code": "0700"
+              }
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_011",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "operation_id": "op.a",
+              "argument_keys": [
+                "stock_code"
+              ],
+              "grounding": {
+                "stock_code": "0700"
+              }
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_020",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "operation_id": "op.a",
+              "argument_keys": [
+                "stock_code"
+              ],
+              "grounding": {
+                "stock_code": "0700"
+              }
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_023",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "operation_id": "op.a",
+              "argument_keys": [
+                "stock_code"
+              ],
+              "grounding": {
+                "stock_code": "0700"
+              }
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_ht_016",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "operation_id": "op.a",
+              "argument_keys": [
+                "stock_code"
+              ],
+              "grounding": {
+                "stock_code": "0700"
+              }
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_dev_002",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "operation_id": "op.a",
+              "argument_keys": [
+                "stock_code"
+              ],
+              "grounding": {
+                "stock_code": "0700"
+              }
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_007",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "operation_id": "op.a",
+              "argument_keys": [
+                "stock_code"
+              ],
+              "grounding": {
+                "stock_code": "0700"
+              }
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_014",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "operation_id": "op.a",
+              "argument_keys": [
+                "stock_code"
+              ],
+              "grounding": {
+                "stock_code": "0700"
+              }
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_014",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "operation_id": "op.a",
+              "argument_keys": [
+                "stock_code"
+              ],
+              "grounding": {
+                "stock_code": "0700"
+              }
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_024",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "operation_id": "op.a",
+              "argument_keys": [
+                "stock_code"
+              ],
+              "grounding": {
+                "stock_code": "0700"
+              }
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_001",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "operation_id": "op.a",
+              "argument_keys": [
+                "stock_code"
+              ],
+              "grounding": {
+                "stock_code": "0700"
+              }
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "news_ht_004",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "operation_id": "op.a",
+              "argument_keys": [
+                "stock_code"
+              ],
+              "grounding": {
+                "stock_code": "0700"
+              }
+            }
+          ]
+        },
+        "primary_blocking": false
+      }
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "primary_blocking_checkpoint_counts": {
+    "C05_binder": 1,
+    "C07_mcp": 1,
+    "C08_normalize": 1,
+    "C11_compute": 1,
+    "C12_reason": 1,
+    "none_or_all_non_fail": 7
+  },
+  "secondary_failure_counts": {},
+  "agent_error_types": {
+    "none": 12
+  },
+  "note": "Accuracy failures are not remapped to upstream pass."
+}

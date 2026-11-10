@@ -1,0 +1,261 @@
+{
+  "checkpoint": "C07_mcp",
+  "counts": {
+    "pass": 11,
+    "fail": 1
+  },
+  "tasks": [
+    {
+      "task_id": "fin_cf_003",
+      "status": "pass",
+      "detail": {
+        "invoked": [
+          "op.a"
+        ],
+        "records": [
+          {
+            "operation_id": "op.a",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": true
+          }
+        ],
+        "successful_invoked": [
+          "op.a"
+        ],
+        "real_mcp_execution_count": 1
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_011",
+      "status": "fail",
+      "detail": {
+        "no_invocation": true,
+        "tool_success_claimed": true,
+        "note": "zero_invocation_not_tool_success"
+      },
+      "primary_blocking": true
+    },
+    {
+      "task_id": "fin_cf_020",
+      "status": "pass",
+      "detail": {
+        "invoked": [
+          "op.a"
+        ],
+        "records": [
+          {
+            "operation_id": "op.a",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": true
+          }
+        ],
+        "successful_invoked": [
+          "op.a"
+        ],
+        "real_mcp_execution_count": 1
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_023",
+      "status": "pass",
+      "detail": {
+        "invoked": [
+          "op.a"
+        ],
+        "records": [
+          {
+            "operation_id": "op.a",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": true
+          }
+        ],
+        "successful_invoked": [
+          "op.a"
+        ],
+        "real_mcp_execution_count": 1
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_ht_016",
+      "status": "pass",
+      "detail": {
+        "invoked": [
+          "op.a"
+        ],
+        "records": [
+          {
+            "operation_id": "op.a",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": true
+          }
+        ],
+        "successful_invoked": [
+          "op.a"
+        ],
+        "real_mcp_execution_count": 1
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_dev_002",
+      "status": "pass",
+      "detail": {
+        "invoked": [
+          "op.a"
+        ],
+        "records": [
+          {
+            "operation_id": "op.a",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": true
+          }
+        ],
+        "successful_invoked": [
+          "op.a"
+        ],
+        "real_mcp_execution_count": 1
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_ht_007",
+      "status": "pass",
+      "detail": {
+        "invoked": [
+          "op.a"
+        ],
+        "records": [
+          {
+            "operation_id": "op.a",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": true
+          }
+        ],
+        "successful_invoked": [
+          "op.a"
+        ],
+        "real_mcp_execution_count": 1
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_ht_014",
+      "status": "pass",
+      "detail": {
+        "invoked": [
+          "op.a"
+        ],
+        "records": [
+          {
+            "operation_id": "op.a",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": true
+          }
+        ],
+        "successful_invoked": [
+          "op.a"
+        ],
+        "real_mcp_execution_count": 1
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "mkt_dev_014",
+      "status": "pass",
+      "detail": {
+        "invoked": [
+          "op.a"
+        ],
+        "records": [
+          {
+            "operation_id": "op.a",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": true
+          }
+        ],
+        "successful_invoked": [
+          "op.a"
+        ],
+        "real_mcp_execution_count": 1
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_024",
+      "status": "pass",
+      "detail": {
+        "invoked": [
+          "op.a"
+        ],
+        "records": [
+          {
+            "operation_id": "op.a",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": true
+          }
+        ],
+        "successful_invoked": [
+          "op.a"
+        ],
+        "real_mcp_execution_count": 1
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "mkt_dev_001",
+      "status": "pass",
+      "detail": {
+        "invoked": [
+          "op.a"
+        ],
+        "records": [
+          {
+            "operation_id": "op.a",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": true
+          }
+        ],
+        "successful_invoked": [
+          "op.a"
+        ],
+        "real_mcp_execution_count": 1
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "news_ht_004",
+      "status": "pass",
+      "detail": {
+        "invoked": [
+          "op.a"
+        ],
+        "records": [
+          {
+            "operation_id": "op.a",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": true
+          }
+        ],
+        "successful_invoked": [
+          "op.a"
+        ],
+        "real_mcp_execution_count": 1
+      },
+      "primary_blocking": false
+    }
+  ]
+}

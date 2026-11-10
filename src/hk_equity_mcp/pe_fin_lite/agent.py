@@ -123,6 +123,7 @@ class PeFinLiteAgent:
         plan: Optional[Dict[str, Any]] = None
         step_state: Dict[str, str] = {}
         skip_execution = False
+        planner_out: Dict[str, Any] = {}
 
         try:
             planner_out = run_planner(
@@ -289,11 +290,26 @@ class PeFinLiteAgent:
                             "status": result.get("status"),
                             "funnel": {
                                 "search_query": funnel.get("search_query"),
+                                "hard_filtered": funnel.get("hard_filtered"),
                                 "topk": funnel.get("embedding_topk"),
+                                "topk_ranked": funnel.get("embedding_topk_ranked"),
                                 "described": funnel.get("described_candidates"),
+                                "rank4_5_not_described": funnel.get(
+                                    "rank4_5_not_described"
+                                ),
                                 "primary": funnel.get("primary"),
                                 "fallback": funnel.get("fallback"),
                                 "local_fallback": funnel.get("local_fallback"),
+                                "selected_outside_described": funnel.get(
+                                    "selected_outside_described"
+                                ),
+                                "binder_selection_validation": funnel.get(
+                                    "binder_selection_validation"
+                                ),
+                                "invoke_gateway_success": funnel.get(
+                                    "invoke_gateway_success"
+                                ),
+                                "checkpoint_passive": funnel.get("checkpoint_passive"),
                             },
                         }
                     )
@@ -315,7 +331,28 @@ class PeFinLiteAgent:
                             "failure_reason": result.get("failure_reason"),
                         }
                     )
-                    trace.append({"stage": "compute", "step_id": sid, "status": result.get("status")})
+                    compute_rec = (out.get("step_result") or {}) if isinstance(out, dict) else {}
+                    trace.append(
+                        {
+                            "stage": "compute",
+                            "step_id": sid,
+                            "status": result.get("status"),
+                            "failure_reason": result.get("failure_reason"),
+                            "expression": (step.get("compute_spec") or {}).get(
+                                "expression"
+                            ),
+                            "operand_refs": (step.get("compute_spec") or {}).get(
+                                "operand_refs"
+                            ),
+                            "passive": {
+                                "execution_ok": result.get("execution_ok"),
+                                "values_keys": sorted(
+                                    str(k) for k in (result.get("values") or {}).keys()
+                                ),
+                            },
+                        }
+                    )
+                    _ = compute_rec  # keep local for future passive hooks
                 elif stype == "reason":
                     out = execute_reason_step(
                         step=step,
@@ -337,7 +374,30 @@ class PeFinLiteAgent:
                             "execution_ok": True,
                         }
                     )
-                    trace.append({"stage": "reason", "step_id": sid, "status": "completed"})
+                    reason_payload = result.get("values") or result.get("reason") or {}
+                    trace.append(
+                        {
+                            "stage": "reason",
+                            "step_id": sid,
+                            "status": "completed",
+                            "passive": {
+                                "summary_present": bool(
+                                    (reason_payload or {}).get("summary")
+                                    if isinstance(reason_payload, dict)
+                                    else reason_payload
+                                ),
+                                "unsupported_claim": bool(
+                                    isinstance(reason_payload, dict)
+                                    and reason_payload.get("unsupported_claim")
+                                ),
+                                "gaps": (
+                                    (reason_payload or {}).get("gaps")
+                                    if isinstance(reason_payload, dict)
+                                    else None
+                                ),
+                            },
+                        }
+                    )
                 else:
                     step_state[sid] = "failed"
                     failed_deps.add(sid)
@@ -525,6 +585,25 @@ class PeFinLiteAgent:
         fail_inv = max(0, len(invoke_records) - succ)
         all_ok = None if not invoke_records else (fail_inv == 0)
 
+        from hk_equity_mcp.pe_fin_lite.checkpoint_observability import (
+            CHECKPOINT_TRACE_CONTRACT_VERSION,
+            build_task_checkpoint_observability,
+            checkpoint_observability_hash,
+        )
+
+        checkpoint_obs = build_task_checkpoint_observability(
+            planner_out=planner_out,
+            plan=plan,
+            funnels=funnels,
+            step_statuses=step_statuses,
+            compute_traces=store.compute_records,
+            reason_artifacts=store.reason_artifacts,
+            final_payload=final_obj,
+            final_contract_valid=isinstance(final_obj, dict)
+            and bool(final_obj.get("status")),
+            invoke_records=invoke_records,
+            status=status,
+        )
         return {
             "status": status,
             "error": error,
@@ -571,4 +650,8 @@ class PeFinLiteAgent:
             "embedding_query_calls": self.budget.embedding_query_calls,
             **self.budget.llm_budget_fields(),
             "provider_metadata": {},
+            # Passive observability only — does not affect decisions.
+            "checkpoint_observability": checkpoint_obs,
+            "checkpoint_trace_contract_version": CHECKPOINT_TRACE_CONTRACT_VERSION,
+            "checkpoint_observability_hash": checkpoint_observability_hash(),
         }

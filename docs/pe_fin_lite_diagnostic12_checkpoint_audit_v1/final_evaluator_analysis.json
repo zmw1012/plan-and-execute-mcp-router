@@ -1,0 +1,364 @@
+{
+  "C13": {
+    "checkpoint": "C13_final",
+    "counts": {
+      "pass": 12
+    },
+    "tasks": [
+      {
+        "task_id": "fin_cf_003",
+        "status": "pass",
+        "detail": {
+          "answer_status": "answered",
+          "task_status": "completed",
+          "evidence_ids": [
+            "e1"
+          ],
+          "final_answer_present": true,
+          "full_partial_failed": "completed"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_011",
+        "status": "pass",
+        "detail": {
+          "answer_status": "answered",
+          "task_status": "completed",
+          "evidence_ids": [
+            "e1"
+          ],
+          "final_answer_present": true,
+          "full_partial_failed": "completed"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_020",
+        "status": "pass",
+        "detail": {
+          "answer_status": "answered",
+          "task_status": "completed",
+          "evidence_ids": [
+            "e1"
+          ],
+          "final_answer_present": true,
+          "full_partial_failed": "completed"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_023",
+        "status": "pass",
+        "detail": {
+          "answer_status": "answered",
+          "task_status": "completed",
+          "evidence_ids": [
+            "e1"
+          ],
+          "final_answer_present": true,
+          "full_partial_failed": "completed"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_ht_016",
+        "status": "pass",
+        "detail": {
+          "answer_status": "answered",
+          "task_status": "completed",
+          "evidence_ids": [
+            "e1"
+          ],
+          "final_answer_present": true,
+          "full_partial_failed": "completed"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_dev_002",
+        "status": "pass",
+        "detail": {
+          "answer_status": "answered",
+          "task_status": "completed",
+          "evidence_ids": [
+            "e1"
+          ],
+          "final_answer_present": true,
+          "full_partial_failed": "completed"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_007",
+        "status": "pass",
+        "detail": {
+          "answer_status": "answered",
+          "task_status": "completed",
+          "evidence_ids": [
+            "e1"
+          ],
+          "final_answer_present": true,
+          "full_partial_failed": "completed"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_014",
+        "status": "pass",
+        "detail": {
+          "answer_status": "answered",
+          "task_status": "completed",
+          "evidence_ids": [
+            "e1"
+          ],
+          "final_answer_present": true,
+          "full_partial_failed": "completed"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_014",
+        "status": "pass",
+        "detail": {
+          "answer_status": "unavailable",
+          "task_status": "completed",
+          "evidence_ids": null,
+          "final_answer_present": true,
+          "full_partial_failed": "completed"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_024",
+        "status": "pass",
+        "detail": {
+          "answer_status": "answered",
+          "task_status": "completed",
+          "evidence_ids": [
+            "e1"
+          ],
+          "final_answer_present": true,
+          "full_partial_failed": "completed"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_001",
+        "status": "pass",
+        "detail": {
+          "answer_status": "answered",
+          "task_status": "completed",
+          "evidence_ids": [
+            "e1"
+          ],
+          "final_answer_present": true,
+          "full_partial_failed": "completed"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "news_ht_004",
+        "status": "pass",
+        "detail": {
+          "answer_status": "answered",
+          "task_status": "completed",
+          "evidence_ids": [
+            "e1"
+          ],
+          "final_answer_present": true,
+          "full_partial_failed": "completed"
+        },
+        "primary_blocking": false
+      }
+    ]
+  },
+  "C14": {
+    "checkpoint": "C14_evaluator",
+    "counts": {
+      "pass": 12
+    },
+    "tasks": [
+      {
+        "task_id": "fin_cf_003",
+        "status": "pass",
+        "detail": {
+          "answer_correct": false,
+          "auto_grade_reason": "fixture",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "potential_evaluation_failure": null,
+          "agent_error_type": null,
+          "note": "evaluator_failure_separated_from_agent_error"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_011",
+        "status": "pass",
+        "detail": {
+          "answer_correct": false,
+          "auto_grade_reason": "fixture",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "potential_evaluation_failure": null,
+          "agent_error_type": null,
+          "note": "evaluator_failure_separated_from_agent_error"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_020",
+        "status": "pass",
+        "detail": {
+          "answer_correct": false,
+          "auto_grade_reason": "fixture",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "potential_evaluation_failure": null,
+          "agent_error_type": null,
+          "note": "evaluator_failure_separated_from_agent_error"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_023",
+        "status": "pass",
+        "detail": {
+          "answer_correct": false,
+          "auto_grade_reason": "fixture",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "potential_evaluation_failure": null,
+          "agent_error_type": null,
+          "note": "evaluator_failure_separated_from_agent_error"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_ht_016",
+        "status": "pass",
+        "detail": {
+          "answer_correct": false,
+          "auto_grade_reason": "fixture",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "potential_evaluation_failure": null,
+          "agent_error_type": null,
+          "note": "evaluator_failure_separated_from_agent_error"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_dev_002",
+        "status": "pass",
+        "detail": {
+          "answer_correct": false,
+          "auto_grade_reason": "fixture",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "potential_evaluation_failure": null,
+          "agent_error_type": null,
+          "note": "evaluator_failure_separated_from_agent_error"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_007",
+        "status": "pass",
+        "detail": {
+          "answer_correct": false,
+          "auto_grade_reason": "fixture",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "potential_evaluation_failure": null,
+          "agent_error_type": null,
+          "note": "evaluator_failure_separated_from_agent_error"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_014",
+        "status": "pass",
+        "detail": {
+          "answer_correct": false,
+          "auto_grade_reason": "fixture",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "potential_evaluation_failure": null,
+          "agent_error_type": null,
+          "note": "evaluator_failure_separated_from_agent_error"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_014",
+        "status": "pass",
+        "detail": {
+          "answer_correct": false,
+          "auto_grade_reason": "fixture",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "potential_evaluation_failure": null,
+          "agent_error_type": null,
+          "note": "evaluator_failure_separated_from_agent_error"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_024",
+        "status": "pass",
+        "detail": {
+          "answer_correct": false,
+          "auto_grade_reason": "fixture",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "potential_evaluation_failure": null,
+          "agent_error_type": null,
+          "note": "evaluator_failure_separated_from_agent_error"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_001",
+        "status": "pass",
+        "detail": {
+          "answer_correct": false,
+          "auto_grade_reason": "numeric_mismatch_fixture",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "potential_evaluation_failure": null,
+          "agent_error_type": null,
+          "note": "evaluator_failure_separated_from_agent_error"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "news_ht_004",
+        "status": "pass",
+        "detail": {
+          "answer_correct": false,
+          "auto_grade_reason": "fixture",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "potential_evaluation_failure": null,
+          "agent_error_type": null,
+          "note": "evaluator_failure_separated_from_agent_error"
+        },
+        "primary_blocking": false
+      }
+    ]
+  }
+}

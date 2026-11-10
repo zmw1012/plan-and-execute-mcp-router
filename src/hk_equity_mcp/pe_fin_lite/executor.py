@@ -564,6 +564,11 @@ def execute_retrieve_step(
         funnel["invoke_gateway_success"] = gw_flags
         store.add_retrieve_result(step_id=str(step["id"]), result=result)
         gateway_ok_ids = [oid for oid, ok in gw_flags.items() if ok]
+        from hk_equity_mcp.pe_fin_lite.checkpoint_observability import (
+            enrich_retrieve_funnel_passive,
+        )
+
+        funnel = enrich_retrieve_funnel_passive(funnel, step=step, step_result=result)
         return {
             "step_result": result,
             "funnel": funnel,
@@ -605,6 +610,20 @@ def execute_retrieve_step(
         described_ids.append(oid)
         described_contracts[oid] = contract
     funnel["described_candidates"] = described_ids
+    # Passive ranks / not-described ids (observability only; no ranking change).
+    funnel["embedding_topk_ranked"] = [
+        {
+            "rank": i + 1,
+            "operation_id": r.get("operation_id"),
+            "score": r.get("score"),
+        }
+        for i, r in enumerate(topk)
+    ]
+    funnel["rank4_5_not_described"] = [
+        r.get("operation_id")
+        for r in funnel["embedding_topk_ranked"]
+        if int(r.get("rank") or 0) > len(described_ids)
+    ]
 
     if not described_ids:
         result = make_step_result(
@@ -615,6 +634,11 @@ def execute_retrieve_step(
             scope_match=False,
         )
         store.add_retrieve_result(step_id=str(step["id"]), result=result)
+        from hk_equity_mcp.pe_fin_lite.checkpoint_observability import (
+            enrich_retrieve_funnel_passive,
+        )
+
+        funnel = enrich_retrieve_funnel_passive(funnel, step=step, step_result=result)
         return {"step_result": result, "funnel": funnel}
 
     if use_mock_binder:
@@ -648,6 +672,11 @@ def execute_retrieve_step(
             execution_ok=False,
         )
         store.add_retrieve_result(step_id=str(step["id"]), result=result)
+        from hk_equity_mcp.pe_fin_lite.checkpoint_observability import (
+            enrich_retrieve_funnel_passive,
+        )
+
+        funnel = enrich_retrieve_funnel_passive(funnel, step=step, step_result=result)
         return {"step_result": result, "funnel": funnel, "usage": binder_out.get("usage")}
 
     binding = binder_out["binding"]
@@ -662,6 +691,25 @@ def execute_retrieve_step(
             "operation_id": fallback["operation_id"],
             "arguments": _redact_args(fallback["arguments"]),
         }
+    # Passive selection validation (does not alter binding).
+    described_set = set(described_ids)
+    selected_outside = False
+    for oid in (
+        primary.get("operation_id"),
+        (fallback or {}).get("operation_id") if fallback else None,
+    ):
+        if oid and oid not in described_set:
+            selected_outside = True
+    funnel["selected_outside_described"] = selected_outside
+    funnel["binder_selection_validation"] = {
+        "primary_in_described": primary.get("operation_id") in described_set,
+        "fallback_in_described": (
+            None
+            if not fallback
+            else (fallback.get("operation_id") in described_set)
+        ),
+        "selected_outside_described": selected_outside,
+    }
 
     required_outputs = list(step.get("required_outputs") or [])
     budget.primary_selected += 1
@@ -742,6 +790,11 @@ def execute_retrieve_step(
         for oid in funnel["invoked_operations"]
         if (funnel.get("invoke_gateway_success") or {}).get(oid)
     ]
+    from hk_equity_mcp.pe_fin_lite.checkpoint_observability import (
+        enrich_retrieve_funnel_passive,
+    )
+
+    funnel = enrich_retrieve_funnel_passive(funnel, step=step, step_result=result)
     return {
         "step_result": result,
         "funnel": funnel,

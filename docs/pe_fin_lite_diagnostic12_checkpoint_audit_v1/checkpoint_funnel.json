@@ -1,0 +1,100 @@
+{
+  "C01_planner": {
+    "pass": 12,
+    "fail": 0,
+    "N/A": 0,
+    "unknown": 0,
+    "pass_rate_excluding_na": 1.0
+  },
+  "C02_filter": {
+    "pass": 12,
+    "fail": 0,
+    "N/A": 0,
+    "unknown": 0,
+    "pass_rate_excluding_na": 1.0
+  },
+  "C03_embedding": {
+    "pass": 12,
+    "fail": 0,
+    "N/A": 0,
+    "unknown": 0,
+    "pass_rate_excluding_na": 1.0
+  },
+  "C04_describe": {
+    "pass": 12,
+    "fail": 0,
+    "N/A": 0,
+    "unknown": 0,
+    "pass_rate_excluding_na": 1.0
+  },
+  "C05_binder": {
+    "pass": 11,
+    "fail": 1,
+    "N/A": 0,
+    "unknown": 0,
+    "pass_rate_excluding_na": 0.9166666666666666
+  },
+  "C06_arguments": {
+    "pass": 12,
+    "fail": 0,
+    "N/A": 0,
+    "unknown": 0,
+    "pass_rate_excluding_na": 1.0
+  },
+  "C07_mcp": {
+    "pass": 11,
+    "fail": 1,
+    "N/A": 0,
+    "unknown": 0,
+    "pass_rate_excluding_na": 0.9166666666666666
+  },
+  "C08_normalize": {
+    "pass": 11,
+    "fail": 1,
+    "N/A": 0,
+    "unknown": 0,
+    "pass_rate_excluding_na": 0.9166666666666666
+  },
+  "C09_evidence_acceptance": {
+    "pass": 12,
+    "fail": 0,
+    "N/A": 0,
+    "unknown": 0,
+    "pass_rate_excluding_na": 1.0
+  },
+  "C10_fallback_unavailable": {
+    "pass": 12,
+    "fail": 0,
+    "N/A": 0,
+    "unknown": 0,
+    "pass_rate_excluding_na": 1.0
+  },
+  "C11_compute": {
+    "pass": 0,
+    "fail": 1,
+    "N/A": 11,
+    "unknown": 0,
+    "pass_rate_excluding_na": 0.0
+  },
+  "C12_reason": {
+    "pass": 0,
+    "fail": 1,
+    "N/A": 11,
+    "unknown": 0,
+    "pass_rate_excluding_na": 0.0
+  },
+  "C13_final": {
+    "pass": 12,
+    "fail": 0,
+    "N/A": 0,
+    "unknown": 0,
+    "pass_rate_excluding_na": 1.0
+  },
+  "C14_evaluator": {
+    "pass": 12,
+    "fail": 0,
+    "N/A": 0,
+    "unknown": 0,
+    "pass_rate_excluding_na": 1.0
+  }
+}

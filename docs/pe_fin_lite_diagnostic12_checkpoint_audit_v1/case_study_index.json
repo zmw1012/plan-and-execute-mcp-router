@@ -1,0 +1,34 @@
+{
+  "cases": [
+    {
+      "task_id": "fin_cf_003",
+      "primary": "C05_binder",
+      "secondary": [],
+      "answer_correct": false
+    },
+    {
+      "task_id": "fin_cf_011",
+      "primary": "C07_mcp",
+      "secondary": [],
+      "answer_correct": false
+    },
+    {
+      "task_id": "fin_cf_020",
+      "primary": "C08_normalize",
+      "secondary": [],
+      "answer_correct": false
+    },
+    {
+      "task_id": "fin_cf_023",
+      "primary": "C11_compute",
+      "secondary": [],
+      "answer_correct": false
+    },
+    {
+      "task_id": "fin_ht_016",
+      "primary": "C12_reason",
+      "secondary": [],
+      "answer_correct": false
+    }
+  ]
+}
