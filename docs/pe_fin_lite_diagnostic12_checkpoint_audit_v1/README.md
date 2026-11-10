@@ -45,12 +45,14 @@ Before == after for all raw artifacts. Raw predictions / run_metadata were **not
 ## Future Diagnostic-12 v2 command (DO NOT RUN in this round)
 
 ```bash
-python -m hk_equity_mcp.experiment.pe_fin_lite_runner \
-  --subset diagnostic12 \
-  --manifest benchmarks/manifests/hk_pe_fin_lite_diagnostic12_v1.json \
-  --output-dir outputs/pe_fin_lite_diagnostic12_checkpoint_live_v2 \
-  --live \
-  --method-version pe_fin_lite_v1.1
+PYTHONPATH=src python scripts/run_hk_unified_pe_fin_lite_experiment.py \
+  --diagnostic12 \
+  --split exploratory_all \
+  --require-complete-index \
+  --allow-dirty \
+  --env-file ../hk-equity-mcp-agent/.env.relay-v41 \
+  --embedding-env-file ../hk-equity-mcp-agent/.env.embedding-relay \
+  --output-dir outputs/pe_fin_lite_diagnostic12_checkpoint_live_v2
 ```
 
-(Exact CLI flags should match the repo’s current runner entrypoint; this is the intended v2 live rerun after confirmation.)
+Method version will be read from runtime (`pe_fin_lite_v1.1`). Do not mutate Diagnostic-12 IDs/order/gold.
