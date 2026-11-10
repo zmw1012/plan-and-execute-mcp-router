@@ -1,0 +1,60 @@
+{
+  "audit_version": "pe_fin_lite_smoke5_live_v3_final_audit_v1",
+  "branch": "feature/pe-fin-lite-proposed-method-v1",
+  "recorded_git_commit": "ddae351eb5eb07a3ba4465f7ebcbbb339bb0362a",
+  "run_dir": "outputs/pe_fin_lite_smoke5_live_v3",
+  "resource": {
+    "n_tasks": 5,
+    "unique_predictions": 5,
+    "full": 2,
+    "partial": 1,
+    "failed": 2,
+    "answer_correct": 0,
+    "llm_calls_total": 19,
+    "tokens_total": 41465,
+    "mcp_invocations_total": 11,
+    "gateway_invoke_count": 11,
+    "embedding_query_calls_total": 4,
+    "latency_ms_mean": 37837.25170837715,
+    "full_task_ids": [
+      "xd_dev_002",
+      "mkt_dev_014"
+    ],
+    "partial_task_ids": [
+      "fin_cf_023"
+    ],
+    "failed_task_ids": [
+      "fin_cf_003",
+      "news_ht_004"
+    ],
+    "completed_task_ids": [
+      "xd_dev_002",
+      "mkt_dev_014",
+      "fin_cf_023"
+    ]
+  },
+  "grading": {
+    "n": 5,
+    "auto_gradable_count": 5,
+    "auto_graded_correct": 0,
+    "auto_graded_accuracy": 0.0,
+    "manual_required_count": 0,
+    "overall_accuracy": null,
+    "overall_accuracy_note": "overall accuracy only after manual grading fields are completed",
+    "grader_version": "deterministic_v1.2.1",
+    "grading_version": "hk_unified_grading_v1.2.1"
+  },
+  "validity_label_counts": {
+    "disclosure_engineering_failure": 2,
+    "method_outcome": 3
+  },
+  "error_taxonomy_counts": {
+    "disclosure_local_key_not_passed_to_parse": 1,
+    "method_metric_semantics_mismatch": 1,
+    "method_data_semantics_eps_mismatch": 1,
+    "method_feasibility_temporal_policy": 1,
+    "disclosure_shortest_prefix_not_stopped": 1
+  },
+  "raw_hashes_unchanged": true,
+  "engineering_smoke_note": "Use as engineering smoke; separate Disclosure engineering defects from method outcomes."
+}

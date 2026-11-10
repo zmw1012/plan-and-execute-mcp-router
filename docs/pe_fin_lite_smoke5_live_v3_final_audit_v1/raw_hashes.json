@@ -1,0 +1,20 @@
+{
+  "audit_version": "pe_fin_lite_smoke5_live_v3_final_audit_v1",
+  "run_dir": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-pe-fin-lite/outputs/pe_fin_lite_smoke5_live_v3",
+  "predictions.jsonl": {
+    "sha256": "512e9e59a68ab192b6c0818c25be7a60a0ab4ef0d73549852a889a74abc6122f",
+    "rows": 5,
+    "bytes": 243678
+  },
+  "run_metadata.json": {
+    "sha256": "520cd970c783de85c50184767b1342e1a4e487adaa36ed478d737fac6d68e83a",
+    "bytes": 7939
+  },
+  "frozen_expected": {
+    "predictions.jsonl": "512e9e59a68ab192b6c0818c25be7a60a0ab4ef0d73549852a889a74abc6122f",
+    "run_metadata.json": "520cd970c783de85c50184767b1342e1a4e487adaa36ed478d737fac6d68e83a"
+  },
+  "hashes_match_frozen": true,
+  "git_commit_recorded": "ddae351eb5eb07a3ba4465f7ebcbbb339bb0362a",
+  "run_status": "completed"
+}

@@ -210,10 +210,31 @@ def _project_one(
     pool = extract_values_from_envelope(envelope, list(required_outputs))
     if isinstance(envelope, dict):
         pool.update(_collect_from_rows(envelope.get("rows")))
-        for nested_key in ("normalized", "raw", "result"):
+        for nested_key in ("normalized", "raw", "result", "normalized_payloads"):
             nested = envelope.get(nested_key)
             if isinstance(nested, dict):
                 pool.update(_collect_from_rows(nested.get("rows")))
+                # Real HKEX list envelopes use announcements / data lists.
+                pool.update(_collect_from_rows(nested.get("announcements")))
+                pool.update(_collect_from_rows(nested.get("data")))
+            elif isinstance(nested, list):
+                pool.update(_collect_from_rows(nested))
+    # Disclosure-normalized announcement fields from raw candidate and envelope.
+    # Gateway normalize may drop announcement rows into normalized_payloads only.
+    try:
+        from hk_equity_mcp.pe_fin_lite.disclosure_workflow import (
+            _collect_rows as _disc_collect_rows,
+            _row_to_values as _disc_row_to_values,
+        )
+
+        for src in (candidate, envelope):
+            disc_rows = _disc_collect_rows(src)
+            if disc_rows:
+                pool.update(_disc_row_to_values(disc_rows[0]))
+                pool.update(_collect_from_rows(disc_rows))
+                break
+    except Exception:  # noqa: BLE001
+        pass
     adapted: Dict[str, Any] = {}
     try:
         adapted = adapt_mcp_result(

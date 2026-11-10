@@ -1,44 +1,118 @@
 {
   "category": "disclosure_list",
   "operation_id": "hkexnews.list_hkexnews_announcements",
+  "note": "Synthetic fixture aligned to recorded HKEX list envelope shapes (normalized.data / announcements / file_link). No task-id or issuer whitelist.",
   "invoke": {
     "success": true,
     "operation_id": "hkexnews.list_hkexnews_announcements",
     "arguments": {
       "stock_code": "00700",
-      "from_date": "2026-07-01",
-      "to_date": "2026-08-12"
+      "start_date": "2026-07-01",
+      "end_date": "2026-08-12"
     },
     "result": {
       "success": true,
-      "server_id": "hkexnews",
+      "server_id": "mcp_hkexnews",
       "operation_id": "hkexnews.list_hkexnews_announcements",
       "arguments": {
         "stock_code": "00700",
-        "from_date": "2026-07-01",
-        "to_date": "2026-08-12"
+        "start_date": "2026-07-01",
+        "end_date": "2026-08-12"
       },
       "raw": {
         "is_error": false,
         "content": [
           {
             "json": {
-              "rows": [
+              "status": "success",
+              "data": [
                 {
-                  "news_id": "2026070900123",
+                  "stock_code": "00700",
+                  "sec_name": "TENCENT | TENCENT-R",
+                  "title": "ANNOUNCEMENT OF THE RESULTS FOR THE THREE AND SIX MONTHS ENDED 30 JUNE 2026",
+                  "release_date": "2026-08-12",
+                  "news_id": "12280990",
+                  "local_key": "00700_13400_2026-08-12_29a8b6a3",
+                  "file_link": "/listedco/listconews/sehk/2026/0812/2026081200296.pdf",
+                  "file_type": "PDF"
+                },
+                {
+                  "stock_code": "00700",
+                  "sec_name": "TENCENT | TENCENT-R",
                   "title": "Next Day Disclosure Return",
                   "release_date": "2026-07-09",
-                  "issuer_code": "00700",
-                  "local_key": "hkex:00700:2026070900123",
-                  "stock_code": "00700"
+                  "news_id": "12239449",
+                  "local_key": "00700_50100_2026-07-09_d80c8407",
+                  "file_link": "/listedco/listconews/sehk/2026/0709/2026070900827.pdf",
+                  "file_type": "PDF"
+                },
+                {
+                  "stock_code": "00700",
+                  "sec_name": "TENCENT | TENCENT-R",
+                  "title": "ANNUAL RESULTS FOR THE YEAR ENDED 31 DECEMBER 2025",
+                  "release_date": "2026-03-19",
+                  "news_id": "12000001",
+                  "local_key": "00700_ANNUAL_2026-03-19_abc123",
+                  "file_link": "/listedco/listconews/sehk/2026/0319/2026031900001.pdf",
+                  "file_type": "PDF"
                 }
-              ],
-              "total_rows": 1,
-              "returned_rows": 1
+              ]
             }
           }
         ]
-      }
+      },
+      "normalized": {
+        "status": "success",
+        "data": [
+          {
+            "stock_code": "00700",
+            "sec_name": "TENCENT | TENCENT-R",
+            "title": "ANNOUNCEMENT OF THE RESULTS FOR THE THREE AND SIX MONTHS ENDED 30 JUNE 2026",
+            "release_date": "2026-08-12",
+            "news_id": "12280990",
+            "local_key": "00700_13400_2026-08-12_29a8b6a3",
+            "file_link": "/listedco/listconews/sehk/2026/0812/2026081200296.pdf",
+            "file_type": "PDF"
+          },
+          {
+            "stock_code": "00700",
+            "sec_name": "TENCENT | TENCENT-R",
+            "title": "Next Day Disclosure Return",
+            "release_date": "2026-07-09",
+            "news_id": "12239449",
+            "local_key": "00700_50100_2026-07-09_d80c8407",
+            "file_link": "/listedco/listconews/sehk/2026/0709/2026070900827.pdf",
+            "file_type": "PDF"
+          },
+          {
+            "stock_code": "00700",
+            "sec_name": "TENCENT | TENCENT-R",
+            "title": "ANNUAL RESULTS FOR THE YEAR ENDED 31 DECEMBER 2025",
+            "release_date": "2026-03-19",
+            "news_id": "12000001",
+            "local_key": "00700_ANNUAL_2026-03-19_abc123",
+            "file_link": "/listedco/listconews/sehk/2026/0319/2026031900001.pdf",
+            "file_type": "PDF"
+          }
+        ]
+      },
+      "evidence": [],
+      "error": null,
+      "real_mcp": true,
+      "protocol_success": true,
+      "execution_success": true
     }
+  },
+  "legacy_rows_shape": {
+    "rows": [
+      {
+        "news_id": "2026070900123",
+        "title": "Next Day Disclosure Return",
+        "release_date": "2026-07-09",
+        "issuer_code": "00700",
+        "local_key": "hkex:00700:2026070900123",
+        "stock_code": "00700"
+      }
+    ]
   }
 }

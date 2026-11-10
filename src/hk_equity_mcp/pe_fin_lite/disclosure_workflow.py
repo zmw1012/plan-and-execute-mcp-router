@@ -32,7 +32,18 @@ _LIST_FIELDS = (
     "issuer_code",
     "local_key",
     "source_url",
+    "file_link",
     "company_name",
+)
+
+# Real HKEX list envelopes use announcements / normalized.data, not only "rows".
+_ROW_LIST_KEYS = (
+    "rows",
+    "announcements",
+    "items",
+    "sample",
+    "results",
+    "records",
 )
 
 _STAGE_CAPABILITY = {
@@ -61,9 +72,25 @@ def disclosure_workflow_hash() -> str:
             "stop_after_list_when_satisfied": True,
             "text_required_outputs": sorted(_TEXT_REQUIRED_OUTPUTS),
             "list_row_scope_filter": True,
+            "list_row_list_keys": list(_ROW_LIST_KEYS),
+            "normalize_announcement_aliases": True,
             "preserve_list_evidence_on_later_failure": True,
             "no_task_id_branching": True,
-            "passes": ["local_key", "news_id", "release_date", "page_number", "title"],
+            "passes": [
+                "local_key",
+                "news_id",
+                "release_date",
+                "title",
+                "file_link",
+                "source_url",
+                "page_number",
+                "start_page",
+            ],
+            "stage_arg_aliases": {
+                "keywords_from_title_keyword": True,
+                "start_page_from_page_number": True,
+                "title_keyword_passthrough": True,
+            },
         },
         sort_keys=True,
     )
@@ -133,35 +160,103 @@ def select_stage_operation(
     return best
 
 
+def _is_announcement_row(obj: Any) -> bool:
+    if not isinstance(obj, dict):
+        return False
+    if obj.get("local_key") is not None or obj.get("localKey") is not None:
+        return True
+    if obj.get("news_id") is not None or obj.get("newsId") is not None:
+        return True
+    if obj.get("file_link") is not None or obj.get("fileLink") is not None:
+        return True
+    title = obj.get("title")
+    release = obj.get("release_date") or obj.get("releaseDate")
+    return bool(title) and bool(release)
+
+
+def _extend_rows_from_list(rows: List[Dict[str, Any]], items: Any) -> None:
+    if not isinstance(items, list):
+        return
+    for item in items:
+        if _is_announcement_row(item):
+            rows.append(item)
+        elif isinstance(item, dict) and "json" in item and isinstance(item["json"], dict):
+            nested = item["json"]
+            if _is_announcement_row(nested):
+                rows.append(nested)
+
+
 def _collect_rows(payload: Any) -> List[Dict[str, Any]]:
+    """Collect announcement/list rows from gateway envelopes and MCP payloads.
+
+    Accepts recorded HKEX shapes:
+    - ``rows`` / ``announcements`` lists
+    - ``normalized`` as list or ``{status, data:[...]}`` / ``{announcements:[...]}``
+    - ``raw.content[].json`` MCP content blocks
+    - resolver wrapper ``{success, result: RealMcpResult.to_dict()}``
+    """
     rows: List[Dict[str, Any]] = []
+    if payload is None:
+        return rows
+    if isinstance(payload, list):
+        _extend_rows_from_list(rows, payload)
+        return rows
     if not isinstance(payload, dict):
         return rows
-    stack = [payload]
-    seen = set()
+
+    stack: List[Any] = [payload]
+    seen: set = set()
     while stack:
         obj = stack.pop()
+        if isinstance(obj, list):
+            _extend_rows_from_list(rows, obj)
+            for item in obj:
+                if isinstance(item, dict):
+                    if "json" in item and isinstance(item["json"], (dict, list)):
+                        stack.append(item["json"])
+                    else:
+                        stack.append(item)
+            continue
         if not isinstance(obj, dict):
             continue
         oid = id(obj)
         if oid in seen:
             continue
         seen.add(oid)
-        maybe = obj.get("rows")
-        if isinstance(maybe, list):
-            rows.extend([r for r in maybe if isinstance(r, dict)])
-        for key in ("normalized", "result", "values", "adapted", "raw", "data", "content"):
+        if _is_announcement_row(obj):
+            rows.append(obj)
+        for key in _ROW_LIST_KEYS:
+            maybe = obj.get(key)
+            if isinstance(maybe, list):
+                _extend_rows_from_list(rows, maybe)
+        for key in (
+            "normalized",
+            "result",
+            "values",
+            "adapted",
+            "raw",
+            "data",
+            "content",
+            "payload",
+        ):
             child = obj.get(key)
-            if isinstance(child, dict):
+            if isinstance(child, (dict, list)):
                 stack.append(child)
-            elif isinstance(child, list):
-                for item in child:
-                    if isinstance(item, dict):
-                        if "json" in item and isinstance(item["json"], dict):
-                            stack.append(item["json"])
-                        else:
-                            stack.append(item)
-    return rows
+    # Stable de-dupe by local_key/news_id/title+date when possible.
+    deduped: List[Dict[str, Any]] = []
+    seen_keys: set = set()
+    for row in rows:
+        key = (
+            str(row.get("local_key") or row.get("localKey") or ""),
+            str(row.get("news_id") or row.get("newsId") or ""),
+            str(row.get("title") or ""),
+            str(row.get("release_date") or row.get("releaseDate") or ""),
+        )
+        if key in seen_keys and any(key):
+            continue
+        seen_keys.add(key)
+        deduped.append(row)
+    return deduped
 
 
 def _extract_chain_fields(payload: Any) -> Dict[str, Any]:
@@ -170,21 +265,34 @@ def _extract_chain_fields(payload: Any) -> Dict[str, Any]:
     objs: List[Dict[str, Any]] = []
     if isinstance(payload, dict):
         objs.append(payload)
-        for key in ("normalized", "result", "values", "adapted"):
-            if isinstance(payload.get(key), dict):
-                objs.append(payload[key])
+        for key in ("normalized", "result", "values", "adapted", "data"):
+            child = payload.get(key)
+            if isinstance(child, dict):
+                objs.append(child)
     for obj in objs:
-        for field in _LIST_FIELDS + ("page_number", "snippet"):
+        for field in _LIST_FIELDS + ("page_number", "snippet", "start_page"):
             if obj.get(field) is not None and field not in out:
                 out[field] = obj.get(field)
+        # Alias hydration for single-object payloads.
+        if "local_key" not in out and obj.get("localKey") is not None:
+            out["local_key"] = obj.get("localKey")
+        if "news_id" not in out and obj.get("newsId") is not None:
+            out["news_id"] = obj.get("newsId")
+        if "source_url" not in out:
+            for k in ("source_url", "url", "link", "file_link", "fileLink"):
+                if obj.get(k):
+                    out["source_url"] = obj.get(k)
+                    out.setdefault("file_link", obj.get(k))
+                    break
     for row in rows:
-        for field in _LIST_FIELDS + ("page_number", "snippet"):
-            if row.get(field) is not None and field not in out:
-                out[field] = row.get(field)
-        if row.get("local_key"):
+        norm = _row_to_values(row)
+        for field, value in norm.items():
+            if value is not None and field not in out:
+                out[field] = value
+        if norm.get("local_key"):
             out.setdefault("local_keys", [])
             if isinstance(out["local_keys"], list):
-                out["local_keys"].append(row["local_key"])
+                out["local_keys"].append(norm["local_key"])
     return out
 
 
@@ -219,9 +327,19 @@ def filter_list_rows(
     elif isinstance(entity, str):
         entity_code = entity
     code = _norm_code(grounding.get("stock_code") or entity_code)
-    from_date = _norm_date(grounding.get("from_date") or scope.get("from_date"))
-    to_date = _norm_date(grounding.get("to_date") or scope.get("to_date"))
-    exact_release = _norm_date(scope.get("trade_date") or grounding.get("trade_date") or "")
+    from_date = _norm_date(
+        grounding.get("from_date") or scope.get("from_date") or scope.get("start_date")
+    )
+    to_date = _norm_date(
+        grounding.get("to_date") or scope.get("to_date") or scope.get("end_date")
+    )
+    exact_release = _norm_date(
+        scope.get("release_date")
+        or grounding.get("release_date")
+        or scope.get("trade_date")
+        or grounding.get("trade_date")
+        or ""
+    )
     title_kw = str(
         grounding.get("title_keyword") or scope.get("title_keyword") or ""
     ).strip().lower()
@@ -231,11 +349,16 @@ def filter_list_rows(
         if not isinstance(row, dict):
             continue
         row_code = _norm_code(
-            row.get("issuer_code") or row.get("stock_code") or row.get("symbol")
+            row.get("issuer_code")
+            or row.get("stock_code")
+            or row.get("symbol")
+            or row.get("code")
         )
         if code and row_code and row_code != code:
             continue
-        rel = _norm_date(row.get("release_date") or row.get("date"))
+        rel = _norm_date(
+            row.get("release_date") or row.get("releaseDate") or row.get("date")
+        )
         if from_date and rel and rel < from_date:
             continue
         if to_date and rel and rel > to_date:
@@ -250,6 +373,15 @@ def filter_list_rows(
     return kept
 
 
+def _row_sort_key(row: Dict[str, Any]) -> Tuple[str, str, str]:
+    """Deterministic tie-break: newest release_date first, then news_id, local_key."""
+    rel = _norm_date(row.get("release_date") or row.get("releaseDate") or "")
+    news = str(row.get("news_id") or row.get("newsId") or "")
+    local = str(row.get("local_key") or row.get("localKey") or "")
+    # Descending date via inverted string sort key.
+    return (rel, news, local)
+
+
 def select_list_row(
     rows: Sequence[Dict[str, Any]],
     *,
@@ -257,12 +389,17 @@ def select_list_row(
     step: Dict[str, Any],
 ) -> Optional[Dict[str, Any]]:
     filtered = filter_list_rows(rows, grounding=grounding, step=step)
-    if filtered:
-        return filtered[0]
-    # If filter emptied but rows exist and we only have code constraint, keep first.
-    if rows:
-        return dict(rows[0])
-    return None
+    pool = list(filtered) if filtered else list(rows)
+    if not pool:
+        return None
+    # Stable deterministic order: newest date first, then news_id/local_key ascending.
+    ordered = sorted(
+        pool,
+        key=lambda r: _row_sort_key(r if isinstance(r, dict) else {}),
+        reverse=True,
+    )
+    chosen = ordered[0]
+    return dict(chosen) if isinstance(chosen, dict) else None
 
 
 def build_stage_arguments(
@@ -287,7 +424,12 @@ def build_stage_arguments(
     )
     from_date = g.get("from_date") or scope.get("from_date") or step.get("date")
     to_date = g.get("to_date") or scope.get("to_date") or step.get("date")
-    title_kw = g.get("title_keyword") or scope.get("title_keyword")
+    title_kw = (
+        g.get("title_keyword")
+        or scope.get("title_keyword")
+        or chain_state.get("title")
+    )
+    page_number = chain_state.get("page_number") or chain_state.get("start_page") or 1
 
     def maybe_set(name: str, value: Any) -> None:
         if name in props and value is not None and value != "":
@@ -295,11 +437,18 @@ def build_stage_arguments(
 
     maybe_set("local_key", chain_state.get("local_key"))
     maybe_set("news_id", chain_state.get("news_id"))
-    maybe_set("release_date", chain_state.get("release_date") or scope.get("trade_date"))
-    maybe_set("page_number", chain_state.get("page_number") or 1)
+    maybe_set(
+        "release_date",
+        chain_state.get("release_date")
+        or scope.get("release_date")
+        or scope.get("trade_date"),
+    )
+    maybe_set("page_number", page_number)
+    maybe_set("start_page", page_number)
     maybe_set("keyword", title_kw or step.get("objective"))
     maybe_set("query", title_kw or step.get("objective"))
-    maybe_set("title", title_kw)
+    maybe_set("title", title_kw or chain_state.get("title"))
+    maybe_set("title_keyword", title_kw)
     maybe_set("stock_code", stock_code)
     maybe_set("symbol", stock_code)
     maybe_set("code", stock_code)
@@ -309,8 +458,17 @@ def build_stage_arguments(
     maybe_set("from_date", from_date)
     maybe_set("to_date", to_date)
     # File / URL links when required by download contracts.
-    maybe_set("file_link", chain_state.get("source_url") or chain_state.get("file_link"))
+    maybe_set(
+        "file_link",
+        chain_state.get("file_link") or chain_state.get("source_url"),
+    )
     maybe_set("url", chain_state.get("source_url") or chain_state.get("url"))
+    if "keywords" in props:
+        kw_src = title_kw or step.get("objective")
+        if isinstance(kw_src, list):
+            args["keywords"] = [str(x) for x in kw_src if str(x).strip()]
+        elif kw_src:
+            args["keywords"] = [str(kw_src)]
 
     for name in required:
         if name in args:
@@ -323,10 +481,18 @@ def build_stage_arguments(
             args[name] = from_date
         elif name in ("end_date", "to_date") and to_date:
             args[name] = to_date
-        elif name in ("keyword", "query", "title") and title_kw:
+        elif name in ("keyword", "query", "title", "title_keyword") and title_kw:
             args[name] = title_kw
         elif name == "local_key" and chain_state.get("local_key"):
             args[name] = chain_state["local_key"]
+        elif name == "news_id" and chain_state.get("news_id"):
+            args[name] = chain_state["news_id"]
+        elif name == "start_page":
+            args[name] = page_number
+        elif name == "keywords":
+            kw_src = title_kw or step.get("objective")
+            if kw_src:
+                args[name] = [str(kw_src)] if not isinstance(kw_src, list) else list(kw_src)
     return args
 
 
@@ -335,22 +501,36 @@ DescribeFn = Callable[[str], Dict[str, Any]]
 
 
 def _row_to_values(row: Dict[str, Any], stock_code: Optional[str] = None) -> Dict[str, Any]:
+    """Normalize a list/announcement row into workflow values (issuer-generic)."""
     values: Dict[str, Any] = {}
+    if not isinstance(row, dict):
+        return values
     for field in _LIST_FIELDS:
         if row.get(field) is not None:
             values[field] = row.get(field)
-    # Common aliases
+    # Common aliases from real HKEX / MCP envelopes.
     if "news_id" not in values and row.get("newsId") is not None:
         values["news_id"] = row.get("newsId")
     if "local_key" not in values and row.get("localKey") is not None:
         values["local_key"] = row.get("localKey")
-    if "source_url" not in values:
-        for k in ("source_url", "url", "link", "file_link", "fileLink"):
-            if row.get(k):
-                values["source_url"] = row.get(k)
-                break
+    if "release_date" not in values and row.get("releaseDate") is not None:
+        values["release_date"] = row.get("releaseDate")
+    if "issuer_code" not in values:
+        code = row.get("stock_code") or row.get("symbol") or row.get("code")
+        if code is not None:
+            values["issuer_code"] = _norm_code(code) or code
+    if "company_name" not in values and row.get("sec_name") is not None:
+        values["company_name"] = row.get("sec_name")
+    link = None
+    for k in ("file_link", "fileLink", "source_url", "url", "link"):
+        if row.get(k):
+            link = row.get(k)
+            break
+    if link:
+        values.setdefault("file_link", link)
+        values.setdefault("source_url", link)
     if stock_code and "issuer_code" not in values:
-        values["issuer_code"] = stock_code
+        values["issuer_code"] = _norm_code(stock_code) or stock_code
     return values
 
 
@@ -376,6 +556,7 @@ def run_disclosure_composite(
     chain_state: Dict[str, Any] = {}
     trace: List[Dict[str, Any]] = []
     values: Dict[str, Any] = {}
+    list_evidence: Dict[str, Any] = {}
     invoked: List[str] = []
     gateway_flags: Dict[str, bool] = {}
     last_error: Optional[str] = None
@@ -532,34 +713,66 @@ def run_disclosure_composite(
         invoked.append(oid)
         success = bool(result.get("success")) if isinstance(result, dict) else False
         gateway_flags[oid] = success
+        # Resolver wraps RealMcpResult under "result"; also accept bare envelopes.
         payload = result.get("result") if isinstance(result, dict) else result
         extracted = _extract_chain_fields(payload)
         if isinstance(result, dict):
             extracted.update(_extract_chain_fields(result))
+        if isinstance(payload, dict) and isinstance(payload.get("normalized"), (dict, list)):
+            extracted.update(_extract_chain_fields(payload.get("normalized")))
 
         if stage == "list":
             rows = _collect_rows(payload)
             if isinstance(result, dict):
                 rows = rows or _collect_rows(result)
+            if isinstance(payload, dict) and not rows:
+                rows = _collect_rows(payload.get("normalized"))
             selected = select_list_row(rows, grounding=g, step=step)
             if selected:
                 row_vals = _row_to_values(selected, stock_code=g.get("stock_code"))
+                list_evidence.update(row_vals)
                 values.update(row_vals)
                 chain_state.update({k: v for k, v in row_vals.items() if v is not None})
                 extracted = {**extracted, **row_vals}
             elif extracted:
-                values.update({k: v for k, v in extracted.items() if k in _LIST_FIELDS and v is not None})
+                row_vals = {
+                    k: v
+                    for k, v in extracted.items()
+                    if k in _LIST_FIELDS and v is not None
+                }
+                list_evidence.update(row_vals)
+                values.update(row_vals)
                 chain_state.update({k: v for k, v in extracted.items() if v is not None})
         else:
             chain_state.update({k: v for k, v in extracted.items() if v is not None})
             values.update({k: v for k, v in extracted.items() if v is not None})
 
-        for pass_key in ("news_id", "local_key", "release_date", "page_number", "title", "source_url"):
+        for pass_key in (
+            "news_id",
+            "local_key",
+            "release_date",
+            "page_number",
+            "start_page",
+            "title",
+            "source_url",
+            "file_link",
+        ):
             if pass_key in extracted and extracted[pass_key] is not None:
                 chain_state[pass_key] = extracted[pass_key]
                 values.setdefault(pass_key, extracted[pass_key])
+        # Keyword hits often expose page_number → start_page for pages stage.
+        if chain_state.get("page_number") is not None and "start_page" not in chain_state:
+            chain_state["start_page"] = chain_state["page_number"]
         if g.get("stock_code") and "issuer_code" not in values:
             values["issuer_code"] = g["stock_code"]
+
+        selected_fields = None
+        if stage == "list":
+            selected_fields = sorted(
+                k
+                for k in _LIST_FIELDS
+                if k in list_evidence and list_evidence.get(k) is not None
+            )
 
         trace.append(
             {
@@ -571,9 +784,8 @@ def run_disclosure_composite(
                 "success": success,
                 "gateway_success": success,
                 "extracted_fields": sorted(extracted.keys()),
-                "selected_row_fields": sorted(
-                    k for k in _LIST_FIELDS if k in values and values.get(k) is not None
-                )
+                "selected_row_fields": selected_fields,
+                "n_list_rows": len(_collect_rows(payload) or _collect_rows(result) or [])
                 if stage == "list"
                 else None,
                 "error": None
@@ -599,13 +811,26 @@ def run_disclosure_composite(
                 stopped_after_list = True
                 break
 
+    # Later-stage failures must not erase list evidence already obtained.
+    if list_evidence:
+        for k, v in list_evidence.items():
+            if v is not None:
+                values.setdefault(k, v)
+                chain_state.setdefault(k, v)
+
     missing_outputs = [
         r for r in required_outputs if r not in values or values.get(r) in (None, "")
     ]
-    # Preserve list evidence even when later stages fail.
     status = "completed" if not missing_outputs and not last_error else "unavailable"
     if last_error and missing_outputs:
-        status = "failed" if any(x in str(last_error) for x in ("missing_stage_args", "stage_failed", "stage_exception")) else "unavailable"
+        status = (
+            "failed"
+            if any(
+                x in str(last_error)
+                for x in ("missing_stage_args", "stage_failed", "stage_exception")
+            )
+            else "unavailable"
+        )
     return {
         "workflow_id": DISCLOSURE_COMPOSITE_ID,
         "chain": list(DISCLOSURE_CHAIN),
@@ -613,6 +838,7 @@ def run_disclosure_composite(
         "invoked_operations": invoked,
         "gateway_success_by_operation": gateway_flags,
         "values": values,
+        "list_evidence": list_evidence,
         "chain_state": chain_state,
         "missing_outputs": missing_outputs,
         "status": status,
