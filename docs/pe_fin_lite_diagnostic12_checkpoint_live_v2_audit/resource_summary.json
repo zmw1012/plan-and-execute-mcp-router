@@ -1,0 +1,7 @@
+{
+  "n_tasks": 12,
+  "sum_llm_calls": 39,
+  "sum_tokens": 86418,
+  "sum_mcp": 26,
+  "sum_embedding_calls": 10
+}

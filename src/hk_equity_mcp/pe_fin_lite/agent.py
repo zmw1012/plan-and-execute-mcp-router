@@ -621,7 +621,13 @@ class PeFinLiteAgent:
             if rec.get("gateway_success") or rec.get("success")
         )
         fail_inv = max(0, len(invoke_records) - succ)
-        all_ok = None if not invoke_records else (fail_inv == 0)
+        # Zero MCP invocations must not vacuous-true tool success.
+        if mcp_count == 0 and not invoke_records:
+            all_ok = None
+            tool_execution_success: Optional[bool] = None
+        else:
+            all_ok = fail_inv == 0
+            tool_execution_success = all_ok
 
         from hk_equity_mcp.pe_fin_lite.checkpoint_observability import (
             CHECKPOINT_TRACE_CONTRACT_VERSION,
@@ -672,7 +678,7 @@ class PeFinLiteAgent:
             "describe_calls": resolver_calls["describe_operation"],
             "invoke_calls": list(invoke_records),
             "invoke_records": list(invoke_records),
-            "tool_execution_success": all_ok if all_ok is not None else True,
+            "tool_execution_success": tool_execution_success,
             "all_tool_invocations_successful": all_ok,
             "successful_invocation_count": succ,
             "failed_invocation_count": fail_inv,

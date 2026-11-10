@@ -144,7 +144,10 @@ def test_c02_filter_pass_and_blocked_leak_fail():
         "embedding_topk": [{"operation_id": "op.a", "score": 1}],
         "described_candidates": ["op.a"],
     }
-    assert eval_c02_filter(_row(retrieval_funnels=[funnel]))["status"] == "pass"
+    c02 = eval_c02_filter(_row(retrieval_funnels=[funnel]))
+    assert c02["contract_status"] == "pass"
+    assert c02["stage_outcome_status"] == "not_evaluated"
+    assert c02["status"] == "not_evaluated"
     # N/A without retrieve
     assert (
         eval_c02_filter(_row(initial_plan={"steps": [{"id": "s1", "type": "compute"}]}, retrieval_funnels=[]))[
@@ -163,7 +166,10 @@ def test_c03_c04_topk_and_describe():
         ],
         "described_candidates": ["op.0", "op.1", "op.2"],
     }
-    assert eval_c03_embedding(_row(retrieval_funnels=[funnel]))["status"] == "pass"
+    c03 = eval_c03_embedding(_row(retrieval_funnels=[funnel]))
+    assert c03["contract_status"] == "pass"
+    assert c03["stage_outcome_status"] == "not_evaluated"
+    assert c03["status"] == "not_evaluated"
     d = eval_c04_describe(_row(retrieval_funnels=[funnel]))
     assert d["status"] == "pass"
     assert d["detail"]["funnels"][0]["rank4_5_not_described"] == ["op.3", "op.4"]
@@ -291,7 +297,7 @@ def test_c11_compute_missing_operand():
         )
     )
     assert r["status"] == "fail"
-    assert eval_c11_compute(_row())["status"] == "N/A"
+    assert eval_c11_compute(_row())["status"] == "N/A_not_planned"
 
 
 def test_c12_reason_unsupported_claim():

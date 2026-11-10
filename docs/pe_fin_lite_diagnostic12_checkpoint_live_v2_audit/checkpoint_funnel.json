@@ -1,0 +1,244 @@
+{
+  "C01_planner": {
+    "pass": 12,
+    "fail": 0,
+    "N/A": 0,
+    "unknown": 0,
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 1.0,
+    "contract_status_counts": {
+      "pass": 12
+    },
+    "stage_outcome_status_counts": {
+      "pass": 12
+    },
+    "headline_basis": "stage_outcome_status"
+  },
+  "C02_filter": {
+    "pass": 0,
+    "fail": 0,
+    "N/A": 1,
+    "unknown": 0,
+    "not_evaluated": 11,
+    "pass_rate_excluding_na": 0.0,
+    "contract_status_counts": {
+      "pass": 11,
+      "N/A": 1
+    },
+    "stage_outcome_status_counts": {
+      "not_evaluated": 11,
+      "N/A": 1
+    },
+    "headline_basis": "stage_outcome_status"
+  },
+  "C03_embedding": {
+    "pass": 0,
+    "fail": 0,
+    "N/A": 1,
+    "unknown": 0,
+    "not_evaluated": 11,
+    "pass_rate_excluding_na": 0.0,
+    "contract_status_counts": {
+      "pass": 11,
+      "N/A": 1
+    },
+    "stage_outcome_status_counts": {
+      "not_evaluated": 11,
+      "N/A": 1
+    },
+    "headline_basis": "stage_outcome_status"
+  },
+  "C04_describe": {
+    "pass": 11,
+    "fail": 0,
+    "N/A": 1,
+    "unknown": 0,
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 1.0,
+    "contract_status_counts": {
+      "pass": 11,
+      "N/A": 1
+    },
+    "stage_outcome_status_counts": {
+      "pass": 11,
+      "N/A": 1
+    },
+    "headline_basis": "stage_outcome_status"
+  },
+  "C05_binder": {
+    "pass": 10,
+    "fail": 1,
+    "N/A": 1,
+    "unknown": 0,
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 0.9090909090909091,
+    "contract_status_counts": {
+      "pass": 10,
+      "N/A": 1,
+      "fail": 1
+    },
+    "stage_outcome_status_counts": {
+      "pass": 10,
+      "N/A": 1,
+      "fail": 1
+    },
+    "headline_basis": "stage_outcome_status"
+  },
+  "C06_arguments": {
+    "pass": 11,
+    "fail": 0,
+    "N/A": 1,
+    "unknown": 0,
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 1.0,
+    "contract_status_counts": {
+      "pass": 11,
+      "N/A": 1
+    },
+    "stage_outcome_status_counts": {
+      "pass": 11,
+      "N/A": 1
+    },
+    "headline_basis": "stage_outcome_status"
+  },
+  "C07_mcp": {
+    "pass": 6,
+    "fail": 4,
+    "N/A": 2,
+    "unknown": 0,
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 0.6,
+    "contract_status_counts": {
+      "fail": 6,
+      "pass": 6
+    },
+    "stage_outcome_status_counts": {
+      "fail": 4,
+      "pass": 6,
+      "N/A_not_required": 1,
+      "N/A_not_reached": 1
+    },
+    "headline_basis": "stage_outcome_status"
+  },
+  "C08_normalize": {
+    "pass": 10,
+    "fail": 0,
+    "N/A": 1,
+    "unknown": 1,
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 0.9090909090909091,
+    "contract_status_counts": {
+      "pass": 10,
+      "N/A": 1,
+      "unknown": 1
+    },
+    "stage_outcome_status_counts": {
+      "pass": 10,
+      "N/A": 1,
+      "unknown": 1
+    },
+    "headline_basis": "stage_outcome_status"
+  },
+  "C09_evidence_acceptance": {
+    "pass": 4,
+    "fail": 7,
+    "N/A": 1,
+    "unknown": 0,
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 0.36363636363636365,
+    "contract_status_counts": {
+      "pass": 11,
+      "N/A": 1
+    },
+    "stage_outcome_status_counts": {
+      "fail": 7,
+      "pass": 4,
+      "N/A": 1
+    },
+    "headline_basis": "stage_outcome_status"
+  },
+  "C10_fallback_unavailable": {
+    "pass": 11,
+    "fail": 0,
+    "N/A": 1,
+    "unknown": 0,
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 1.0,
+    "contract_status_counts": {
+      "pass": 11,
+      "N/A": 1
+    },
+    "stage_outcome_status_counts": {
+      "pass": 11,
+      "N/A": 1
+    },
+    "headline_basis": "stage_outcome_status"
+  },
+  "C11_compute": {
+    "pass": 1,
+    "fail": 0,
+    "N/A": 11,
+    "unknown": 0,
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 1.0,
+    "contract_status_counts": {
+      "N/A": 10,
+      "pass": 2
+    },
+    "stage_outcome_status_counts": {
+      "N/A_not_planned": 10,
+      "pass": 1,
+      "N/A_upstream_blocked": 1
+    },
+    "headline_basis": "stage_outcome_status"
+  },
+  "C12_reason": {
+    "pass": 2,
+    "fail": 2,
+    "N/A": 8,
+    "unknown": 0,
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 0.5,
+    "contract_status_counts": {
+      "pass": 9,
+      "N/A": 3
+    },
+    "stage_outcome_status_counts": {
+      "N/A_upstream_blocked": 5,
+      "fail": 2,
+      "N/A_not_planned": 3,
+      "pass": 2
+    },
+    "headline_basis": "stage_outcome_status"
+  },
+  "C13_final": {
+    "pass": 12,
+    "fail": 0,
+    "N/A": 0,
+    "unknown": 0,
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 1.0,
+    "contract_status_counts": {
+      "pass": 12
+    },
+    "stage_outcome_status_counts": {
+      "pass": 12
+    },
+    "headline_basis": "stage_outcome_status"
+  },
+  "C14_evaluator": {
+    "pass": 12,
+    "fail": 0,
+    "N/A": 0,
+    "unknown": 0,
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 1.0,
+    "contract_status_counts": {
+      "pass": 12
+    },
+    "stage_outcome_status_counts": {
+      "pass": 12
+    },
+    "headline_basis": "stage_outcome_status"
+  }
+}

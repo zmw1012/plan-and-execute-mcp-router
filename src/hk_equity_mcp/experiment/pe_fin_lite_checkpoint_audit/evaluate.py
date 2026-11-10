@@ -24,6 +24,10 @@ def _status(ok: Optional[bool], *, applicable: bool = True, known: bool = True) 
     return "unknown"
 
 
+def _is_na_status(status: Status) -> bool:
+    return status == "N/A" or str(status).startswith("N/A_")
+
+
 def _dual(
     *,
     checkpoint: str,
@@ -32,14 +36,12 @@ def _dual(
     downstream_task_effect: Optional[str] = None,
     detail: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Dual-layer checkpoint record: observability ≠ semantic stage success."""
-    # Aggregate for funnel: stage outcome when decided; else contract/observability.
-    if stage_outcome_status in {"pass", "fail"}:
-        agg = stage_outcome_status
-    elif stage_outcome_status in {"N/A", "not_evaluated"}:
-        agg = contract_status if contract_status in {"pass", "fail", "N/A", "unknown"} else "unknown"
-    else:
-        agg = contract_status if contract_status != "pass" else stage_outcome_status
+    """Dual-layer checkpoint record: observability ≠ semantic stage success.
+
+    Headline ``status`` follows stage_outcome_status so contract pass cannot
+    masquerade as stage pass in funnel/top-level counts.
+    """
+    agg = stage_outcome_status
     return {
         "checkpoint": checkpoint,
         "status": agg,
@@ -49,6 +51,30 @@ def _dual(
         "downstream_task_effect": downstream_task_effect,
         "detail": detail or {},
     }
+
+
+def _binder_failed_before_invoke(row: Dict[str, Any]) -> bool:
+    for s in row.get("step_statuses") or []:
+        fr = str(s.get("failure_reason") or "")
+        if fr.startswith("binder_failed"):
+            return True
+    for f in _funnels(row):
+        binding = f.get("binding") if isinstance(f.get("binding"), dict) else {}
+        if binding.get("ok") is False and not (
+            f.get("invoked_operations") or row.get("invoked_operations")
+        ):
+            return True
+    return False
+
+
+def _temporal_no_tool_path(row: Dict[str, Any]) -> bool:
+    err = str(row.get("error_type") or "")
+    if "temporal_latest_current" in err:
+        return True
+    for t in row.get("trace") or []:
+        if isinstance(t, dict) and t.get("stage") == "temporal_policy":
+            return True
+    return False
 
 
 def _plan_steps(row: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -345,17 +371,52 @@ def eval_c06_arguments(row: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def eval_c07_mcp(row: Dict[str, Any]) -> Dict[str, Any]:
+    invoked = list(row.get("invoked_operations") or [])
+    records = list(row.get("invoke_records") or row.get("invoke_calls") or [])
+    mcp_count = int(row.get("real_mcp_execution_count") or 0)
+    tool_success = row.get("tool_execution_success")
+    all_ok = row.get("all_tool_invocations_successful")
+    metrics_vacuous = mcp_count == 0 and tool_success is True
+
+    # Valid temporal no-tool path (even if plan never scheduled retrieve).
+    if not invoked and not records and mcp_count == 0 and _temporal_no_tool_path(row):
+        return _dual(
+            checkpoint="C07_mcp",
+            contract_status="pass" if not metrics_vacuous else "fail",
+            stage_outcome_status="N/A_not_required",
+            downstream_task_effect="N/A_not_required",
+            detail={
+                "no_invocation": True,
+                "classification": "N/A_not_required",
+                "tool_success_claimed": tool_success,
+                "metrics_vacuous_true": metrics_vacuous,
+                "note": "temporal_or_valid_no_tool_path",
+            },
+        )
+
     if not _has_retrieve(row):
         return _dual(
             checkpoint="C07_mcp",
             contract_status="N/A",
-            stage_outcome_status="N/A",
+            stage_outcome_status="N/A_not_planned",
+            downstream_task_effect="N/A_not_planned",
         )
-    invoked = list(row.get("invoked_operations") or [])
-    records = list(row.get("invoke_records") or row.get("invoke_calls") or [])
-    tool_success = row.get("tool_execution_success")
-    all_ok = row.get("all_tool_invocations_successful")
-    if not invoked and not records:
+
+    if not invoked and not records and mcp_count == 0:
+        if _binder_failed_before_invoke(row):
+            return _dual(
+                checkpoint="C07_mcp",
+                contract_status="pass" if not metrics_vacuous else "fail",
+                stage_outcome_status="N/A_not_reached",
+                downstream_task_effect="N/A_not_reached",
+                detail={
+                    "no_invocation": True,
+                    "classification": "N/A_not_reached",
+                    "tool_success_claimed": tool_success,
+                    "metrics_vacuous_true": metrics_vacuous,
+                    "note": "upstream_binder_failed_before_mcp",
+                },
+            )
         funnels = _funnels(row)
         stopped = any(
             (f.get("disclosure_composite") or {}).get("stopped_after_list") for f in funnels
@@ -374,6 +435,7 @@ def eval_c07_mcp(row: Dict[str, Any]) -> Dict[str, Any]:
             detail={
                 "no_invocation": True,
                 "tool_success_claimed": tool_success,
+                "metrics_vacuous_true": metrics_vacuous,
                 "note": "zero_invocation_not_tool_success",
             },
         )
@@ -388,6 +450,12 @@ def eval_c07_mcp(row: Dict[str, Any]) -> Dict[str, Any]:
     for rec in records:
         if isinstance(rec, dict) and rec.get("gateway_success") is False:
             gw_ok = False
+    # Also inspect funnel gateway maps when records sparse.
+    if gw_ok:
+        for f in _funnels(row):
+            for okv in (f.get("invoke_gateway_success") or {}).values():
+                if okv is False:
+                    gw_ok = False
     st = _status(gw_ok)
     return _dual(
         checkpoint="C07_mcp",
@@ -398,6 +466,8 @@ def eval_c07_mcp(row: Dict[str, Any]) -> Dict[str, Any]:
             "records": records,
             "successful_invoked": row.get("successful_invoked_operations"),
             "real_mcp_execution_count": row.get("real_mcp_execution_count"),
+            "tool_execution_success": tool_success,
+            "all_tool_invocations_successful": all_ok,
         },
     )
 
@@ -589,7 +659,8 @@ def eval_c11_compute(row: Dict[str, Any]) -> Dict[str, Any]:
         return _dual(
             checkpoint="C11_compute",
             contract_status="N/A",
-            stage_outcome_status="N/A",
+            stage_outcome_status="N/A_not_planned",
+            downstream_task_effect="N/A_not_planned",
             detail={"applicable": False},
         )
     records = list(row.get("compute_traces") or [])
@@ -629,7 +700,7 @@ def eval_c11_compute(row: Dict[str, Any]) -> Dict[str, Any]:
         return _dual(
             checkpoint="C11_compute",
             contract_status="pass",
-            stage_outcome_status="N/A",
+            stage_outcome_status="N/A_upstream_blocked",
             downstream_task_effect="N/A_upstream_blocked",
             detail={"items": details, "classification": "N/A_upstream_blocked"},
         )
@@ -654,25 +725,46 @@ def eval_c12_reason(row: Dict[str, Any]) -> Dict[str, Any]:
         return _dual(
             checkpoint="C12_reason",
             contract_status="N/A",
-            stage_outcome_status="N/A",
+            stage_outcome_status="N/A_not_planned",
+            downstream_task_effect="N/A_not_planned",
             detail={"applicable": False},
         )
     arts = list(row.get("reason_artifacts") or [])
     statuses = [s for s in (row.get("step_statuses") or []) if s.get("type") == "reason"]
-    if not arts and not statuses:
-        # May be skipped due to dependency.
-        for s in row.get("step_statuses") or []:
-            if s.get("type") == "reason" and str(s.get("status")) == "skipped_due_to_dependency":
+    # Upstream skip takes precedence even when empty artifacts.
+    for s in statuses:
+        st = str(s.get("status") or "")
+        fr = str(s.get("failure_reason") or "")
+        if st == "skipped_due_to_dependency" or fr.startswith("depends_on_failed"):
+            if not arts or all(
+                isinstance(a, dict)
+                and not a.get("summary")
+                and not a.get("reason_parse_failed")
+                for a in arts
+            ):
                 return _dual(
                     checkpoint="C12_reason",
                     contract_status="pass",
-                    stage_outcome_status="N/A",
+                    stage_outcome_status="N/A_upstream_blocked",
                     downstream_task_effect="N/A_upstream_blocked",
+                    detail={"classification": "N/A_upstream_blocked", "steps": statuses},
                 )
+    if not arts and not statuses:
         return _dual(
             checkpoint="C12_reason",
             contract_status="unknown",
             stage_outcome_status="unknown",
+        )
+    # Only skipped statuses present.
+    if statuses and all(
+        str(s.get("status") or "") == "skipped_due_to_dependency" for s in statuses
+    ):
+        return _dual(
+            checkpoint="C12_reason",
+            contract_status="pass",
+            stage_outcome_status="N/A_upstream_blocked",
+            downstream_task_effect="N/A_upstream_blocked",
+            detail={"classification": "N/A_upstream_blocked", "steps": statuses},
         )
     parse_failed = False
     runtime_recovered = False
@@ -701,7 +793,7 @@ def eval_c12_reason(row: Dict[str, Any]) -> Dict[str, Any]:
         downstream_task_effect=(
             "runtime_recovered_verified_evidence"
             if runtime_recovered
-            else None
+            else ("reason_stage_fail" if parse_failed else "reason_stage_pass")
         ),
         detail={
             "artifacts": details,
@@ -810,11 +902,9 @@ def evaluate_task_checkpoints(row: Dict[str, Any]) -> Dict[str, Any]:
     primary = None
     secondary: List[str] = []
     for r in results:
-        # Prefer stage_outcome fail as blocking; ignore not_evaluated quality gaps.
-        stage = r.get("stage_outcome_status") or r.get("status")
-        if stage == "fail" or (
-            r.get("status") == "fail" and stage not in {"not_evaluated", "N/A"}
-        ):
+        # Prefer stage_outcome fail as blocking; ignore N/A_* and not_evaluated.
+        stage = str(r.get("stage_outcome_status") or r.get("status") or "")
+        if stage == "fail":
             if primary is None:
                 primary = r["checkpoint"]
             else:

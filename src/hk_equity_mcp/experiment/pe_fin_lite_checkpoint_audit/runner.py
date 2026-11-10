@@ -149,6 +149,7 @@ def run_checkpoint_audit(
         raw_hashes_unchanged=unchanged,
         mock=bool(run_metadata.get("mock")),
         dry_run=bool(run_metadata.get("dry_run")),
+        predictions=predictions,
     )
 
     primary_counts = Counter(
@@ -325,10 +326,12 @@ def _render_report(
         "",
     ]
     for cid, stats in funnel.items():
+        stage = stats.get("stage_outcome_status_counts") or {}
         lines.append(
             f"- {cid}: pass={stats.get('pass')} fail={stats.get('fail')} "
             f"N/A={stats.get('N/A')} unknown={stats.get('unknown')} "
-            f"(pass_rate_excl_NA={stats.get('pass_rate_excluding_na'):.3f})"
+            f"(pass_rate_excl_NA={stats.get('pass_rate_excluding_na'):.3f}; "
+            f"headline=stage_outcome; stage={stage})"
         )
     lines.extend(
         [

@@ -1,0 +1,18 @@
+{
+  "primary_blocking_checkpoint_counts": {
+    "C07_mcp": 4,
+    "C09_evidence_acceptance": 2,
+    "C12_reason": 2,
+    "none_or_all_non_fail": 3,
+    "C05_binder": 1
+  },
+  "secondary_failure_counts": {
+    "C09_evidence_acceptance": 5
+  },
+  "agent_error_types": {
+    "semantic_or_structured_retrieve_failure": 7,
+    "none": 4,
+    "temporal_latest_current_unsatisfied": 1
+  },
+  "note": "Accuracy failures are not remapped to upstream pass."
+}

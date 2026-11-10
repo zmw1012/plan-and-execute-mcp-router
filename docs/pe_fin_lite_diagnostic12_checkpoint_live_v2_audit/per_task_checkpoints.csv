@@ -1,0 +1,13 @@
+task_id,domain,primary_blocking_checkpoint,answer_correct,status,C01_planner,C02_filter,C03_embedding,C04_describe,C05_binder,C06_arguments,C07_mcp,C08_normalize,C09_evidence_acceptance,C10_fallback_unavailable,C11_compute,C12_reason,C13_final,C14_evaluator
+fin_cf_003,financial,C07_mcp,False,partial,pass,not_evaluated,not_evaluated,pass,pass,pass,fail,pass,fail,pass,N/A_not_planned,N/A_upstream_blocked,pass,pass
+fin_cf_011,financial,C09_evidence_acceptance,False,partial,pass,not_evaluated,not_evaluated,pass,pass,pass,pass,pass,fail,pass,N/A_not_planned,N/A_upstream_blocked,pass,pass
+fin_cf_020,financial,C07_mcp,False,partial,pass,not_evaluated,not_evaluated,pass,pass,pass,fail,pass,fail,pass,N/A_not_planned,N/A_upstream_blocked,pass,pass
+fin_cf_023,financial,C12_reason,False,full,pass,not_evaluated,not_evaluated,pass,pass,pass,pass,pass,pass,pass,pass,fail,pass,pass
+fin_ht_016,financial,C07_mcp,False,failed,pass,not_evaluated,not_evaluated,pass,pass,pass,fail,pass,fail,pass,N/A_upstream_blocked,N/A_not_planned,pass,pass
+xd_dev_002,cross_domain,,False,full,pass,not_evaluated,not_evaluated,pass,pass,pass,pass,pass,pass,pass,N/A_not_planned,pass,pass,pass
+xd_ht_007,cross_domain,C09_evidence_acceptance,False,failed,pass,not_evaluated,not_evaluated,pass,pass,pass,pass,pass,fail,pass,N/A_not_planned,N/A_not_planned,pass,pass
+xd_ht_014,cross_domain,C07_mcp,False,partial,pass,not_evaluated,not_evaluated,pass,pass,pass,fail,pass,fail,pass,N/A_not_planned,N/A_upstream_blocked,pass,pass
+mkt_dev_014,market,,True,partial,pass,N/A,N/A,N/A,N/A,N/A,N/A_not_required,N/A,N/A,N/A,N/A_not_planned,pass,pass,pass
+fin_cf_024,financial,C05_binder,False,failed,pass,not_evaluated,not_evaluated,pass,fail,pass,N/A_not_reached,unknown,fail,pass,N/A_not_planned,N/A_upstream_blocked,pass,pass
+mkt_dev_001,market,,True,full,pass,not_evaluated,not_evaluated,pass,pass,pass,pass,pass,pass,pass,N/A_not_planned,N/A_not_planned,pass,pass
+news_ht_004,news,C12_reason,True,full,pass,not_evaluated,not_evaluated,pass,pass,pass,pass,pass,pass,pass,N/A_not_planned,fail,pass,pass

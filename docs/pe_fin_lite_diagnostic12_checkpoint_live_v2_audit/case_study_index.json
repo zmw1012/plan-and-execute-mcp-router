@@ -1,0 +1,68 @@
+{
+  "cases": [
+    {
+      "task_id": "fin_cf_003",
+      "primary": "C07_mcp",
+      "secondary": [
+        "C09_evidence_acceptance"
+      ],
+      "answer_correct": false
+    },
+    {
+      "task_id": "fin_cf_011",
+      "primary": "C09_evidence_acceptance",
+      "secondary": [],
+      "answer_correct": false
+    },
+    {
+      "task_id": "fin_cf_020",
+      "primary": "C07_mcp",
+      "secondary": [
+        "C09_evidence_acceptance"
+      ],
+      "answer_correct": false
+    },
+    {
+      "task_id": "fin_cf_023",
+      "primary": "C12_reason",
+      "secondary": [],
+      "answer_correct": false
+    },
+    {
+      "task_id": "fin_ht_016",
+      "primary": "C07_mcp",
+      "secondary": [
+        "C09_evidence_acceptance"
+      ],
+      "answer_correct": false
+    },
+    {
+      "task_id": "xd_ht_007",
+      "primary": "C09_evidence_acceptance",
+      "secondary": [],
+      "answer_correct": false
+    },
+    {
+      "task_id": "xd_ht_014",
+      "primary": "C07_mcp",
+      "secondary": [
+        "C09_evidence_acceptance"
+      ],
+      "answer_correct": false
+    },
+    {
+      "task_id": "fin_cf_024",
+      "primary": "C05_binder",
+      "secondary": [
+        "C09_evidence_acceptance"
+      ],
+      "answer_correct": false
+    },
+    {
+      "task_id": "news_ht_004",
+      "primary": "C12_reason",
+      "secondary": [],
+      "answer_correct": true
+    }
+  ]
+}

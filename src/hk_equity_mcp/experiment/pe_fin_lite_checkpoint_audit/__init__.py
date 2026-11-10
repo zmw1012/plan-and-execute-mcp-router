@@ -29,7 +29,17 @@ CHECKPOINT_IDS = (
     "C14_evaluator",
 )
 
-CHECKPOINT_STATUSES = ("pass", "fail", "N/A", "unknown", "not_evaluated")
+CHECKPOINT_STATUSES = (
+    "pass",
+    "fail",
+    "N/A",
+    "N/A_not_planned",
+    "N/A_not_required",
+    "N/A_not_reached",
+    "N/A_upstream_blocked",
+    "unknown",
+    "not_evaluated",
+)
 
 __all__ = [
     "AUDIT_VERSION",

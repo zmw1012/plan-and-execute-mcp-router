@@ -236,7 +236,8 @@ def test_dual_layer_c08_c09_c11_c12_c13_c14():
             "compute_traces": [{"error": "skipped_due_to_dependency:s1"}],
         }
     )
-    assert c11["stage_outcome_status"] == "N/A"
+    assert c11["stage_outcome_status"] == "N/A_upstream_blocked"
+    assert c11["status"] == "N/A_upstream_blocked"
     assert c11["downstream_task_effect"] == "N/A_upstream_blocked"
 
     # C12 parse fail + recovered ≠ stage pass

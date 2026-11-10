@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 
 def assess_engineering_pass(
@@ -15,6 +15,7 @@ def assess_engineering_pass(
     mock: bool = False,
     dry_run: bool = False,
     live_required_for_pass: bool = True,
+    predictions: Optional[Sequence[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     unique = sorted({str(t) for t in task_ids if t})
     n_rows = len(per_task)
@@ -52,15 +53,17 @@ def assess_engineering_pass(
             (
                 t.get("primary_blocking_checkpoint") is not None
                 or all(
-                    c.get("status") != "fail"
+                    str(c.get("status") or "") != "fail"
                     for c in (t.get("checkpoint_list") or [])
                 )
             )
             for t in per_task
         ),
-        "na_not_counted_as_pass": True,  # enforced in funnel accounting
+        "na_not_counted_as_pass": _na_not_counted_as_pass(per_task),
         "evaluator_separated": True,
-        "zero_invocation_not_tool_success": _zero_invocation_ok(per_task),
+        "zero_invocation_not_tool_success": _zero_invocation_ok(
+            per_task, predictions=predictions
+        ),
         "failed_partial_not_strict_success": _strict_semantics_ok(per_task),
         "no_silent_mock_fallback": _no_silent_mock(per_task, run_metadata),
     }
@@ -75,34 +78,65 @@ def assess_engineering_pass(
         applicable = sum(
             1
             for c in (t.get("checkpoint_list") or [])
-            if c.get("status") != "N/A"
+            if not _is_na_like(c.get("status"))
         )
         if applicable and unk / max(applicable, 1) > 0.5:
             unknown_heavy += 1
     checks["trace_coverage_adequate"] = unknown_heavy == 0
 
-    engineering_pass = all(bool(v) for v in checks.values())
+    failing = [k for k, v in checks.items() if not bool(v)]
+    engineering_pass = not failing
     return {
         "engineering_pass": engineering_pass,
         "explicitly_not_formal_accuracy": True,
         "not_accuracy_pass": True,
         "checks": checks,
+        "failing_checks": failing,
         "n_rows": n_rows,
         "unique_ids": len(unique),
         "expected_n": expected_n,
         "notes": [
             "Answer may be incorrect while engineering_pass is true.",
-            "N/A is not counted as pass.",
+            "N/A / N/A_* is not counted as pass.",
             "Evaluator errors are separated from agent/method errors.",
+            "engineering_pass is derived only from invariant checks (never hard-coded).",
         ],
     }
 
 
-def _zero_invocation_ok(per_task: Sequence[Dict[str, Any]]) -> bool:
+def _is_na_like(status: Any) -> bool:
+    s = str(status or "")
+    return s == "N/A" or s.startswith("N/A_")
+
+
+def _na_not_counted_as_pass(per_task: Sequence[Dict[str, Any]]) -> bool:
+    """Fail if any checkpoint headline status is pass while stage is N/A_*."""
+    for t in per_task:
+        for c in t.get("checkpoint_list") or []:
+            stage = str(c.get("stage_outcome_status") or "")
+            headline = str(c.get("status") or "")
+            if _is_na_like(stage) and headline == "pass":
+                return False
+    return True
+
+
+def _zero_invocation_ok(
+    per_task: Sequence[Dict[str, Any]],
+    *,
+    predictions: Optional[Sequence[Dict[str, Any]]] = None,
+) -> bool:
+    # Offline derived checkpoint detail.
     for t in per_task:
         c07 = (t.get("checkpoints") or {}).get("C07_mcp") or {}
         detail = c07.get("detail") or {}
+        if detail.get("metrics_vacuous_true") is True:
+            return False
         if detail.get("no_invocation") and detail.get("tool_success_claimed") is True:
+            return False
+    # Raw prediction invariant (v2 freeze detects historical vacuous-true metrics).
+    for row in predictions or []:
+        mcp = int(row.get("real_mcp_execution_count") or 0)
+        if mcp == 0 and row.get("tool_execution_success") is True:
             return False
     return True
 
@@ -124,36 +158,36 @@ def _no_silent_mock(per_task: Sequence[Dict[str, Any]], meta: Dict[str, Any]) ->
 def funnel_counts(per_task: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     from collections import Counter
 
-    by_cp: Dict[str, Counter] = {}
     by_stage: Dict[str, Counter] = {}
     by_contract: Dict[str, Counter] = {}
     for t in per_task:
         for c in t.get("checkpoint_list") or []:
             cid = c["checkpoint"]
-            by_cp.setdefault(cid, Counter())
-            by_cp[cid][c["status"]] += 1
+            stage = str(c.get("stage_outcome_status") or c.get("status") or "unknown")
             by_stage.setdefault(cid, Counter())
-            by_stage[cid][c.get("stage_outcome_status") or c["status"]] += 1
+            by_stage[cid][stage] += 1
             by_contract.setdefault(cid, Counter())
             by_contract[cid][c.get("contract_status") or c["status"]] += 1
-    return {
-        cid: {
-            "pass": int(cnt.get("pass", 0)),
-            "fail": int(cnt.get("fail", 0)),
-            "N/A": int(cnt.get("N/A", 0)),
-            "unknown": int(cnt.get("unknown", 0)),
-            "not_evaluated": int(cnt.get("not_evaluated", 0)),
+
+    out: Dict[str, Any] = {}
+    for cid, stage_cnt in by_stage.items():
+        pass_n = int(stage_cnt.get("pass", 0))
+        fail_n = int(stage_cnt.get("fail", 0))
+        unknown_n = int(stage_cnt.get("unknown", 0))
+        not_eval_n = int(stage_cnt.get("not_evaluated", 0))
+        na_n = sum(int(v) for k, v in stage_cnt.items() if k == "N/A" or str(k).startswith("N/A_"))
+        out[cid] = {
+            # Headline funnel uses stage_outcome_status only.
+            "pass": pass_n,
+            "fail": fail_n,
+            "N/A": na_n,
+            "unknown": unknown_n,
+            "not_evaluated": not_eval_n,
             "pass_rate_excluding_na": (
-                float(cnt.get("pass", 0))
-                / max(
-                    1,
-                    int(cnt.get("pass", 0))
-                    + int(cnt.get("fail", 0))
-                    + int(cnt.get("unknown", 0)),
-                )
+                float(pass_n) / max(1, pass_n + fail_n + unknown_n)
             ),
             "contract_status_counts": dict(by_contract.get(cid) or {}),
-            "stage_outcome_status_counts": dict(by_stage.get(cid) or {}),
+            "stage_outcome_status_counts": dict(stage_cnt),
+            "headline_basis": "stage_outcome_status",
         }
-        for cid, cnt in by_cp.items()
-    }
+    return out

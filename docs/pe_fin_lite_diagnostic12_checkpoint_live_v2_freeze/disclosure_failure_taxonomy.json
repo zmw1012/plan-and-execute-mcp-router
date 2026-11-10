@@ -1,0 +1,35 @@
+{
+  "audit_mode": "offline_raw_only",
+  "network_retry": false,
+  "tasks": [
+    {
+      "task_id": "fin_cf_003",
+      "failure_stage": "list",
+      "class": "no_matching_result",
+      "evidence": "No announcements found for 00700",
+      "n_list_rows": 0
+    },
+    {
+      "task_id": "fin_cf_020",
+      "failure_stage": "list",
+      "class": "no_matching_result",
+      "evidence": "No announcements found for 09988",
+      "n_list_rows": 0
+    },
+    {
+      "task_id": "fin_ht_016",
+      "failure_stage": "download",
+      "class": "envelope_adapter_failure",
+      "subtype": "download_budget_exhausted",
+      "evidence": "Download budget exhausted (max 1 announcement per adapter session)."
+    },
+    {
+      "task_id": "xd_ht_014",
+      "failure_stage": "list",
+      "class": "no_matching_result",
+      "evidence": "No announcements found for 09988",
+      "arguments": {"stock_code": "09988", "start_date": "2026-07-01", "end_date": "2026-08-12"},
+      "n_list_rows": 0
+    }
+  ]
+}
