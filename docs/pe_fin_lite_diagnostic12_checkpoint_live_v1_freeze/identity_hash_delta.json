@@ -8,6 +8,7 @@
   "raw_run_metadata_sha256": "14a2f5531a1a04e211c3e4fa4b2ef127eae2d1ec5a967c7b39cd5407e2238e61",
   "changed": [
     "method_version",
+    "config_method_version",
     "prompt_hash",
     "runtime_issuer_code",
     "runtime_calculator",

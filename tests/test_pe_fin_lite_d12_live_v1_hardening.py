@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+import yaml
 
 from hk_equity_mcp.experiment.pe_fin_lite_checkpoint_audit.disclosure_taxonomy import (
     classify_disclosure_stage_failure,
@@ -71,6 +72,10 @@ def _src_blob() -> str:
 
 def test_method_version_bumped_for_runtime_hardening():
     assert PE_FIN_LITE_METHOD_VERSION == "pe_fin_lite_v1.1"
+    cfg = yaml.safe_load(
+        (ROOT / "configs" / "hk_unified_pe_fin_lite_v1.yaml").read_text(encoding="utf-8")
+    )
+    assert cfg["method_version"] == PE_FIN_LITE_METHOD_VERSION
 
 
 def test_issuer_code_canonicalization_and_rejects_statement_label():
