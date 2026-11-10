@@ -67,7 +67,10 @@ class HkexnewsAdapter:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.allow_download = allow_download
         self.persistent = persistent
+        # Per-task budget (reset via reset_download_budget / gateway.begin_task).
+        # Max 1 successful download per task/workflow — not per adapter process lifetime.
         self._download_count = 0
+        self._download_budget_per_task = 1
         env = {"HKEXNEWS_CACHE_DIR": str(self.cache_dir)}
         if persistent:
             self._client: Any = PersistentStdioMcpClient(
@@ -92,6 +95,10 @@ class HkexnewsAdapter:
         if self.persistent:
             self._client.start()
         return self
+
+    def reset_download_budget(self) -> None:
+        """Reset download counter for the next task/workflow (not cross-task shared)."""
+        self._download_count = 0
 
     def close(self) -> None:
         if self.persistent and hasattr(self._client, "close"):
@@ -152,7 +159,9 @@ class HkexnewsAdapter:
                     protocol_success=True,
                     execution_success=False,
                 )
-            if self._download_count >= 1:
+            # Off-by-one safe: allow exactly download_budget_per_task successes.
+            # count=0 → first download OK; after success count=1 → next blocked.
+            if self._download_count >= int(self._download_budget_per_task):
                 return RealMcpResult(
                     success=False,
                     server_id=SERVER_ID,
@@ -160,7 +169,7 @@ class HkexnewsAdapter:
                     arguments=redact_obj(arguments),
                     error=(
                         "Download budget exhausted "
-                        "(max 1 announcement per adapter session)."
+                        "(max 1 announcement per task/workflow)."
                     ),
                     error_type="unavailable",
                     protocol_success=True,

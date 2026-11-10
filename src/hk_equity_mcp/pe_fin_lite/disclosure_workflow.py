@@ -3,6 +3,12 @@
 Default chain: list → (optional) download → parse → keyword → pages.
 Stops after list when required outputs are already satisfied.
 Company-generic; no task_id / issuer whitelist branching.
+
+Disclosure policy v1.2:
+- propagate explicit from_date/to_date; always honor benchmark cutoff
+- period → bounded date window only via versioned generic rules
+- local row selection by issuer/date/cutoff then document-type relevance
+- at most one deterministic title-broadening fallback (not global replan)
 """
 
 from __future__ import annotations
@@ -12,7 +18,11 @@ import json
 import re
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
+from hk_equity_mcp.pe_fin_lite.temporal_policy import DEFAULT_DATASET_CUTOFF
+
 DISCLOSURE_COMPOSITE_ID = "retrieve_official_disclosure_evidence"
+DISCLOSURE_POLICY_VERSION = "pe_fin_lite_disclosure_policy_v1_2"
+PERIOD_WINDOW_POLICY_VERSION = "period_window_v1"
 DISCLOSURE_CHAIN = (
     "list",
     "download",
@@ -63,10 +73,58 @@ _STAGE_PROVIDES = {
 }
 
 
+# Metric phrases are not announcement titles; map to document-type intents.
+_METRIC_PHRASE_MARKERS = (
+    "non-ifrs",
+    "non ifrs",
+    "non-gaap",
+    "non gaap",
+    "net income",
+    "attributable profit",
+    "attributable to",
+    "basic eps",
+    "diluted eps",
+    "earnings per share",
+)
+
+# Generic document-type intents (company-agnostic).
+_DOC_TYPE_PATTERNS: Dict[str, Tuple[str, ...]] = {
+    "annual_results": (
+        "annual results",
+        "final results",
+        "yearly results",
+        "annual report",
+    ),
+    "interim_results": (
+        "interim results",
+        "half-year results",
+        "half year results",
+        "semi-annual results",
+        "interim report",
+    ),
+    "results": ("results announcement", "results"),
+    "agm_notice": (
+        "agm notice",
+        "notice of annual general meeting",
+        "annual general meeting",
+        "agm",
+    ),
+}
+
+_FY_PERIOD = re.compile(
+    r"\b(?:FY|financial\s+year)\s*[-/]?\s*(20\d{2})\b", re.IGNORECASE
+)
+_HY_PERIOD = re.compile(
+    r"\b(?:HY|H1|1H|interim)\s*[-/]?\s*(20\d{2})\b", re.IGNORECASE
+)
+
+
 def disclosure_workflow_hash() -> str:
     blob = json.dumps(
         {
             "workflow_id": DISCLOSURE_COMPOSITE_ID,
+            "policy_version": DISCLOSURE_POLICY_VERSION,
+            "period_window_policy": PERIOD_WINDOW_POLICY_VERSION,
             "chain": list(DISCLOSURE_CHAIN),
             "shortest_required_prefix": True,
             "stop_after_list_when_satisfied": True,
@@ -76,6 +134,12 @@ def disclosure_workflow_hash() -> str:
             "normalize_announcement_aliases": True,
             "preserve_list_evidence_on_later_failure": True,
             "no_task_id_branching": True,
+            "benchmark_cutoff_enforced": True,
+            "default_cutoff": DEFAULT_DATASET_CUTOFF,
+            "deterministic_title_broadening_max": 1,
+            "no_default_first_row": True,
+            "document_type_intents": sorted(_DOC_TYPE_PATTERNS.keys()),
+            "metric_phrase_not_title": True,
             "passes": [
                 "local_key",
                 "news_id",
@@ -90,11 +154,152 @@ def disclosure_workflow_hash() -> str:
                 "keywords_from_title_keyword": True,
                 "start_page_from_page_number": True,
                 "title_keyword_passthrough": True,
+                "document_type_list_title": True,
             },
         },
         sort_keys=True,
     )
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
+def derive_period_date_window(
+    period: Any,
+    *,
+    cutoff: str = DEFAULT_DATASET_CUTOFF,
+) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    """Versioned, company-generic period → bounded window under cutoff.
+
+    Returns (from_date, to_date, rule_id) or (None, None, None) when unsafe.
+    """
+    text = str(period or "").strip()
+    if not text:
+        return None, None, None
+    cut = _norm_date(cutoff) or DEFAULT_DATASET_CUTOFF
+    m_fy = _FY_PERIOD.search(text)
+    if m_fy:
+        year = int(m_fy.group(1))
+        # FY results typically publish in the following calendar year.
+        from_date = f"{year}-01-01"
+        to_date = f"{year + 1}-08-12"
+        if to_date > cut:
+            to_date = cut
+        if from_date > cut:
+            return None, None, None
+        return from_date, to_date, f"{PERIOD_WINDOW_POLICY_VERSION}:FY"
+    m_hy = _HY_PERIOD.search(text)
+    if m_hy:
+        year = int(m_hy.group(1))
+        from_date = f"{year}-06-01"
+        to_date = f"{year}-12-31"
+        if to_date > cut:
+            to_date = cut
+        if from_date > cut:
+            return None, None, None
+        return from_date, to_date, f"{PERIOD_WINDOW_POLICY_VERSION}:HY"
+    return None, None, None
+
+
+def is_metric_phrase_title(title_keyword: Any) -> bool:
+    text = str(title_keyword or "").strip().lower()
+    if not text:
+        return False
+    return any(m in text for m in _METRIC_PHRASE_MARKERS)
+
+
+def infer_document_type_intent(
+    *,
+    title_keyword: Any = None,
+    objective: Any = None,
+    question: Any = None,
+    metric_basis: Any = None,
+) -> Optional[str]:
+    """Map free text to a generic document-type intent (no issuer/gold specifics)."""
+    blobs = [
+        str(title_keyword or ""),
+        str(objective or ""),
+        str(question or ""),
+        str(metric_basis or ""),
+    ]
+    joined = " ".join(blobs).lower()
+    # Prefer more specific intents first.
+    for intent in ("agm_notice", "annual_results", "interim_results", "results"):
+        for pat in _DOC_TYPE_PATTERNS[intent]:
+            if pat in joined:
+                return intent
+    if is_metric_phrase_title(title_keyword) or is_metric_phrase_title(metric_basis):
+        return "results"
+    return None
+
+
+def document_type_list_title(intent: Optional[str]) -> Optional[str]:
+    """Title string safe to send to list APIs (document type, not metric phrase)."""
+    if intent == "agm_notice":
+        return "AGM"
+    if intent == "annual_results":
+        return "Annual Results"
+    if intent == "interim_results":
+        return "Interim Results"
+    if intent == "results":
+        return "Results"
+    return None
+
+
+def enrich_disclosure_grounding(
+    grounding: Dict[str, Any],
+    *,
+    step: Optional[Dict[str, Any]] = None,
+    question: str = "",
+    cutoff: str = DEFAULT_DATASET_CUTOFF,
+) -> Dict[str, Any]:
+    """Fill dates / document-type intent without inventing issuer codes."""
+    g = dict(grounding or {})
+    step = step or {}
+    cut = _norm_date(cutoff) or DEFAULT_DATASET_CUTOFF
+    g["benchmark_cutoff"] = cut
+
+    from_date = _norm_date(g.get("from_date"))
+    to_date = _norm_date(g.get("to_date"))
+    period = g.get("period") or step.get("period")
+    if (not from_date or not to_date) and period:
+        d_from, d_to, rule = derive_period_date_window(period, cutoff=cut)
+        if d_from and not from_date:
+            from_date = d_from
+            g["from_date"] = d_from
+            g["period_window_rule"] = rule
+        if d_to and not to_date:
+            to_date = d_to
+            g["to_date"] = d_to
+            g["period_window_rule"] = rule
+
+    if from_date and from_date > cut:
+        from_date = cut
+        g["from_date"] = cut
+    if to_date and to_date > cut:
+        to_date = cut
+        g["to_date"] = cut
+    if not to_date:
+        to_date = cut
+        g["to_date"] = cut
+
+    intent = infer_document_type_intent(
+        title_keyword=g.get("title_keyword"),
+        objective=step.get("objective"),
+        question=question,
+        metric_basis=g.get("metric_basis"),
+    )
+    g["document_type_intent"] = intent
+    raw_title = str(g.get("title_keyword") or "").strip()
+    if raw_title and is_metric_phrase_title(raw_title):
+        g["title_is_metric_phrase"] = True
+        g["list_title_keyword"] = document_type_list_title(intent)
+    elif raw_title:
+        g["title_is_metric_phrase"] = False
+        # Use raw title when it already looks like a document-type phrase.
+        g["list_title_keyword"] = raw_title
+    else:
+        g["title_is_metric_phrase"] = False
+        g["list_title_keyword"] = document_type_list_title(intent)
+    return g
 
 
 def is_disclosure_composite_step(step: Dict[str, Any]) -> bool:
@@ -317,8 +522,9 @@ def filter_list_rows(
     *,
     grounding: Dict[str, Any],
     step: Dict[str, Any],
+    require_title_match: bool = True,
 ) -> List[Dict[str, Any]]:
-    """Deterministic scope filter on list rows (entity/date/title)."""
+    """Deterministic hard filter: issuer / date window / cutoff (title optional)."""
     scope = step.get("scope_constraints") if isinstance(step.get("scope_constraints"), dict) else {}
     entity = scope.get("entity")
     entity_code = None
@@ -333,6 +539,11 @@ def filter_list_rows(
     to_date = _norm_date(
         grounding.get("to_date") or scope.get("to_date") or scope.get("end_date")
     )
+    cutoff = _norm_date(grounding.get("benchmark_cutoff") or DEFAULT_DATASET_CUTOFF)
+    if to_date and cutoff and to_date > cutoff:
+        to_date = cutoff
+    if not to_date:
+        to_date = cutoff
     exact_release = _norm_date(
         scope.get("release_date")
         or grounding.get("release_date")
@@ -340,9 +551,17 @@ def filter_list_rows(
         or grounding.get("trade_date")
         or ""
     )
-    title_kw = str(
-        grounding.get("title_keyword") or scope.get("title_keyword") or ""
-    ).strip().lower()
+    title_kw = ""
+    if require_title_match:
+        title_kw = str(
+            grounding.get("list_title_keyword")
+            or grounding.get("title_keyword")
+            or scope.get("title_keyword")
+            or ""
+        ).strip().lower()
+        # Never hard-filter on metric phrases that are not announcement titles.
+        if is_metric_phrase_title(title_kw):
+            title_kw = str(grounding.get("list_title_keyword") or "").strip().lower()
 
     kept: List[Dict[str, Any]] = []
     for row in rows:
@@ -363,6 +582,8 @@ def filter_list_rows(
             continue
         if to_date and rel and rel > to_date:
             continue
+        if cutoff and rel and rel > cutoff:
+            continue
         if title_kw:
             title = str(row.get("title") or "").lower()
             if title_kw not in title:
@@ -373,13 +594,135 @@ def filter_list_rows(
     return kept
 
 
-def _row_sort_key(row: Dict[str, Any]) -> Tuple[str, str, str]:
-    """Deterministic tie-break: newest release_date first, then news_id, local_key."""
+def _doc_type_relevance_score(title: str, intent: Optional[str]) -> int:
+    t = (title or "").lower()
+    if not intent:
+        return 0
+    score = 0
+    for pat in _DOC_TYPE_PATTERNS.get(intent, ()):
+        if pat in t:
+            score = max(score, 10 + len(pat))
+    # Penalize clearly mismatched document types for results/AGM intents.
+    if intent in {"results", "annual_results", "interim_results"}:
+        if "tender offer" in t or "tender offers" in t:
+            score -= 50
+        if "next day disclosure" in t and "result" not in t:
+            score -= 20
+    if intent == "agm_notice":
+        if "tender offer" in t:
+            score -= 50
+        if "agm" in t or "annual general meeting" in t:
+            score += 20
+    return score
+
+
+def _row_sort_key(
+    row: Dict[str, Any],
+    *,
+    intent: Optional[str] = None,
+) -> Tuple[int, str, str, str]:
+    """Relevance first, then newest release_date, then news_id/local_key."""
+    title = str(row.get("title") or "")
     rel = _norm_date(row.get("release_date") or row.get("releaseDate") or "")
     news = str(row.get("news_id") or row.get("newsId") or "")
     local = str(row.get("local_key") or row.get("localKey") or "")
-    # Descending date via inverted string sort key.
-    return (rel, news, local)
+    return (_doc_type_relevance_score(title, intent), rel, news, local)
+
+
+def rank_list_rows(
+    rows: Sequence[Dict[str, Any]],
+    *,
+    grounding: Dict[str, Any],
+    step: Dict[str, Any],
+    require_title_match: bool = True,
+) -> Dict[str, Any]:
+    """Filter + rank with explicit accept/reject reasons (no default first-row)."""
+    intent = grounding.get("document_type_intent")
+    hard = filter_list_rows(
+        rows, grounding=grounding, step=step, require_title_match=False
+    )
+    soft = filter_list_rows(
+        rows, grounding=grounding, step=step, require_title_match=require_title_match
+    )
+    rejected: List[Dict[str, Any]] = []
+    hard_ids = {id(r) for r in hard}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        if id(row) in hard_ids:
+            continue
+        rel = _norm_date(row.get("release_date") or row.get("releaseDate") or "")
+        cutoff = _norm_date(grounding.get("benchmark_cutoff") or DEFAULT_DATASET_CUTOFF)
+        reason = "issuer_or_date_mismatch"
+        if cutoff and rel and rel > cutoff:
+            reason = "beyond_benchmark_cutoff"
+        rejected.append(
+            {
+                "title": str(row.get("title") or "")[:160],
+                "release_date": rel,
+                "reason": reason,
+            }
+        )
+
+    pool = list(soft)
+    title_rejects: List[Dict[str, Any]] = []
+    if require_title_match and hard and not soft:
+        for row in hard:
+            title_rejects.append(
+                {
+                    "title": str(row.get("title") or "")[:160],
+                    "release_date": _norm_date(
+                        row.get("release_date") or row.get("releaseDate") or ""
+                    ),
+                    "reason": "title_or_document_type_mismatch",
+                }
+            )
+
+    # Soft relevance filter: drop strongly negative scores when intent known.
+    scored_pool: List[Dict[str, Any]] = []
+    for row in pool:
+        score = _doc_type_relevance_score(str(row.get("title") or ""), intent)
+        if intent and score < 0:
+            rejected.append(
+                {
+                    "title": str(row.get("title") or "")[:160],
+                    "release_date": _norm_date(
+                        row.get("release_date") or row.get("releaseDate") or ""
+                    ),
+                    "reason": "document_type_penalty",
+                    "relevance_score": score,
+                }
+            )
+            continue
+        scored_pool.append(row)
+
+    ordered = sorted(
+        scored_pool,
+        key=lambda r: _row_sort_key(r if isinstance(r, dict) else {}, intent=intent),
+        reverse=True,
+    )
+    selected = dict(ordered[0]) if ordered and isinstance(ordered[0], dict) else None
+    selection_reason = None
+    if selected is not None:
+        selection_reason = {
+            "relevance_score": _doc_type_relevance_score(
+                str(selected.get("title") or ""), intent
+            ),
+            "document_type_intent": intent,
+            "release_date": _norm_date(
+                selected.get("release_date") or selected.get("releaseDate") or ""
+            ),
+            "require_title_match": require_title_match,
+        }
+    return {
+        "selected": selected,
+        "ordered": ordered,
+        "n_hard": len(hard),
+        "n_soft": len(soft),
+        "n_scored": len(scored_pool),
+        "rejected": rejected[:20] + title_rejects[:10],
+        "selection_reason": selection_reason,
+    }
 
 
 def select_list_row(
@@ -387,19 +730,15 @@ def select_list_row(
     *,
     grounding: Dict[str, Any],
     step: Dict[str, Any],
+    require_title_match: bool = True,
 ) -> Optional[Dict[str, Any]]:
-    filtered = filter_list_rows(rows, grounding=grounding, step=step)
-    pool = list(filtered) if filtered else list(rows)
-    if not pool:
-        return None
-    # Stable deterministic order: newest date first, then news_id/local_key ascending.
-    ordered = sorted(
-        pool,
-        key=lambda r: _row_sort_key(r if isinstance(r, dict) else {}),
-        reverse=True,
+    ranked = rank_list_rows(
+        rows,
+        grounding=grounding,
+        step=step,
+        require_title_match=require_title_match,
     )
-    chosen = ordered[0]
-    return dict(chosen) if isinstance(chosen, dict) else None
+    return ranked.get("selected")
 
 
 def build_stage_arguments(
@@ -409,6 +748,7 @@ def build_stage_arguments(
     chain_state: Dict[str, Any],
     step: Dict[str, Any],
     grounding: Optional[Dict[str, Any]] = None,
+    omit_title: bool = False,
 ) -> Dict[str, Any]:
     schema = contract.get("json_schema") or {}
     props = schema.get("properties") or {}
@@ -423,11 +763,34 @@ def build_stage_arguments(
         or step.get("entity")
     )
     from_date = g.get("from_date") or scope.get("from_date") or step.get("date")
-    to_date = g.get("to_date") or scope.get("to_date") or step.get("date")
-    title_kw = (
+    to_date = (
+        g.get("to_date")
+        or scope.get("to_date")
+        or g.get("benchmark_cutoff")
+        or DEFAULT_DATASET_CUTOFF
+    )
+    cutoff = _norm_date(g.get("benchmark_cutoff") or DEFAULT_DATASET_CUTOFF)
+    to_date_n = _norm_date(to_date)
+    if to_date_n and cutoff and to_date_n > cutoff:
+        to_date = cutoff
+    # List title: document-type intent only; never raw metric phrase.
+    if omit_title:
+        title_kw = None
+    else:
+        title_kw = g.get("list_title_keyword")
+        if title_kw is None and not g.get("title_is_metric_phrase"):
+            title_kw = (
+                g.get("title_keyword")
+                or scope.get("title_keyword")
+                or chain_state.get("title")
+            )
+        if is_metric_phrase_title(title_kw):
+            title_kw = document_type_list_title(g.get("document_type_intent"))
+    # Keyword stage may still use metric / objective phrases for body search.
+    body_kw = (
         g.get("title_keyword")
         or scope.get("title_keyword")
-        or chain_state.get("title")
+        or step.get("objective")
     )
     page_number = chain_state.get("page_number") or chain_state.get("start_page") or 1
 
@@ -445,16 +808,21 @@ def build_stage_arguments(
     )
     maybe_set("page_number", page_number)
     maybe_set("start_page", page_number)
-    maybe_set("keyword", title_kw or step.get("objective"))
-    maybe_set("query", title_kw or step.get("objective"))
-    maybe_set("title", title_kw or chain_state.get("title"))
-    maybe_set("title_keyword", title_kw)
+    if stage in {"keyword", "pages"}:
+        maybe_set("keyword", body_kw)
+        maybe_set("query", body_kw)
+    else:
+        maybe_set("keyword", title_kw)
+        maybe_set("query", title_kw)
+        maybe_set("title", title_kw or chain_state.get("title"))
+        maybe_set("title_keyword", title_kw)
     maybe_set("stock_code", stock_code)
     maybe_set("symbol", stock_code)
     maybe_set("code", stock_code)
     maybe_set("issuer_code", stock_code)
-    maybe_set("start_date", from_date or step.get("period"))
-    maybe_set("end_date", to_date or step.get("period"))
+    # Dates: never substitute bare period strings into start/end.
+    maybe_set("start_date", from_date)
+    maybe_set("end_date", to_date)
     maybe_set("from_date", from_date)
     maybe_set("to_date", to_date)
     # File / URL links when required by download contracts.
@@ -464,7 +832,7 @@ def build_stage_arguments(
     )
     maybe_set("url", chain_state.get("source_url") or chain_state.get("url"))
     if "keywords" in props:
-        kw_src = title_kw or step.get("objective")
+        kw_src = body_kw if stage == "keyword" else (title_kw or body_kw)
         if isinstance(kw_src, list):
             args["keywords"] = [str(x) for x in kw_src if str(x).strip()]
         elif kw_src:
@@ -490,7 +858,7 @@ def build_stage_arguments(
         elif name == "start_page":
             args[name] = page_number
         elif name == "keywords":
-            kw_src = title_kw or step.get("objective")
+            kw_src = body_kw if stage == "keyword" else (title_kw or body_kw)
             if kw_src:
                 args[name] = [str(kw_src)] if not isinstance(kw_src, list) else list(kw_src)
     return args
@@ -563,6 +931,7 @@ def run_disclosure_composite(
     stopped_after_list = False
 
     g = grounding or collect_step_grounding(question=question or "", step=step)
+    g = enrich_disclosure_grounding(g, step=step, question=question or "")
     step = apply_grounding_to_step(step, g)
     if g.get("stock_code"):
         chain_state["stock_code"] = g["stock_code"]
@@ -571,6 +940,8 @@ def run_disclosure_composite(
 
     required_outputs = list(step.get("required_outputs") or ["snippet", "local_key"])
     need_text = needs_document_text(required_outputs)
+    title_broadened = False
+    selection_obs: Dict[str, Any] = {}
 
     # Optional lookup when name-only.
     if g.get("needs_lookup") and not g.get("stock_code"):
@@ -663,12 +1034,14 @@ def run_disclosure_composite(
             break
         described = describe_fn(oid)
         contract = (described or {}).get("contract") or {}
+        omit_title = False
         args = build_stage_arguments(
             stage=stage,
             contract=contract,
             chain_state=chain_state,
             step=step,
             grounding=g,
+            omit_title=omit_title,
         )
         required = list((contract.get("json_schema") or {}).get("required") or [])
         unmet = [r for r in required if r not in args]
@@ -687,13 +1060,20 @@ def run_disclosure_composite(
                         "from_date": g.get("from_date"),
                         "to_date": g.get("to_date"),
                         "title_keyword": g.get("title_keyword"),
+                        "list_title_keyword": g.get("list_title_keyword"),
+                        "document_type_intent": g.get("document_type_intent"),
+                        "benchmark_cutoff": g.get("benchmark_cutoff"),
                     },
                     "chain_state_keys": sorted(chain_state.keys()),
                 }
             )
             break
+
+        def _invoke_once(call_args: Dict[str, Any]) -> Dict[str, Any]:
+            return invoke_fn(oid, call_args)
+
         try:
-            result = invoke_fn(oid, args)
+            result = _invoke_once(args)
         except Exception as exc:  # noqa: BLE001
             last_error = f"stage_exception:{stage}:{type(exc).__name__}:{exc}"
             trace.append(
@@ -727,7 +1107,90 @@ def run_disclosure_composite(
                 rows = rows or _collect_rows(result)
             if isinstance(payload, dict) and not rows:
                 rows = _collect_rows(payload.get("normalized"))
-            selected = select_list_row(rows, grounding=g, step=step)
+            ranked = rank_list_rows(rows, grounding=g, step=step, require_title_match=True)
+            selected = ranked.get("selected")
+            # Deterministic broadening (≤1): keep issuer/date/cutoff, drop title.
+            used_title = bool(
+                args.get("title_keyword") or args.get("title") or args.get("keyword")
+            )
+            if (
+                selected is None
+                and not title_broadened
+                and (g.get("list_title_keyword") or used_title)
+                and success
+            ):
+                title_broadened = True
+                if rows:
+                    # Local broaden: first list already returned rows.
+                    ranked = rank_list_rows(
+                        rows, grounding=g, step=step, require_title_match=False
+                    )
+                    selected = ranked.get("selected")
+                else:
+                    # API returned 0 under title constraint → one re-list without title.
+                    broad_args = build_stage_arguments(
+                        stage=stage,
+                        contract=contract,
+                        chain_state=chain_state,
+                        step=step,
+                        grounding=g,
+                        omit_title=True,
+                    )
+                    try:
+                        broad_result = _invoke_once(broad_args)
+                    except Exception as exc:  # noqa: BLE001
+                        last_error = (
+                            f"stage_exception:list_broaden:{type(exc).__name__}:{exc}"
+                        )
+                        trace.append(
+                            {
+                                "stage": "list_broaden",
+                                "operation_id": oid,
+                                "arguments": {
+                                    k: broad_args[k]
+                                    for k in broad_args
+                                    if "key" not in k.lower() or k == "local_key"
+                                },
+                                "success": False,
+                                "gateway_success": False,
+                                "error": last_error,
+                                "title_broadened": True,
+                            }
+                        )
+                        break
+                    invoked.append(oid)
+                    broad_success = (
+                        bool(broad_result.get("success"))
+                        if isinstance(broad_result, dict)
+                        else False
+                    )
+                    gateway_flags[oid] = gateway_flags.get(oid, False) or broad_success
+                    broad_payload = (
+                        broad_result.get("result")
+                        if isinstance(broad_result, dict)
+                        else broad_result
+                    )
+                    rows = _collect_rows(broad_payload) or _collect_rows(broad_result)
+                    ranked = rank_list_rows(
+                        rows, grounding=g, step=step, require_title_match=False
+                    )
+                    selected = ranked.get("selected")
+                    result = broad_result
+                    success = broad_success
+                    payload = broad_payload
+                    args = broad_args
+                    extracted = _extract_chain_fields(payload)
+                    if isinstance(result, dict):
+                        extracted.update(_extract_chain_fields(result))
+            selection_obs = {
+                "n_list_rows": len(rows),
+                "n_hard": ranked.get("n_hard"),
+                "n_soft": ranked.get("n_soft"),
+                "n_scored": ranked.get("n_scored"),
+                "selection_reason": ranked.get("selection_reason"),
+                "rejected_sample": ranked.get("rejected") or [],
+                "title_broadened": title_broadened,
+            }
             if selected:
                 row_vals = _row_to_values(selected, stock_code=g.get("stock_code"))
                 list_evidence.update(row_vals)
@@ -776,7 +1239,9 @@ def run_disclosure_composite(
 
         trace.append(
             {
-                "stage": stage,
+                "stage": stage if not title_broadened else (
+                    "list_broaden" if stage == "list" and title_broadened else stage
+                ),
                 "operation_id": oid,
                 "arguments": {
                     k: args[k] for k in args if "key" not in k.lower() or k == "local_key"
@@ -785,9 +1250,16 @@ def run_disclosure_composite(
                 "gateway_success": success,
                 "extracted_fields": sorted(extracted.keys()),
                 "selected_row_fields": selected_fields,
-                "n_list_rows": len(_collect_rows(payload) or _collect_rows(result) or [])
+                "n_list_rows": selection_obs.get("n_list_rows")
                 if stage == "list"
                 else None,
+                "selection_reason": selection_obs.get("selection_reason")
+                if stage == "list"
+                else None,
+                "rejected_sample": selection_obs.get("rejected_sample")
+                if stage == "list"
+                else None,
+                "title_broadened": title_broadened if stage == "list" else False,
                 "error": None
                 if success
                 else (
@@ -851,4 +1323,7 @@ def run_disclosure_composite(
         "stopped_after_list": stopped_after_list,
         "needed_document_text": need_text,
         "gateway_success": any(gateway_flags.values()) if gateway_flags else False,
+        "title_broadened": title_broadened,
+        "selection_observability": selection_obs,
+        "disclosure_policy_version": DISCLOSURE_POLICY_VERSION,
     }

@@ -1244,6 +1244,9 @@ class UnifiedHkPeFinLiteRunner:
                 raw = getattr(agent, "_raw_llm", None)
                 if raw is not None and hasattr(raw, "reset_script"):
                     raw.reset_script()
+                # Per-task HKEX download budget (max 1); never inherit prior tasks.
+                if self._gateway is not None and hasattr(self._gateway, "begin_task"):
+                    self._gateway.begin_task()
                 try:
                     result = agent.run(item["question"])
                 except (LlmCallBudgetExhausted, McpBudgetExhausted) as exc:

@@ -143,6 +143,15 @@ class UnifiedRealMcpGateway:
         self._opened = True
         return self
 
+    def begin_task(self) -> None:
+        """Reset per-task adapter budgets before each workflow run.
+
+        HKEX download budget is max 1 announcement per task — not shared across
+        earlier tasks or earlier runs of the same persistent adapter.
+        """
+        if self.hkexnews is not None and hasattr(self.hkexnews, "reset_download_budget"):
+            self.hkexnews.reset_download_budget()
+
     def close(self) -> None:
         if self.mock_transport is not None:
             self._opened = False

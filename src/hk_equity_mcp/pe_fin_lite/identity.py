@@ -41,6 +41,7 @@ def protocol_identity_hashes() -> Dict[str, Any]:
     )
     from hk_equity_mcp.pe_fin_lite.plan_canonicalizer import plan_canonicalizer_hash
     from hk_equity_mcp.pe_fin_lite.prompts import pe_fin_lite_prompt_hash
+    from hk_equity_mcp.pe_fin_lite.tool_binding import binder_protocol_hash
 
     return {
         "combined_schema_hash": combined_schema_hash(),
@@ -53,6 +54,11 @@ def protocol_identity_hashes() -> Dict[str, Any]:
         "provenance_contract_hash": provenance_contract_hash(),
         "evidence_acceptance_hash": evidence_acceptance_hash(),
         "disclosure_workflow_hash": disclosure_workflow_hash(),
+        "binder_protocol_hash": binder_protocol_hash(),
+        "reason_protocol_hash": hashlib.sha256(
+            b"pe_fin_lite_reason_protocol_v1_2:"
+            b"direct_ok|repair_ok_runtime_recovered|repair_fail_stage_fail"
+        ).hexdigest(),
         "metrics_version": METRICS_VERSION,
     }
 
@@ -125,10 +131,10 @@ def worst_case_budget_estimate(limits: Dict[str, Any]) -> Dict[str, Any]:
     max_plan_steps = int(limits.get("max_plan_steps", 6))
     describe_n = int(limits.get("describe_top_n", 3))
     retrieve_top_k = int(limits.get("retrieval_top_k", 5))
-    # Planner 1+1, binder up to ~4 retrieve steps (no binder repair),
-    # reason optional, final 1+1. Hard-capped at 8.
+    # Planner 1+1, binder up to ~4 retrieve steps (+ optional ≤1 format repair each),
+    # reason optional (+≤1 repair), final 1+1. Hard-capped at 8.
     planner_calls = 2
-    binding_calls = max_plan_steps  # one binder call per retrieve (primary+fallback)
+    binding_calls = max_plan_steps * 2  # primary+fallback call + ≤1 format repair
     reason_calls = 2
     final_calls = 2
     structural_upper = planner_calls + binding_calls + reason_calls + final_calls
@@ -151,7 +157,8 @@ def worst_case_budget_estimate(limits: Dict[str, Any]) -> Dict[str, Any]:
         "monitor_calls": 0,
         "notes": (
             "PE-Fin Lite: no Monitor, no global Replan. Allowed repairs: planner "
-            "JSON once, final JSON once. Binder returns primary+fallback in one call."
+            "JSON once, binder format once, reason JSON once, final JSON once. "
+            "Binder still returns primary+fallback in one response. Hard LLM≤8."
         ),
         "limits_snapshot": dict(limits),
         "architecture": ARCHITECTURE_ID,

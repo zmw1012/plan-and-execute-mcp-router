@@ -1,6 +1,6 @@
 # PE-Fin Lite proposed method v1 — plan_first_step_level_retrieval
 condition: pe_fin_lite
-method_version: pe_fin_lite_v1.1
+method_version: pe_fin_lite_v1.2
 architecture: plan_first_step_level_retrieval_v1
 execution_backend: real_mcp
 capability_profile: configs/capabilities/hk155_capability_profile_v1.yaml

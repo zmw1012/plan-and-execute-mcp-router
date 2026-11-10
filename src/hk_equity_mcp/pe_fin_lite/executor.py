@@ -122,11 +122,17 @@ def execute_reason_step(
     temperature: float = 0.0,
     max_tokens: int = 1024,
 ) -> Dict[str, Any]:
-    """Reason with at most one JSON repair; verified-evidence fallback on second fail.
+    """Reason with at most one JSON repair.
 
-    Parse failure is recorded as reason_parse_failed. Runtime may still recover
-    via verified-evidence fallback (runtime_recovered=true) without counting as
-    reason-stage pass.
+    State machine (company-/task-generic):
+    1) Direct parse success → reason_parse_failed=false, runtime_recovered=false,
+       repair_count=0, status=completed.
+    2) Initial fail + valid repair → reason_parse_failed=false,
+       runtime_recovered=true, repair_count=1, status=completed; keep
+       initial_parse_error for audit.
+    3) Initial fail + invalid repair → reason_parse_failed=true,
+       runtime_recovered=false, repair_count=1, status=failed. Soft payload may
+       exist for fail-closed continuation, but Reason stage must not count pass.
     """
     from hk_equity_mcp.pe_fin_lite.schemas import format_repair_user_message
 
@@ -140,7 +146,9 @@ def execute_reason_step(
     repair_count = 0
     reason_parse_failed = False
     runtime_recovered = False
+    initial_parse_error: Optional[str] = None
     content = None
+    payload: Optional[Dict[str, Any]] = None
     try:
         completion = llm.complete(
             messages,
@@ -155,10 +163,10 @@ def execute_reason_step(
         )
         payload = parsed[0]
         if payload is None:
-            reason_parse_failed = True
+            initial_parse_error = parsed[2] or "invalid reason JSON"
             repair_msg = format_repair_user_message(
                 "reason",
-                parsed[2] or "invalid reason JSON",
+                initial_parse_error,
                 previous_content=str(content or ""),
             )
             repair = llm.complete(
@@ -182,20 +190,28 @@ def execute_reason_step(
                 str(content) if content is not None else "", "reason"
             )
             payload = parsed[0]
-        if payload is None:
-            reason_parse_failed = True
-            runtime_recovered = True
-            payload = {
-                "summary": (
-                    "Reason step could not parse model output; "
-                    "relying on verified evidence only."
-                ),
-                "gaps": ["reason_parse_failed"],
-                "claims": [],
-            }
+            if payload is not None:
+                # Case 2: repair restored a schema-valid reason artifact.
+                reason_parse_failed = False
+                runtime_recovered = True
+            else:
+                # Case 3: repair still invalid — stage fail; not runtime_recovered.
+                reason_parse_failed = True
+                runtime_recovered = False
+                payload = {
+                    "summary": (
+                        "Reason step could not parse model output; "
+                        "relying on verified evidence only."
+                    ),
+                    "gaps": ["reason_parse_failed"],
+                    "claims": [],
+                }
+        # else Case 1: direct success — flags remain false, repair_count=0.
     except Exception as exc:  # noqa: BLE001 — budget/network isolation
         reason_parse_failed = True
-        runtime_recovered = True
+        runtime_recovered = False
+        if initial_parse_error is None:
+            initial_parse_error = f"reason_runtime_error:{type(exc).__name__}"
         payload = {
             "summary": (
                 "Reason step unavailable; relying on verified evidence only."
@@ -203,6 +219,7 @@ def execute_reason_step(
             "gaps": [f"reason_runtime_error:{type(exc).__name__}"],
             "claims": [],
         }
+    assert payload is not None
     artifact = {
         "step_id": str(step["id"]),
         "summary": payload.get("summary"),
@@ -211,9 +228,10 @@ def execute_reason_step(
         "reason_parse_failed": reason_parse_failed,
         "runtime_recovered": runtime_recovered,
         "repair_count": repair_count,
+        "initial_parse_error": initial_parse_error,
     }
     store.add_reason_artifact(artifact)
-    # Stage outcome fails on parse failure even if runtime recovered.
+    # Stage outcome fails only when final parse is still invalid.
     stage_ok = not reason_parse_failed
     return {
         "step_result": make_step_result(
@@ -226,6 +244,7 @@ def execute_reason_step(
                 "reason_parse_failed": reason_parse_failed,
                 "runtime_recovered": runtime_recovered,
                 "repair_count": repair_count,
+                "initial_parse_error": initial_parse_error,
             },
         ),
         "reason_artifact": artifact,
@@ -233,6 +252,7 @@ def execute_reason_step(
         "reason_parse_failed": reason_parse_failed,
         "runtime_recovered": runtime_recovered,
         "repair_count": repair_count,
+        "initial_parse_error": initial_parse_error,
     }
 
 
@@ -739,8 +759,12 @@ def execute_retrieve_step(
         "ok": binder_out.get("ok"),
         "error": binder_out.get("error"),
         "repair_count": binder_out.get("repair_count", 0),
+        "runtime_recovered": binder_out.get("runtime_recovered"),
+        "initial_parse_error": binder_out.get("initial_parse_error"),
+        "call_observability": binder_out.get("call_observability") or [],
     }
     if not binder_out.get("ok"):
+        # Structured binder failure: do not invoke MCP; do not crash runner.
         result = make_step_result(
             status="failed",
             failure_reason=f"binder_failed:{binder_out.get('error')}",

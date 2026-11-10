@@ -674,7 +674,11 @@ class PeFinLiteAgent:
             "reason_artifacts": store.reason_artifacts,
             "parse_repair_count": parse_repair_count,
             "binding_calls": self.budget.binder_calls,
-            "binding_repair_count": 0,
+            "binding_repair_count": sum(
+                int((f.get("binding") or {}).get("repair_count") or 0)
+                for f in funnels
+                if isinstance(f, dict)
+            ),
             "describe_calls": resolver_calls["describe_operation"],
             "invoke_calls": list(invoke_records),
             "invoke_records": list(invoke_records),

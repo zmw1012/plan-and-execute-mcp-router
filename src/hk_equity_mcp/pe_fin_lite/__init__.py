@@ -10,7 +10,7 @@ Capability Compiler / multi-round Replan controllers.
 from __future__ import annotations
 
 PE_FIN_LITE_CONDITION = "pe_fin_lite"
-PE_FIN_LITE_METHOD_VERSION = "pe_fin_lite_v1.1"
+PE_FIN_LITE_METHOD_VERSION = "pe_fin_lite_v1.2"
 PE_FIN_LITE_ARCHITECTURE = "plan_first_step_level_retrieval_v1"
 
 __all__ = [

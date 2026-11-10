@@ -71,7 +71,7 @@ def _src_blob() -> str:
 
 
 def test_method_version_bumped_for_runtime_hardening():
-    assert PE_FIN_LITE_METHOD_VERSION == "pe_fin_lite_v1.1"
+    assert PE_FIN_LITE_METHOD_VERSION == "pe_fin_lite_v1.2"
     cfg = yaml.safe_load(
         (ROOT / "configs" / "hk_unified_pe_fin_lite_v1.yaml").read_text(encoding="utf-8")
     )
@@ -151,9 +151,10 @@ def test_reason_parse_failure_and_runtime_recovery():
         question="q",
     )
     assert out["reason_parse_failed"] is True
-    assert out["runtime_recovered"] is True
+    assert out["runtime_recovered"] is False
     assert out["step_result"]["status"] == "failed"
     assert out["repair_count"] == 1
+    assert out["initial_parse_error"]
     assert llm.complete.call_count == 2
 
 
@@ -240,7 +241,7 @@ def test_dual_layer_c08_c09_c11_c12_c13_c14():
     assert c11["status"] == "N/A_upstream_blocked"
     assert c11["downstream_task_effect"] == "N/A_upstream_blocked"
 
-    # C12 parse fail + recovered ≠ stage pass
+    # C12 parse fail ≠ stage pass (repair still failed → runtime_recovered=false)
     c12 = eval_c12_reason(
         {
             "initial_plan": {
@@ -254,7 +255,7 @@ def test_dual_layer_c08_c09_c11_c12_c13_c14():
                     "summary": "fallback",
                     "gaps": ["reason_parse_failed"],
                     "reason_parse_failed": True,
-                    "runtime_recovered": True,
+                    "runtime_recovered": False,
                 }
             ],
             "step_statuses": [
@@ -263,13 +264,13 @@ def test_dual_layer_c08_c09_c11_c12_c13_c14():
                     "type": "reason",
                     "status": "failed",
                     "reason_parse_failed": True,
-                    "runtime_recovered": True,
+                    "runtime_recovered": False,
                 }
             ],
         }
     )
     assert c12["stage_outcome_status"] == "fail"
-    assert c12["detail"]["runtime_recovered"] is True
+    assert c12["detail"]["runtime_recovered"] is False
 
     # C13 schema vs semantic
     c13 = eval_c13_final(
