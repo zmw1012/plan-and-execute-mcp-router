@@ -1,0 +1,44 @@
+{
+  "category": "disclosure_list",
+  "operation_id": "hkexnews.list_hkexnews_announcements",
+  "invoke": {
+    "success": true,
+    "operation_id": "hkexnews.list_hkexnews_announcements",
+    "arguments": {
+      "stock_code": "00700",
+      "from_date": "2026-07-01",
+      "to_date": "2026-08-12"
+    },
+    "result": {
+      "success": true,
+      "server_id": "hkexnews",
+      "operation_id": "hkexnews.list_hkexnews_announcements",
+      "arguments": {
+        "stock_code": "00700",
+        "from_date": "2026-07-01",
+        "to_date": "2026-08-12"
+      },
+      "raw": {
+        "is_error": false,
+        "content": [
+          {
+            "json": {
+              "rows": [
+                {
+                  "news_id": "2026070900123",
+                  "title": "Next Day Disclosure Return",
+                  "release_date": "2026-07-09",
+                  "issuer_code": "00700",
+                  "local_key": "hkex:00700:2026070900123",
+                  "stock_code": "00700"
+                }
+              ],
+              "total_rows": 1,
+              "returned_rows": 1
+            }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -21,6 +21,32 @@ from hk_equity_mcp.pe_fin_lite.step_result import extract_values_from_envelope
 
 # Planner may emit short semantic names; adapters emit canonical fields.
 REQUIRED_OUTPUT_SYNONYMS: Dict[str, Tuple[str, ...]] = {
+    "issuer_code": (
+        "issuer_code",
+        "SECURITY_CODE",
+        "SECUCODE",
+        "stock_code",
+        "hk_code",
+        "symbol",
+        "code",
+        # entity last — adapters may put a display name there
+        "entity",
+    ),
+    "company_name": (
+        "company_name",
+        "SECURITY_NAME_ABBR",
+        "name",
+        "entity_name",
+        "entity",
+    ),
+    "report_date": ("report_date", "REPORT_DATE", "date"),
+    "fiscal_period": (
+        "fiscal_period",
+        "FISCAL_YEAR",
+        "period",
+        "DATE_TYPE_CODE",
+    ),
+    "currency": ("currency", "CURRENCY"),
     "eps": ("eps", "basic_eps", "BASIC_EPS"),
     "basic_eps": ("basic_eps", "eps", "BASIC_EPS"),
     "revenue": ("revenue", "OPERATE_INCOME", "operate_income"),
@@ -33,12 +59,14 @@ REQUIRED_OUTPUT_SYNONYMS: Dict[str, Tuple[str, ...]] = {
     "close": ("close", "Close", "收盘"),
     "trade_date": ("trade_date", "date", "Date", "日期"),
     "volume": ("volume", "Volume", "成交量"),
+    "adjustment": ("adjustment", "adjust", "ADJUST"),
     "local_key": ("local_key", "localKey", "file_key"),
     "news_id": ("news_id", "newsId"),
     "snippet": ("snippet", "text", "content", "page_text"),
     "title": ("title", "Title", "headline"),
     "page_number": ("page_number", "page"),
     "release_date": ("release_date", "publish_time", "date"),
+    "source_url": ("source_url", "url", "link"),
 }
 
 
@@ -51,6 +79,37 @@ def _domain_capability(domain: Optional[str]) -> str:
     if d in {"disclosure", "news"}:
         return "disclosure.list"
     return "market.daily_ohlcv"
+
+
+_ROW_CODE_KEYS = (
+    "issuer_code",
+    "SECURITY_CODE",
+    "SECUCODE",
+    "stock_code",
+    "hk_code",
+    "symbol",
+    "code",
+)
+_ROW_NAME_KEYS = ("company_name", "SECURITY_NAME_ABBR", "name", "entity_name")
+
+
+def _collect_from_rows(rows: Any) -> Dict[str, Any]:
+    """Lift common identity fields from the first non-empty row into the pool."""
+    out: Dict[str, Any] = {}
+    if not isinstance(rows, list):
+        return out
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        for key in _ROW_CODE_KEYS:
+            if key not in out and row.get(key) not in (None, ""):
+                out[key] = row.get(key)
+        for key in _ROW_NAME_KEYS:
+            if key not in out and row.get(key) not in (None, ""):
+                out[key] = row.get(key)
+        if out:
+            break
+    return out
 
 
 def _collect_from_adapted(adapted: Dict[str, Any]) -> Dict[str, Any]:
@@ -76,6 +135,7 @@ def _collect_from_adapted(adapted: Dict[str, Any]) -> Dict[str, Any]:
         snips = adapted.get("snippets") or []
         if snips and isinstance(snips[0], dict) and snips[0].get("snippet"):
             out["snippet"] = snips[0]["snippet"]
+    out.update(_collect_from_rows(adapted.get("rows")))
     return out
 
 
@@ -148,6 +208,12 @@ def _project_one(
         envelope = {}
 
     pool = extract_values_from_envelope(envelope, list(required_outputs))
+    if isinstance(envelope, dict):
+        pool.update(_collect_from_rows(envelope.get("rows")))
+        for nested_key in ("normalized", "raw", "result"):
+            nested = envelope.get(nested_key)
+            if isinstance(nested, dict):
+                pool.update(_collect_from_rows(nested.get("rows")))
     adapted: Dict[str, Any] = {}
     try:
         adapted = adapt_mcp_result(
@@ -157,7 +223,15 @@ def _project_one(
     except Exception:  # noqa: BLE001
         adapted = {}
     if isinstance(adapted, dict):
-        pool.update(_collect_from_adapted(adapted))
+        # Prefer row identity codes over display-name entity when both exist.
+        adapted_pool = _collect_from_adapted(adapted)
+        for key, value in adapted_pool.items():
+            if key == "entity" and any(k in pool for k in _ROW_CODE_KEYS):
+                continue
+            if key not in pool or pool[key] in (None, ""):
+                pool[key] = value
+            elif key in _ROW_CODE_KEYS:
+                pool[key] = value
 
     if str(domain or "").lower() in {"disclosure", "news"} and any(
         r in {"snippet", "local_key", "page_number"} for r in required_outputs

@@ -102,13 +102,16 @@ class PeFinLiteAgent:
         selected_operations: List[str] = []
         invoked_operations: List[str] = []
         successful_invoked: List[str] = []
+        invoke_records: List[Dict[str, Any]] = []
         resolver_calls = {"find_operations": 0, "describe_operation": 0}
         status = "failed"
         error: Optional[str] = None
         error_type: Optional[str] = None
+        stopping_reason: Optional[str] = None
         final_obj: Optional[Dict[str, Any]] = None
         plan: Optional[Dict[str, Any]] = None
         step_state: Dict[str, str] = {}
+        skip_execution = False
 
         try:
             planner_out = run_planner(
@@ -123,16 +126,44 @@ class PeFinLiteAgent:
             parse_repair_count += int(planner_out.get("repair_count") or 0)
             self.budget.planner_repair_count = int(planner_out.get("repair_count") or 0)
             total_usage = _merge_usage(total_usage, planner_out.get("usage") or {})
-            trace.append({"stage": "planner", "ok": planner_out.get("ok")})
+            trace.append(
+                {
+                    "stage": "planner",
+                    "ok": planner_out.get("ok"),
+                    "error": planner_out.get("error"),
+                    "error_type": planner_out.get("error_type"),
+                    "stopping_reason": planner_out.get("stopping_reason"),
+                    "repair_count": planner_out.get("repair_count"),
+                }
+            )
             if not planner_out.get("ok"):
-                raise RuntimeError(f"planner_failed:{planner_out.get('error')}")
-            plan = planner_out["plan"]
-            steps = list(plan.get("steps") or [])
-            ordered = topological_ready_order(steps)
-            completed_ok: Set[str] = set()
-            failed_deps: Set[str] = set()
+                # Structured planner failure — do not raise a runner exception.
+                error = f"planner_failed:{planner_out.get('error')}"
+                error_type = str(
+                    planner_out.get("error_type") or "planner_schema_or_semantics"
+                )
+                stopping_reason = str(
+                    planner_out.get("stopping_reason") or "planner_invalid"
+                )
+                final_obj = {
+                    "status": "unavailable",
+                    "final_answer": "",
+                    "reasoning_brief": (
+                        "Planner could not produce a valid plan under the output contract."
+                    ),
+                    "refusal_reason": stopping_reason,
+                }
+                status = "failed"
+                skip_execution = True
+            else:
+                plan = planner_out["plan"]
+            if not skip_execution:
+                steps = list((plan or {}).get("steps") or [])
+                ordered = topological_ready_order(steps)
+                completed_ok: Set[str] = set()
+                failed_deps: Set[str] = set()
 
-            for step in ordered:
+            for step in ordered if not skip_execution else []:
                 sid = str(step["id"])
                 deps = [str(d) for d in (step.get("depends_on") or [])]
                 bad_deps = [d for d in deps if d not in completed_ok]
@@ -181,6 +212,13 @@ class PeFinLiteAgent:
                         invoked_operations.append(oid)
                         selected_operations.append(oid)
                         predicted_operations.append(oid)
+                        invoke_records.append(
+                            {
+                                "operation_id": oid,
+                                "step_id": sid,
+                                "source": "gateway",
+                            }
+                        )
                     result = out["step_result"]
                     if retrieve_step_succeeded(result):
                         completed_ok.add(sid)
@@ -188,9 +226,24 @@ class PeFinLiteAgent:
                         prov = result.get("provenance") or {}
                         if prov.get("operation_id"):
                             successful_invoked.append(str(prov["operation_id"]))
+                            for rec in invoke_records:
+                                if (
+                                    rec.get("operation_id") == prov.get("operation_id")
+                                    and rec.get("step_id") == sid
+                                    and "success" not in rec
+                                ):
+                                    rec["success"] = True
                     else:
                         step_state[sid] = str(result.get("status") or "failed")
                         failed_deps.add(sid)
+                        for rec in invoke_records:
+                            if rec.get("step_id") == sid and "success" not in rec:
+                                rec["success"] = False
+                        if not error_type and result.get("failure_reason"):
+                            error_type = "semantic_or_structured_retrieve_failure"
+                            stopping_reason = stopping_reason or str(
+                                result.get("failure_reason")
+                            )
                     step_statuses.append(
                         {
                             "id": sid,
@@ -270,77 +323,92 @@ class PeFinLiteAgent:
                         }
                     )
 
-            # Final synthesizer (1 + optional 1 repair)
-            missing_notes = [
-                f"{m.get('step_id')}:{m.get('failure_reason') or m.get('missing_outputs')}"
-                for m in store.missing
-            ]
-            final_user = render_final_user(
-                question=question,
-                step_statuses=step_statuses,
-                evidence=store.compact_for_prompt(),
-                compute=store.compute_records,
-                reason=store.reason_artifacts,
-                missing=missing_notes,
-            )
-            messages = [
-                {"role": "system", "content": PE_FIN_LITE_SYSTEM_PROMPT},
-                {"role": "user", "content": final_user},
-            ]
-            final_completion = self.llm.complete(
-                messages,
-                temperature=self.temperature,
-                max_tokens=self.max_tokens,
-                stage="final",
-            )
-            total_usage = _merge_usage(total_usage, final_completion.get("usage") or {})
-            parsed = parse_and_validate(str(final_completion.get("content") or ""), "final")
-            if parsed[0] is None:
-                repair_msg = format_repair_user_message("final", parsed[2] or "invalid final")
-                repair = self.llm.complete(
-                    messages
-                    + [
-                        {
-                            "role": "assistant",
-                            "content": str(final_completion.get("content") or ""),
-                        },
-                        {"role": "user", "content": repair_msg},
-                    ],
+            # Final synthesizer (1 + optional 1 repair). Skipped on structured planner failure.
+            if not skip_execution:
+                missing_notes = [
+                    f"{m.get('step_id')}:{m.get('failure_reason') or m.get('missing_outputs')}"
+                    for m in store.missing
+                ]
+                final_user = render_final_user(
+                    question=question,
+                    step_statuses=step_statuses,
+                    evidence=store.compact_for_prompt(),
+                    compute=store.compute_records,
+                    reason=store.reason_artifacts,
+                    missing=missing_notes,
+                )
+                messages = [
+                    {"role": "system", "content": PE_FIN_LITE_SYSTEM_PROMPT},
+                    {"role": "user", "content": final_user},
+                ]
+                final_completion = self.llm.complete(
+                    messages,
                     temperature=self.temperature,
                     max_tokens=self.max_tokens,
-                    stage="final_repair",
+                    stage="final",
                 )
-                self.budget.final_repair_rounds += 1
-                parse_repair_count += 1
-                total_usage = _merge_usage(total_usage, repair.get("usage") or {})
+                total_usage = _merge_usage(total_usage, final_completion.get("usage") or {})
                 parsed = parse_and_validate(
-                    str(final_completion.get("content") or ""),
-                    "final",
-                    repair_content=str(repair.get("content") or ""),
+                    str(final_completion.get("content") or ""), "final"
                 )
-            if parsed[0] is None:
-                # Fail closed: do not invent; emit unavailable.
-                final_obj = {
-                    "status": "unavailable",
-                    "final_answer": "",
-                    "reasoning_brief": "Final synthesizer could not produce a valid contract JSON.",
-                }
-                status = "failed"
-                error = parsed[2] or "final_parse_failed"
-                error_type = "final_schema_or_synthesis"
+                if parsed[0] is None:
+                    repair_msg = format_repair_user_message(
+                        "final", parsed[2] or "invalid final"
+                    )
+                    repair = self.llm.complete(
+                        messages
+                        + [
+                            {
+                                "role": "assistant",
+                                "content": str(final_completion.get("content") or ""),
+                            },
+                            {"role": "user", "content": repair_msg},
+                        ],
+                        temperature=self.temperature,
+                        max_tokens=self.max_tokens,
+                        stage="final_repair",
+                    )
+                    self.budget.final_repair_rounds += 1
+                    parse_repair_count += 1
+                    total_usage = _merge_usage(total_usage, repair.get("usage") or {})
+                    parsed = parse_and_validate(
+                        str(final_completion.get("content") or ""),
+                        "final",
+                        repair_content=str(repair.get("content") or ""),
+                    )
+                if parsed[0] is None:
+                    final_obj = {
+                        "status": "unavailable",
+                        "final_answer": "",
+                        "reasoning_brief": (
+                            "Final synthesizer could not produce a valid contract JSON."
+                        ),
+                    }
+                    status = "failed"
+                    error = parsed[2] or "final_parse_failed"
+                    error_type = "final_schema_or_synthesis"
+                    stopping_reason = stopping_reason or "final_invalid"
+                else:
+                    final_obj = parsed[0]
+                    status = "full" if final_obj.get("status") == "answered" else "partial"
+                    if final_obj.get("status") == "unavailable":
+                        status = (
+                            "failed" if store.missing and not store.values else "partial"
+                        )
+                    if final_obj.get("status") == "answered" and not store.missing:
+                        status = "full"
+                    elif final_obj.get("status") == "answered" and store.missing:
+                        status = "partial"
+                trace.append({"stage": "final", "status": (final_obj or {}).get("status")})
             else:
-                final_obj = parsed[0]
-                # If evidence missing and model answered with numbers, prefer unavailable
-                # only when model ignored gaps — trust model status otherwise.
-                status = "full" if final_obj.get("status") == "answered" else "partial"
-                if final_obj.get("status") == "unavailable":
-                    status = "failed" if store.missing and not store.values else "partial"
-                if final_obj.get("status") == "answered" and not store.missing:
-                    status = "full"
-                elif final_obj.get("status") == "answered" and store.missing:
-                    # Still accept answered if some evidence exists; grader decides correctness.
-                    status = "partial"
-            trace.append({"stage": "final", "status": final_obj.get("status")})
+                trace.append(
+                    {
+                        "stage": "final",
+                        "status": "unavailable",
+                        "skipped": True,
+                        "reason": stopping_reason or "planner_failed",
+                    }
+                )
 
         except (LlmCallBudgetExhausted, McpBudgetExhausted) as exc:
             fail = structured_budget_failure(
@@ -394,12 +462,25 @@ class PeFinLiteAgent:
             }
             trace.append({"stage": "exception", "error": error})
 
+        if final_obj is None:
+            final_obj = {
+                "status": "unavailable",
+                "final_answer": "",
+                "reasoning_brief": "No final payload produced.",
+            }
         predicted_status, final_text = normalize_final_payload(
             final_obj, fallback_status=agent_completion_to_fallback(status)
         )
         succ = len(successful_invoked)
         fail_inv = max(0, len(invoked_operations) - succ)
         all_ok = None if not invoked_operations else (fail_inv == 0)
+        mcp_count = int(self.budget.mcp_invocations)
+        # Prefer recorded gateway invocations; ensure count matches budget.
+        if len(invoke_records) < mcp_count:
+            for oid in invoked_operations[len(invoke_records) :]:
+                invoke_records.append({"operation_id": oid, "source": "gateway"})
+        for rec in invoke_records:
+            rec.setdefault("success", rec.get("operation_id") in successful_invoked)
 
         return {
             "status": status,
@@ -413,7 +494,7 @@ class PeFinLiteAgent:
             "latency_ms": (time.perf_counter() - started) * 1000.0,
             "trace": trace,
             "resolver_calls": resolver_calls,
-            "underlying_operation_calls": self.budget.mcp_invocations,
+            "underlying_operation_calls": mcp_count,
             "predicted_operations": predicted_operations,
             "selected_operations": selected_operations,
             "invoked_operations": invoked_operations,
@@ -429,14 +510,15 @@ class PeFinLiteAgent:
             "binding_calls": self.budget.binder_calls,
             "binding_repair_count": 0,
             "describe_calls": resolver_calls["describe_operation"],
-            "invoke_calls": self.budget.mcp_invocations,
+            "invoke_calls": list(invoke_records),
+            "invoke_records": list(invoke_records),
             "tool_execution_success": all_ok if all_ok is not None else True,
             "all_tool_invocations_successful": all_ok,
             "successful_invocation_count": succ,
             "failed_invocation_count": fail_inv,
-            "real_mcp_execution_count": self.budget.mcp_invocations,
+            "real_mcp_execution_count": mcp_count,
             "budget": self.budget.snapshot(),
-            "stopping_reason": self.budget.stopping_reason,
+            "stopping_reason": stopping_reason or self.budget.stopping_reason,
             "monitor_decisions": [],
             "plan_revisions": [],
             "architecture": "plan_first_step_level_retrieval_v1",

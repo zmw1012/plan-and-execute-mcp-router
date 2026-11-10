@@ -10,6 +10,14 @@ import json
 from typing import Any, Dict, List, Sequence
 
 from hk_equity_mcp.experiment.schema import FINAL_ANSWER_CONTRACT
+from hk_equity_mcp.pe_fin_lite.output_vocabulary import (
+    CANONICAL_OUTPUT_FIELDS,
+    CANONICAL_OUTPUT_VOCABULARY_VERSION,
+)
+from hk_equity_mcp.pe_fin_lite.schemas import (
+    COMPUTE_EXPRESSION_MAX_LENGTH,
+    OBJECTIVE_MAX_LENGTH,
+)
 
 PE_FIN_LITE_SYSTEM_PROMPT = """You are PE-Fin Lite, a careful Hong Kong equity research agent.
 Follow the plan-first step-level retrieval protocol.
@@ -29,12 +37,25 @@ Execution limits:
 Plan schema rules:
 - Return JSON with key "steps" only (optional schema_version).
 - Each step: id, type (retrieve|compute|reason), domain, objective, required_outputs, depends_on.
+- Optional per step: scope_constraints, entity, period, date, compute_spec, workflow.
 - Retrieve steps are semantic: never write operation_id or concrete MCP tool names.
 - For official HKEX disclosure evidence, set workflow to retrieve_official_disclosure_evidence on a retrieve step (domain=disclosure).
-- Compute steps must include compute_spec and depend on prior evidence.
+- objective is natural language but MUST be <= {objective_max_length} characters. Never exceed this limit.
+- required_outputs MUST be canonical field IDs only from this enum (no free-text phrases):
+  {canonical_outputs_json}
+  Vocabulary version: {canonical_vocab_version}.
+  Forbidden examples: "basic EPS value", "source evidence availability", "exact trade date 2026-06-30".
+- Put entity/period/trade_date/from_date/to_date/metric_basis/adjustment/title_keyword into scope_constraints (not into required_outputs).
+  Example scope_constraints:
+  {{"entity": {{"name": "Issuer Name", "code": "00700"}}, "period": "FY2025", "trade_date": "2026-06-30", "metric_basis": "reported", "adjustment": ""}}
+- Compute steps MUST include an executable typed compute_spec and depend on prior evidence.
+  Generic compute_spec example (illustrative only; do not copy numbers from it):
+  {{"expression": "(a - b) / b", "operand_refs": {{"a": "step1.revenue", "b": "step2.revenue"}}, "output_name": "revenue_growth", "output_unit": "ratio"}}
+  compute_spec.expression maxLength={compute_expression_max_length}. operand_refs values are evidence ref strings.
 - Reason steps only analyze verified evidence; no tools.
 - Max {max_plan_steps} steps. DAG must be acyclic.
 - Final synthesis is NOT a plan step.
+- If a previous attempt failed validation, regenerate the FULL plan JSON — never splice fragments or silently truncate.
 
 Return one JSON object only."""
 
@@ -56,7 +77,7 @@ Rules:
 - Return JSON: primary {{operation_id, arguments}}, fallback {{operation_id, arguments}} or null.
 - Both operation_ids MUST be from the described candidates.
 - Arguments MUST satisfy required schema fields; never return empty {{}} when required args exist.
-- Prefer arguments grounded in the question, step fields, or evidence store.
+- Prefer arguments grounded in the question, step.scope_constraints, step fields, or evidence store.
 - No secrets. No gold. No invented identifiers.
 
 Return one JSON object only."""
@@ -112,6 +133,10 @@ def pe_fin_lite_prompt_hash() -> str:
             PE_FIN_LITE_REASON_USER_TEMPLATE,
             PE_FIN_LITE_FINAL_USER_TEMPLATE,
             FINAL_ANSWER_CONTRACT,
+            f"objective_max={OBJECTIVE_MAX_LENGTH}",
+            f"compute_expr_max={COMPUTE_EXPRESSION_MAX_LENGTH}",
+            f"vocab={CANONICAL_OUTPUT_VOCABULARY_VERSION}",
+            ",".join(CANONICAL_OUTPUT_FIELDS),
         ]
     )
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
@@ -154,6 +179,10 @@ def render_planner_user(
         ),
         limits_json=json.dumps(limits, ensure_ascii=False, indent=2),
         max_plan_steps=max_plan_steps,
+        objective_max_length=OBJECTIVE_MAX_LENGTH,
+        compute_expression_max_length=COMPUTE_EXPRESSION_MAX_LENGTH,
+        canonical_outputs_json=json.dumps(list(CANONICAL_OUTPUT_FIELDS)),
+        canonical_vocab_version=CANONICAL_OUTPUT_VOCABULARY_VERSION,
     )
 
 

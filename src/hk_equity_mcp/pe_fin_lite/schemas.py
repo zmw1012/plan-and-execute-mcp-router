@@ -11,8 +11,13 @@ import re
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
+from hk_equity_mcp.pe_fin_lite.output_vocabulary import (
+    CANONICAL_OUTPUT_FIELDS,
+    validate_required_outputs,
+)
+
 SCHEMA_VERSIONS = {
-    "plan": "pe_fin_lite_plan_v1",
+    "plan": "pe_fin_lite_plan_v2",
     "tool_binding": "pe_fin_lite_tool_binding_v1",
     "final": "pe_fin_lite_final_v1",
     "reason": "pe_fin_lite_reason_v1",
@@ -31,6 +36,37 @@ STEP_DOMAINS = (
 ANSWER_STATUSES = ("answered", "clarification_needed", "unavailable")
 MAX_PLAN_STEPS = 6
 
+# Explicit planner string budgets (must match prompt + repair messaging).
+OBJECTIVE_MAX_LENGTH = 480
+REQUIRED_OUTPUT_ITEM_MAX_LENGTH = 64
+COMPUTE_EXPRESSION_MAX_LENGTH = 240
+
+SCOPE_CONSTRAINTS_SCHEMA: Dict[str, Any] = {
+    "type": ["object", "null"],
+    "additionalProperties": False,
+    "properties": {
+        "entity": {
+            "type": ["string", "object", "null"],
+            "maxLength": 120,
+            "additionalProperties": False,
+            "properties": {
+                "name": {"type": ["string", "null"], "maxLength": 120},
+                "code": {"type": ["string", "null"], "maxLength": 32},
+                "company_name": {"type": ["string", "null"], "maxLength": 120},
+                "stock_code": {"type": ["string", "null"], "maxLength": 32},
+                "issuer_code": {"type": ["string", "null"], "maxLength": 32},
+            },
+        },
+        "period": {"type": ["string", "null"], "maxLength": 80},
+        "trade_date": {"type": ["string", "null"], "maxLength": 40},
+        "from_date": {"type": ["string", "null"], "maxLength": 40},
+        "to_date": {"type": ["string", "null"], "maxLength": 40},
+        "metric_basis": {"type": ["string", "null"], "maxLength": 80},
+        "adjustment": {"type": ["string", "null"], "maxLength": 40},
+        "title_keyword": {"type": ["string", "null"], "maxLength": 160},
+    },
+}
+
 PLAN_STEP_SCHEMA: Dict[str, Any] = {
     "type": "object",
     "additionalProperties": False,
@@ -46,11 +82,19 @@ PLAN_STEP_SCHEMA: Dict[str, Any] = {
         "id": {"type": "string", "minLength": 1, "maxLength": 64},
         "type": {"type": "string", "enum": list(STEP_TYPES)},
         "domain": {"type": "string", "enum": list(STEP_DOMAINS)},
-        "objective": {"type": "string", "minLength": 1, "maxLength": 240},
+        "objective": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": OBJECTIVE_MAX_LENGTH,
+        },
         "required_outputs": {
             "type": "array",
             "maxItems": 12,
-            "items": {"type": "string", "maxLength": 80},
+            "items": {
+                "type": "string",
+                "enum": list(CANONICAL_OUTPUT_FIELDS),
+                "maxLength": REQUIRED_OUTPUT_ITEM_MAX_LENGTH,
+            },
         },
         "depends_on": {
             "type": "array",
@@ -60,12 +104,17 @@ PLAN_STEP_SCHEMA: Dict[str, Any] = {
         "entity": {"type": ["string", "null"], "maxLength": 120},
         "period": {"type": ["string", "null"], "maxLength": 120},
         "date": {"type": ["string", "null"], "maxLength": 40},
+        "scope_constraints": SCOPE_CONSTRAINTS_SCHEMA,
         "compute_spec": {
             "type": ["object", "null"],
             "additionalProperties": False,
             "required": ["expression", "operand_refs", "output_name"],
             "properties": {
-                "expression": {"type": "string", "minLength": 1, "maxLength": 240},
+                "expression": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": COMPUTE_EXPRESSION_MAX_LENGTH,
+                },
                 "operand_refs": {
                     "type": "object",
                     "additionalProperties": {
@@ -92,7 +141,7 @@ PE_FIN_LITE_PLAN_V1: Dict[str, Any] = {
     "properties": {
         "schema_version": {
             "type": ["string", "null"],
-            "enum": [None, SCHEMA_VERSIONS["plan"]],
+            "enum": [None, SCHEMA_VERSIONS["plan"], "pe_fin_lite_plan_v1"],
         },
         "steps": {
             "type": "array",
@@ -235,9 +284,15 @@ def validate_against_schema(payload: Any, schema: Dict[str, Any], path: str = "$
         raise SchemaValidationError(f"{path}: value {payload!r} not in enum")
     if isinstance(payload, str):
         if "minLength" in schema and len(payload) < int(schema["minLength"]):
-            raise SchemaValidationError(f"{path}: string shorter than minLength")
+            raise SchemaValidationError(
+                f"{path}: string length {len(payload)} shorter than minLength "
+                f"{schema['minLength']}"
+            )
         if "maxLength" in schema and len(payload) > int(schema["maxLength"]):
-            raise SchemaValidationError(f"{path}: string longer than maxLength")
+            raise SchemaValidationError(
+                f"{path}: string length {len(payload)} exceeds maxLength "
+                f"{schema['maxLength']} (allowed={schema['maxLength']}, actual={len(payload)})"
+            )
     if isinstance(payload, list):
         if "minItems" in schema and len(payload) < int(schema["minItems"]):
             raise SchemaValidationError(f"{path}: fewer than minItems")
@@ -248,22 +303,33 @@ def validate_against_schema(payload: Any, schema: Dict[str, Any], path: str = "$
             for i, item in enumerate(payload):
                 validate_against_schema(item, item_schema, f"{path}[{i}]")
     if isinstance(payload, dict):
+        # When schema allows object|string|null union, only apply object rules for dicts.
+        if "object" not in types and expected_type is not None and "object" not in (
+            expected_type if isinstance(expected_type, list) else [expected_type]
+        ):
+            # string-only branch already handled
+            pass
         required = schema.get("required") or []
         for key in required:
             if key not in payload:
                 raise SchemaValidationError(f"{path}: missing required property {key!r}")
         props = schema.get("properties") or {}
         additional = schema.get("additionalProperties", True)
-        for key, value in payload.items():
-            if key in props:
-                validate_against_schema(value, props[key], f"{path}.{key}")
-            elif additional is False:
-                raise SchemaValidationError(f"{path}: unexpected property {key!r}")
-            elif isinstance(additional, dict):
-                validate_against_schema(value, additional, f"{path}.{key}")
+        # Only enforce additionalProperties when payload is validated as object.
+        enforce_object = "object" in types or expected_type is None or expected_type == "object"
+        if enforce_object or isinstance(payload, dict):
+            for key, value in payload.items():
+                if key in props:
+                    validate_against_schema(value, props[key], f"{path}.{key}")
+                elif additional is False:
+                    raise SchemaValidationError(f"{path}: unexpected property {key!r}")
+                elif isinstance(additional, dict):
+                    validate_against_schema(value, additional, f"{path}.{key}")
 
 
 def extract_json_object(text: str) -> Any:
+    if text is None:
+        raise SchemaValidationError("null content")
     if not isinstance(text, str) or not text.strip():
         raise SchemaValidationError("empty content")
     raw = text.strip()
@@ -273,7 +339,7 @@ def extract_json_object(text: str) -> Any:
     start = raw.find("{")
     end = raw.rfind("}")
     if start < 0 or end < 0 or end <= start:
-        raise SchemaValidationError("no JSON object found")
+        raise SchemaValidationError("no JSON object found (truncated or non-JSON content)")
     try:
         return json.loads(raw[start : end + 1])
     except json.JSONDecodeError as exc:
@@ -309,11 +375,74 @@ def parse_and_validate(
         return None, repair_count, str(exc)
 
 
-def format_repair_user_message(schema_name: str, error: str) -> str:
-    return (
-        f"Your previous JSON failed validation for schema {schema_name}. "
-        f"Error: {error}. Return one corrected JSON object only — no markdown."
-    )
+def _collect_length_violations(payload: Any, schema: Dict[str, Any], path: str = "$") -> List[str]:
+    """Best-effort scan for maxLength violations to include in repair hints."""
+    notes: List[str] = []
+    if not isinstance(schema, dict) or payload is None:
+        return notes
+    if isinstance(payload, str) and "maxLength" in schema:
+        if len(payload) > int(schema["maxLength"]):
+            notes.append(
+                f"{path}: actual_length={len(payload)} allowed_length={schema['maxLength']}"
+            )
+    if isinstance(payload, list) and isinstance(schema.get("items"), dict):
+        for i, item in enumerate(payload):
+            notes.extend(_collect_length_violations(item, schema["items"], f"{path}[{i}]"))
+    if isinstance(payload, dict):
+        props = schema.get("properties") or {}
+        for key, value in payload.items():
+            if key in props:
+                notes.extend(
+                    _collect_length_violations(value, props[key], f"{path}.{key}")
+                )
+        items = payload.get("steps") if "steps" in payload else None
+        step_schema = (props.get("steps") or {}).get("items") if props else None
+        if isinstance(items, list) and isinstance(step_schema, dict):
+            for i, step in enumerate(items):
+                notes.extend(
+                    _collect_length_violations(step, step_schema, f"$.steps[{i}]")
+                )
+    return notes
+
+
+def format_repair_user_message(
+    schema_name: str,
+    error: str,
+    *,
+    previous_content: Optional[str] = None,
+) -> str:
+    """Repair instruction: full re-generation only; never splice/truncate silently."""
+    length_notes: List[str] = []
+    if schema_name == "plan" and previous_content:
+        try:
+            prev = extract_json_object(previous_content)
+            length_notes = _collect_length_violations(prev, SCHEMA_BY_NAME["plan"])
+        except SchemaValidationError:
+            length_notes = []
+    lines = [
+        f"Your previous JSON failed validation for schema {schema_name}.",
+        f"Error: {error}",
+    ]
+    if length_notes:
+        lines.append("Length violations (JSON path / actual / allowed):")
+        lines.extend(f"- {n}" for n in length_notes[:12])
+    if schema_name == "plan":
+        lines.extend(
+            [
+                f"Hard limits: objective maxLength={OBJECTIVE_MAX_LENGTH}; "
+                f"compute_spec.expression maxLength={COMPUTE_EXPRESSION_MAX_LENGTH}.",
+                "required_outputs must be canonical field IDs only "
+                f"(enum={list(CANONICAL_OUTPUT_FIELDS)}).",
+                "Put entity/period/date/basis into scope_constraints — not required_outputs.",
+                "Compute steps MUST include compute_spec with non-empty expression "
+                "and typed operand_refs (map of operand name → evidence ref string).",
+                "Return a COMPLETE new plan JSON object. Do NOT splice fragments. "
+                "Do NOT silently truncate objectives — rewrite them within the limit "
+                "while preserving meaning.",
+            ]
+        )
+    lines.append("Return one corrected JSON object only — no markdown.")
+    return "\n".join(lines)
 
 
 class PlanValidationError(ValueError):
@@ -366,6 +495,12 @@ def validate_plan_semantics(payload: Dict[str, Any]) -> None:
             if dep not in id_set:
                 raise PlanValidationError(f"step {sid} depends on unknown {dep}")
         stype = step.get("type")
+        req = list(step.get("required_outputs") or [])
+        bad_req = validate_required_outputs(req)
+        if bad_req:
+            raise PlanValidationError(
+                f"step {sid} required_outputs not canonical: {bad_req}"
+            )
         if stype == "retrieve":
             if not step.get("domain"):
                 raise PlanValidationError(f"retrieve step {sid} missing domain")
@@ -375,10 +510,39 @@ def validate_plan_semantics(payload: Dict[str, Any]) -> None:
                 raise PlanValidationError(
                     f"retrieve step {sid} missing required_outputs"
                 )
+            obj = str(step.get("objective") or "")
+            if len(obj) > OBJECTIVE_MAX_LENGTH:
+                raise PlanValidationError(
+                    f"$.steps[id={sid}].objective: actual_length={len(obj)} "
+                    f"allowed_length={OBJECTIVE_MAX_LENGTH}"
+                )
         if stype == "compute":
             spec = step.get("compute_spec")
             if not isinstance(spec, dict):
-                raise PlanValidationError(f"compute step {sid} missing compute_spec")
+                raise PlanValidationError(
+                    f"compute step {sid} missing compute_spec "
+                    "(need expression + typed operand_refs + output_name)"
+                )
+            expr = str(spec.get("expression") or "").strip()
+            if not expr:
+                raise PlanValidationError(
+                    f"compute step {sid} missing compute_spec.expression"
+                )
+            refs = spec.get("operand_refs")
+            if not isinstance(refs, dict) or not refs:
+                raise PlanValidationError(
+                    f"compute step {sid} missing typed compute_spec.operand_refs"
+                )
+            for op_name, ref in refs.items():
+                if not isinstance(op_name, str) or not str(op_name).strip():
+                    raise PlanValidationError(
+                        f"compute step {sid} operand_refs has invalid operand name"
+                    )
+                if not isinstance(ref, str) or not str(ref).strip():
+                    raise PlanValidationError(
+                        f"compute step {sid} operand_refs[{op_name!r}] must be a "
+                        "non-empty evidence ref string"
+                    )
             if not (step.get("depends_on") or []):
                 raise PlanValidationError(
                     f"compute step {sid} must depend on prior evidence steps"

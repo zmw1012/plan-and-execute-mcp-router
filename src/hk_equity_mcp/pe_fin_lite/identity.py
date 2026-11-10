@@ -17,12 +17,33 @@ EXPECTED_EMBEDDING_PROVIDER = "openai_compatible"
 FORMAL_OUTPUT_DIRS = {
     "dry_run": "outputs/pe_fin_lite_dry_run_v1",
     "smoke5_mock": "outputs/pe_fin_lite_smoke5_mock_v1",
-    "smoke5_live": "outputs/pe_fin_lite_smoke5_live_v1",
+    "smoke5_live": "outputs/pe_fin_lite_smoke5_live_v2",
+    "smoke5_live_v1_invalidated": "outputs/pe_fin_lite_smoke5_live_v1",
     "diagnostic12_live": "outputs/pe_fin_lite_diagnostic12_live_v1",
 }
 
-METRICS_VERSION = "pe_fin_lite_metrics_v1"
+METRICS_VERSION = "pe_fin_lite_metrics_v2"
 ARCHITECTURE_ID = "plan_first_step_level_retrieval_v1"
+
+
+def protocol_identity_hashes() -> Dict[str, Any]:
+    """Hashes for protocol identities that may change across engineering smokes."""
+    from hk_equity_mcp.pe_fin_lite.argument_grounding import argument_grounding_hash
+    from hk_equity_mcp.pe_fin_lite.output_vocabulary import (
+        canonical_output_vocabulary_hash,
+        scope_contract_hash,
+    )
+    from hk_equity_mcp.pe_fin_lite.prompts import pe_fin_lite_prompt_hash
+
+    return {
+        "combined_schema_hash": combined_schema_hash(),
+        "schema_hashes": schema_hashes(),
+        "prompt_hash": pe_fin_lite_prompt_hash(),
+        "canonical_output_vocabulary_hash": canonical_output_vocabulary_hash(),
+        "scope_contract_hash": scope_contract_hash(),
+        "argument_grounding_hash": argument_grounding_hash(),
+        "metrics_version": METRICS_VERSION,
+    }
 
 
 def schema_hashes() -> Dict[str, str]:

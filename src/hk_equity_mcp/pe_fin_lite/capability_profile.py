@@ -80,6 +80,8 @@ def capability_profile_hash(profile: Dict[str, Any]) -> str:
 
 def profile_for_planner(profile: Dict[str, Any]) -> Dict[str, Any]:
     """Compact view injected into the planner prompt (still static)."""
+    from hk_equity_mcp.pe_fin_lite.output_vocabulary import vocabulary_for_profile
+
     source_types = profile.get("source_types") or {}
     compact_sources = {
         name: {
@@ -100,6 +102,20 @@ def profile_for_planner(profile: Dict[str, Any]) -> Dict[str, Any]:
                 "description": wf.get("description"),
             }
         )
+    vocab = profile.get("canonical_output_vocabulary") or vocabulary_for_profile()
+    scope = profile.get("scope_constraints_contract") or {
+        "version": "pe_fin_lite_scope_constraints_v1",
+        "keys": [
+            "entity",
+            "period",
+            "trade_date",
+            "from_date",
+            "to_date",
+            "metric_basis",
+            "adjustment",
+            "title_keyword",
+        ],
+    }
     return {
         "profile_id": profile.get("profile_id"),
         "domain": profile.get("domain"),
@@ -107,6 +123,8 @@ def profile_for_planner(profile: Dict[str, Any]) -> Dict[str, Any]:
         "source_types": compact_sources,
         "known_limitations": list(profile.get("known_limitations") or []),
         "composite_workflows": workflows,
+        "canonical_output_vocabulary": vocab,
+        "scope_constraints_contract": scope,
     }
 
 

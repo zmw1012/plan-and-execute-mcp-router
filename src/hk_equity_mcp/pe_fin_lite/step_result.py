@@ -173,13 +173,23 @@ def check_scope_match(
             ):
                 return False
     if entity:
+        if isinstance(entity, dict):
+            entity = (
+                entity.get("code")
+                or entity.get("stock_code")
+                or entity.get("issuer_code")
+                or entity.get("name")
+                or entity.get("company_name")
+            )
         observed_entity = (
             values.get("entity")
             or values.get("symbol")
             or values.get("ticker")
+            or values.get("issuer_code")
             or args.get("symbol")
             or args.get("stock")
             or args.get("code")
+            or args.get("stock_code")
         )
         if observed_entity is not None and str(observed_entity):
             ent = str(entity).lower().replace(".hk", "").strip()

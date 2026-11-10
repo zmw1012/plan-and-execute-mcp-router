@@ -130,6 +130,7 @@ def summarize_prediction_outcomes(
     """Derive run-level completion counters from written predictions."""
     expected: Set[str] = {str(x) for x in expected_ids}
     completed_ids = []
+    partial_ids = []
     failed_ids = []
     for tid in expected_ids:
         row = predictions_by_id.get(tid)
@@ -138,14 +139,18 @@ def summarize_prediction_outcomes(
         status = str(row.get("status") or "")
         if status == "full":
             completed_ids.append(tid)
+        elif status == "partial":
+            partial_ids.append(tid)
         else:
             failed_ids.append(tid)
     processed = [tid for tid in expected_ids if tid in predictions_by_id]
     return {
         "processed_task_count": len(processed),
         "full_count": len(completed_ids),
+        "partial_count": len(partial_ids),
         "failed_count": len(failed_ids),
         "completed_ids": completed_ids,
+        "partial_ids": partial_ids,
         "failed_ids": failed_ids,
         "missing_ids": [tid for tid in expected_ids if tid not in predictions_by_id],
         "expected_task_count": len(expected),

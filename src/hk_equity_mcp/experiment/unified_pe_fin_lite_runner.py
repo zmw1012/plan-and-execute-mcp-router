@@ -20,6 +20,7 @@ import yaml
 from hk_equity_mcp.agent.llm_client import OpenAICompatibleChatClient, ScriptedLLMClient
 from hk_equity_mcp.apv_fin.llm_budget import LlmCallBudgetExhausted
 from hk_equity_mcp.apv_fin.metadata import load_and_validate_metadata
+from hk_equity_mcp.apv_fin.runtime_safety import summarize_prediction_outcomes
 from hk_equity_mcp.common.env_loader import (
     load_embedding_profile,
     load_generation_profile,
@@ -90,6 +91,7 @@ from hk_equity_mcp.pe_fin_lite.identity import (
     assert_live_provider_identity,
     combined_schema_hash,
     host_from_base_url,
+    protocol_identity_hashes,
     schema_hashes,
     worst_case_budget_estimate,
 )
@@ -482,6 +484,7 @@ class UnifiedHkPeFinLiteRunner:
         profile_hash = capability_profile_hash(self.capability_profile)
         schema_h = combined_schema_hash()
         schemas = schema_hashes()
+        protocol_ids = protocol_identity_hashes()
 
         expected_model = str(
             self.config.get("generation_model") or EXPECTED_GENERATION_MODEL
@@ -577,6 +580,12 @@ class UnifiedHkPeFinLiteRunner:
             "system_prompt_hash": prompt_h,
             "schema_hash": schema_h,
             "schema_hashes": schemas,
+            "protocol_identity": protocol_ids,
+            "canonical_output_vocabulary_hash": protocol_ids[
+                "canonical_output_vocabulary_hash"
+            ],
+            "scope_contract_hash": protocol_ids["scope_contract_hash"],
+            "argument_grounding_hash": protocol_ids["argument_grounding_hash"],
             "capability_profile_id": self.capability_profile.get("profile_id"),
             "capability_profile_hash": profile_hash,
             "disclosure_workflow_hash": disclosure_workflow_hash(),
@@ -915,6 +924,31 @@ class UnifiedHkPeFinLiteRunner:
             row["successful_invocation_count"] = agent_succ
         if agent_fail is not None:
             row["failed_invocation_count"] = agent_fail
+        # Prefer agent-recorded gateway invocation accounting over empty
+        # trace-derived evaluate_task defaults (PE-Fin Lite funnel traces).
+        agent_mcp = result.get("real_mcp_execution_count")
+        agent_underlying = result.get("underlying_operation_calls")
+        if agent_mcp is not None:
+            row["real_mcp_execution_count"] = int(agent_mcp)
+        elif agent_underlying is not None:
+            row["real_mcp_execution_count"] = int(agent_underlying)
+        if agent_underlying is not None:
+            row["underlying_operation_calls"] = int(agent_underlying)
+        agent_invoke = result.get("invoke_records")
+        if agent_invoke is None:
+            agent_invoke = result.get("invoke_calls")
+        if isinstance(agent_invoke, list) and agent_invoke:
+            row["invoke_calls"] = agent_invoke
+        elif isinstance(agent_invoke, int):
+            # Legacy int count → synthesize records from invoked_operations.
+            ops = list(result.get("invoked_operations") or [])
+            row["invoke_calls"] = [
+                {"operation_id": oid, "source": "gateway"} for oid in ops
+            ] or [{"source": "gateway"} for _ in range(int(agent_invoke))]
+        if result.get("error_type"):
+            row["error_type"] = result.get("error_type")
+        if result.get("stopping_reason"):
+            row["stopping_reason"] = result.get("stopping_reason")
         for key in PREDICTION_FIELDS:
             row.setdefault(key, None)
         return redact_secrets(row)
@@ -986,6 +1020,24 @@ class UnifiedHkPeFinLiteRunner:
             for i in items
             if i["task_id"] in predictions_by_id
         ]
+        outcomes = summarize_prediction_outcomes(
+            expected_ids=[i["task_id"] for i in items],
+            predictions_by_id=predictions_by_id,
+        )
+        run_meta.update(
+            {
+                "processed_task_count": outcomes.get("processed_task_count"),
+                "full_count": outcomes.get("full_count"),
+                "partial_count": outcomes.get("partial_count"),
+                "failed_count": outcomes.get("failed_count"),
+                "completed_ids": outcomes.get("completed_ids"),
+                "partial_ids": outcomes.get("partial_ids"),
+                "failed_ids": outcomes.get("failed_ids"),
+                "missing_ids": outcomes.get("missing_ids"),
+                "expected_task_count": outcomes.get("expected_task_count"),
+                "all_predictions_written": outcomes.get("all_predictions_written"),
+            }
+        )
         summary = summarize_predictions(rows)
         pe_metrics = aggregate_pe_fin_lite_metrics(rows)
         cost = pe_metrics.get("cost_summary") or {}

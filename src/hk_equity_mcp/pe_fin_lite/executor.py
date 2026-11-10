@@ -171,6 +171,24 @@ def _invoke_with_budget(
     return resolver.invoke_api(operation_id, arguments)
 
 
+def _envelope_observability(
+    invoke_result: Dict[str, Any], projected: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Compact raw-envelope observability for future audits (no full payload dump)."""
+    env = projected.get("envelope") if isinstance(projected.get("envelope"), dict) else {}
+    rows = env.get("rows") if isinstance(env.get("rows"), list) else None
+    n_rows = len(rows) if rows is not None else env.get("n_rows") or env.get("returned_rows")
+    return {
+        "gateway_success": bool(invoke_result.get("success")),
+        "invoke_error": invoke_result.get("error"),
+        "normalization_error": projected.get("normalization_error"),
+        "adapted_ok": projected.get("adapted_ok"),
+        "pool_keys": list(projected.get("pool_keys") or [])[:40],
+        "n_rows": n_rows,
+        "missing_outputs": list(projected.get("missing_outputs") or []),
+    }
+
+
 def _evaluate_invoke(
     *,
     invoke_result: Dict[str, Any],
@@ -197,7 +215,15 @@ def _evaluate_invoke(
                 missing_outputs=list(required_outputs),
                 scope_match=False,
                 failure_reason=f"envelope_error:{exc}",
-                provenance={"operation_id": operation_id, "source": "mcp"},
+                provenance={
+                    "operation_id": operation_id,
+                    "source": "mcp",
+                    "raw_result_ref": f"invoke:{operation_id}",
+                    "raw_result_observability": {
+                        "gateway_success": bool(invoke_result.get("success")),
+                        "invoke_error": str(exc),
+                    },
+                },
                 status="failed",
             )
         )
@@ -217,13 +243,21 @@ def _evaluate_invoke(
     if projected.get("normalization_error") and not has_payload:
         tool_valid = False
 
+    scope_constraints = (
+        step.get("scope_constraints")
+        if isinstance(step.get("scope_constraints"), dict)
+        else {}
+    )
     scope = check_scope_match(
         values,
-        entity=step.get("entity"),
-        period=step.get("period"),
-        date=step.get("date"),
+        entity=step.get("entity") or scope_constraints.get("entity"),
+        period=step.get("period") or scope_constraints.get("period"),
+        date=step.get("date")
+        or scope_constraints.get("trade_date")
+        or scope_constraints.get("from_date"),
         arguments=arguments,
     )
+    obs = _envelope_observability(invoke_result, projected)
     return finalize_retrieve_status(
         make_step_result(
             values=values,
@@ -232,6 +266,7 @@ def _evaluate_invoke(
                 "source": "mcp",
                 "raw_result_ref": f"invoke:{operation_id}",
                 "arguments_redacted": _redact_args(arguments),
+                "raw_result_observability": obs,
             },
             missing_outputs=missing,
             scope_match=scope,
@@ -242,6 +277,7 @@ def _evaluate_invoke(
                 "invoke_success": bool(invoke_result.get("success")),
                 "invoke_error": invoke_result.get("error"),
                 "projection_pool_keys": projected.get("pool_keys"),
+                "raw_result_observability": obs,
             },
         )
     )
@@ -275,6 +311,21 @@ def execute_retrieve_step(
         "invoked_operations": [],
     }
 
+    from hk_equity_mcp.pe_fin_lite.argument_grounding import (
+        apply_grounding_to_step,
+        collect_step_grounding,
+    )
+
+    grounding = collect_step_grounding(question=question, step=step)
+    step = apply_grounding_to_step(step, grounding)
+    funnel["grounding"] = {
+        "stock_code": grounding.get("stock_code"),
+        "from_date": grounding.get("from_date"),
+        "to_date": grounding.get("to_date"),
+        "title_keyword": grounding.get("title_keyword"),
+        "code_available": grounding.get("code_available"),
+    }
+
     # Disclosure composite workflow (fixed chain; still MCP-budgeted).
     if is_disclosure_composite_step(step):
         def _invoke(oid: str, args: Dict[str, Any]) -> Dict[str, Any]:
@@ -292,6 +343,8 @@ def execute_retrieve_step(
             invoke_fn=_invoke,
             describe_fn=_describe,
             allow_hkex_download=allow_hkex_download,
+            question=question,
+            grounding=grounding,
         )
         result = finalize_retrieve_status(
             make_step_result(

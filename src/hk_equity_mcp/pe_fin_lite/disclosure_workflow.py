@@ -141,11 +141,23 @@ def build_stage_arguments(
     contract: Dict[str, Any],
     chain_state: Dict[str, Any],
     step: Dict[str, Any],
+    grounding: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     schema = contract.get("json_schema") or {}
     props = schema.get("properties") or {}
     required = list(schema.get("required") or [])
     args: Dict[str, Any] = {}
+    g = grounding or {}
+    scope = step.get("scope_constraints") if isinstance(step.get("scope_constraints"), dict) else {}
+    stock_code = (
+        g.get("stock_code")
+        or chain_state.get("stock_code")
+        or chain_state.get("issuer_code")
+        or step.get("entity")
+    )
+    from_date = g.get("from_date") or scope.get("from_date") or step.get("date")
+    to_date = g.get("to_date") or scope.get("to_date") or step.get("date")
+    title_kw = g.get("title_keyword") or scope.get("title_keyword")
 
     def maybe_set(name: str, value: Any) -> None:
         if name in props and value is not None and value != "":
@@ -153,15 +165,19 @@ def build_stage_arguments(
 
     maybe_set("local_key", chain_state.get("local_key"))
     maybe_set("news_id", chain_state.get("news_id"))
-    maybe_set("release_date", chain_state.get("release_date"))
+    maybe_set("release_date", chain_state.get("release_date") or scope.get("trade_date"))
     maybe_set("page_number", chain_state.get("page_number") or 1)
-    maybe_set("keyword", step.get("objective"))
-    maybe_set("query", step.get("objective"))
-    maybe_set("stock_code", step.get("entity"))
-    maybe_set("symbol", step.get("entity"))
-    maybe_set("code", step.get("entity"))
-    maybe_set("start_date", step.get("date") or step.get("period"))
-    maybe_set("end_date", step.get("date") or step.get("period"))
+    maybe_set("keyword", title_kw or step.get("objective"))
+    maybe_set("query", title_kw or step.get("objective"))
+    maybe_set("title", title_kw)
+    maybe_set("stock_code", stock_code)
+    maybe_set("symbol", stock_code)
+    maybe_set("code", stock_code)
+    maybe_set("issuer_code", stock_code)
+    maybe_set("start_date", from_date or step.get("period"))
+    maybe_set("end_date", to_date or step.get("period"))
+    maybe_set("from_date", from_date)
+    maybe_set("to_date", to_date)
 
     # Fill remaining required with chain/step values when possible.
     for name in required:
@@ -169,8 +185,14 @@ def build_stage_arguments(
             continue
         if name in chain_state and chain_state[name] is not None:
             args[name] = chain_state[name]
-        elif name in ("stock", "symbol", "code", "stock_code") and step.get("entity"):
-            args[name] = step.get("entity")
+        elif name in ("stock", "symbol", "code", "stock_code", "issuer_code") and stock_code:
+            args[name] = stock_code
+        elif name in ("start_date", "from_date") and from_date:
+            args[name] = from_date
+        elif name in ("end_date", "to_date") and to_date:
+            args[name] = to_date
+        elif name in ("keyword", "query", "title") and title_kw:
+            args[name] = title_kw
     return args
 
 
@@ -187,8 +209,15 @@ def run_disclosure_composite(
     describe_fn: DescribeFn,
     allow_hkex_download: bool = False,
     max_stages: int = 5,
+    question: str = "",
+    grounding: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Execute fixed disclosure chain; each underlying call recorded in trace."""
+    from hk_equity_mcp.pe_fin_lite.argument_grounding import (
+        apply_grounding_to_step,
+        collect_step_grounding,
+    )
+
     allowed = list(runtime_operation_ids)
     chain_state: Dict[str, Any] = {}
     trace: List[Dict[str, Any]] = []
@@ -196,6 +225,74 @@ def run_disclosure_composite(
     invoked: List[str] = []
     missing: List[str] = []
     last_error: Optional[str] = None
+
+    g = grounding or collect_step_grounding(question=question or "", step=step)
+    step = apply_grounding_to_step(step, g)
+    if g.get("stock_code"):
+        chain_state["stock_code"] = g["stock_code"]
+        chain_state["issuer_code"] = g["stock_code"]
+        values["issuer_code"] = g["stock_code"]
+
+    # Optional company-name → code lookup (never invent). Only when no explicit code.
+    if g.get("needs_lookup") and not g.get("stock_code"):
+        lookup_oid = None
+        for oid in allowed:
+            if "lookup_stock_code" in oid.lower():
+                lookup_oid = oid
+                break
+        if lookup_oid is not None:
+            described = describe_fn(lookup_oid)
+            contract = (described or {}).get("contract") or {}
+            props = (contract.get("json_schema") or {}).get("properties") or {}
+            args: Dict[str, Any] = {}
+            name = g.get("company_name")
+            for key in ("company_name", "name", "query", "keyword"):
+                if key in props and name:
+                    args[key] = name
+            try:
+                lookup_res = invoke_fn(lookup_oid, args)
+                invoked.append(lookup_oid)
+                success = bool(lookup_res.get("success")) if isinstance(lookup_res, dict) else False
+                extracted = _extract_chain_fields(
+                    lookup_res.get("result") if isinstance(lookup_res, dict) else lookup_res
+                )
+                if isinstance(lookup_res, dict):
+                    extracted.update(_extract_chain_fields(lookup_res))
+                code = (
+                    extracted.get("issuer_code")
+                    or extracted.get("stock_code")
+                    or extracted.get("symbol")
+                    or extracted.get("code")
+                )
+                trace.append(
+                    {
+                        "stage": "lookup_stock_code",
+                        "operation_id": lookup_oid,
+                        "arguments": args,
+                        "success": success,
+                        "extracted_fields": sorted(extracted.keys()),
+                        "error": None if success else "lookup_failed",
+                    }
+                )
+                if code:
+                    chain_state["stock_code"] = code
+                    chain_state["issuer_code"] = code
+                    values["issuer_code"] = code
+                    g = dict(g)
+                    g["stock_code"] = code
+                    g["code_available"] = True
+                    g["needs_lookup"] = False
+                    step = apply_grounding_to_step(step, g)
+            except Exception as exc:  # noqa: BLE001
+                trace.append(
+                    {
+                        "stage": "lookup_stock_code",
+                        "operation_id": lookup_oid,
+                        "arguments": args,
+                        "success": False,
+                        "error": f"lookup_exception:{type(exc).__name__}:{exc}",
+                    }
+                )
 
     for stage in DISCLOSURE_CHAIN[:max_stages]:
         oid = select_stage_operation(
@@ -214,9 +311,13 @@ def run_disclosure_composite(
         described = describe_fn(oid)
         contract = (described or {}).get("contract") or {}
         args = build_stage_arguments(
-            stage=stage, contract=contract, chain_state=chain_state, step=step
+            stage=stage,
+            contract=contract,
+            chain_state=chain_state,
+            step=step,
+            grounding=g,
         )
-        # Required args gate
+        # Required args gate — never bypass argument validation.
         required = list((contract.get("json_schema") or {}).get("required") or [])
         unmet = [r for r in required if r not in args]
         if unmet:
@@ -229,6 +330,12 @@ def run_disclosure_composite(
                     "arguments": args,
                     "success": False,
                     "error": last_error,
+                    "grounding": {
+                        "stock_code": g.get("stock_code"),
+                        "from_date": g.get("from_date"),
+                        "to_date": g.get("to_date"),
+                        "title_keyword": g.get("title_keyword"),
+                    },
                 }
             )
             break
@@ -258,6 +365,12 @@ def run_disclosure_composite(
             extracted.update(_extract_chain_fields(result))
         chain_state.update({k: v for k, v in extracted.items() if v is not None})
         values.update({k: v for k, v in extracted.items() if v is not None})
+        # Propagate list identity fields for later stages.
+        for pass_key in ("news_id", "local_key", "release_date", "page_number", "title"):
+            if pass_key in extracted and extracted[pass_key] is not None:
+                chain_state[pass_key] = extracted[pass_key]
+        if g.get("stock_code") and "issuer_code" not in values:
+            values["issuer_code"] = g["stock_code"]
         trace.append(
             {
                 "stage": stage,
@@ -297,4 +410,5 @@ def run_disclosure_composite(
         "scope_match": True,
         "mcp_transport_ok": last_error not in {"hkex_download_not_allowed"},
         "tool_result_valid": bool(values) and last_error is None,
+        "grounding": g,
     }

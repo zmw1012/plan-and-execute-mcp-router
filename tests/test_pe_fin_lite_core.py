@@ -144,7 +144,7 @@ def test_retrieve_compute_reason_schema_and_topo():
                 "type": "compute",
                 "domain": "compute",
                 "objective": "growth",
-                "required_outputs": ["growth"],
+                "required_outputs": [],
                 "depends_on": ["s1"],
                 "compute_spec": {
                     "expression": "(b-a)/a",
@@ -293,8 +293,8 @@ def test_sibling_continue_dependent_skip_logic():
     # Simulates agent dependency rule via topo + completed_ok set
     steps = [
         {"id": "a", "type": "retrieve", "domain": "market", "objective": "x", "required_outputs": ["close"], "depends_on": []},
-        {"id": "b", "type": "retrieve", "domain": "financial", "objective": "y", "required_outputs": ["eps"], "depends_on": []},
-        {"id": "c", "type": "compute", "domain": "compute", "objective": "z", "required_outputs": ["r"], "depends_on": ["a"], "compute_spec": {"expression": "a", "operand_refs": {"a": "close"}, "output_name": "r"}},
+        {"id": "b", "type": "retrieve", "domain": "financial", "objective": "y", "required_outputs": ["basic_eps"], "depends_on": []},
+        {"id": "c", "type": "compute", "domain": "compute", "objective": "z", "required_outputs": [], "depends_on": ["a"], "compute_spec": {"expression": "a", "operand_refs": {"a": "close"}, "output_name": "r"}},
     ]
     validate_plan_semantics({"steps": steps})
     order = [s["id"] for s in topological_ready_order(steps)]

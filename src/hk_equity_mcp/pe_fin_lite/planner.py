@@ -30,6 +30,30 @@ def _merge_usage(a: Dict[str, Any], b: Dict[str, Any]) -> Dict[str, Any]:
     return out
 
 
+def _planner_failure(
+    *,
+    error: str,
+    repair_count: int,
+    usage: Dict[str, Any],
+    content: Any,
+    content_repair: Any,
+    error_type: str = "planner_schema_or_semantics",
+) -> Dict[str, Any]:
+    return {
+        "ok": False,
+        "plan": None,
+        "error": error,
+        "error_type": error_type,
+        "stopping_reason": (
+            "planner_invalid_after_repair" if repair_count else "planner_invalid"
+        ),
+        "repair_count": repair_count,
+        "usage": usage,
+        "raw_content": content,
+        "repair_raw_content": content_repair,
+    }
+
+
 def run_planner(
     *,
     llm: LLMClient,
@@ -61,10 +85,16 @@ def run_planner(
     )
     usage = dict(completion.get("usage") or {})
     content = completion.get("content")
-    parsed = parse_and_validate(str(content or ""), "plan")
+    # Null/empty provider content → structured failure path (still allow one repair).
+    parsed = parse_and_validate(str(content) if content is not None else "", "plan")
     repair_count = 0
+    content_repair = None
     if not parsed[0]:
-        repair_msg = format_repair_user_message("plan", parsed[2] or "invalid plan")
+        repair_msg = format_repair_user_message(
+            "plan",
+            parsed[2] or "invalid plan",
+            previous_content=str(content) if content is not None else "",
+        )
         repair_completion = llm.complete(
             messages
             + [
@@ -77,43 +107,39 @@ def run_planner(
         )
         usage = _merge_usage(usage, repair_completion.get("usage") or {})
         repair_count = 1
-        parsed = parse_and_validate(
-            str(content or ""),
-            "plan",
-            repair_content=str(repair_completion.get("content") or ""),
-        )
         content_repair = repair_completion.get("content")
-    else:
-        content_repair = None
+        parsed = parse_and_validate(
+            str(content) if content is not None else "",
+            "plan",
+            repair_content=str(content_repair) if content_repair is not None else "",
+        )
 
     payload, _, error = parsed
     if payload is None:
-        return {
-            "ok": False,
-            "plan": None,
-            "error": error or "planner_failed",
-            "repair_count": repair_count,
-            "usage": usage,
-            "raw_content": content,
-            "repair_raw_content": content_repair,
-        }
+        return _planner_failure(
+            error=error or "planner_failed",
+            repair_count=repair_count,
+            usage=usage,
+            content=content,
+            content_repair=content_repair,
+        )
     # Defense in depth
     try:
         validate_plan_semantics(payload)
     except PlanValidationError as exc:
-        return {
-            "ok": False,
-            "plan": None,
-            "error": str(exc),
-            "repair_count": repair_count,
-            "usage": usage,
-            "raw_content": content,
-            "repair_raw_content": content_repair,
-        }
+        return _planner_failure(
+            error=str(exc),
+            repair_count=repair_count,
+            usage=usage,
+            content=content,
+            content_repair=content_repair,
+        )
     return {
         "ok": True,
         "plan": payload,
         "error": None,
+        "error_type": None,
+        "stopping_reason": None,
         "repair_count": repair_count,
         "usage": usage,
         "raw_content": content,

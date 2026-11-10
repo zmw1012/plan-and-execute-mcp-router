@@ -1,5 +1,5 @@
 profile_id: hk155_capability_profile_v1
-version: "1.0"
+version: "1.1"
 benchmark: hk_unified_exploratory_all_v1
 domain: hong_kong_equity
 company_generic: true
@@ -8,6 +8,46 @@ description: >
   source types and limitations only. Does not list gold operations, company
   whitelists, benchmark item identifiers, or answers. Does not select tools
   for the planner.
+
+# Minimal versioned canonical output vocabulary (not a capability compiler).
+# Planner required_outputs MUST use these field IDs only.
+canonical_output_vocabulary:
+  version: hk155_canonical_outputs_v1
+  fields:
+    - issuer_code
+    - company_name
+    - report_date
+    - fiscal_period
+    - currency
+    - revenue
+    - attributable_profit
+    - basic_eps
+    - close
+    - volume
+    - trade_date
+    - adjustment
+    - news_id
+    - title
+    - release_date
+    - local_key
+    - snippet
+    - page_number
+    - source_url
+  notes: >
+    Put entity/period/trade_date/basis/adjustment into scope_constraints.
+    Do not emit free-text phrases as required_outputs.
+
+scope_constraints_contract:
+  version: pe_fin_lite_scope_constraints_v1
+  keys:
+    - entity
+    - period
+    - trade_date
+    - from_date
+    - to_date
+    - metric_basis
+    - adjustment
+    - title_keyword
 
 capability_summary: >
   The runtime can retrieve structured financial statement metrics, historical

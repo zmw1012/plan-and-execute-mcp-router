@@ -25,8 +25,8 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from hk_equity_mcp.experiment.unified_evaluator import REFUSAL_CLASSES, REFUSAL_STATUSES
 
-GRADER_VERSION = "deterministic_v1.2"
-GRADING_VERSION = "hk_unified_grading_v1.2"
+GRADER_VERSION = "deterministic_v1.2.1"
+GRADING_VERSION = "hk_unified_grading_v1.2.1"
 
 # ASCII + common Unicode minus/dash signs normalized before numeric parse.
 _MINUS_CHARS = str.maketrans(
@@ -770,9 +770,73 @@ def _grade_structured_part(text: str, item: Dict[str, Any]) -> Tuple[Optional[bo
     return (True, "structured_part_match") if all(checks) else (False, "structured_part_mismatch")
 
 
-def _looks_like_fabricated_numeric(text: str) -> bool:
-    """Heuristic: concrete money/share/price figures in a refusal answer."""
-    if not extract_numbers(text):
+_TICKER_IN_TEXT = re.compile(
+    r"\b\d{1,5}\s*\.\s*HK\b|\(\s*\d{1,5}\s*\)|(?<![\d.])0\d{4}(?![\d.])",
+    re.IGNORECASE,
+)
+_ISO_DATE_IN_TEXT = re.compile(r"\b20\d{2}-\d{2}-\d{2}\b")
+
+
+def _grounded_numeric_raw_tokens(*blobs: str) -> set:
+    """Numbers that appear as stock codes / dates in question or answer context."""
+    tokens: set = set()
+    for blob in blobs:
+        text = blob or ""
+        for m in _TICKER_IN_TEXT.finditer(text):
+            digits = re.sub(r"\D", "", m.group(0))
+            if digits:
+                tokens.add(digits)
+                tokens.add(digits.lstrip("0") or "0")
+                tokens.add(str(int(digits)))
+        for m in _ISO_DATE_IN_TEXT.finditer(text):
+            raw = m.group(0)
+            tokens.add(raw)
+            tokens.add(raw.replace("-", ""))
+            tokens.add(raw[:4])  # year
+            tokens.add(raw[5:7])
+            tokens.add(raw[8:10])
+        # Bare question digits that look like HK codes (4–5 digits).
+        for m in re.finditer(r"(?<![\d.])(\d{4,5})(?![\d.])", text):
+            tokens.add(m.group(1))
+            tokens.add(m.group(1).lstrip("0") or "0")
+            tokens.add(str(int(m.group(1))))
+    return tokens
+
+
+def _answer_numeric_spans_excluding_grounded(
+    text: str, *, question: str = ""
+) -> List[Dict[str, Any]]:
+    grounded = _grounded_numeric_raw_tokens(question, text)
+    out: List[Dict[str, Any]] = []
+    for span in extract_number_spans(text):
+        raw = str(span.get("raw") or "").replace(",", "")
+        compact = raw.replace(".", "")
+        if raw in grounded or compact in grounded:
+            continue
+        # Skip ticker-like zero-padded codes and years.
+        if re.fullmatch(r"0\d{3,}", raw):
+            continue
+        if re.fullmatch(r"20\d{2}", raw):
+            continue
+        # Skip number that is only part of NNNN.HK in the answer.
+        start = int(span.get("start") or 0)
+        end = int(span.get("end") or 0)
+        window = (text or "")[max(0, start - 2) : end + 4]
+        if re.search(r"\d{1,5}\s*\.\s*HK", window, flags=re.IGNORECASE):
+            continue
+        if re.search(r"\(\s*\d{1,5}\s*\)", window):
+            continue
+        out.append(span)
+    return out
+
+
+def _looks_like_fabricated_numeric(text: str, *, question: str = "") -> bool:
+    """Heuristic: concrete money/share/price figures in a refusal answer.
+
+    Stock codes, ISO dates, and other numbers already present in the question
+    (or as ticker mentions in the answer) are not treated as fabricated values.
+    """
+    if not _answer_numeric_spans_excluding_grounded(text, question=question):
         return False
     hay = _haystack(text)
     cues = (
@@ -819,6 +883,7 @@ def _has_capability_gap_language(text: str) -> bool:
 def grade_refusal(row: Dict[str, Any], item: Dict[str, Any]) -> Dict[str, Any]:
     status = _predicted_status(row)
     text = _answer_text(row.get("final_answer"))
+    question = str(row.get("question") or item.get("question") or "")
     expected = (
         item.get("expected_behavior")
         or item.get("expected_status")
@@ -830,7 +895,7 @@ def grade_refusal(row: Dict[str, Any], item: Dict[str, Any]) -> Dict[str, Any]:
     # Answering when a refusal/clarify was required.
     if status not in REFUSAL_STATUSES:
         # Soft language alone ("cannot") is insufficient if a substitute value is given.
-        if _looks_like_fabricated_numeric(text):
+        if _looks_like_fabricated_numeric(text, question=question):
             return {
                 "auto_grade_status": "graded",
                 "answer_correct": False,
@@ -842,7 +907,7 @@ def grade_refusal(row: Dict[str, Any], item: Dict[str, Any]) -> Dict[str, Any]:
             "reason": f"expected_refusal_got_status={status or 'missing'}",
         }
 
-    if _looks_like_fabricated_numeric(text):
+    if _looks_like_fabricated_numeric(text, question=question):
         return {
             "auto_grade_status": "graded",
             "answer_correct": False,

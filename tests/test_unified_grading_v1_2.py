@@ -37,7 +37,7 @@ def _load_pred(task_id: str) -> dict:
 
 
 def test_grader_version():
-    assert GRADER_VERSION == "deterministic_v1.2"
+    assert GRADER_VERSION == "deterministic_v1.2.1"
 
 
 def test_scalar_numeric_and_half_up():
@@ -186,6 +186,32 @@ def test_correct_capability_gap_refusal():
         },
     )
     assert ok["answer_correct"] is True
+
+
+def test_refusal_mentioning_stock_code_not_fabricated_numeric():
+    """Question/answer ticker mentions (e.g. 0700.HK) are not fabricated prices."""
+    item = {
+        "task_id": "mkt_dev_014_style",
+        "answerability_class": "should_refuse_or_clarify",
+        "gold_status": "unanswerable",
+        "question": "What is Tencent's latest / current / today's closing price?",
+        "gold_values": None,
+    }
+    ok = grade_task(
+        item,
+        {
+            "task_id": "mkt_dev_014_style",
+            "question": item["question"],
+            "predicted_status": "unavailable",
+            "final_answer": (
+                "Unavailable: no verified closing-price data was provided for Tencent "
+                "(e.g., Tencent Holdings, 0700.HK), so the latest/today's close, currency, "
+                "and period cannot be confirmed."
+            ),
+        },
+    )
+    assert ok["answer_correct"] is True
+    assert ok["reason"] == "refusal_status_ok"
 
 
 def test_cannot_alone_does_not_auto_pass_when_answered_with_number():

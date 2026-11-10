@@ -65,15 +65,15 @@ def test_financial_fixture_projects_eps_revenue_synonyms():
     inv = _as_resolver_invoke(outer)
     proj = project_invoke_to_required_outputs(
         invoke_result=inv,
-        required_outputs=["eps", "revenue"],
+        required_outputs=["basic_eps", "revenue", "currency", "report_date"],
         domain="financial",
     )
     assert proj["missing_outputs"] == []
-    assert proj["values"]["eps"] == 8.504848
+    assert proj["values"]["basic_eps"] == 8.504848
     assert proj["values"]["revenue"] == 452823411200
     step_res = _evaluate_invoke(
         invoke_result=inv,
-        required_outputs=["eps", "revenue"],
+        required_outputs=["basic_eps", "revenue"],
         step={"domain": "financial"},
         operation_id=str(outer["operation_id"]),
         arguments=outer.get("arguments") or {},
