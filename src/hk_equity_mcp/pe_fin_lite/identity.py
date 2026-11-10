@@ -39,12 +39,14 @@ def protocol_identity_hashes() -> Dict[str, Any]:
         canonical_output_vocabulary_hash,
         scope_contract_hash,
     )
+    from hk_equity_mcp.pe_fin_lite.plan_canonicalizer import plan_canonicalizer_hash
     from hk_equity_mcp.pe_fin_lite.prompts import pe_fin_lite_prompt_hash
 
     return {
         "combined_schema_hash": combined_schema_hash(),
         "schema_hashes": schema_hashes(),
         "prompt_hash": pe_fin_lite_prompt_hash(),
+        "plan_canonicalizer_hash": plan_canonicalizer_hash(),
         "canonical_output_vocabulary_hash": canonical_output_vocabulary_hash(),
         "scope_contract_hash": scope_contract_hash(),
         "argument_grounding_hash": argument_grounding_hash(),

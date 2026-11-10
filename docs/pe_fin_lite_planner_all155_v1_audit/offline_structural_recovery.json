@@ -1,0 +1,83 @@
+{
+  "canonicalizer": {
+    "version": "pe_fin_lite_plan_structural_canonicalizer_v1",
+    "hash": "1c0cf80e1a3940a14983b93fb8938fab74e13f48917f0141d18e86531ba949cd",
+    "allowed_rules": [
+      "first_step_missing_depends_on → []",
+      "reason domain analysis|reasoning → general",
+      "compute domain calculation → compute",
+      "JSON text: whitespace / fence / unicode quotes / trailing commas",
+      "runtime-owned schema/version fields stripped/re-injected by runtime"
+    ],
+    "forbidden": [
+      "non-first step missing depends_on auto-fill",
+      "missing domain without unique type mapping",
+      "missing required_outputs invention",
+      "missing compute_spec invention",
+      "overlength semantic truncation",
+      "truncated JSON fragment splicing",
+      "gold/task-id driven inference"
+    ]
+  },
+  "offline_recoverable_count": 14,
+  "still_unrecoverable_count": 27,
+  "recoverable_task_ids": [
+    "news_dev_003",
+    "news_dev_004",
+    "xd_dev_002",
+    "mkt_dev_005",
+    "news_dev_008",
+    "news_dev_009",
+    "news_ht_008",
+    "xd_dev_007",
+    "news_ht_010",
+    "fin_ht_014",
+    "news_dev_010",
+    "fin_cf_007",
+    "fin_ht_008",
+    "fin_cf_017"
+  ],
+  "unrecoverable_task_ids": [
+    "xd_ht_003",
+    "xd_dev_003",
+    "xd_ht_002",
+    "mkt_ht_007",
+    "mkt_dev_007",
+    "xd_ht_006",
+    "fin_ht_002",
+    "xd_dev_001",
+    "mkt_ht_010",
+    "mkt_dev_009",
+    "news_ht_011",
+    "fin_ht_024",
+    "mkt_ht_012",
+    "fin_cf_012",
+    "mkt_dev_008",
+    "mkt_ht_015",
+    "fin_cf_029",
+    "mkt_ht_016",
+    "mkt_ht_013",
+    "mkt_dev_013",
+    "mkt_dev_011",
+    "fin_ht_016",
+    "fin_cf_015",
+    "fin_ht_015",
+    "fin_cf_030",
+    "fin_ht_007",
+    "fin_ht_020"
+  ],
+  "rules_recovery_counts": {
+    "first_step_missing_depends_on_to_empty_array": 12,
+    "reason_domain_analysis_to_general": 1,
+    "reason_domain_reasoning_to_general": 1
+  },
+  "semantic_plan_changed_beyond_allowed_rules_count": 0,
+  "forbidden_auto_fixes_not_applied": [
+    "non-first depends_on invent",
+    "missing required_outputs invent",
+    "missing compute_spec invent",
+    "overlength truncation",
+    "truncated JSON splice",
+    "gold/task-id inference"
+  ]
+}

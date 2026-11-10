@@ -61,6 +61,9 @@ from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.metrics import (
 from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.operation_documents import (
     build_all_operation_documents,
 )
+from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.planner_cache_gate import (
+    assert_planner_cache_for_step_pipeline,
+)
 from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.planner_only import (
     run_planner_only,
 )
@@ -192,6 +195,7 @@ class RetrievalAuditRunner:
         embedding_env_file: Optional[str] = None,
         embedding_cache_dir: Optional[str | Path] = None,
         require_complete_index: bool = False,
+        allow_incomplete_planner_cache: bool = False,
         allow_network: bool = False,
     ):
         if allow_network and not live:
@@ -215,6 +219,7 @@ class RetrievalAuditRunner:
         self.embedding_env_file = embedding_env_file
         self.embedding_cache_dir = resolve_cache_dir(self.root, embedding_cache_dir)
         self.require_complete_index = bool(require_complete_index)
+        self.allow_incomplete_planner_cache = bool(allow_incomplete_planner_cache)
         self.gen_meta: Optional[Dict[str, Any]] = None
         self.emb_meta: Optional[Dict[str, Any]] = None
         self._index_identity: Optional[Dict[str, Any]] = None
@@ -510,7 +515,9 @@ class RetrievalAuditRunner:
             return meta
         if not self.live and not self.mock:
             raise LivePathError("embed-planner-step-queries requires --live or --mock")
-        cache = self._load_planner_cache()
+        cache = self._require_planner_for_step_stage(
+            stage="embed_planner_step_queries", formal=False
+        )
         if self.live:
             require_live_env_files(
                 env_file=self.env_file,
@@ -820,6 +827,10 @@ class RetrievalAuditRunner:
         return meta
 
     def _load_planner_cache(self) -> Dict[str, Any]:
+        from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.planner_cache_gate import (
+            summarize_planner_rows,
+        )
+
         path = self.output_dir / "planner_cache" / "planner_outputs.jsonl"
         if not path.exists():
             raise FileNotFoundError(
@@ -830,7 +841,29 @@ class RetrievalAuditRunner:
             if line.strip():
                 rows.append(json.loads(line))
         cache_sha = sha256_text(path.read_text(encoding="utf-8"))
-        return {"rows": rows, "planner_cache_sha256": cache_sha, "path": str(path)}
+        summary = summarize_planner_rows(rows)
+        return {
+            "rows": rows,
+            "planner_cache_sha256": cache_sha,
+            "path": str(path),
+            "completeness": summary,
+        }
+
+    def _require_planner_for_step_stage(self, *, stage: str, formal: bool = False) -> Dict[str, Any]:
+        cache = self._load_planner_cache()
+        # Mock offline pipeline may have 155 ok mock plans — still gate on failures.
+        allow = bool(self.allow_incomplete_planner_cache) and not formal
+        if self.mock and not formal:
+            # Mock diagnostic paths may still proceed; formal never.
+            allow = True
+        summary = assert_planner_cache_for_step_pipeline(
+            rows=cache["rows"],
+            allow_incomplete=allow,
+            formal=formal,
+            stage=stage,
+        )
+        cache["completeness"] = summary
+        return cache
 
     def run_rank_from_planner_cache(
         self,
@@ -849,7 +882,12 @@ class RetrievalAuditRunner:
                 "Use --embed-planner-step-queries --live first."
             )
 
-        cache = self._load_planner_cache()
+        if self.dry_run:
+            cache = {"rows": [], "planner_cache_sha256": "", "completeness": {}}
+        else:
+            cache = self._require_planner_for_step_stage(
+                stage="rank_from_planner_cache", formal=False
+            )
         if self.dry_run:
             meta = self._base_run_metadata("rank_from_planner_cache")
             meta["dry_run_note"] = "Skipped ranking"
@@ -1091,6 +1129,18 @@ class RetrievalAuditRunner:
         """Select formula using development-70 metrics only (zero network)."""
         if self.live:
             raise LivePathError("--select-formula is zero-network; do not pass --live")
+        # Formal lock always requires a complete Planner cache in the same output tree.
+        if formal and not self.dry_run:
+            planner_path = self.output_dir / "planner_cache" / "planner_outputs.jsonl"
+            if planner_path.exists():
+                self._require_planner_for_step_stage(
+                    stage="select_formula_formal", formal=True
+                )
+            else:
+                raise LivePathError(
+                    "Formal formula selection requires complete planner_cache "
+                    "(155 ok rows) under the same output directory"
+                )
         out_dir = self.output_dir / "formula_selection"
         out_dir.mkdir(parents=True, exist_ok=True)
         cmp_path = self.output_dir / "ranking_variants" / "formula_comparison.json"

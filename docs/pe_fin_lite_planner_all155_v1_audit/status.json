@@ -1,0 +1,9 @@
+{
+  "planner_cache_status": "invalid_for_formal_step_level_retrieval_due_to_planner_protocol_failure_rate",
+  "r0_valid": true,
+  "catalog_index_valid": true,
+  "question_query_cache_valid": true,
+  "formal_r1_r3": false,
+  "protocol_for_next_formal_run": "pe_fin_lite_planner_only_v2",
+  "formal_output_dir": "outputs/pe_fin_lite_retrieval_all155_planner_v2"
+}

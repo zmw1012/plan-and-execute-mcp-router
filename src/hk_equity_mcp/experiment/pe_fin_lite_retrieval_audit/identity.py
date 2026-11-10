@@ -196,12 +196,17 @@ def planner_only_cache_identity(
     planner_prompt_hash: Optional[str] = None,
     planner_schema_hash: Optional[str] = None,
     capability_profile_hash: Optional[str] = None,
+    plan_canonicalizer_hash: Optional[str] = None,
     generation_provider: str = "offline_mock",
     generation_host: str = "local",
     generation_model: str = "mock",
     temperature: float = 0.0,
     max_tokens: int = 2048,
 ) -> Dict[str, Any]:
+    from hk_equity_mcp.pe_fin_lite.plan_canonicalizer import (
+        plan_canonicalizer_hash as _canon_hash,
+    )
+
     payload = {
         "kind": "planner_only_cache",
         "manifest_sha256": dataset_identities.get("manifest_sha256"),
@@ -210,6 +215,7 @@ def planner_only_cache_identity(
         "planner_prompt_hash": planner_prompt_hash or pe_fin_lite_prompt_hash(),
         "planner_schema_hash": planner_schema_hash or combined_schema_hash(),
         "capability_profile_hash": capability_profile_hash,
+        "plan_canonicalizer_hash": plan_canonicalizer_hash or _canon_hash(),
         "generation_provider": generation_provider,
         "generation_host": generation_host,
         "generation_model": generation_model,

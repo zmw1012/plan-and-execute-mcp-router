@@ -105,6 +105,14 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Fail if catalog embedding index incomplete",
     )
+    p.add_argument(
+        "--allow-incomplete-planner-cache",
+        action="store_true",
+        help=(
+            "Diagnostic only: allow step embedding/ranking when Planner has "
+            "failures. Formal formula lock remains forbidden."
+        ),
+    )
     return p
 
 
@@ -224,6 +232,9 @@ def main(argv: list[str] | None = None) -> int:
             embedding_env_file=args.embedding_env_file,
             embedding_cache_dir=args.embedding_cache_dir,
             require_complete_index=bool(args.require_complete_index),
+            allow_incomplete_planner_cache=bool(
+                args.allow_incomplete_planner_cache
+            ),
         )
 
         results = {}

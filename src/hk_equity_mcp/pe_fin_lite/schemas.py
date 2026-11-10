@@ -15,6 +15,10 @@ from hk_equity_mcp.pe_fin_lite.output_vocabulary import (
     CANONICAL_OUTPUT_FIELDS,
     validate_required_outputs,
 )
+from hk_equity_mcp.pe_fin_lite.plan_canonicalizer import (
+    canonicalize_plan_payload,
+    normalize_json_text,
+)
 
 SCHEMA_VERSIONS = {
     "plan": "pe_fin_lite_plan_v2",
@@ -343,17 +347,18 @@ def extract_json_object(text: str) -> Any:
         raise SchemaValidationError("null content")
     if not isinstance(text, str) or not text.strip():
         raise SchemaValidationError("empty content")
-    raw = text.strip()
-    fence = re.search(r"```(?:json)?\s*(\{.*\})\s*```", raw, flags=re.DOTALL)
-    if fence:
-        raw = fence.group(1)
+    raw, _norm_applied = normalize_json_text(text)
+    if not raw.strip():
+        raise SchemaValidationError("empty content")
     start = raw.find("{")
     end = raw.rfind("}")
     if start < 0 or end < 0 or end <= start:
         raise SchemaValidationError("no JSON object found (truncated or non-JSON content)")
+    candidate = raw[start : end + 1]
     try:
-        return json.loads(raw[start : end + 1])
+        return json.loads(candidate)
     except json.JSONDecodeError as exc:
+        # Fail closed: never splice truncated fragments into invented JSON.
         raise SchemaValidationError(f"invalid JSON: {exc}") from exc
 
 
@@ -385,6 +390,8 @@ def _validate_payload(payload: Any, schema_name: str) -> Dict[str, Any]:
     if not isinstance(payload, dict):
         raise SchemaValidationError("payload must be a JSON object")
     semantic = strip_runtime_owned_fields(payload, schema_name)
+    if schema_name == "plan":
+        semantic, _applied = canonicalize_plan_payload(semantic)
     schema = SCHEMA_BY_NAME[schema_name]
     # Validate the semantic payload; schema_version is optional/stripped.
     validate_against_schema(semantic, schema)
@@ -445,6 +452,29 @@ def _collect_length_violations(payload: Any, schema: Dict[str, Any], path: str =
     return notes
 
 
+def _parse_error_path_and_value(error: str) -> Tuple[Optional[str], Optional[str]]:
+    """Best-effort extract JSON path and invalid value from validator error text."""
+    path = None
+    actual = None
+    m = re.match(r"^(\$[.\w\[\]'\"-]+)\s*:\s*(.*)$", error or "")
+    if m:
+        path = m.group(1)
+        rest = m.group(2)
+        vm = re.search(r"value\s+('.*?'|\".*?\"|[^\s]+)\s+not in enum", rest)
+        if vm:
+            actual = vm.group(1)
+        else:
+            lm = re.search(r"actual=(\d+)", rest)
+            if lm:
+                actual = lm.group(1)
+            elif "missing required property" in rest:
+                pm = re.search(r"missing required property\s+'([^']+)'", rest)
+                actual = f"<missing:{pm.group(1)}>" if pm else "<missing>"
+            else:
+                actual = rest[:160]
+    return path, actual
+
+
 def format_repair_user_message(
     schema_name: str,
     error: str,
@@ -459,16 +489,28 @@ def format_repair_user_message(
             length_notes = _collect_length_violations(prev, SCHEMA_BY_NAME["plan"])
         except SchemaValidationError:
             length_notes = []
+    json_path, actual_value = _parse_error_path_and_value(error)
     lines = [
         f"Your previous JSON failed validation for schema {schema_name}.",
         f"Error: {error}",
     ]
+    if json_path:
+        lines.append(f"JSON path: {json_path}")
+    if actual_value is not None:
+        lines.append(f"Actual invalid value: {actual_value}")
+    lines.append(
+        "Expected: valid field presence, enum membership, and maxLength as defined "
+        "by the frozen schema. Regenerate a COMPLETE closed JSON object."
+    )
     if length_notes:
         lines.append("Length violations (JSON path / actual / allowed):")
         lines.extend(f"- {n}" for n in length_notes[:12])
     if schema_name == "plan":
         lines.extend(
             [
+                "Every step MUST contain depends_on. First/root step uses depends_on=[].",
+                "domain MUST be one of: financial|market|disclosure|news|compute|general.",
+                "reason steps use domain=general; compute steps use domain=compute.",
                 f"Hard limits: objective maxLength={OBJECTIVE_MAX_LENGTH}; "
                 f"compute_spec.expression maxLength={COMPUTE_EXPRESSION_MAX_LENGTH}.",
                 "required_outputs must be canonical field IDs only "
@@ -476,8 +518,9 @@ def format_repair_user_message(
                 "Put entity/period/date/basis into scope_constraints — not required_outputs.",
                 "Compute steps MUST include compute_spec with non-empty expression "
                 "and typed operand_refs (map of operand name → evidence ref string).",
-                "Return a COMPLETE new plan JSON object. Do NOT splice fragments. "
-                "Do NOT silently truncate objectives — rewrite them within the limit "
+                "Return a COMPLETE new plan JSON object with all braces closed. "
+                "Do NOT splice fragments. Do NOT truncate mid-JSON. "
+                "Do NOT silently truncate overlength strings — rewrite within limits "
                 "while preserving meaning.",
             ]
         )

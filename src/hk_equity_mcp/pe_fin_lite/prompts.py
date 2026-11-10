@@ -36,7 +36,11 @@ Execution limits:
 
 Plan schema rules:
 - Return JSON with key "steps" only (optional schema_version).
-- Each step: id, type (retrieve|compute|reason), domain, objective, required_outputs, depends_on.
+- Each step MUST include: id, type (retrieve|compute|reason), domain, objective, required_outputs, depends_on.
+- Every step MUST contain depends_on. The first/root step MUST use depends_on=[]. Later steps list prior step ids.
+- domain MUST be exactly one of the frozen enum: financial|market|disclosure|news|compute|general.
+  reason steps MUST use domain=general. compute steps MUST use domain=compute.
+  Do NOT emit analysis/reasoning/calculation as domain values.
 - Optional per step: scope_constraints, entity, period, date, compute_spec, workflow.
 - Retrieve steps are semantic: never write operation_id or concrete MCP tool names.
 - For official HKEX disclosure evidence, set workflow to retrieve_official_disclosure_evidence on a retrieve step (domain=disclosure).
@@ -55,7 +59,8 @@ Plan schema rules:
 - Reason steps only analyze verified evidence; no tools.
 - Max {max_plan_steps} steps. DAG must be acyclic.
 - Final synthesis is NOT a plan step.
-- If a previous attempt failed validation, regenerate the FULL plan JSON — never splice fragments or silently truncate.
+- The full JSON object MUST be complete and closed (all braces/brackets matched).
+- If a previous attempt failed validation, regenerate the FULL plan JSON — never splice fragments, never truncate mid-JSON, never silently truncate fields.
 
 Return one JSON object only."""
 
