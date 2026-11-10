@@ -197,16 +197,24 @@ def planner_only_cache_identity(
     planner_schema_hash: Optional[str] = None,
     capability_profile_hash: Optional[str] = None,
     plan_canonicalizer_hash: Optional[str] = None,
+    scope_contract_hash: Optional[str] = None,
     generation_provider: str = "offline_mock",
     generation_host: str = "local",
     generation_model: str = "mock",
     temperature: float = 0.0,
-    max_tokens: int = 2048,
+    max_tokens: Optional[int] = None,
 ) -> Dict[str, Any]:
+    from hk_equity_mcp.pe_fin_lite.output_vocabulary import (
+        scope_contract_hash as _scope_hash,
+    )
     from hk_equity_mcp.pe_fin_lite.plan_canonicalizer import (
         plan_canonicalizer_hash as _canon_hash,
     )
+    from hk_equity_mcp.pe_fin_lite.schemas import PLANNER_MAX_TOKENS
 
+    planner_max_tokens = (
+        int(max_tokens) if max_tokens is not None else int(PLANNER_MAX_TOKENS)
+    )
     payload = {
         "kind": "planner_only_cache",
         "manifest_sha256": dataset_identities.get("manifest_sha256"),
@@ -216,11 +224,13 @@ def planner_only_cache_identity(
         "planner_schema_hash": planner_schema_hash or combined_schema_hash(),
         "capability_profile_hash": capability_profile_hash,
         "plan_canonicalizer_hash": plan_canonicalizer_hash or _canon_hash(),
+        "scope_contract_hash": scope_contract_hash or _scope_hash(),
         "generation_provider": generation_provider,
         "generation_host": generation_host,
         "generation_model": generation_model,
         "temperature": temperature,
-        "max_tokens": max_tokens,
+        "max_tokens": planner_max_tokens,
+        "planner_max_tokens": planner_max_tokens,
         "planner_only_protocol_version": PLANNER_ONLY_PROTOCOL_VERSION,
         "no_binder": True,
         "no_mcp": True,

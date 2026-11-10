@@ -75,7 +75,18 @@ class PeFinLiteAgent:
         self.config = config or {}
         self.limits = dict(self.config.get("limits") or {})
         self.temperature = float(self.config.get("llm", {}).get("temperature", 0.0))
+        # Binder / Reason / Final default budget (unchanged at 2048 unless configured).
         self.max_tokens = int(self.config.get("llm", {}).get("max_tokens", 2048))
+        # Planner + planner_repair only (protocol v3 default 4096).
+        from hk_equity_mcp.pe_fin_lite.schemas import PLANNER_MAX_TOKENS
+
+        llm_cfg = self.config.get("llm") or {}
+        if "planner_max_tokens" in llm_cfg:
+            self.planner_max_tokens = int(llm_cfg["planner_max_tokens"])
+        elif "planner_max_tokens" in self.config:
+            self.planner_max_tokens = int(self.config["planner_max_tokens"])
+        else:
+            self.planner_max_tokens = int(PLANNER_MAX_TOKENS)
         self.metadata_by_id = metadata_by_id or {}
         self.runtime_operation_ids = list(
             runtime_operation_ids
@@ -121,7 +132,7 @@ class PeFinLiteAgent:
                 limits=self.limits,
                 max_plan_steps=int(self.limits.get("max_plan_steps", 6)),
                 temperature=self.temperature,
-                max_tokens=self.max_tokens,
+                max_tokens=self.planner_max_tokens,
             )
             parse_repair_count += int(planner_out.get("repair_count") or 0)
             self.budget.planner_repair_count = int(planner_out.get("repair_count") or 0)
@@ -134,6 +145,8 @@ class PeFinLiteAgent:
                     "error_type": planner_out.get("error_type"),
                     "stopping_reason": planner_out.get("stopping_reason"),
                     "repair_count": planner_out.get("repair_count"),
+                    "planner_max_tokens": planner_out.get("planner_max_tokens"),
+                    "call_observability": planner_out.get("call_observability"),
                 }
             )
             if not planner_out.get("ok"):

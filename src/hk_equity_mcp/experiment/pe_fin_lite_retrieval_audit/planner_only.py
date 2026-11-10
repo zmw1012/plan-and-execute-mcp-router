@@ -242,6 +242,8 @@ def run_planner_only(
             continue
 
         # Live planner path — llm already validated non-None.
+        from hk_equity_mcp.pe_fin_lite.schemas import PLANNER_MAX_TOKENS
+
         t0 = time.perf_counter()
         result = run_planner(
             llm=llm,
@@ -251,11 +253,32 @@ def run_planner_only(
                 "max_total_llm_calls_per_task": 8,
                 "max_total_mcp_invocations": 8,
             },
+            max_tokens=int(PLANNER_MAX_TOKENS),
         )
         latency_ms = (time.perf_counter() - t0) * 1000.0
         plan = result.get("plan") if result.get("ok") else None
         retrieve_steps = extract_retrieve_steps(plan or {})
         usage = dict(result.get("usage") or {})
+        call_obs = list(result.get("call_observability") or [])
+        # Strip any accidental secret / reasoning text keys from observability.
+        sanitized_obs = []
+        for item in call_obs:
+            if not isinstance(item, dict):
+                continue
+            clean = {
+                k: v
+                for k, v in item.items()
+                if k
+                not in {
+                    "api_key",
+                    "authorization",
+                    "reasoning_content",
+                    "reasoning_text",
+                    "thinking",
+                    "secret",
+                }
+            }
+            sanitized_obs.append(clean)
         row = {
             "task_id": tid,
             "ok": bool(result.get("ok")),
@@ -271,10 +294,16 @@ def run_planner_only(
             "repair_count": result.get("repair_count"),
             "usage": usage,
             "latency_ms": latency_ms,
-            "llm_calls": int(usage.get("calls") or usage.get("llm_calls") or (1 + int(result.get("repair_count") or 0))),
+            "llm_calls": int(
+                usage.get("calls")
+                or usage.get("llm_calls")
+                or (1 + int(result.get("repair_count") or 0))
+            ),
             "tokens_in": usage.get("input_tokens") or usage.get("prompt_tokens"),
             "tokens_out": usage.get("output_tokens") or usage.get("completion_tokens"),
             "tokens_total": usage.get("total_tokens"),
+            "planner_max_tokens": result.get("planner_max_tokens") or int(PLANNER_MAX_TOKENS),
+            "call_observability": sanitized_obs,
             "planner_only_protocol_version": PLANNER_ONLY_PROTOCOL_VERSION,
             "no_embedding": True,
             "no_mcp": True,

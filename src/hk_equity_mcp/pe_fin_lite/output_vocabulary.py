@@ -43,10 +43,11 @@ SCOPE_CONSTRAINT_KEYS: Tuple[str, ...] = (
     "to_date",
     "metric_basis",
     "adjustment",
+    "currency",
     "title_keyword",
 )
 
-SCOPE_CONTRACT_VERSION = "pe_fin_lite_scope_constraints_v1"
+SCOPE_CONTRACT_VERSION = "pe_fin_lite_scope_constraints_v2"
 
 
 def canonical_output_vocabulary_hash() -> str:
@@ -62,10 +63,20 @@ def canonical_output_vocabulary_hash() -> str:
 
 
 def scope_contract_hash() -> str:
+    # Include length budgets so protocol identity moves when limits change.
+    from hk_equity_mcp.pe_fin_lite.schemas import (
+        ADJUSTMENT_MAX_LENGTH,
+        CURRENCY_MAX_LENGTH,
+        METRIC_BASIS_MAX_LENGTH,
+    )
+
     blob = json.dumps(
         {
             "version": SCOPE_CONTRACT_VERSION,
             "keys": list(SCOPE_CONSTRAINT_KEYS),
+            "metric_basis_max_length": METRIC_BASIS_MAX_LENGTH,
+            "adjustment_max_length": ADJUSTMENT_MAX_LENGTH,
+            "currency_max_length": CURRENCY_MAX_LENGTH,
         },
         sort_keys=True,
         separators=(",", ":"),

@@ -44,6 +44,11 @@ MAX_PLAN_STEPS = 6
 OBJECTIVE_MAX_LENGTH = 480
 REQUIRED_OUTPUT_ITEM_MAX_LENGTH = 64
 COMPUTE_EXPRESSION_MAX_LENGTH = 240
+# Scope string budgets (v3): raised from audit evidence; still fail-closed (no silent truncate).
+METRIC_BASIS_MAX_LENGTH = 160  # was 80; Diagnostic-10 v2 fin_ht_024 actual=125
+ADJUSTMENT_MAX_LENGTH = 80  # was 40; Diagnostic-10 / all155 v1 fin_cf_029 actual=41
+CURRENCY_MAX_LENGTH = 16
+PLANNER_MAX_TOKENS = 4096  # planner + planner_repair only
 
 SCOPE_CONSTRAINTS_SCHEMA: Dict[str, Any] = {
     "type": ["object", "null"],
@@ -65,8 +70,18 @@ SCOPE_CONSTRAINTS_SCHEMA: Dict[str, Any] = {
         "trade_date": {"type": ["string", "null"], "maxLength": 40},
         "from_date": {"type": ["string", "null"], "maxLength": 40},
         "to_date": {"type": ["string", "null"], "maxLength": 40},
-        "metric_basis": {"type": ["string", "null"], "maxLength": 80},
-        "adjustment": {"type": ["string", "null"], "maxLength": 40},
+        "metric_basis": {
+            "type": ["string", "null"],
+            "maxLength": METRIC_BASIS_MAX_LENGTH,
+        },
+        "adjustment": {
+            "type": ["string", "null"],
+            "maxLength": ADJUSTMENT_MAX_LENGTH,
+        },
+        "currency": {
+            "type": ["string", "null"],
+            "maxLength": CURRENCY_MAX_LENGTH,
+        },
         "title_keyword": {"type": ["string", "null"], "maxLength": 160},
     },
 }
@@ -512,10 +527,14 @@ def format_repair_user_message(
                 "domain MUST be one of: financial|market|disclosure|news|compute|general.",
                 "reason steps use domain=general; compute steps use domain=compute.",
                 f"Hard limits: objective maxLength={OBJECTIVE_MAX_LENGTH}; "
-                f"compute_spec.expression maxLength={COMPUTE_EXPRESSION_MAX_LENGTH}.",
+                f"compute_spec.expression maxLength={COMPUTE_EXPRESSION_MAX_LENGTH}; "
+                f"scope.metric_basis maxLength={METRIC_BASIS_MAX_LENGTH}; "
+                f"scope.adjustment maxLength={ADJUSTMENT_MAX_LENGTH}; "
+                f"scope.currency maxLength={CURRENCY_MAX_LENGTH}.",
                 "required_outputs must be canonical field IDs only "
                 f"(enum={list(CANONICAL_OUTPUT_FIELDS)}).",
-                "Put entity/period/date/basis into scope_constraints — not required_outputs.",
+                "Put entity/period/date/basis/currency into scope_constraints — "
+                "not required_outputs.",
                 "Compute steps MUST include compute_spec with non-empty expression "
                 "and typed operand_refs (map of operand name → evidence ref string).",
                 "Return a COMPLETE new plan JSON object with all braces closed. "

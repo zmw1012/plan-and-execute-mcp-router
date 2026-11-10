@@ -1,0 +1,69 @@
+{
+  "status": "invalid_for_engineering_pass",
+  "explicitly_not_formal_accuracy": true,
+  "ok": 4,
+  "failed": 6,
+  "failures": [
+    {
+      "task_id": "xd_ht_003",
+      "error": "$.steps[1].scope_constraints: unexpected property 'currency'",
+      "category": "unexpected_scope_currency",
+      "initial_content_length": 0,
+      "repair_content_length": 1618,
+      "tokens_out": 2780,
+      "tokens_total": 6883
+    },
+    {
+      "task_id": "mkt_dev_007",
+      "error": "empty content",
+      "category": "empty_content_initial_and_repair",
+      "initial_content_length": 0,
+      "repair_content_length": 0,
+      "tokens_out": 4096,
+      "tokens_total": 8193
+    },
+    {
+      "task_id": "news_ht_011",
+      "error": "invalid JSON: Expecting ',' delimiter: line 1 column 1265 (char 1264)",
+      "category": "truncated_or_invalid_json",
+      "initial_content_length": 0,
+      "repair_content_length": 1435,
+      "tokens_out": 4096,
+      "tokens_total": 8163
+    },
+    {
+      "task_id": "xd_ht_006",
+      "error": "empty content",
+      "category": "empty_content_initial_and_repair",
+      "initial_content_length": 0,
+      "repair_content_length": 0,
+      "tokens_out": 4096,
+      "tokens_total": 8219
+    },
+    {
+      "task_id": "fin_ht_024",
+      "error": "$.steps[0].scope_constraints.metric_basis: string length 125 exceeds maxLength 80 (allowed=80, actual=125)",
+      "category": "maxLength_metric_basis",
+      "initial_content_length": 0,
+      "repair_content_length": 1150,
+      "tokens_out": 3558,
+      "tokens_total": 7667
+    },
+    {
+      "task_id": "fin_cf_029",
+      "error": "no JSON object found (truncated or non-JSON content)",
+      "category": "truncated_or_invalid_json",
+      "initial_content_length": 0,
+      "repair_content_length": 300,
+      "tokens_out": 4096,
+      "tokens_total": 8165
+    }
+  ],
+  "root_causes": [
+    "scope_constraints schema rejected currency (xd_ht_003 repair)",
+    "multiple empty provider contents at planner stage under max_tokens=2048 (mkt_dev_007, xd_ht_006, and several initials)",
+    "repair JSON truncated / invalid JSON near output budget (news_ht_011, fin_cf_029)",
+    "metric_basis maxLength 80 too tight for verbose basis phrases (fin_ht_024 actual=125)",
+    "v2 observability gap: finish_reason and reasoning_content_present not recorded"
+  ]
+}

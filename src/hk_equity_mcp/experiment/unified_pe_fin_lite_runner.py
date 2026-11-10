@@ -139,6 +139,7 @@ PE_RESUME_IDENTITY_KEYS = (
     "smoke5_manifest_hash",
     "temperature",
     "max_tokens",
+    "planner_max_tokens",
     "json_mode",
     "limits",
     "max_total_llm_calls_per_task",
@@ -375,6 +376,11 @@ class UnifiedHkPeFinLiteRunner:
         )
         self.temperature = float(self.config.get("temperature", 0.0))
         self.max_tokens = int(self.config.get("max_tokens", 2048))
+        from hk_equity_mcp.pe_fin_lite.schemas import PLANNER_MAX_TOKENS
+
+        self.planner_max_tokens = int(
+            self.config.get("planner_max_tokens", PLANNER_MAX_TOKENS)
+        )
         self.limits = dict(self.config.get("limits") or {})
         self.retrieval = dict(self.config.get("retrieval") or {})
         self.embedding_batch_size = int(self.config.get("embedding_batch_size", 16))
@@ -610,6 +616,7 @@ class UnifiedHkPeFinLiteRunner:
             "smoke5": self.smoke5,
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
+            "planner_max_tokens": self.planner_max_tokens,
             "json_mode": self.json_mode,
             "limits": limits,
             "max_total_llm_calls_per_task": int(
@@ -809,7 +816,12 @@ class UnifiedHkPeFinLiteRunner:
                 "FinancialServer."
             )
         cfg: Dict[str, Any] = {
-            "llm": {"temperature": self.temperature, "max_tokens": self.max_tokens},
+            "llm": {
+                "temperature": self.temperature,
+                "max_tokens": self.max_tokens,
+                "planner_max_tokens": self.planner_max_tokens,
+            },
+            "planner_max_tokens": self.planner_max_tokens,
             "limits": dict(self.limits),
             "retrieval": dict(self.retrieval),
             "use_mock_binder": bool(self.mock),

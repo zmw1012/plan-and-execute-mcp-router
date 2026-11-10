@@ -13,17 +13,43 @@ from hk_equity_mcp.experiment.schema import FINAL_ANSWER_CONTRACT
 from hk_equity_mcp.pe_fin_lite.output_vocabulary import (
     CANONICAL_OUTPUT_FIELDS,
     CANONICAL_OUTPUT_VOCABULARY_VERSION,
+    SCOPE_CONSTRAINT_KEYS,
+    SCOPE_CONTRACT_VERSION,
 )
 from hk_equity_mcp.pe_fin_lite.schemas import (
+    ADJUSTMENT_MAX_LENGTH,
     COMPUTE_EXPRESSION_MAX_LENGTH,
+    CURRENCY_MAX_LENGTH,
+    METRIC_BASIS_MAX_LENGTH,
     OBJECTIVE_MAX_LENGTH,
+    PLANNER_MAX_TOKENS,
 )
 
 PE_FIN_LITE_SYSTEM_PROMPT = """You are PE-Fin Lite, a careful Hong Kong equity research agent.
 Follow the plan-first step-level retrieval protocol.
 Never invent numbers, periods, entities, or accounting bases.
 Never emit hidden chain-of-thought — return only the requested JSON fields.
-Do not hard-code issuer-specific shortcuts."""
+Do not hard-code issuer-specific shortcuts.
+Return compact minified JSON only (no Markdown, no pretty-print)."""
+
+# Compact generic example (not company/task specific). All required step fields present.
+_COMPACT_PLAN_EXAMPLE = (
+    '{"steps":['
+    '{"id":"s1","type":"retrieve","domain":"financial",'
+    '"objective":"Retrieve statement metrics for the asked issuer/period.",'
+    '"required_outputs":["revenue","basic_eps","currency","report_date"],'
+    '"depends_on":[],'
+    '"scope_constraints":{"entity":{"name":"Issuer","code":"00000"},'
+    '"period":"FY2025","metric_basis":"reported","currency":"HKD"}},'
+    '{"id":"s2","type":"compute","domain":"compute",'
+    '"objective":"Compute the requested ratio from retrieved metrics.",'
+    '"required_outputs":["revenue"],"depends_on":["s1"],'
+    '"compute_spec":{"expression":"(a-b)/b","operand_refs":{"a":"s1.revenue","b":"s1.basic_eps"},'
+    '"output_name":"ratio","output_unit":"ratio"}},'
+    '{"id":"s3","type":"reason","domain":"general",'
+    '"objective":"Summarize verified evidence only.",'
+    '"required_outputs":[],"depends_on":["s1","s2"]}]}'
+)
 
 PE_FIN_LITE_PLANNER_USER_TEMPLATE = """User question:
 {question}
@@ -34,33 +60,30 @@ Static capability profile (not a tool list; do not invent operations):
 Execution limits:
 {limits_json}
 
-Plan schema rules:
-- Return JSON with key "steps" only (optional schema_version).
-- Each step MUST include: id, type (retrieve|compute|reason), domain, objective, required_outputs, depends_on.
-- Every step MUST contain depends_on. The first/root step MUST use depends_on=[]. Later steps list prior step ids.
-- domain MUST be exactly one of the frozen enum: financial|market|disclosure|news|compute|general.
-  reason steps MUST use domain=general. compute steps MUST use domain=compute.
-  Do NOT emit analysis/reasoning/calculation as domain values.
-- Optional per step: scope_constraints, entity, period, date, compute_spec, workflow.
-- Retrieve steps are semantic: never write operation_id or concrete MCP tool names.
-- For official HKEX disclosure evidence, set workflow to retrieve_official_disclosure_evidence on a retrieve step (domain=disclosure).
-- objective is natural language but MUST be <= {objective_max_length} characters. Never exceed this limit.
-- required_outputs MUST be canonical field IDs only from this enum (no free-text phrases):
-  {canonical_outputs_json}
-  Vocabulary version: {canonical_vocab_version}.
-  Forbidden examples: "basic EPS value", "source evidence availability", "exact trade date 2026-06-30".
-- Put entity/period/trade_date/from_date/to_date/metric_basis/adjustment/title_keyword into scope_constraints (not into required_outputs).
-  Example scope_constraints:
-  {{"entity": {{"name": "Issuer Name", "code": "00700"}}, "period": "FY2025", "trade_date": "2026-06-30", "metric_basis": "reported", "adjustment": ""}}
-- Compute steps MUST include an executable typed compute_spec and depend on prior evidence.
-  Generic compute_spec example (illustrative only; do not copy numbers from it):
-  {{"expression": "(a - b) / b", "operand_refs": {{"a": "step1.revenue", "b": "step2.revenue"}}, "output_name": "revenue_growth", "output_unit": "ratio"}}
-  compute_spec.expression maxLength={compute_expression_max_length}. operand_refs values are evidence ref strings.
-- Reason steps only analyze verified evidence; no tools.
-- Max {max_plan_steps} steps. DAG must be acyclic.
-- Final synthesis is NOT a plan step.
-- The full JSON object MUST be complete and closed (all braces/brackets matched).
-- If a previous attempt failed validation, regenerate the FULL plan JSON — never splice fragments, never truncate mid-JSON, never silently truncate fields.
+Compact plan JSON rules (protocol v3):
+- Return ONE minified JSON object only. No Markdown fences. No pretty-print whitespace.
+- Top-level key: "steps" only (optional schema_version).
+- Every step MUST include all required fields: id, type, domain, objective, required_outputs, depends_on.
+- First/root step MUST use depends_on=[]. Later steps list prior step ids.
+- domain enum ONLY: financial|market|disclosure|news|compute|general.
+  reason → domain=general; compute → domain=compute. Never analysis/reasoning/calculation.
+- objective: one short sentence <= {objective_max_length} chars. Do NOT restate the full user question.
+  Do NOT repeat all scope/required_outputs inside objective.
+- required_outputs: canonical field IDs only from {canonical_outputs_json}
+  (vocab {canonical_vocab_version}).
+- scope_constraints keys ({scope_contract_version}): {scope_keys_json}
+  Use short canonical values. Optional currency maxLength={currency_max_length}.
+  metric_basis maxLength={metric_basis_max_length}; adjustment maxLength={adjustment_max_length}.
+  Example: {{"entity":{{"name":"Issuer","code":"00000"}},"period":"FY2025","metric_basis":"reported","currency":"HKD","adjustment":""}}
+- Omit null optional fields. Do not emit explanations, CoT, or selection reasons.
+- Compute steps need compute_spec (expression maxLength={compute_expression_max_length}) and depends_on prior evidence.
+- Disclosure retrieve may set workflow=retrieve_official_disclosure_evidence (domain=disclosure).
+- Max {max_plan_steps} steps. JSON must be complete and closed.
+- Planner output budget: max_tokens={planner_max_tokens} for this stage only.
+- If repairing: regenerate FULL closed JSON; never splice/truncate mid-JSON.
+
+Compact generic example (illustrative structure only; do not copy numbers/entities as answers):
+{_compact_plan_example}
 
 Return one JSON object only."""
 
@@ -140,8 +163,15 @@ def pe_fin_lite_prompt_hash() -> str:
             FINAL_ANSWER_CONTRACT,
             f"objective_max={OBJECTIVE_MAX_LENGTH}",
             f"compute_expr_max={COMPUTE_EXPRESSION_MAX_LENGTH}",
+            f"metric_basis_max={METRIC_BASIS_MAX_LENGTH}",
+            f"adjustment_max={ADJUSTMENT_MAX_LENGTH}",
+            f"currency_max={CURRENCY_MAX_LENGTH}",
+            f"planner_max_tokens={PLANNER_MAX_TOKENS}",
+            f"scope={SCOPE_CONTRACT_VERSION}",
             f"vocab={CANONICAL_OUTPUT_VOCABULARY_VERSION}",
             ",".join(CANONICAL_OUTPUT_FIELDS),
+            ",".join(SCOPE_CONSTRAINT_KEYS),
+            _COMPACT_PLAN_EXAMPLE,
         ]
     )
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
@@ -188,6 +218,13 @@ def render_planner_user(
         compute_expression_max_length=COMPUTE_EXPRESSION_MAX_LENGTH,
         canonical_outputs_json=json.dumps(list(CANONICAL_OUTPUT_FIELDS)),
         canonical_vocab_version=CANONICAL_OUTPUT_VOCABULARY_VERSION,
+        scope_contract_version=SCOPE_CONTRACT_VERSION,
+        scope_keys_json=json.dumps(list(SCOPE_CONSTRAINT_KEYS)),
+        currency_max_length=CURRENCY_MAX_LENGTH,
+        metric_basis_max_length=METRIC_BASIS_MAX_LENGTH,
+        adjustment_max_length=ADJUSTMENT_MAX_LENGTH,
+        planner_max_tokens=PLANNER_MAX_TOKENS,
+        _compact_plan_example=_COMPACT_PLAN_EXAMPLE,
     )
 
 
@@ -222,15 +259,15 @@ def render_reason_user(
 def render_final_user(
     *,
     question: str,
-    step_statuses: List[Dict[str, Any]],
+    step_statuses: Sequence[Dict[str, Any]],
     evidence: Dict[str, Any],
-    compute: List[Dict[str, Any]],
-    reason: List[Dict[str, Any]],
-    missing: List[str],
+    compute: Dict[str, Any],
+    reason: Dict[str, Any],
+    missing: Any,
 ) -> str:
     return PE_FIN_LITE_FINAL_USER_TEMPLATE.format(
         question=question,
-        step_statuses_json=json.dumps(step_statuses, ensure_ascii=False, indent=2),
+        step_statuses_json=json.dumps(list(step_statuses), ensure_ascii=False, indent=2),
         evidence_json=json.dumps(evidence, ensure_ascii=False, indent=2),
         compute_json=json.dumps(compute, ensure_ascii=False, indent=2),
         reason_json=json.dumps(reason, ensure_ascii=False, indent=2),

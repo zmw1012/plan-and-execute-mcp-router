@@ -46,7 +46,10 @@ class BudgetedLLMClient(LLMClient):
         self._budget.check_llm_budget_or_raise(stage=stage_name)
         self._budget.record_llm_call(stage=stage_name)
         return self._inner.complete(
-            messages, temperature=temperature, max_tokens=max_tokens
+            messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stage=stage_name,
         )
 
 

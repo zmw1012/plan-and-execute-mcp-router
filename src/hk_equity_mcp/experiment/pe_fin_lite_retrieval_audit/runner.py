@@ -813,8 +813,10 @@ class RetrievalAuditRunner:
             select_diagnostic10_tasks,
         )
         from hk_equity_mcp.pe_fin_lite.identity import combined_schema_hash
+        from hk_equity_mcp.pe_fin_lite.output_vocabulary import scope_contract_hash
         from hk_equity_mcp.pe_fin_lite.plan_canonicalizer import plan_canonicalizer_hash
         from hk_equity_mcp.pe_fin_lite.prompts import pe_fin_lite_prompt_hash
+        from hk_equity_mcp.pe_fin_lite.schemas import PLANNER_MAX_TOKENS
 
         if self.planner_diagnostic10:
             selected = select_diagnostic10_tasks(
@@ -831,6 +833,8 @@ class RetrievalAuditRunner:
                 generation_host=gen_host,
                 generation_model=gen_model,
                 planner_only_protocol_version=PLANNER_ONLY_PROTOCOL_VERSION,
+                max_tokens=int(PLANNER_MAX_TOKENS),
+                scope_contract_hash=scope_contract_hash(),
             )
             mode_name = "planner_only_diagnostic10"
         else:
@@ -841,6 +845,8 @@ class RetrievalAuditRunner:
                 generation_provider=gen_provider,
                 generation_host=gen_host,
                 generation_model=gen_model,
+                max_tokens=int(PLANNER_MAX_TOKENS),
+                scope_contract_hash=scope_contract_hash(),
             )
             selected = None
             mode_name = "planner_only"

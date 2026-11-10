@@ -163,8 +163,17 @@ def planner_diagnostic10_cache_identity(
     generation_model: str,
     planner_only_protocol_version: str,
     temperature: float = 0.0,
-    max_tokens: int = 2048,
+    max_tokens: Optional[int] = None,
+    scope_contract_hash: Optional[str] = None,
 ) -> Dict[str, Any]:
+    from hk_equity_mcp.pe_fin_lite.output_vocabulary import (
+        scope_contract_hash as _scope_hash,
+    )
+    from hk_equity_mcp.pe_fin_lite.schemas import PLANNER_MAX_TOKENS
+
+    planner_max_tokens = (
+        int(max_tokens) if max_tokens is not None else int(PLANNER_MAX_TOKENS)
+    )
     payload = {
         "kind": DIAGNOSTIC10_CACHE_KIND,
         "role": DIAGNOSTIC10_ROLE,
@@ -178,12 +187,14 @@ def planner_diagnostic10_cache_identity(
         "planner_prompt_hash": planner_prompt_hash,
         "planner_schema_hash": planner_schema_hash,
         "plan_canonicalizer_hash": plan_canonicalizer_hash,
+        "scope_contract_hash": scope_contract_hash or _scope_hash(),
         "capability_profile_hash": capability_profile_hash,
         "generation_provider": generation_provider,
         "generation_host": generation_host,
         "generation_model": generation_model,
         "temperature": temperature,
-        "max_tokens": max_tokens,
+        "max_tokens": planner_max_tokens,
+        "planner_max_tokens": planner_max_tokens,
         "planner_only_protocol_version": planner_only_protocol_version,
         "no_binder": True,
         "no_mcp": True,

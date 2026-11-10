@@ -18,7 +18,10 @@ embedding_model: text-embedding-3-small
 #   ../hk-equity-mcp-agent/.venv-aktools-discovery/bin/python
 
 temperature: 0.0
+# Default LLM max_tokens for Binder / Reason / Final (unchanged).
 max_tokens: 2048
+# Planner + planner_repair only (protocol v3). Does not expand other stages.
+planner_max_tokens: 4096
 json_mode: true
 dataset_split: development
 dataset_manifest: benchmarks/manifests/hk_unified_dataset_v1.json

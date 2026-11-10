@@ -1,0 +1,342 @@
+{
+  "note": "Reconstructed offline from v2 planner_outputs; finish_reason/reasoning_content were not persisted in v2.",
+  "protocol": "pe_fin_lite_planner_only_v2",
+  "rows": [
+    {
+      "task_id": "news_dev_003",
+      "ok": true,
+      "repair_count": 1,
+      "llm_calls": 2,
+      "tokens_in": 4231,
+      "tokens_out": 3041,
+      "tokens_total": 7272,
+      "latency_ms": 25498.584082815796,
+      "error": null,
+      "stages": [
+        {
+          "stage": "planner",
+          "content_present": true,
+          "content_length": 437,
+          "finish_reason": null,
+          "parse_result": "failed_then_repaired",
+          "note": "v2 traces lack finish_reason/reasoning_content metadata"
+        },
+        {
+          "stage": "planner_repair",
+          "content_present": true,
+          "content_length": 2126,
+          "finish_reason": null,
+          "final_error": null
+        }
+      ],
+      "token_limit_suspicion": {
+        "output_tokens_total_across_calls": 3041,
+        "empty_initial": false,
+        "empty_repair": false,
+        "repair_looks_truncated": false,
+        "likely_hit_2048_or_empty_provider_content": false
+      }
+    },
+    {
+      "task_id": "xd_ht_003",
+      "ok": false,
+      "repair_count": 1,
+      "llm_calls": 2,
+      "tokens_in": 4103,
+      "tokens_out": 2780,
+      "tokens_total": 6883,
+      "latency_ms": 23654.002166818827,
+      "error": "$.steps[1].scope_constraints: unexpected property 'currency'",
+      "stages": [
+        {
+          "stage": "planner",
+          "content_present": false,
+          "content_length": 0,
+          "finish_reason": null,
+          "parse_result": "failed_then_repaired",
+          "note": "v2 traces lack finish_reason/reasoning_content metadata"
+        },
+        {
+          "stage": "planner_repair",
+          "content_present": true,
+          "content_length": 1618,
+          "finish_reason": null,
+          "final_error": "$.steps[1].scope_constraints: unexpected property 'currency'"
+        }
+      ],
+      "token_limit_suspicion": {
+        "output_tokens_total_across_calls": 2780,
+        "empty_initial": true,
+        "empty_repair": false,
+        "repair_looks_truncated": false,
+        "likely_hit_2048_or_empty_provider_content": true
+      }
+    },
+    {
+      "task_id": "xd_dev_003",
+      "ok": true,
+      "repair_count": 0,
+      "llm_calls": 1,
+      "tokens_in": 1915,
+      "tokens_out": 1664,
+      "tokens_total": 3579,
+      "latency_ms": 13660.175583092496,
+      "error": null,
+      "stages": [
+        {
+          "stage": "planner",
+          "content_present": true,
+          "content_length": 1554,
+          "finish_reason": null,
+          "parse_result": "accepted_or_initial",
+          "note": "v2 traces lack finish_reason/reasoning_content metadata"
+        }
+      ],
+      "token_limit_suspicion": {
+        "output_tokens_total_across_calls": 1664,
+        "empty_initial": false,
+        "empty_repair": false,
+        "repair_looks_truncated": false,
+        "likely_hit_2048_or_empty_provider_content": false
+      }
+    },
+    {
+      "task_id": "mkt_dev_007",
+      "ok": false,
+      "repair_count": 1,
+      "llm_calls": 2,
+      "tokens_in": 4097,
+      "tokens_out": 4096,
+      "tokens_total": 8193,
+      "latency_ms": 38661.085332976654,
+      "error": "empty content",
+      "stages": [
+        {
+          "stage": "planner",
+          "content_present": false,
+          "content_length": 0,
+          "finish_reason": null,
+          "parse_result": "failed_then_repaired",
+          "note": "v2 traces lack finish_reason/reasoning_content metadata"
+        },
+        {
+          "stage": "planner_repair",
+          "content_present": false,
+          "content_length": 0,
+          "finish_reason": null,
+          "final_error": "empty content"
+        }
+      ],
+      "token_limit_suspicion": {
+        "output_tokens_total_across_calls": 4096,
+        "empty_initial": true,
+        "empty_repair": true,
+        "repair_looks_truncated": false,
+        "likely_hit_2048_or_empty_provider_content": true
+      }
+    },
+    {
+      "task_id": "mkt_ht_007",
+      "ok": true,
+      "repair_count": 1,
+      "llm_calls": 2,
+      "tokens_in": 4073,
+      "tokens_out": 4020,
+      "tokens_total": 8093,
+      "latency_ms": 32053.770249942318,
+      "error": null,
+      "stages": [
+        {
+          "stage": "planner",
+          "content_present": false,
+          "content_length": 0,
+          "finish_reason": null,
+          "parse_result": "failed_then_repaired",
+          "note": "v2 traces lack finish_reason/reasoning_content metadata"
+        },
+        {
+          "stage": "planner_repair",
+          "content_present": true,
+          "content_length": 985,
+          "finish_reason": null,
+          "final_error": null
+        }
+      ],
+      "token_limit_suspicion": {
+        "output_tokens_total_across_calls": 4020,
+        "empty_initial": true,
+        "empty_repair": false,
+        "repair_looks_truncated": false,
+        "likely_hit_2048_or_empty_provider_content": true
+      }
+    },
+    {
+      "task_id": "news_ht_011",
+      "ok": false,
+      "repair_count": 1,
+      "llm_calls": 2,
+      "tokens_in": 4067,
+      "tokens_out": 4096,
+      "tokens_total": 8163,
+      "latency_ms": 32457.49841700308,
+      "error": "invalid JSON: Expecting ',' delimiter: line 1 column 1265 (char 1264)",
+      "stages": [
+        {
+          "stage": "planner",
+          "content_present": false,
+          "content_length": 0,
+          "finish_reason": null,
+          "parse_result": "failed_then_repaired",
+          "note": "v2 traces lack finish_reason/reasoning_content metadata"
+        },
+        {
+          "stage": "planner_repair",
+          "content_present": true,
+          "content_length": 1435,
+          "finish_reason": null,
+          "final_error": "invalid JSON: Expecting ',' delimiter: line 1 column 1265 (char 1264)"
+        }
+      ],
+      "token_limit_suspicion": {
+        "output_tokens_total_across_calls": 4096,
+        "empty_initial": true,
+        "empty_repair": false,
+        "repair_looks_truncated": true,
+        "likely_hit_2048_or_empty_provider_content": true
+      }
+    },
+    {
+      "task_id": "xd_ht_006",
+      "ok": false,
+      "repair_count": 1,
+      "llm_calls": 2,
+      "tokens_in": 4123,
+      "tokens_out": 4096,
+      "tokens_total": 8219,
+      "latency_ms": 32927.557999966666,
+      "error": "empty content",
+      "stages": [
+        {
+          "stage": "planner",
+          "content_present": false,
+          "content_length": 0,
+          "finish_reason": null,
+          "parse_result": "failed_then_repaired",
+          "note": "v2 traces lack finish_reason/reasoning_content metadata"
+        },
+        {
+          "stage": "planner_repair",
+          "content_present": false,
+          "content_length": 0,
+          "finish_reason": null,
+          "final_error": "empty content"
+        }
+      ],
+      "token_limit_suspicion": {
+        "output_tokens_total_across_calls": 4096,
+        "empty_initial": true,
+        "empty_repair": true,
+        "repair_looks_truncated": false,
+        "likely_hit_2048_or_empty_provider_content": true
+      }
+    },
+    {
+      "task_id": "xd_dev_002",
+      "ok": true,
+      "repair_count": 0,
+      "llm_calls": 1,
+      "tokens_in": 1902,
+      "tokens_out": 1534,
+      "tokens_total": 3436,
+      "latency_ms": 13356.030999915674,
+      "error": null,
+      "stages": [
+        {
+          "stage": "planner",
+          "content_present": true,
+          "content_length": 1920,
+          "finish_reason": null,
+          "parse_result": "accepted_or_initial",
+          "note": "v2 traces lack finish_reason/reasoning_content metadata"
+        }
+      ],
+      "token_limit_suspicion": {
+        "output_tokens_total_across_calls": 1534,
+        "empty_initial": false,
+        "empty_repair": false,
+        "repair_looks_truncated": false,
+        "likely_hit_2048_or_empty_provider_content": false
+      }
+    },
+    {
+      "task_id": "fin_ht_024",
+      "ok": false,
+      "repair_count": 1,
+      "llm_calls": 2,
+      "tokens_in": 4109,
+      "tokens_out": 3558,
+      "tokens_total": 7667,
+      "latency_ms": 25753.39641678147,
+      "error": "$.steps[0].scope_constraints.metric_basis: string length 125 exceeds maxLength 80 (allowed=80, actual=125)",
+      "stages": [
+        {
+          "stage": "planner",
+          "content_present": false,
+          "content_length": 0,
+          "finish_reason": null,
+          "parse_result": "failed_then_repaired",
+          "note": "v2 traces lack finish_reason/reasoning_content metadata"
+        },
+        {
+          "stage": "planner_repair",
+          "content_present": true,
+          "content_length": 1150,
+          "finish_reason": null,
+          "final_error": "$.steps[0].scope_constraints.metric_basis: string length 125 exceeds maxLength 80 (allowed=80, actual=125)"
+        }
+      ],
+      "token_limit_suspicion": {
+        "output_tokens_total_across_calls": 3558,
+        "empty_initial": true,
+        "empty_repair": false,
+        "repair_looks_truncated": false,
+        "likely_hit_2048_or_empty_provider_content": true
+      }
+    },
+    {
+      "task_id": "fin_cf_029",
+      "ok": false,
+      "repair_count": 1,
+      "llm_calls": 2,
+      "tokens_in": 4069,
+      "tokens_out": 4096,
+      "tokens_total": 8165,
+      "latency_ms": 31198.97204102017,
+      "error": "no JSON object found (truncated or non-JSON content)",
+      "stages": [
+        {
+          "stage": "planner",
+          "content_present": false,
+          "content_length": 0,
+          "finish_reason": null,
+          "parse_result": "failed_then_repaired",
+          "note": "v2 traces lack finish_reason/reasoning_content metadata"
+        },
+        {
+          "stage": "planner_repair",
+          "content_present": true,
+          "content_length": 300,
+          "finish_reason": null,
+          "final_error": "no JSON object found (truncated or non-JSON content)"
+        }
+      ],
+      "token_limit_suspicion": {
+        "output_tokens_total_across_calls": 4096,
+        "empty_initial": true,
+        "empty_repair": false,
+        "repair_looks_truncated": true,
+        "likely_hit_2048_or_empty_provider_content": true
+      }
+    }
+  ]
+}
