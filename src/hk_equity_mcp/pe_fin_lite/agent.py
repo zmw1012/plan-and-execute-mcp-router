@@ -208,37 +208,46 @@ class PeFinLiteAgent:
                         resolver_calls["describe_operation"] += len(
                             (funnel["disclosure_composite"].get("trace") or [])
                         )
+                    gw_map = dict(funnel.get("invoke_gateway_success") or {})
                     for oid in funnel.get("invoked_operations") or []:
                         invoked_operations.append(oid)
                         selected_operations.append(oid)
                         predicted_operations.append(oid)
+                        gw_ok = bool(gw_map.get(oid, out.get("gateway_successful_operations") and oid in (out.get("gateway_successful_operations") or [])))
+                        if oid in (out.get("gateway_successful_operations") or []):
+                            gw_ok = True
+                        if oid in gw_map:
+                            gw_ok = bool(gw_map[oid])
                         invoke_records.append(
                             {
                                 "operation_id": oid,
                                 "step_id": sid,
                                 "source": "gateway",
+                                "gateway_success": gw_ok,
+                                "success": gw_ok,  # gateway/protocol success (not step completion)
+                                "step_completed": False,
                             }
                         )
+                        if gw_ok:
+                            successful_invoked.append(oid)
                     result = out["step_result"]
-                    if retrieve_step_succeeded(result):
+                    step_done = retrieve_step_succeeded(result)
+                    for rec in invoke_records:
+                        if rec.get("step_id") == sid:
+                            rec["step_completed"] = step_done
+                            rec["required_outputs_satisfied"] = bool(
+                                result.get("required_outputs_satisfied")
+                            )
+                            rec["scope_match"] = bool(result.get("scope_match", True))
+                            rec["normalization_success"] = result.get(
+                                "normalization_success"
+                            )
+                    if step_done:
                         completed_ok.add(sid)
                         step_state[sid] = "completed"
-                        prov = result.get("provenance") or {}
-                        if prov.get("operation_id"):
-                            successful_invoked.append(str(prov["operation_id"]))
-                            for rec in invoke_records:
-                                if (
-                                    rec.get("operation_id") == prov.get("operation_id")
-                                    and rec.get("step_id") == sid
-                                    and "success" not in rec
-                                ):
-                                    rec["success"] = True
                     else:
                         step_state[sid] = str(result.get("status") or "failed")
                         failed_deps.add(sid)
-                        for rec in invoke_records:
-                            if rec.get("step_id") == sid and "success" not in rec:
-                                rec["success"] = False
                         if not error_type and result.get("failure_reason"):
                             error_type = "semantic_or_structured_retrieve_failure"
                             stopping_reason = stopping_reason or str(
@@ -253,6 +262,11 @@ class PeFinLiteAgent:
                             "missing_outputs": result.get("missing_outputs"),
                             "scope_match": result.get("scope_match"),
                             "failure_reason": result.get("failure_reason"),
+                            "gateway_success": result.get("gateway_success"),
+                            "required_outputs_satisfied": result.get(
+                                "required_outputs_satisfied"
+                            ),
+                            "step_completed": step_done,
                         }
                     )
                     trace.append(
@@ -471,16 +485,32 @@ class PeFinLiteAgent:
         predicted_status, final_text = normalize_final_payload(
             final_obj, fallback_status=agent_completion_to_fallback(status)
         )
-        succ = len(successful_invoked)
-        fail_inv = max(0, len(invoked_operations) - succ)
-        all_ok = None if not invoked_operations else (fail_inv == 0)
         mcp_count = int(self.budget.mcp_invocations)
         # Prefer recorded gateway invocations; ensure count matches budget.
         if len(invoke_records) < mcp_count:
             for oid in invoked_operations[len(invoke_records) :]:
-                invoke_records.append({"operation_id": oid, "source": "gateway"})
-        for rec in invoke_records:
-            rec.setdefault("success", rec.get("operation_id") in successful_invoked)
+                invoke_records.append(
+                    {
+                        "operation_id": oid,
+                        "source": "gateway",
+                        "gateway_success": oid in successful_invoked,
+                        "success": oid in successful_invoked,
+                    }
+                )
+        # Deduplicate successful gateway ops while preserving order.
+        seen_succ = set()
+        successful_unique = []
+        for oid in successful_invoked:
+            if oid not in seen_succ:
+                seen_succ.add(oid)
+                successful_unique.append(oid)
+        succ = sum(
+            1
+            for rec in invoke_records
+            if rec.get("gateway_success") or rec.get("success")
+        )
+        fail_inv = max(0, len(invoke_records) - succ)
+        all_ok = None if not invoke_records else (fail_inv == 0)
 
         return {
             "status": status,
@@ -498,7 +528,7 @@ class PeFinLiteAgent:
             "predicted_operations": predicted_operations,
             "selected_operations": selected_operations,
             "invoked_operations": invoked_operations,
-            "successful_invoked_operations": successful_invoked,
+            "successful_invoked_operations": successful_unique,
             "initial_plan": plan,
             "step_statuses": step_statuses,
             "retrieval_funnels": funnels,

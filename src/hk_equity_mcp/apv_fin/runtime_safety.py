@@ -144,15 +144,21 @@ def summarize_prediction_outcomes(
         else:
             failed_ids.append(tid)
     processed = [tid for tid in expected_ids if tid in predictions_by_id]
+    missing_ids = [tid for tid in expected_ids if tid not in predictions_by_id]
     return {
         "processed_task_count": len(processed),
         "full_count": len(completed_ids),
         "partial_count": len(partial_ids),
         "failed_count": len(failed_ids),
         "completed_ids": completed_ids,
+        "full_task_ids": list(completed_ids),
+        "completed_task_ids": list(completed_ids) + list(partial_ids),
         "partial_ids": partial_ids,
+        "partial_task_ids": list(partial_ids),
         "failed_ids": failed_ids,
-        "missing_ids": [tid for tid in expected_ids if tid not in predictions_by_id],
+        "failed_task_ids": list(failed_ids),
+        "missing_ids": missing_ids,
+        "missing_task_ids": list(missing_ids),
         "expected_task_count": len(expected),
         "all_predictions_written": len(processed) == len(expected) and not any(
             tid not in predictions_by_id for tid in expected

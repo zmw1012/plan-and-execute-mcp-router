@@ -17,18 +17,24 @@ EXPECTED_EMBEDDING_PROVIDER = "openai_compatible"
 FORMAL_OUTPUT_DIRS = {
     "dry_run": "outputs/pe_fin_lite_dry_run_v1",
     "smoke5_mock": "outputs/pe_fin_lite_smoke5_mock_v1",
-    "smoke5_live": "outputs/pe_fin_lite_smoke5_live_v2",
+    "smoke5_live": "outputs/pe_fin_lite_smoke5_live_v3",
     "smoke5_live_v1_invalidated": "outputs/pe_fin_lite_smoke5_live_v1",
+    "smoke5_live_v2_invalidated": "outputs/pe_fin_lite_smoke5_live_v2",
     "diagnostic12_live": "outputs/pe_fin_lite_diagnostic12_live_v1",
 }
 
-METRICS_VERSION = "pe_fin_lite_metrics_v2"
+METRICS_VERSION = "pe_fin_lite_metrics_v3"
 ARCHITECTURE_ID = "plan_first_step_level_retrieval_v1"
 
 
 def protocol_identity_hashes() -> Dict[str, Any]:
     """Hashes for protocol identities that may change across engineering smokes."""
     from hk_equity_mcp.pe_fin_lite.argument_grounding import argument_grounding_hash
+    from hk_equity_mcp.pe_fin_lite.disclosure_workflow import disclosure_workflow_hash
+    from hk_equity_mcp.pe_fin_lite.evidence_provenance import (
+        evidence_acceptance_hash,
+        provenance_contract_hash,
+    )
     from hk_equity_mcp.pe_fin_lite.output_vocabulary import (
         canonical_output_vocabulary_hash,
         scope_contract_hash,
@@ -42,6 +48,9 @@ def protocol_identity_hashes() -> Dict[str, Any]:
         "canonical_output_vocabulary_hash": canonical_output_vocabulary_hash(),
         "scope_contract_hash": scope_contract_hash(),
         "argument_grounding_hash": argument_grounding_hash(),
+        "provenance_contract_hash": provenance_contract_hash(),
+        "evidence_acceptance_hash": evidence_acceptance_hash(),
+        "disclosure_workflow_hash": disclosure_workflow_hash(),
         "metrics_version": METRICS_VERSION,
     }
 

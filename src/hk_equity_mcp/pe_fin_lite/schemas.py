@@ -134,15 +134,32 @@ PLAN_STEP_SCHEMA: Dict[str, Any] = {
     },
 }
 
+# Runtime-owned identity keys — LLM may emit/omit/stale-version these; runtime
+# strips them before semantic validation and re-injects canonical values after.
+RUNTIME_OWNED_FIELDS_BY_SCHEMA: Dict[str, Tuple[str, ...]] = {
+    "plan": (
+        "schema_version",
+        "method_version",
+        "protocol_version",
+        "status",
+        "timestamps",
+        "created_at",
+        "updated_at",
+        "timestamp",
+    ),
+    "tool_binding": ("schema_version", "method_version", "protocol_version"),
+    "final": ("schema_version", "method_version", "protocol_version"),
+    "reason": ("schema_version", "method_version", "protocol_version"),
+}
+
 PE_FIN_LITE_PLAN_V1: Dict[str, Any] = {
     "type": "object",
     "additionalProperties": False,
     "required": ["steps"],
     "properties": {
-        "schema_version": {
-            "type": ["string", "null"],
-            "enum": [None, SCHEMA_VERSIONS["plan"], "pe_fin_lite_plan_v1"],
-        },
+        # Optional for documentation only; validation strips LLM-provided values
+        # and runtime injects SCHEMA_VERSIONS["plan"] after accept.
+        "schema_version": {"type": ["string", "null"], "maxLength": 80},
         "steps": {
             "type": "array",
             "minItems": 1,
@@ -167,10 +184,7 @@ PE_FIN_LITE_TOOL_BINDING_V1: Dict[str, Any] = {
     "additionalProperties": False,
     "required": ["primary", "fallback"],
     "properties": {
-        "schema_version": {
-            "type": ["string", "null"],
-            "enum": [None, SCHEMA_VERSIONS["tool_binding"]],
-        },
+        "schema_version": {"type": ["string", "null"], "maxLength": 80},
         "primary": BOUND_CALL_SCHEMA,
         "fallback": {
             "anyOf": [
@@ -206,10 +220,7 @@ PE_FIN_LITE_FINAL_V1: Dict[str, Any] = {
     "additionalProperties": False,
     "required": ["status", "final_answer", "reasoning_brief"],
     "properties": {
-        "schema_version": {
-            "type": ["string", "null"],
-            "enum": [None, SCHEMA_VERSIONS["final"]],
-        },
+        "schema_version": {"type": ["string", "null"], "maxLength": 80},
         "status": {"type": "string", "enum": list(ANSWER_STATUSES)},
         "final_answer": {"type": "string", "maxLength": 2000},
         "reasoning_brief": {"type": "string", "maxLength": 400},
@@ -346,20 +357,52 @@ def extract_json_object(text: str) -> Any:
         raise SchemaValidationError(f"invalid JSON: {exc}") from exc
 
 
+def strip_runtime_owned_fields(
+    payload: Dict[str, Any], schema_name: str
+) -> Dict[str, Any]:
+    """Remove runtime identity fields so LLM stale/missing versions cannot fail semantic plans."""
+    if not isinstance(payload, dict):
+        return payload
+    owned = set(RUNTIME_OWNED_FIELDS_BY_SCHEMA.get(schema_name) or ())
+    if not owned:
+        return payload
+    return {k: v for k, v in payload.items() if k not in owned}
+
+
+def inject_runtime_owned_fields(
+    payload: Dict[str, Any], schema_name: str
+) -> Dict[str, Any]:
+    """Attach canonical runtime identity after semantic validation succeeds."""
+    out = dict(payload)
+    if schema_name in SCHEMA_VERSIONS or schema_name in SCHEMA_BY_NAME:
+        version = SCHEMA_VERSIONS.get(schema_name)
+        if version:
+            out["schema_version"] = version
+    return out
+
+
+def _validate_payload(payload: Any, schema_name: str) -> Dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise SchemaValidationError("payload must be a JSON object")
+    semantic = strip_runtime_owned_fields(payload, schema_name)
+    schema = SCHEMA_BY_NAME[schema_name]
+    # Validate the semantic payload; schema_version is optional/stripped.
+    validate_against_schema(semantic, schema)
+    if schema_name == "plan":
+        validate_plan_semantics(semantic)
+    return inject_runtime_owned_fields(semantic, schema_name)
+
+
 def parse_and_validate(
     content: str,
     schema_name: str,
     *,
     repair_content: Optional[str] = None,
 ) -> Tuple[Optional[Dict[str, Any]], int, Optional[str]]:
-    schema = SCHEMA_BY_NAME[schema_name]
     repair_count = 0
     try:
         payload = extract_json_object(content)
-        validate_against_schema(payload, schema)
-        if schema_name == "plan":
-            validate_plan_semantics(payload)
-        return payload, repair_count, None
+        return _validate_payload(payload, schema_name), repair_count, None
     except (SchemaValidationError, PlanValidationError) as exc:
         err = str(exc)
     if repair_content is None:
@@ -367,10 +410,7 @@ def parse_and_validate(
     repair_count = 1
     try:
         payload = extract_json_object(repair_content)
-        validate_against_schema(payload, schema)
-        if schema_name == "plan":
-            validate_plan_semantics(payload)
-        return payload, repair_count, None
+        return _validate_payload(payload, schema_name), repair_count, None
     except (SchemaValidationError, PlanValidationError) as exc:
         return None, repair_count, str(exc)
 

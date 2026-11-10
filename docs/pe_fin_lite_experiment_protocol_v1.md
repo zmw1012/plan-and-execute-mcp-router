@@ -34,7 +34,7 @@ PYTHONPATH=src ../hk-equity-mcp-agent/.venv-aktools-discovery/bin/python \
   --smoke5 --confirm-retire-heldout --require-complete-index \
   --env-file ../hk-equity-mcp-agent/.env.relay-v41 \
   --embedding-env-file ../hk-equity-mcp-agent/.env.embedding-relay \
-  --output-dir outputs/pe_fin_lite_smoke5_live_v2
+  --output-dir outputs/pe_fin_lite_smoke5_live_v3
 ```
 
 Never default to `.env.aliyun`.

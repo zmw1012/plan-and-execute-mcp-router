@@ -189,6 +189,51 @@ def _envelope_observability(
     }
 
 
+def _build_accepted_field_map(
+    *,
+    projected_values: Dict[str, Any],
+    required_outputs: Sequence[str],
+    step: Dict[str, Any],
+    arguments: Dict[str, Any],
+    operation_id: str,
+    question_grounding: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    from hk_equity_mcp.pe_fin_lite.evidence_provenance import (
+        apply_deterministic_derivations,
+        grounded_context_from_arguments,
+        observed_field_map,
+        required_outputs_satisfaction,
+        values_from_field_map,
+    )
+
+    observed = observed_field_map(
+        projected_values,
+        source="mcp",
+        ref=f"invoke:{operation_id}",
+    )
+    grounded = grounded_context_from_arguments(
+        arguments=arguments,
+        step=step,
+        question_grounding=question_grounding,
+    )
+    # Fill only missing context fields from grounded_input (never overwrite observed).
+    merged = dict(observed)
+    for key, entry in grounded.items():
+        if key not in merged or merged[key].get("value") in (None,):
+            # Allow grounded adjustment="" even when absent.
+            merged[key] = entry
+    merged = apply_deterministic_derivations(
+        merged, arguments=arguments, step=step
+    )
+    sat = required_outputs_satisfaction(merged, required_outputs)
+    return {
+        "field_map": merged,
+        "values": values_from_field_map(merged),
+        "satisfaction": sat,
+        "missing_outputs": list(sat.get("missing") or []),
+    }
+
+
 def _evaluate_invoke(
     *,
     invoke_result: Dict[str, Any],
@@ -196,10 +241,14 @@ def _evaluate_invoke(
     step: Dict[str, Any],
     operation_id: str,
     arguments: Dict[str, Any],
+    question_grounding: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    transport_ok = bool(invoke_result.get("success"))
+    from hk_equity_mcp.pe_fin_lite.evidence_provenance import scope_fingerprint
+
+    gateway_success = bool(invoke_result.get("success"))
     if invoke_result.get("error_type") in {"execution_error", "unknown_operation"}:
-        transport_ok = False
+        gateway_success = False
+    transport_ok = gateway_success
     try:
         projected = project_invoke_to_required_outputs(
             invoke_result=invoke_result,
@@ -225,23 +274,36 @@ def _evaluate_invoke(
                     },
                 },
                 status="failed",
+                extra={
+                    "gateway_success": gateway_success,
+                    "normalization_success": False,
+                    "required_outputs_satisfied": False,
+                    "step_completed": False,
+                },
             )
         )
 
-    values = dict(projected.get("values") or {})
-    missing = list(projected.get("missing_outputs") or [])
+    accepted = _build_accepted_field_map(
+        projected_values=dict(projected.get("values") or {}),
+        required_outputs=required_outputs,
+        step=step,
+        arguments=arguments,
+        operation_id=operation_id,
+        question_grounding=question_grounding,
+    )
+    values = dict(accepted["values"])
+    missing = list(accepted["missing_outputs"])
+    field_map = accepted["field_map"]
     envelope = projected.get("envelope") or {}
     rows = envelope.get("rows") if isinstance(envelope, dict) else None
     has_payload = bool(values) or bool(rows) or bool(
         isinstance(envelope, dict) and envelope.get("textual_content")
     )
-    tool_valid = bool(invoke_result.get("success")) and (
-        has_payload or not required_outputs
-    )
-    if not invoke_result.get("success"):
-        tool_valid = False
+    normalization_success = not bool(projected.get("normalization_error"))
+    tool_valid = gateway_success and (has_payload or not required_outputs)
     if projected.get("normalization_error") and not has_payload:
         tool_valid = False
+        normalization_success = False
 
     scope_constraints = (
         step.get("scope_constraints")
@@ -258,7 +320,8 @@ def _evaluate_invoke(
         arguments=arguments,
     )
     obs = _envelope_observability(invoke_result, projected)
-    return finalize_retrieve_status(
+    required_ok = len(missing) == 0
+    result = finalize_retrieve_status(
         make_step_result(
             values=values,
             provenance={
@@ -267,20 +330,141 @@ def _evaluate_invoke(
                 "raw_result_ref": f"invoke:{operation_id}",
                 "arguments_redacted": _redact_args(arguments),
                 "raw_result_observability": obs,
+                "field_provenance": field_map,
             },
             missing_outputs=missing,
             scope_match=scope,
             mcp_transport_ok=transport_ok,
             tool_result_valid=tool_valid,
-            # Transport success with missing required outputs → unavailable, not completed.
             extra={
-                "invoke_success": bool(invoke_result.get("success")),
+                "gateway_success": gateway_success,
+                "normalization_success": normalization_success,
+                "required_outputs_satisfied": required_ok,
+                "scope_match": scope,
+                "step_completed": False,  # set below after finalize
+                "invoke_success": gateway_success,
                 "invoke_error": invoke_result.get("error"),
                 "projection_pool_keys": projected.get("pool_keys"),
                 "raw_result_observability": obs,
+                "field_map": field_map,
+                "scope_fingerprint": scope_fingerprint(step, arguments),
+                "satisfaction": accepted.get("satisfaction"),
             },
         )
     )
+    result["step_completed"] = retrieve_step_succeeded(result)
+    result["gateway_success"] = gateway_success
+    result["normalization_success"] = normalization_success
+    result["required_outputs_satisfied"] = required_ok
+    return result
+
+
+def merge_partial_retrieve_results(
+    primary: Dict[str, Any],
+    fallback: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Merge primary partial verified values with fallback fill-ins (same scope only)."""
+    from hk_equity_mcp.pe_fin_lite.evidence_provenance import (
+        merge_field_maps,
+        required_outputs_satisfaction,
+        scopes_compatible,
+        values_from_field_map,
+    )
+
+    p_map = dict(primary.get("field_map") or (primary.get("provenance") or {}).get("field_provenance") or {})
+    f_map = dict(fallback.get("field_map") or (fallback.get("provenance") or {}).get("field_provenance") or {})
+    p_scope = primary.get("scope_fingerprint") or {}
+    f_scope = fallback.get("scope_fingerprint") or {}
+    if p_scope and f_scope and not scopes_compatible(p_scope, f_scope):
+        out = dict(fallback)
+        out["status"] = "unavailable"
+        out["execution_ok"] = False
+        out["failure_reason"] = "partial_merge_scope_mismatch"
+        out["merge_conflicts"] = [{"reason": "scope_mismatch", "primary": p_scope, "fallback": f_scope}]
+        out["field_map"] = f_map
+        out["step_completed"] = False
+        # Preserve primary partials in merge_trace only.
+        out["primary_partial_values"] = dict(primary.get("values") or {})
+        return out
+
+    merged_map, conflicts = merge_field_maps(p_map, f_map)
+    if conflicts:
+        out = dict(primary)
+        out.update(
+            {
+                "status": "unavailable",
+                "execution_ok": False,
+                "failure_reason": "partial_merge_value_conflict",
+                "merge_conflicts": conflicts,
+                "field_map": merged_map,
+                "values": values_from_field_map(merged_map),
+                "step_completed": False,
+                "required_outputs_satisfied": False,
+            }
+        )
+        # Keep gateway success flags from either successful invoke.
+        out["gateway_success"] = bool(
+            primary.get("gateway_success") or fallback.get("gateway_success")
+        )
+        return out
+
+    required = list(
+        (primary.get("satisfaction") or {}).get("present")
+        or []
+    )
+    # Prefer missing list from primary/fallback required_outputs union via satisfaction.
+    req_outputs = list(
+        dict.fromkeys(
+            list(primary.get("missing_outputs") or [])
+            + list((primary.get("values") or {}).keys())
+            + list(fallback.get("missing_outputs") or [])
+            + list((fallback.get("values") or {}).keys())
+            + list(merged_map.keys())
+        )
+    )
+    # Reconstruct required from primary missing+present if available.
+    sat_primary = primary.get("satisfaction") or {}
+    required_outputs = list(
+        dict.fromkeys(
+            list(sat_primary.get("present") or [])
+            + list(sat_primary.get("missing") or [])
+            + list((fallback.get("satisfaction") or {}).get("present") or [])
+            + list((fallback.get("satisfaction") or {}).get("missing") or [])
+        )
+    ) or req_outputs
+    sat = required_outputs_satisfaction(merged_map, required_outputs)
+    values = values_from_field_map(merged_map)
+    out = dict(primary)
+    out["values"] = values
+    out["field_map"] = merged_map
+    out["missing_outputs"] = list(sat.get("missing") or [])
+    out["required_outputs_satisfied"] = bool(sat.get("ok"))
+    out["satisfaction"] = sat
+    out["gateway_success"] = bool(
+        primary.get("gateway_success") or fallback.get("gateway_success")
+    )
+    out["normalization_success"] = bool(
+        primary.get("normalization_success") or fallback.get("normalization_success")
+    )
+    out["mcp_transport_ok"] = bool(
+        primary.get("mcp_transport_ok") or fallback.get("mcp_transport_ok")
+    )
+    out["tool_result_valid"] = bool(
+        primary.get("tool_result_valid") or fallback.get("tool_result_valid")
+    )
+    out["scope_match"] = bool(primary.get("scope_match", True) and fallback.get("scope_match", True))
+    out["provenance"] = {
+        **(primary.get("provenance") or {}),
+        "field_provenance": merged_map,
+        "merged_from": [
+            (primary.get("provenance") or {}).get("operation_id"),
+            (fallback.get("provenance") or {}).get("operation_id"),
+        ],
+    }
+    out = finalize_retrieve_status(out)
+    out["step_completed"] = retrieve_step_succeeded(out)
+    out["merge_conflicts"] = []
+    return out
 
 
 def execute_retrieve_step(
@@ -346,6 +530,7 @@ def execute_retrieve_step(
             question=question,
             grounding=grounding,
         )
+        gw_flags = dict(composite.get("gateway_success_by_operation") or {})
         result = finalize_retrieve_status(
             make_step_result(
                 execution_ok=bool(composite.get("execution_ok")),
@@ -362,13 +547,29 @@ def execute_retrieve_step(
                 tool_result_valid=composite.get("tool_result_valid"),
                 status=str(composite.get("status") or "failed"),
                 failure_reason=composite.get("error"),
-                extra={"disclosure_trace": composite.get("trace")},
+                extra={
+                    "disclosure_trace": composite.get("trace"),
+                    "gateway_success": bool(composite.get("gateway_success")),
+                    "normalization_success": True,
+                    "required_outputs_satisfied": not bool(composite.get("missing_outputs")),
+                    "step_completed": bool(composite.get("execution_ok")),
+                    "stopped_after_list": bool(composite.get("stopped_after_list")),
+                },
             )
         )
+        result["gateway_success"] = bool(composite.get("gateway_success"))
+        result["step_completed"] = retrieve_step_succeeded(result)
         funnel["disclosure_composite"] = composite
         funnel["invoked_operations"] = list(composite.get("invoked_operations") or [])
+        funnel["invoke_gateway_success"] = gw_flags
         store.add_retrieve_result(step_id=str(step["id"]), result=result)
-        return {"step_result": result, "funnel": funnel}
+        gateway_ok_ids = [oid for oid, ok in gw_flags.items() if ok]
+        return {
+            "step_result": result,
+            "funnel": funnel,
+            "successful_invoked": gateway_ok_ids,
+            "gateway_successful_operations": gateway_ok_ids,
+        }
 
     query = build_step_search_query(step)
     funnel["search_query"] = query
@@ -477,9 +678,13 @@ def execute_retrieve_step(
         step=step,
         operation_id=primary["operation_id"],
         arguments=primary["arguments"],
+        question_grounding=grounding,
     )
+    funnel["invoke_gateway_success"] = {
+        primary["operation_id"]: bool(result.get("gateway_success")),
+    }
 
-    # Local fallback at most once.
+    # Local fallback at most once — merge partial verified values when scopes match.
     need_fallback = (not retrieve_step_succeeded(result)) and fallback is not None
     fallback_reason = None
     if need_fallback:
@@ -515,24 +720,32 @@ def execute_retrieve_step(
                 step=step,
                 operation_id=fallback["operation_id"],
                 arguments=fallback["arguments"],
+                question_grounding=grounding,
             )
+            funnel["invoke_gateway_success"][fallback["operation_id"]] = bool(
+                fb_result.get("gateway_success")
+            )
+            merged = merge_partial_retrieve_results(result, fb_result)
             funnel["local_fallback"] = {
                 "attempted": True,
                 "reason": fallback_reason,
                 "operation_id": fallback["operation_id"],
-                "success": retrieve_step_succeeded(fb_result),
+                "success": retrieve_step_succeeded(merged),
+                "merged": True,
+                "merge_conflicts": merged.get("merge_conflicts") or [],
             }
-            result = fb_result
+            result = merged
 
     store.add_retrieve_result(step_id=str(step["id"]), result=result)
+    gateway_ok_ids = [
+        oid
+        for oid in funnel["invoked_operations"]
+        if (funnel.get("invoke_gateway_success") or {}).get(oid)
+    ]
     return {
         "step_result": result,
         "funnel": funnel,
         "usage": binder_out.get("usage") or {},
-        "successful_invoked": [
-            oid
-            for oid in funnel["invoked_operations"]
-            if retrieve_step_succeeded(result)
-            and oid == (result.get("provenance") or {}).get("operation_id")
-        ],
+        "successful_invoked": gateway_ok_ids,
+        "gateway_successful_operations": gateway_ok_ids,
     }

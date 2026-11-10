@@ -501,8 +501,8 @@ def test_metrics_consistency_and_all_failed_artifacts():
     assert out["partial_count"] == 1
     assert out["failed_count"] == 2
     assert out["missing_ids"] == []
-    assert METRICS_VERSION == "pe_fin_lite_metrics_v2"
-    assert FORMAL_OUTPUT_DIRS["smoke5_live"].endswith("v2")
+    assert METRICS_VERSION == "pe_fin_lite_metrics_v3"
+    assert FORMAL_OUTPUT_DIRS["smoke5_live"].endswith("v3")
 
 
 def test_no_monitor_no_global_replan_budgets_unchanged():

@@ -148,7 +148,8 @@ def test_disclosure_allow_hkex_download_gate_and_exception_to_stepresult():
             "domain": "disclosure",
             "objective": "official disclosure",
             "entity": "0700.HK",
-            "required_outputs": ["local_key"],
+            # snippet forces continuation past list → download gate applies
+            "required_outputs": ["local_key", "snippet"],
             "workflow": DISCLOSURE_COMPOSITE_ID,
         },
         metadata_by_id=meta,
@@ -160,6 +161,8 @@ def test_disclosure_allow_hkex_download_gate_and_exception_to_stepresult():
     assert blocked["error"] == "hkex_download_not_allowed"
     assert blocked["execution_ok"] is False
     assert blocked["status"] != "completed"
+    # list evidence preserved even when download is blocked
+    assert blocked["values"].get("local_key") == "k1"
 
     def invoke_raises(oid, args):
         if "list" in oid:
