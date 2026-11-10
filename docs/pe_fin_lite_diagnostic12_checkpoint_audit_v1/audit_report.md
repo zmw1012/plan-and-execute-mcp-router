@@ -3,7 +3,7 @@
 - audit_version: `pe_fin_lite_checkpoint_audit_v1`
 - result_role: `engineering_checkpoint_audit_only`
 - explicitly_not_formal_accuracy: `True`
-- engineering_pass: `False`
+- engineering_pass: `True`
 - n_predictions: 12
 - unique_task_ids: 12
 - raw_hashes_unchanged: `True`
@@ -13,7 +13,7 @@
 
 ```json
 {
-  "engineering_pass": false,
+  "engineering_pass": true,
   "explicitly_not_formal_accuracy": true,
   "not_accuracy_pass": true,
   "checks": {
@@ -25,7 +25,7 @@
     "primary_error_localizable": true,
     "na_not_counted_as_pass": true,
     "evaluator_separated": true,
-    "zero_invocation_not_tool_success": false,
+    "zero_invocation_not_tool_success": true,
     "failed_partial_not_strict_success": true,
     "no_silent_mock_fallback": true,
     "trace_coverage_adequate": true
@@ -47,14 +47,14 @@
 - C02_filter: pass=12 fail=0 N/A=0 unknown=0 (pass_rate_excl_NA=1.000)
 - C03_embedding: pass=12 fail=0 N/A=0 unknown=0 (pass_rate_excl_NA=1.000)
 - C04_describe: pass=12 fail=0 N/A=0 unknown=0 (pass_rate_excl_NA=1.000)
-- C05_binder: pass=11 fail=1 N/A=0 unknown=0 (pass_rate_excl_NA=0.917)
+- C05_binder: pass=12 fail=0 N/A=0 unknown=0 (pass_rate_excl_NA=1.000)
 - C06_arguments: pass=12 fail=0 N/A=0 unknown=0 (pass_rate_excl_NA=1.000)
-- C07_mcp: pass=11 fail=1 N/A=0 unknown=0 (pass_rate_excl_NA=0.917)
-- C08_normalize: pass=11 fail=1 N/A=0 unknown=0 (pass_rate_excl_NA=0.917)
-- C09_evidence_acceptance: pass=12 fail=0 N/A=0 unknown=0 (pass_rate_excl_NA=1.000)
+- C07_mcp: pass=9 fail=3 N/A=0 unknown=0 (pass_rate_excl_NA=0.750)
+- C08_normalize: pass=12 fail=0 N/A=0 unknown=0 (pass_rate_excl_NA=1.000)
+- C09_evidence_acceptance: pass=4 fail=8 N/A=0 unknown=0 (pass_rate_excl_NA=0.333)
 - C10_fallback_unavailable: pass=12 fail=0 N/A=0 unknown=0 (pass_rate_excl_NA=1.000)
-- C11_compute: pass=0 fail=1 N/A=11 unknown=0 (pass_rate_excl_NA=0.000)
-- C12_reason: pass=0 fail=1 N/A=11 unknown=0 (pass_rate_excl_NA=0.000)
+- C11_compute: pass=2 fail=1 N/A=9 unknown=0 (pass_rate_excl_NA=0.667)
+- C12_reason: pass=7 fail=2 N/A=3 unknown=0 (pass_rate_excl_NA=0.778)
 - C13_final: pass=12 fail=0 N/A=0 unknown=0 (pass_rate_excl_NA=1.000)
 - C14_evaluator: pass=12 fail=0 N/A=0 unknown=0 (pass_rate_excl_NA=1.000)
 
@@ -62,12 +62,11 @@
 
 ```json
 {
-  "C05_binder": 1,
-  "C07_mcp": 1,
-  "C08_normalize": 1,
+  "C09_evidence_acceptance": 5,
+  "C07_mcp": 3,
+  "C12_reason": 2,
   "C11_compute": 1,
-  "C12_reason": 1,
-  "none_or_all_non_fail": 7
+  "none_or_all_non_fail": 1
 }
 ```
 

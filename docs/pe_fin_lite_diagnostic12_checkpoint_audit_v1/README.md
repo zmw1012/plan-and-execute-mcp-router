@@ -1,20 +1,56 @@
-# PE-Fin Lite Diagnostic-12 Checkpoint Audit v1 (docs mirror)
+# PE-Fin Lite Diagnostic-12 Checkpoint Live v1 — Freeze + Hardening
 
-Passive, offline, zero-network audit of End-to-End checkpoints C01–C14.
+## Freeze verdict
 
-- **Not** formal accuracy
-- **Not** formula lock authorization
-- Does **not** mutate raw Diagnostic-12 predictions
-- Live output directory (future): `outputs/pe_fin_lite_diagnostic12_checkpoint_live_v1`
-- Audit subdirectory: `final_checkpoint_audit_v1/`
+**engineering-observable but not method-valid for full HK-155**
 
-After a live Diagnostic-12 run, mirror audit artifacts here via:
+| Flag | Value |
+|---|---|
+| `engineering_pass` | `true` |
+| `explicitly_not_formal_accuracy` | `true` |
+| method-valid for HK-155 | **false** |
+
+## Actual result freeze (v1 live)
+
+| Metric | Value |
+|---|---|
+| rows | 12 |
+| full / partial / failed | 4 / 4 / 4 |
+| answer_correct | 2/12 |
+| LLM calls | 38 |
+| tokens | 88726 |
+| MCP | 28 |
+| embedding queries | 12 |
+
+## Raw artifact SHA256 (immutable)
+
+| File | SHA256 |
+|---|---|
+| `predictions.jsonl` | `a84762f8d5123db68eaf0445794adfb1c8bced90cbc4b61e2bdddd3b39683131` |
+| `run_metadata.json` | `14a2f5531a1a04e211c3e4fa4b2ef127eae2d1ec5a967c7b39cd5407e2238e61` |
+| `error_summary.json` | `8e351c3e1c920ad1d6d9d075eb795c8638d0122173c9672ff0683ed9a23fc1dc` |
+| `cost_summary.json` | `80dfb182536efd5dbaaafca2a78d34f09981c17437308300f987ae874bbeb300` |
+| `grading_summary.json` | `f73939c82f618eace9f75ab1a27914db191a361c56c612cac4f7fd7109b78418` |
+| `per_task_metrics.csv` | `0c3a8bedf0ed1380b9a1748994ed65329dbbe54c6877ef3f3d36349c4190ab79` |
+
+Before == after for all raw artifacts. Raw predictions / run_metadata were **not** mutated.
+
+## Runtime identity after hardening
+
+- Method version bumped: `pe_fin_lite_v1` → `pe_fin_lite_v1.1`
+- Prompt/schema hashes change only when content changes (prompt hardened for compute whitelist + temporal + reason JSON contract).
+- Unchanged protocol knobs: TopK=5, Describe 2–3, fallback≤1, LLM≤8, MCP≤8, Monitor=0, global replan=0.
+- Diagnostic-12 IDs/order/gold unchanged.
+
+## Future Diagnostic-12 v2 command (DO NOT RUN in this round)
 
 ```bash
-python scripts/run_pe_fin_lite_checkpoint_audit_v1.py \
-  --run-dir outputs/pe_fin_lite_diagnostic12_checkpoint_live_v1 \
-  --docs-mirror docs/pe_fin_lite_diagnostic12_checkpoint_audit_v1
+python -m hk_equity_mcp.experiment.pe_fin_lite_runner \
+  --subset diagnostic12 \
+  --manifest benchmarks/manifests/hk_pe_fin_lite_diagnostic12_v1.json \
+  --output-dir outputs/pe_fin_lite_diagnostic12_checkpoint_live_v2 \
+  --live \
+  --method-version pe_fin_lite_v1.1
 ```
 
-Engineering-pass ≠ accuracy-pass. See `coverage_map.md` and package
-`hk_equity_mcp.experiment.pe_fin_lite_checkpoint_audit`.
+(Exact CLI flags should match the repo’s current runner entrypoint; this is the intended v2 live rerun after confirmation.)

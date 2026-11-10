@@ -1,0 +1,40 @@
+{
+  "audit_mode": "offline_raw_only",
+  "network_retry": false,
+  "tasks": [
+    {
+      "task_id": "fin_cf_020",
+      "failure_stage": "download",
+      "class": "envelope_adapter_failure",
+      "subtype": "download_budget_exhausted",
+      "evidence": "Download budget exhausted (max 1 announcement per adapter session).",
+      "notes": [
+        "list succeeded (n_list_rows=2, gateway_success=true)",
+        "not invalid_arguments",
+        "not network_service_failure based on recorded error string"
+      ]
+    },
+    {
+      "task_id": "fin_ht_016",
+      "failure_stage": "list",
+      "class": "no_matching_result",
+      "evidence": "No announcements found for 00005",
+      "n_list_rows": 0,
+      "gateway_success": false,
+      "notes": [
+        "arguments include stock_code=00005; no schema/invalid-argument signal in raw trace"
+      ]
+    },
+    {
+      "task_id": "fin_cf_024",
+      "failure_stage": "list",
+      "class": "no_matching_result",
+      "evidence": "No announcements found for 09988",
+      "n_list_rows": 0,
+      "gateway_success": false,
+      "notes": [
+        "arguments include stock_code=09988; no schema/invalid-argument signal in raw trace"
+      ]
+    }
+  ]
+}

@@ -4,97 +4,203 @@
     "fail": 0,
     "N/A": 0,
     "unknown": 0,
-    "pass_rate_excluding_na": 1.0
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 1.0,
+    "contract_status_counts": {
+      "pass": 12
+    },
+    "stage_outcome_status_counts": {
+      "pass": 12
+    }
   },
   "C02_filter": {
     "pass": 12,
     "fail": 0,
     "N/A": 0,
     "unknown": 0,
-    "pass_rate_excluding_na": 1.0
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 1.0,
+    "contract_status_counts": {
+      "pass": 12
+    },
+    "stage_outcome_status_counts": {
+      "not_evaluated": 12
+    }
   },
   "C03_embedding": {
     "pass": 12,
     "fail": 0,
     "N/A": 0,
     "unknown": 0,
-    "pass_rate_excluding_na": 1.0
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 1.0,
+    "contract_status_counts": {
+      "pass": 12
+    },
+    "stage_outcome_status_counts": {
+      "not_evaluated": 12
+    }
   },
   "C04_describe": {
     "pass": 12,
     "fail": 0,
     "N/A": 0,
     "unknown": 0,
-    "pass_rate_excluding_na": 1.0
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 1.0,
+    "contract_status_counts": {
+      "pass": 12
+    },
+    "stage_outcome_status_counts": {
+      "pass": 12
+    }
   },
   "C05_binder": {
-    "pass": 11,
-    "fail": 1,
+    "pass": 12,
+    "fail": 0,
     "N/A": 0,
     "unknown": 0,
-    "pass_rate_excluding_na": 0.9166666666666666
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 1.0,
+    "contract_status_counts": {
+      "pass": 12
+    },
+    "stage_outcome_status_counts": {
+      "pass": 12
+    }
   },
   "C06_arguments": {
     "pass": 12,
     "fail": 0,
     "N/A": 0,
     "unknown": 0,
-    "pass_rate_excluding_na": 1.0
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 1.0,
+    "contract_status_counts": {
+      "pass": 12
+    },
+    "stage_outcome_status_counts": {
+      "pass": 12
+    }
   },
   "C07_mcp": {
-    "pass": 11,
-    "fail": 1,
+    "pass": 9,
+    "fail": 3,
     "N/A": 0,
     "unknown": 0,
-    "pass_rate_excluding_na": 0.9166666666666666
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 0.75,
+    "contract_status_counts": {
+      "pass": 9,
+      "fail": 3
+    },
+    "stage_outcome_status_counts": {
+      "pass": 9,
+      "fail": 3
+    }
   },
   "C08_normalize": {
-    "pass": 11,
-    "fail": 1,
-    "N/A": 0,
-    "unknown": 0,
-    "pass_rate_excluding_na": 0.9166666666666666
-  },
-  "C09_evidence_acceptance": {
     "pass": 12,
     "fail": 0,
     "N/A": 0,
     "unknown": 0,
-    "pass_rate_excluding_na": 1.0
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 1.0,
+    "contract_status_counts": {
+      "pass": 12
+    },
+    "stage_outcome_status_counts": {
+      "pass": 12
+    }
+  },
+  "C09_evidence_acceptance": {
+    "pass": 4,
+    "fail": 8,
+    "N/A": 0,
+    "unknown": 0,
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 0.3333333333333333,
+    "contract_status_counts": {
+      "pass": 12
+    },
+    "stage_outcome_status_counts": {
+      "fail": 8,
+      "pass": 4
+    }
   },
   "C10_fallback_unavailable": {
     "pass": 12,
     "fail": 0,
     "N/A": 0,
     "unknown": 0,
-    "pass_rate_excluding_na": 1.0
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 1.0,
+    "contract_status_counts": {
+      "pass": 12
+    },
+    "stage_outcome_status_counts": {
+      "pass": 12
+    }
   },
   "C11_compute": {
-    "pass": 0,
+    "pass": 2,
     "fail": 1,
-    "N/A": 11,
+    "N/A": 9,
     "unknown": 0,
-    "pass_rate_excluding_na": 0.0
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 0.6666666666666666,
+    "contract_status_counts": {
+      "N/A": 9,
+      "pass": 3
+    },
+    "stage_outcome_status_counts": {
+      "N/A": 11,
+      "fail": 1
+    }
   },
   "C12_reason": {
-    "pass": 0,
-    "fail": 1,
-    "N/A": 11,
+    "pass": 7,
+    "fail": 2,
+    "N/A": 3,
     "unknown": 0,
-    "pass_rate_excluding_na": 0.0
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 0.7777777777777778,
+    "contract_status_counts": {
+      "pass": 9,
+      "N/A": 3
+    },
+    "stage_outcome_status_counts": {
+      "pass": 7,
+      "fail": 2,
+      "N/A": 3
+    }
   },
   "C13_final": {
     "pass": 12,
     "fail": 0,
     "N/A": 0,
     "unknown": 0,
-    "pass_rate_excluding_na": 1.0
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 1.0,
+    "contract_status_counts": {
+      "pass": 12
+    },
+    "stage_outcome_status_counts": {
+      "pass": 12
+    }
   },
   "C14_evaluator": {
     "pass": 12,
     "fail": 0,
     "N/A": 0,
     "unknown": 0,
-    "pass_rate_excluding_na": 1.0
+    "not_evaluated": 0,
+    "pass_rate_excluding_na": 1.0,
+    "contract_status_counts": {
+      "pass": 12
+    },
+    "stage_outcome_status_counts": {
+      "pass": 12
+    }
   }
 }

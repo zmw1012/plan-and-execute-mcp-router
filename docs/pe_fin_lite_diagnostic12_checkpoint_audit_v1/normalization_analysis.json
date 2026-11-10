@@ -1,8 +1,7 @@
 {
   "checkpoint": "C08_normalize",
   "counts": {
-    "pass": 11,
-    "fail": 1
+    "pass": 12
   },
   "tasks": [
     {
@@ -12,20 +11,54 @@
         "items": [
           {
             "step_id": "s1",
-            "normalization_success": true,
-            "missing_outputs": [],
-            "gateway_success": true
+            "normalization_success": null,
+            "gateway_success": true,
+            "note": "null_normalization_not_auto_pass"
+          },
+          {
+            "step_id": "s2",
+            "normalization_success": null,
+            "gateway_success": true,
+            "note": "null_normalization_not_auto_pass"
           },
           {
             "funnel_normalize": {
-              "raw_result_ref": null,
-              "normalization_success": null,
+              "raw_result_ref": "invoke:aktools.stock_financial_hk_report_em",
+              "normalization_success": true,
               "normalization_error": null,
-              "pool_keys": null,
+              "pool_keys": [
+                "SECUCODE",
+                "SECURITY_CODE",
+                "SECURITY_NAME_ABBR",
+                "adapter_ok",
+                "adapter_version",
+                "capability",
+                "n_rows",
+                "name",
+                "pagination_needed",
+                "report_date",
+                "revenue",
+                "selected_row_index"
+              ],
               "missing_outputs": []
             }
+          },
+          {
+            "funnel_normalize": {
+              "raw_result_ref": "disclosure_composite",
+              "normalization_success": true,
+              "normalization_error": null,
+              "pool_keys": null,
+              "missing_outputs": [
+                "snippet",
+                "page_number",
+                "report_date",
+                "currency"
+              ]
+            }
           }
-        ]
+        ],
+        "gateway_not_equal_normalization": true
       },
       "primary_blocking": false
     },
@@ -36,48 +69,101 @@
         "items": [
           {
             "step_id": "s1",
-            "normalization_success": true,
-            "missing_outputs": [],
-            "gateway_success": true
+            "normalization_success": null,
+            "gateway_success": true,
+            "note": "null_normalization_not_auto_pass"
+          },
+          {
+            "step_id": "s2",
+            "normalization_success": null,
+            "gateway_success": null,
+            "note": "null_normalization_not_auto_pass"
           },
           {
             "funnel_normalize": {
-              "raw_result_ref": null,
-              "normalization_success": null,
+              "raw_result_ref": "invoke:aktools.stock_financial_hk_report_em",
+              "normalization_success": true,
               "normalization_error": null,
-              "pool_keys": null,
-              "missing_outputs": []
+              "pool_keys": [
+                "SECUCODE",
+                "SECURITY_CODE",
+                "SECURITY_NAME_ABBR",
+                "adapter_ok",
+                "adapter_version",
+                "capability",
+                "n_rows",
+                "name",
+                "pagination_needed",
+                "report_date",
+                "revenue",
+                "selected_row_index"
+              ],
+              "missing_outputs": [
+                "attributable_profit",
+                "currency"
+              ]
             }
           }
-        ]
+        ],
+        "gateway_not_equal_normalization": true
       },
       "primary_blocking": false
     },
     {
       "task_id": "fin_cf_020",
-      "status": "fail",
+      "status": "pass",
       "detail": {
         "items": [
           {
             "step_id": "s1",
-            "normalization_success": false,
-            "missing_outputs": [
-              "revenue"
-            ],
-            "gateway_success": true
+            "normalization_success": null,
+            "gateway_success": true,
+            "note": "null_normalization_not_auto_pass"
+          },
+          {
+            "step_id": "s2",
+            "normalization_success": null,
+            "gateway_success": true,
+            "note": "null_normalization_not_auto_pass"
           },
           {
             "funnel_normalize": {
-              "raw_result_ref": null,
-              "normalization_success": null,
+              "raw_result_ref": "invoke:aktools.stock_financial_hk_report_em",
+              "normalization_success": true,
               "normalization_error": null,
-              "pool_keys": null,
+              "pool_keys": [
+                "SECUCODE",
+                "SECURITY_CODE",
+                "SECURITY_NAME_ABBR",
+                "adapter_ok",
+                "adapter_version",
+                "capability",
+                "n_rows",
+                "name",
+                "pagination_needed",
+                "report_date",
+                "revenue",
+                "selected_row_index"
+              ],
               "missing_outputs": []
             }
+          },
+          {
+            "funnel_normalize": {
+              "raw_result_ref": "disclosure_composite",
+              "normalization_success": true,
+              "normalization_error": null,
+              "pool_keys": null,
+              "missing_outputs": [
+                "snippet",
+                "page_number"
+              ]
+            }
           }
-        ]
+        ],
+        "gateway_not_equal_normalization": true
       },
-      "primary_blocking": true
+      "primary_blocking": false
     },
     {
       "task_id": "fin_cf_023",
@@ -86,20 +172,37 @@
         "items": [
           {
             "step_id": "s1",
-            "normalization_success": true,
-            "missing_outputs": [],
-            "gateway_success": true
+            "normalization_success": null,
+            "gateway_success": true,
+            "note": "null_normalization_not_auto_pass"
           },
           {
             "funnel_normalize": {
-              "raw_result_ref": null,
-              "normalization_success": null,
+              "raw_result_ref": "invoke:aktools.stock_financial_hk_report_em",
+              "normalization_success": true,
               "normalization_error": null,
-              "pool_keys": null,
-              "missing_outputs": []
+              "pool_keys": [
+                "SECUCODE",
+                "SECURITY_CODE",
+                "SECURITY_NAME_ABBR",
+                "adapter_ok",
+                "adapter_version",
+                "capability",
+                "n_rows",
+                "name",
+                "pagination_needed",
+                "report_date",
+                "revenue",
+                "selected_row_index"
+              ],
+              "missing_outputs": [
+                "currency",
+                "attributable_profit"
+              ]
             }
           }
-        ]
+        ],
+        "gateway_not_equal_normalization": true
       },
       "primary_blocking": false
     },
@@ -110,20 +213,36 @@
         "items": [
           {
             "step_id": "s1",
-            "normalization_success": true,
-            "missing_outputs": [],
-            "gateway_success": true
+            "normalization_success": null,
+            "gateway_success": false,
+            "note": "null_normalization_not_auto_pass"
+          },
+          {
+            "step_id": "s2",
+            "normalization_success": null,
+            "gateway_success": null,
+            "note": "null_normalization_not_auto_pass"
           },
           {
             "funnel_normalize": {
-              "raw_result_ref": null,
-              "normalization_success": null,
+              "raw_result_ref": "disclosure_composite",
+              "normalization_success": true,
               "normalization_error": null,
               "pool_keys": null,
-              "missing_outputs": []
+              "missing_outputs": [
+                "company_name",
+                "report_date",
+                "fiscal_period",
+                "currency",
+                "revenue",
+                "source_url",
+                "page_number",
+                "snippet"
+              ]
             }
           }
-        ]
+        ],
+        "gateway_not_equal_normalization": true
       },
       "primary_blocking": false
     },
@@ -134,20 +253,69 @@
         "items": [
           {
             "step_id": "s1",
-            "normalization_success": true,
-            "missing_outputs": [],
-            "gateway_success": true
+            "normalization_success": null,
+            "gateway_success": true,
+            "note": "null_normalization_not_auto_pass"
+          },
+          {
+            "step_id": "s2",
+            "normalization_success": null,
+            "gateway_success": true,
+            "note": "null_normalization_not_auto_pass"
           },
           {
             "funnel_normalize": {
-              "raw_result_ref": null,
-              "normalization_success": null,
+              "raw_result_ref": "invoke:aktools.stock_financial_hk_analysis_indicator_em",
+              "normalization_success": true,
               "normalization_error": null,
-              "pool_keys": null,
+              "pool_keys": [
+                "SECUCODE",
+                "SECURITY_CODE",
+                "SECURITY_NAME_ABBR",
+                "adapter_ok",
+                "adapter_version",
+                "attributable_profit",
+                "basic_eps",
+                "capability",
+                "currency",
+                "diluted_eps",
+                "n_rows",
+                "name",
+                "pagination_needed",
+                "report_date",
+                "revenue",
+                "selected_row_index"
+              ],
+              "missing_outputs": []
+            }
+          },
+          {
+            "funnel_normalize": {
+              "raw_result_ref": "invoke:aktools.stock_hk_hist",
+              "normalization_success": true,
+              "normalization_error": null,
+              "pool_keys": [
+                "adapter_ok",
+                "adapter_version",
+                "capability",
+                "close",
+                "currency",
+                "currency_source",
+                "cutoff_date",
+                "high",
+                "low",
+                "n_rows",
+                "name",
+                "open",
+                "trade_date",
+                "turnover",
+                "volume"
+              ],
               "missing_outputs": []
             }
           }
-        ]
+        ],
+        "gateway_not_equal_normalization": true
       },
       "primary_blocking": false
     },
@@ -158,20 +326,64 @@
         "items": [
           {
             "step_id": "s1",
-            "normalization_success": true,
-            "missing_outputs": [],
-            "gateway_success": true
+            "normalization_success": null,
+            "gateway_success": true,
+            "note": "null_normalization_not_auto_pass"
+          },
+          {
+            "step_id": "s2",
+            "normalization_success": null,
+            "gateway_success": true,
+            "note": "null_normalization_not_auto_pass"
           },
           {
             "funnel_normalize": {
-              "raw_result_ref": null,
-              "normalization_success": null,
+              "raw_result_ref": "invoke:aktools.stock_financial_hk_analysis_indicator_em",
+              "normalization_success": true,
               "normalization_error": null,
-              "pool_keys": null,
+              "pool_keys": [
+                "SECUCODE",
+                "SECURITY_CODE",
+                "SECURITY_NAME_ABBR",
+                "adapter_ok",
+                "adapter_version",
+                "attributable_profit",
+                "basic_eps",
+                "capability",
+                "currency",
+                "diluted_eps",
+                "n_rows",
+                "name",
+                "pagination_needed",
+                "report_date",
+                "revenue",
+                "selected_row_index"
+              ],
               "missing_outputs": []
             }
+          },
+          {
+            "funnel_normalize": {
+              "raw_result_ref": "invoke:ah_disclosure.search_annual_report",
+              "normalization_success": true,
+              "normalization_error": null,
+              "pool_keys": [
+                "adapter_ok",
+                "adapter_version",
+                "capability",
+                "company_name",
+                "document_identified",
+                "n_documents",
+                "symbol"
+              ],
+              "missing_outputs": [
+                "title",
+                "release_date"
+              ]
+            }
           }
-        ]
+        ],
+        "gateway_not_equal_normalization": true
       },
       "primary_blocking": false
     },
@@ -182,20 +394,49 @@
         "items": [
           {
             "step_id": "s1",
-            "normalization_success": true,
-            "missing_outputs": [],
-            "gateway_success": true
+            "normalization_success": null,
+            "gateway_success": true,
+            "note": "null_normalization_not_auto_pass"
+          },
+          {
+            "step_id": "s2",
+            "normalization_success": null,
+            "gateway_success": null,
+            "note": "null_normalization_not_auto_pass"
+          },
+          {
+            "step_id": "s3",
+            "normalization_success": null,
+            "gateway_success": null,
+            "note": "null_normalization_not_auto_pass"
           },
           {
             "funnel_normalize": {
-              "raw_result_ref": null,
-              "normalization_success": null,
+              "raw_result_ref": "invoke:aktools.stock_financial_hk_report_em",
+              "normalization_success": true,
               "normalization_error": null,
-              "pool_keys": null,
-              "missing_outputs": []
+              "pool_keys": [
+                "SECUCODE",
+                "SECURITY_CODE",
+                "SECURITY_NAME_ABBR",
+                "adapter_ok",
+                "adapter_version",
+                "capability",
+                "n_rows",
+                "name",
+                "pagination_needed",
+                "report_date",
+                "revenue",
+                "selected_row_index"
+              ],
+              "missing_outputs": [
+                "attributable_profit",
+                "currency"
+              ]
             }
           }
-        ]
+        ],
+        "gateway_not_equal_normalization": true
       },
       "primary_blocking": false
     },
@@ -206,20 +447,37 @@
         "items": [
           {
             "step_id": "s1",
-            "normalization_success": true,
-            "missing_outputs": [],
-            "gateway_success": true
+            "normalization_success": null,
+            "gateway_success": true,
+            "note": "null_normalization_not_auto_pass"
           },
           {
             "funnel_normalize": {
-              "raw_result_ref": null,
-              "normalization_success": null,
+              "raw_result_ref": "invoke:aktools.stock_hk_hist",
+              "normalization_success": true,
               "normalization_error": null,
-              "pool_keys": null,
+              "pool_keys": [
+                "adapter_ok",
+                "adapter_version",
+                "capability",
+                "close",
+                "currency",
+                "currency_source",
+                "cutoff_date",
+                "high",
+                "low",
+                "n_rows",
+                "name",
+                "open",
+                "trade_date",
+                "turnover",
+                "volume"
+              ],
               "missing_outputs": []
             }
           }
-        ]
+        ],
+        "gateway_not_equal_normalization": true
       },
       "primary_blocking": false
     },
@@ -230,20 +488,60 @@
         "items": [
           {
             "step_id": "s1",
-            "normalization_success": true,
-            "missing_outputs": [],
-            "gateway_success": true
+            "normalization_success": null,
+            "gateway_success": true,
+            "note": "null_normalization_not_auto_pass"
+          },
+          {
+            "step_id": "s2",
+            "normalization_success": null,
+            "gateway_success": false,
+            "note": "null_normalization_not_auto_pass"
           },
           {
             "funnel_normalize": {
-              "raw_result_ref": null,
-              "normalization_success": null,
+              "raw_result_ref": "invoke:aktools.stock_financial_hk_analysis_indicator_em",
+              "normalization_success": true,
               "normalization_error": null,
-              "pool_keys": null,
+              "pool_keys": [
+                "SECUCODE",
+                "SECURITY_CODE",
+                "SECURITY_NAME_ABBR",
+                "adapter_ok",
+                "adapter_version",
+                "attributable_profit",
+                "basic_eps",
+                "capability",
+                "currency",
+                "diluted_eps",
+                "n_rows",
+                "name",
+                "pagination_needed",
+                "report_date",
+                "revenue",
+                "selected_row_index"
+              ],
               "missing_outputs": []
             }
+          },
+          {
+            "funnel_normalize": {
+              "raw_result_ref": "disclosure_composite",
+              "normalization_success": true,
+              "normalization_error": null,
+              "pool_keys": null,
+              "missing_outputs": [
+                "local_key",
+                "title",
+                "release_date",
+                "snippet",
+                "page_number",
+                "source_url"
+              ]
+            }
           }
-        ]
+        ],
+        "gateway_not_equal_normalization": true
       },
       "primary_blocking": false
     },
@@ -254,20 +552,37 @@
         "items": [
           {
             "step_id": "s1",
-            "normalization_success": true,
-            "missing_outputs": [],
-            "gateway_success": true
+            "normalization_success": null,
+            "gateway_success": true,
+            "note": "null_normalization_not_auto_pass"
           },
           {
             "funnel_normalize": {
-              "raw_result_ref": null,
-              "normalization_success": null,
+              "raw_result_ref": "invoke:aktools.stock_hk_hist",
+              "normalization_success": true,
               "normalization_error": null,
-              "pool_keys": null,
+              "pool_keys": [
+                "adapter_ok",
+                "adapter_version",
+                "capability",
+                "close",
+                "currency",
+                "currency_source",
+                "cutoff_date",
+                "high",
+                "low",
+                "n_rows",
+                "name",
+                "open",
+                "trade_date",
+                "turnover",
+                "volume"
+              ],
               "missing_outputs": []
             }
           }
-        ]
+        ],
+        "gateway_not_equal_normalization": true
       },
       "primary_blocking": false
     },
@@ -278,20 +593,21 @@
         "items": [
           {
             "step_id": "s1",
-            "normalization_success": true,
-            "missing_outputs": [],
-            "gateway_success": true
+            "normalization_success": null,
+            "gateway_success": true,
+            "note": "null_normalization_not_auto_pass"
           },
           {
             "funnel_normalize": {
-              "raw_result_ref": null,
-              "normalization_success": null,
+              "raw_result_ref": "disclosure_composite",
+              "normalization_success": true,
               "normalization_error": null,
               "pool_keys": null,
               "missing_outputs": []
             }
           }
-        ]
+        ],
+        "gateway_not_equal_normalization": true
       },
       "primary_blocking": false
     }

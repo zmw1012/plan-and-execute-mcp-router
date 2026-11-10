@@ -24,6 +24,33 @@ def _status(ok: Optional[bool], *, applicable: bool = True, known: bool = True) 
     return "unknown"
 
 
+def _dual(
+    *,
+    checkpoint: str,
+    contract_status: Status,
+    stage_outcome_status: Status,
+    downstream_task_effect: Optional[str] = None,
+    detail: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Dual-layer checkpoint record: observability ≠ semantic stage success."""
+    # Aggregate for funnel: stage outcome when decided; else contract/observability.
+    if stage_outcome_status in {"pass", "fail"}:
+        agg = stage_outcome_status
+    elif stage_outcome_status in {"N/A", "not_evaluated"}:
+        agg = contract_status if contract_status in {"pass", "fail", "N/A", "unknown"} else "unknown"
+    else:
+        agg = contract_status if contract_status != "pass" else stage_outcome_status
+    return {
+        "checkpoint": checkpoint,
+        "status": agg,
+        "contract_status": contract_status,
+        "observability_status": contract_status,
+        "stage_outcome_status": stage_outcome_status,
+        "downstream_task_effect": downstream_task_effect,
+        "detail": detail or {},
+    }
+
+
 def _plan_steps(row: Dict[str, Any]) -> List[Dict[str, Any]]:
     plan = row.get("initial_plan") or {}
     steps = plan.get("steps") if isinstance(plan, dict) else None
@@ -50,8 +77,6 @@ def eval_c01_planner(row: Dict[str, Any]) -> Dict[str, Any]:
     if row.get("status") == "failed" and not plan:
         ok = False
     repair = int(obs.get("repair_count") or row.get("parse_repair_count") or 0)
-    # Planner protocol engineering: valid plan schema/semantics present.
-    # Accuracy is irrelevant here.
     detail = {
         "parse_or_schema_ok": ok,
         "repair_count": repair,
@@ -60,7 +85,13 @@ def eval_c01_planner(row: Dict[str, Any]) -> Dict[str, Any]:
         "call_observability": obs.get("call_observability")
         or _extract_planner_obs_from_trace(row),
     }
-    return {"checkpoint": "C01_planner", "status": _status(ok), "detail": detail}
+    st = _status(ok)
+    return _dual(
+        checkpoint="C01_planner",
+        contract_status=st,
+        stage_outcome_status=st,
+        detail=detail,
+    )
 
 
 def _extract_planner_obs_from_trace(row: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -74,16 +105,21 @@ def _extract_planner_obs_from_trace(row: Dict[str, Any]) -> List[Dict[str, Any]]
 
 def eval_c02_filter(row: Dict[str, Any]) -> Dict[str, Any]:
     if not _has_retrieve(row):
-        return {"checkpoint": "C02_filter", "status": "N/A", "detail": {"reason": "no_retrieve"}}
+        return _dual(
+            checkpoint="C02_filter",
+            contract_status="N/A",
+            stage_outcome_status="N/A",
+            detail={"reason": "no_retrieve"},
+        )
     funnels = _funnels(row)
     if not funnels:
-        return {
-            "checkpoint": "C02_filter",
-            "status": "unknown",
-            "detail": {"reason": "missing_funnel"},
-        }
-    # Pass if every retrieve funnel has filter observability and no blocked leakage into kept.
-    ok = True
+        return _dual(
+            checkpoint="C02_filter",
+            contract_status="unknown",
+            stage_outcome_status="unknown",
+            detail={"reason": "missing_funnel"},
+        )
+    structural_ok = True
     details = []
     for f in funnels:
         if f.get("disclosure_composite"):
@@ -91,23 +127,46 @@ def eval_c02_filter(row: Dict[str, Any]) -> Dict[str, Any]:
             continue
         filt = (f.get("checkpoint_passive") or {}).get("filter") or f.get("hard_filtered")
         if not filt:
-            ok = False
+            structural_ok = False
             details.append({"missing_filter": True})
             continue
-        leak = bool((f.get("checkpoint_passive") or {}).get("filter", {}).get("blocked_or_excluded_leakage"))
+        leak = bool(
+            (f.get("checkpoint_passive") or {})
+            .get("filter", {})
+            .get("blocked_or_excluded_leakage")
+        )
         if leak:
-            ok = False
+            structural_ok = False
         details.append({"filter": filt, "blocked_leakage": leak})
-    return {"checkpoint": "C02_filter", "status": _status(ok), "detail": {"funnels": details}}
+    # Quality vs gold/accepted ops is not reliably available in D12 offline audit.
+    return _dual(
+        checkpoint="C02_filter",
+        contract_status=_status(structural_ok),
+        stage_outcome_status="not_evaluated",
+        downstream_task_effect="filter_quality_not_evaluated_without_accepted_op_set",
+        detail={
+            "funnels": details,
+            "structural_pass_means": "no_blocked_excluded_leakage_and_filter_trace_present",
+            "quality_status": "not_evaluated",
+        },
+    )
 
 
 def eval_c03_embedding(row: Dict[str, Any]) -> Dict[str, Any]:
     if not _has_retrieve(row):
-        return {"checkpoint": "C03_embedding", "status": "N/A", "detail": {}}
+        return _dual(
+            checkpoint="C03_embedding",
+            contract_status="N/A",
+            stage_outcome_status="N/A",
+        )
     funnels = _funnels(row)
     if not funnels:
-        return {"checkpoint": "C03_embedding", "status": "unknown", "detail": {}}
-    ok = True
+        return _dual(
+            checkpoint="C03_embedding",
+            contract_status="unknown",
+            stage_outcome_status="unknown",
+        )
+    structural_ok = True
     details = []
     for f in funnels:
         if f.get("disclosure_composite"):
@@ -116,13 +175,12 @@ def eval_c03_embedding(row: Dict[str, Any]) -> Dict[str, Any]:
         emb = (f.get("checkpoint_passive") or {}).get("embedding") or {}
         topk = emb.get("top_k") or f.get("embedding_topk")
         if topk is None:
-            ok = False
+            structural_ok = False
             details.append({"missing_topk": True})
             continue
-        # Engineering: Top-K recorded and size <= 5.
         size = len(topk)
         if size > 5:
-            ok = False
+            structural_ok = False
         details.append(
             {
                 "query": emb.get("step_query") or f.get("search_query"),
@@ -130,15 +188,33 @@ def eval_c03_embedding(row: Dict[str, Any]) -> Dict[str, Any]:
                 "scores": emb.get("scores") or topk,
             }
         )
-    return {"checkpoint": "C03_embedding", "status": _status(ok), "detail": {"funnels": details}}
+    return _dual(
+        checkpoint="C03_embedding",
+        contract_status=_status(structural_ok),
+        stage_outcome_status="not_evaluated",
+        downstream_task_effect="retrieval_quality_separated_from_recall_at_k_all155",
+        detail={
+            "funnels": details,
+            "structural_pass_means": "ranked_candidates_present_topk_le_5",
+            "note": "D12 cannot substitute all155 retrieval audit / Recall@K",
+        },
+    )
 
 
 def eval_c04_describe(row: Dict[str, Any]) -> Dict[str, Any]:
     if not _has_retrieve(row):
-        return {"checkpoint": "C04_describe", "status": "N/A", "detail": {}}
+        return _dual(
+            checkpoint="C04_describe",
+            contract_status="N/A",
+            stage_outcome_status="N/A",
+        )
     funnels = _funnels(row)
     if not funnels:
-        return {"checkpoint": "C04_describe", "status": "unknown", "detail": {}}
+        return _dual(
+            checkpoint="C04_describe",
+            contract_status="unknown",
+            stage_outcome_status="unknown",
+        )
     ok = True
     details = []
     for f in funnels:
@@ -161,15 +237,29 @@ def eval_c04_describe(row: Dict[str, Any]) -> Dict[str, Any]:
                 "rank4_5_not_described": desc.get("rank4_5_not_described"),
             }
         )
-    return {"checkpoint": "C04_describe", "status": _status(ok), "detail": {"funnels": details}}
+    st = _status(ok)
+    return _dual(
+        checkpoint="C04_describe",
+        contract_status=st,
+        stage_outcome_status=st,
+        detail={"funnels": details},
+    )
 
 
 def eval_c05_binder(row: Dict[str, Any]) -> Dict[str, Any]:
     if not _has_retrieve(row):
-        return {"checkpoint": "C05_binder", "status": "N/A", "detail": {}}
+        return _dual(
+            checkpoint="C05_binder",
+            contract_status="N/A",
+            stage_outcome_status="N/A",
+        )
     funnels = _funnels(row)
     if not funnels:
-        return {"checkpoint": "C05_binder", "status": "unknown", "detail": {}}
+        return _dual(
+            checkpoint="C05_binder",
+            contract_status="unknown",
+            stage_outcome_status="unknown",
+        )
     ok = True
     details = []
     for f in funnels:
@@ -188,7 +278,6 @@ def eval_c05_binder(row: Dict[str, Any]) -> Dict[str, Any]:
         if outside:
             ok = False
         if primary is None and not f.get("disclosure_composite"):
-            # No primary after binder stage → fail if retrieve attempted without composite.
             if f.get("described_candidates") or described:
                 ok = False
         details.append(
@@ -201,15 +290,29 @@ def eval_c05_binder(row: Dict[str, Any]) -> Dict[str, Any]:
                 "binding_ok": binding_ok,
             }
         )
-    return {"checkpoint": "C05_binder", "status": _status(ok), "detail": {"funnels": details}}
+    st = _status(ok)
+    return _dual(
+        checkpoint="C05_binder",
+        contract_status=st,
+        stage_outcome_status=st,
+        detail={"funnels": details},
+    )
 
 
 def eval_c06_arguments(row: Dict[str, Any]) -> Dict[str, Any]:
     if not _has_retrieve(row):
-        return {"checkpoint": "C06_arguments", "status": "N/A", "detail": {}}
+        return _dual(
+            checkpoint="C06_arguments",
+            contract_status="N/A",
+            stage_outcome_status="N/A",
+        )
     funnels = _funnels(row)
     if not funnels:
-        return {"checkpoint": "C06_arguments", "status": "unknown", "detail": {}}
+        return _dual(
+            checkpoint="C06_arguments",
+            contract_status="unknown",
+            stage_outcome_status="unknown",
+        )
     ok = True
     details = []
     for f in funnels:
@@ -222,8 +325,6 @@ def eval_c06_arguments(row: Dict[str, Any]) -> Dict[str, Any]:
             ok = False
             details.append({"missing_arguments": True, "operation_id": primary.get("operation_id")})
             continue
-        # Empty {} when operation selected is a soft signal; mark fail for engineering
-        # only when binder recorded missing/invalid flag.
         args_passive = (f.get("checkpoint_passive") or {}).get("arguments") or {}
         if args_passive.get("missing_or_invalid_argument_flag") is True:
             ok = False
@@ -234,120 +335,182 @@ def eval_c06_arguments(row: Dict[str, Any]) -> Dict[str, Any]:
                 "grounding": args_passive.get("grounding_sources") or f.get("grounding"),
             }
         )
-    return {"checkpoint": "C06_arguments", "status": _status(ok), "detail": {"funnels": details}}
+    st = _status(ok)
+    return _dual(
+        checkpoint="C06_arguments",
+        contract_status=st,
+        stage_outcome_status=st,
+        detail={"funnels": details},
+    )
 
 
 def eval_c07_mcp(row: Dict[str, Any]) -> Dict[str, Any]:
     if not _has_retrieve(row):
-        return {"checkpoint": "C07_mcp", "status": "N/A", "detail": {}}
+        return _dual(
+            checkpoint="C07_mcp",
+            contract_status="N/A",
+            stage_outcome_status="N/A",
+        )
     invoked = list(row.get("invoked_operations") or [])
     records = list(row.get("invoke_records") or row.get("invoke_calls") or [])
-    # No invocation: engineering pass for MCP stage is fail if retrieve expected invoke,
-    # but zero invocation must NOT be counted as tool success.
     tool_success = row.get("tool_execution_success")
     all_ok = row.get("all_tool_invocations_successful")
     if not invoked and not records:
-        # Retrieve planned but nothing invoked → fail (unless disclosure stopped early).
         funnels = _funnels(row)
         stopped = any(
             (f.get("disclosure_composite") or {}).get("stopped_after_list") for f in funnels
         )
         if stopped:
-            return {
-                "checkpoint": "C07_mcp",
-                "status": "pass",
-                "detail": {"stopped_after_list": True, "invoked": []},
-            }
-        return {
-            "checkpoint": "C07_mcp",
-            "status": "fail",
-            "detail": {
+            return _dual(
+                checkpoint="C07_mcp",
+                contract_status="pass",
+                stage_outcome_status="pass",
+                detail={"stopped_after_list": True, "invoked": []},
+            )
+        return _dual(
+            checkpoint="C07_mcp",
+            contract_status="fail",
+            stage_outcome_status="fail",
+            detail={
                 "no_invocation": True,
                 "tool_success_claimed": tool_success,
                 "note": "zero_invocation_not_tool_success",
             },
-        }
-    # Consistency: do not treat failed/partial as strict success.
+        )
     if all_ok is True and int(row.get("failed_invocation_count") or 0) > 0:
-        return {
-            "checkpoint": "C07_mcp",
-            "status": "fail",
-            "detail": {"inconsistent_success_flags": True},
-        }
+        return _dual(
+            checkpoint="C07_mcp",
+            contract_status="fail",
+            stage_outcome_status="fail",
+            detail={"inconsistent_success_flags": True},
+        )
     gw_ok = True
     for rec in records:
         if isinstance(rec, dict) and rec.get("gateway_success") is False:
             gw_ok = False
-    return {
-        "checkpoint": "C07_mcp",
-        "status": _status(gw_ok),
-        "detail": {
+    st = _status(gw_ok)
+    return _dual(
+        checkpoint="C07_mcp",
+        contract_status=st,
+        stage_outcome_status=st,
+        detail={
             "invoked": invoked,
             "records": records,
             "successful_invoked": row.get("successful_invoked_operations"),
             "real_mcp_execution_count": row.get("real_mcp_execution_count"),
         },
-    }
+    )
 
 
 def eval_c08_normalize(row: Dict[str, Any]) -> Dict[str, Any]:
     if not _has_retrieve(row):
-        return {"checkpoint": "C08_normalize", "status": "N/A", "detail": {}}
+        return _dual(
+            checkpoint="C08_normalize",
+            contract_status="N/A",
+            stage_outcome_status="N/A",
+        )
     statuses = list(row.get("step_statuses") or [])
     retrieve_steps = [s for s in statuses if s.get("type") == "retrieve"]
     if not retrieve_steps and not _funnels(row):
-        return {"checkpoint": "C08_normalize", "status": "unknown", "detail": {}}
-    ok = True
+        return _dual(
+            checkpoint="C08_normalize",
+            contract_status="unknown",
+            stage_outcome_status="unknown",
+            detail={"reason": "observability_missing"},
+        )
     details = []
+    saw_explicit = False
+    outcome_ok: Optional[bool] = None
     for s in retrieve_steps:
-        # If gateway claimed success but normalization missing and required outputs empty → fail.
-        if s.get("gateway_success") and s.get("normalization_success") is False:
-            ok = False
+        ns = s.get("normalization_success")
+        if ns is None:
+            details.append(
+                {
+                    "step_id": s.get("id"),
+                    "normalization_success": None,
+                    "gateway_success": s.get("gateway_success"),
+                    "note": "null_normalization_not_auto_pass",
+                }
+            )
+            continue
+        saw_explicit = True
+        if s.get("gateway_success") and ns is False:
+            outcome_ok = False
+        elif ns is True and outcome_ok is not False:
+            outcome_ok = True
         details.append(
             {
                 "step_id": s.get("id"),
-                "normalization_success": s.get("normalization_success"),
+                "normalization_success": ns,
                 "missing_outputs": s.get("missing_outputs"),
                 "gateway_success": s.get("gateway_success"),
             }
         )
-    # Also inspect funnel passive normalize.
     for f in _funnels(row):
         norm = (f.get("checkpoint_passive") or {}).get("normalize") or {}
-        if norm.get("normalization_success") is False and (
-            f.get("invoke_gateway_success") or {}
-        ):
-            # Gateway success with normalize fail is a real engineering signal.
-            if any((f.get("invoke_gateway_success") or {}).values()):
-                ok = False
+        if "normalization_success" in norm and norm.get("normalization_success") is not None:
+            saw_explicit = True
+            if norm.get("normalization_success") is False and any(
+                (f.get("invoke_gateway_success") or {}).values()
+            ):
+                outcome_ok = False
         details.append({"funnel_normalize": norm})
-    return {"checkpoint": "C08_normalize", "status": _status(ok), "detail": {"items": details}}
+    if not saw_explicit:
+        return _dual(
+            checkpoint="C08_normalize",
+            contract_status="unknown",
+            stage_outcome_status="unknown",
+            detail={"items": details, "reason": "observability_missing"},
+        )
+    return _dual(
+        checkpoint="C08_normalize",
+        contract_status=_status(True),
+        stage_outcome_status=_status(outcome_ok if outcome_ok is not None else True),
+        detail={"items": details, "gateway_not_equal_normalization": True},
+    )
 
 
 def eval_c09_evidence(row: Dict[str, Any]) -> Dict[str, Any]:
     if not _has_retrieve(row):
-        return {"checkpoint": "C09_evidence_acceptance", "status": "N/A", "detail": {}}
+        return _dual(
+            checkpoint="C09_evidence_acceptance",
+            contract_status="N/A",
+            stage_outcome_status="N/A",
+        )
     statuses = [s for s in (row.get("step_statuses") or []) if s.get("type") == "retrieve"]
     if not statuses:
-        return {"checkpoint": "C09_evidence_acceptance", "status": "unknown", "detail": {}}
-    ok = True
+        return _dual(
+            checkpoint="C09_evidence_acceptance",
+            contract_status="unknown",
+            stage_outcome_status="unknown",
+        )
+    logic_ok = True
+    retrieve_complete = True
     details = []
     for s in statuses:
-        # Strict: step_completed requires missing empty + scope_match.
         completed = s.get("step_completed")
         missing = list(s.get("missing_outputs") or [])
         scope = s.get("scope_match")
+        classification = None
         if completed is True and (missing or scope is False):
-            ok = False  # false-accept
-        if (
+            logic_ok = False
+            classification = "false_accept"
+            retrieve_complete = False
+        elif missing and completed is False:
+            classification = "correctly_rejected_incomplete"
+            retrieve_complete = False
+        elif (
             completed is False
             and not missing
             and scope is not False
             and s.get("gateway_success")
             and s.get("required_outputs_satisfied")
         ):
-            # Potential false-reject — still engineering-detectable; mark fail for review.
-            ok = False
+            logic_ok = False
+            classification = "false_reject"
+            retrieve_complete = False
+        elif completed is not True:
+            retrieve_complete = False
         details.append(
             {
                 "step_id": s.get("id"),
@@ -355,14 +518,22 @@ def eval_c09_evidence(row: Dict[str, Any]) -> Dict[str, Any]:
                 "missing_outputs": missing,
                 "scope_match": scope,
                 "required_outputs_satisfied": s.get("required_outputs_satisfied"),
-                "false_accept_or_reject_review": None,
+                "classification": classification,
             }
         )
-    return {
-        "checkpoint": "C09_evidence_acceptance",
-        "status": _status(ok),
-        "detail": {"steps": details},
-    }
+    return _dual(
+        checkpoint="C09_evidence_acceptance",
+        contract_status=_status(logic_ok),
+        stage_outcome_status=_status(retrieve_complete and logic_ok),
+        downstream_task_effect=(
+            "retrieve_incomplete" if not retrieve_complete else "retrieve_complete"
+        ),
+        detail={
+            "steps": details,
+            "acceptance_logic_pass": logic_ok,
+            "retrieve_outcome_complete": retrieve_complete,
+        },
+    )
 
 
 def eval_c10_fallback(row: Dict[str, Any]) -> Dict[str, Any]:
@@ -398,55 +569,147 @@ def eval_c10_fallback(row: Dict[str, Any]) -> Dict[str, Any]:
             ok = False
             details["incorrect_non_refusal"] = True
     if not saw_fallback and not funnels and not _has_retrieve(row):
-        return {
-            "checkpoint": "C10_fallback_unavailable",
-            "status": "N/A",
-            "detail": details,
-        }
-    return {
-        "checkpoint": "C10_fallback_unavailable",
-        "status": _status(ok),
-        "detail": details,
-    }
+        return _dual(
+            checkpoint="C10_fallback_unavailable",
+            contract_status="N/A",
+            stage_outcome_status="N/A",
+            detail=details,
+        )
+    st = _status(ok)
+    return _dual(
+        checkpoint="C10_fallback_unavailable",
+        contract_status=st,
+        stage_outcome_status=st,
+        detail=details,
+    )
 
 
 def eval_c11_compute(row: Dict[str, Any]) -> Dict[str, Any]:
     if "compute" not in _step_types(row):
-        return {"checkpoint": "C11_compute", "status": "N/A", "detail": {"applicable": False}}
+        return _dual(
+            checkpoint="C11_compute",
+            contract_status="N/A",
+            stage_outcome_status="N/A",
+            detail={"applicable": False},
+        )
     records = list(row.get("compute_traces") or [])
     statuses = [s for s in (row.get("step_statuses") or []) if s.get("type") == "compute"]
     if not records and not statuses:
-        return {"checkpoint": "C11_compute", "status": "unknown", "detail": {}}
-    ok = True
+        return _dual(
+            checkpoint="C11_compute",
+            contract_status="unknown",
+            stage_outcome_status="unknown",
+        )
     details = []
+    upstream_blocked = False
+    direct_fail = False
+    executed_ok = False
     for s in statuses:
-        if s.get("status") not in {"completed", "ok", "success"} and s.get("execution_ok") is not True:
-            ok = False
         details.append(s)
+        fr = str(s.get("failure_reason") or "")
+        st = str(s.get("status") or "")
+        if st == "skipped_due_to_dependency" or fr.startswith("depends_on_failed") or fr.startswith(
+            "skipped_due_to_dependency"
+        ):
+            upstream_blocked = True
+        elif st not in {"completed", "ok", "success"} or s.get("execution_ok") is False:
+            direct_fail = True
+        elif s.get("execution_ok") is True or st in {"completed", "ok", "success"}:
+            executed_ok = True
     for r in records:
-        if isinstance(r, dict) and r.get("error"):
-            ok = False
         details.append({"record": r})
-    return {"checkpoint": "C11_compute", "status": _status(ok), "detail": {"items": details}}
+        err = str((r or {}).get("error") or "")
+        if err.startswith("skipped_due_to_dependency"):
+            upstream_blocked = True
+        elif err:
+            direct_fail = True
+        elif (r or {}).get("ok") is True:
+            executed_ok = True
+    if upstream_blocked and not executed_ok and not direct_fail:
+        return _dual(
+            checkpoint="C11_compute",
+            contract_status="pass",
+            stage_outcome_status="N/A",
+            downstream_task_effect="N/A_upstream_blocked",
+            detail={"items": details, "classification": "N/A_upstream_blocked"},
+        )
+    if direct_fail:
+        return _dual(
+            checkpoint="C11_compute",
+            contract_status="pass",
+            stage_outcome_status="fail",
+            downstream_task_effect="direct_compute_failure",
+            detail={"items": details, "classification": "direct_compute_failure"},
+        )
+    return _dual(
+        checkpoint="C11_compute",
+        contract_status="pass",
+        stage_outcome_status=_status(executed_ok),
+        detail={"items": details},
+    )
 
 
 def eval_c12_reason(row: Dict[str, Any]) -> Dict[str, Any]:
     if "reason" not in _step_types(row):
-        return {"checkpoint": "C12_reason", "status": "N/A", "detail": {"applicable": False}}
+        return _dual(
+            checkpoint="C12_reason",
+            contract_status="N/A",
+            stage_outcome_status="N/A",
+            detail={"applicable": False},
+        )
     arts = list(row.get("reason_artifacts") or [])
     statuses = [s for s in (row.get("step_statuses") or []) if s.get("type") == "reason"]
     if not arts and not statuses:
-        return {"checkpoint": "C12_reason", "status": "unknown", "detail": {}}
-    # Engineering: reason ran without inventing tool calls; unsupported claim flags if present.
-    ok = True
+        # May be skipped due to dependency.
+        for s in row.get("step_statuses") or []:
+            if s.get("type") == "reason" and str(s.get("status")) == "skipped_due_to_dependency":
+                return _dual(
+                    checkpoint="C12_reason",
+                    contract_status="pass",
+                    stage_outcome_status="N/A",
+                    downstream_task_effect="N/A_upstream_blocked",
+                )
+        return _dual(
+            checkpoint="C12_reason",
+            contract_status="unknown",
+            stage_outcome_status="unknown",
+        )
+    parse_failed = False
+    runtime_recovered = False
     details = []
     for a in arts:
-        if isinstance(a, dict) and a.get("unsupported_claim"):
-            ok = False
-        if isinstance(a, dict) and a.get("numeric_mutation"):
-            ok = False
         details.append(a)
-    return {"checkpoint": "C12_reason", "status": _status(ok), "detail": {"artifacts": details}}
+        if isinstance(a, dict):
+            if a.get("reason_parse_failed") or "reason_parse_failed" in list(
+                a.get("gaps") or []
+            ):
+                parse_failed = True
+            if a.get("runtime_recovered"):
+                runtime_recovered = True
+            if a.get("unsupported_claim") or a.get("numeric_mutation"):
+                parse_failed = True
+    for s in statuses:
+        if s.get("reason_parse_failed") or s.get("failure_reason") == "reason_parse_failed":
+            parse_failed = True
+        if s.get("runtime_recovered"):
+            runtime_recovered = True
+    stage = "fail" if parse_failed else "pass"
+    return _dual(
+        checkpoint="C12_reason",
+        contract_status="pass",
+        stage_outcome_status=stage,
+        downstream_task_effect=(
+            "runtime_recovered_verified_evidence"
+            if runtime_recovered
+            else None
+        ),
+        detail={
+            "artifacts": details,
+            "reason_parse_failed": parse_failed,
+            "runtime_recovered": runtime_recovered,
+            "note": "runtime_recovered_not_equal_reason_stage_pass",
+        },
+    )
 
 
 def eval_c13_final(row: Dict[str, Any]) -> Dict[str, Any]:
@@ -454,32 +717,38 @@ def eval_c13_final(row: Dict[str, Any]) -> Dict[str, Any]:
     status = row.get("predicted_status") or (
         payload.get("status") if isinstance(payload, dict) else None
     )
-    # Contract: must have a status string; failed/partial must not be marked strict success.
     if status is None and row.get("final_answer") is None:
-        return {
-            "checkpoint": "C13_final",
-            "status": "fail",
-            "detail": {"missing_final": True},
-        }
-    ok = True
+        return _dual(
+            checkpoint="C13_final",
+            contract_status="fail",
+            stage_outcome_status="fail",
+            detail={"missing_final": True},
+        )
+    schema_ok = True
     if row.get("status") == "failed" and str(status).lower() in {"answered", "success"}:
-        # Inconsistent synthesis labeling.
-        ok = False
-    detail = {
-        "answer_status": status,
-        "task_status": row.get("status"),
-        "evidence_ids": (payload or {}).get("evidence_ids")
-        if isinstance(payload, dict)
-        else None,
-        "final_answer_present": bool(row.get("final_answer")),
-        "full_partial_failed": row.get("status"),
-    }
-    return {"checkpoint": "C13_final", "status": _status(ok), "detail": detail}
+        schema_ok = False
+    semantic_correct = row.get("answer_correct") in (True, "True", "true")
+    return _dual(
+        checkpoint="C13_final",
+        contract_status=_status(schema_ok),
+        stage_outcome_status=_status(schema_ok),
+        downstream_task_effect=(
+            "semantically_correct" if semantic_correct else "schema_valid_not_necessarily_correct"
+        ),
+        detail={
+            "answer_status": status,
+            "task_status": row.get("status"),
+            "schema_valid": schema_ok,
+            "semantically_correct": semantic_correct,
+            "evidence_ids": (payload or {}).get("evidence_ids")
+            if isinstance(payload, dict)
+            else None,
+            "final_answer_present": bool(row.get("final_answer")),
+        },
+    )
 
 
 def eval_c14_evaluator(row: Dict[str, Any]) -> Dict[str, Any]:
-    # Evaluator errors are separate from agent errors. Presence of grading fields = pass
-    # for engineering observability; do not conflate answer_correct with agent success.
     has_fields = (
         "answer_correct" in row
         or "auto_grade_status" in row
@@ -492,14 +761,28 @@ def eval_c14_evaluator(row: Dict[str, Any]) -> Dict[str, Any]:
         "auto_grade_status": row.get("auto_grade_status"),
         "manual_required": True,
         "human_fields_separate": True,
-        "potential_evaluation_failure": None,
+        "evaluator_executed": has_fields,
         "agent_error_type": row.get("error_type"),
-        "note": "evaluator_failure_separated_from_agent_error",
+        "note": "evaluator_executed_separated_from_answer_correct",
     }
-    # If final looks correct-ish but evaluator missing → unknown/fail observability.
     if not has_fields:
-        return {"checkpoint": "C14_evaluator", "status": "fail", "detail": detail}
-    return {"checkpoint": "C14_evaluator", "status": "pass", "detail": detail}
+        return _dual(
+            checkpoint="C14_evaluator",
+            contract_status="fail",
+            stage_outcome_status="fail",
+            detail=detail,
+        )
+    return _dual(
+        checkpoint="C14_evaluator",
+        contract_status="pass",
+        stage_outcome_status="pass",
+        downstream_task_effect=(
+            "answer_correct"
+            if row.get("answer_correct") in (True, "True", "true")
+            else "answer_incorrect_or_ungraded"
+        ),
+        detail=detail,
+    )
 
 
 EVALUATORS = {
@@ -527,7 +810,11 @@ def evaluate_task_checkpoints(row: Dict[str, Any]) -> Dict[str, Any]:
     primary = None
     secondary: List[str] = []
     for r in results:
-        if r["status"] == "fail":
+        # Prefer stage_outcome fail as blocking; ignore not_evaluated quality gaps.
+        stage = r.get("stage_outcome_status") or r.get("status")
+        if stage == "fail" or (
+            r.get("status") == "fail" and stage not in {"not_evaluated", "N/A"}
+        ):
             if primary is None:
                 primary = r["checkpoint"]
             else:

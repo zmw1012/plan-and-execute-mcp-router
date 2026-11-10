@@ -1,12 +1,13 @@
 {
   "checkpoint": "C09_evidence_acceptance",
   "counts": {
-    "pass": 12
+    "fail": 8,
+    "pass": 4
   },
   "tasks": [
     {
       "task_id": "fin_cf_003",
-      "status": "pass",
+      "status": "fail",
       "detail": {
         "steps": [
           {
@@ -15,79 +16,142 @@
             "missing_outputs": [],
             "scope_match": true,
             "required_outputs_satisfied": true,
-            "false_accept_or_reject_review": null
+            "classification": null
+          },
+          {
+            "step_id": "s2",
+            "step_completed": false,
+            "missing_outputs": [
+              "snippet",
+              "page_number",
+              "report_date",
+              "currency"
+            ],
+            "scope_match": true,
+            "required_outputs_satisfied": false,
+            "classification": "correctly_rejected_incomplete"
           }
-        ]
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": false
       },
-      "primary_blocking": false
+      "primary_blocking": true
     },
     {
       "task_id": "fin_cf_011",
-      "status": "pass",
-      "detail": {
-        "steps": [
-          {
-            "step_id": "s1",
-            "step_completed": true,
-            "missing_outputs": [],
-            "scope_match": true,
-            "required_outputs_satisfied": true,
-            "false_accept_or_reject_review": null
-          }
-        ]
-      },
-      "primary_blocking": false
-    },
-    {
-      "task_id": "fin_cf_020",
-      "status": "pass",
+      "status": "fail",
       "detail": {
         "steps": [
           {
             "step_id": "s1",
             "step_completed": false,
             "missing_outputs": [
-              "revenue"
+              "attributable_profit",
+              "currency"
             ],
             "scope_match": true,
             "required_outputs_satisfied": false,
-            "false_accept_or_reject_review": null
+            "classification": "correctly_rejected_incomplete"
+          },
+          {
+            "step_id": "s2",
+            "step_completed": null,
+            "missing_outputs": [],
+            "scope_match": null,
+            "required_outputs_satisfied": null,
+            "classification": null
           }
-        ]
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": false
+      },
+      "primary_blocking": true
+    },
+    {
+      "task_id": "fin_cf_020",
+      "status": "fail",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": true,
+            "missing_outputs": [],
+            "scope_match": true,
+            "required_outputs_satisfied": true,
+            "classification": null
+          },
+          {
+            "step_id": "s2",
+            "step_completed": false,
+            "missing_outputs": [
+              "snippet",
+              "page_number"
+            ],
+            "scope_match": true,
+            "required_outputs_satisfied": false,
+            "classification": "correctly_rejected_incomplete"
+          }
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": false
       },
       "primary_blocking": false
     },
     {
       "task_id": "fin_cf_023",
-      "status": "pass",
+      "status": "fail",
       "detail": {
         "steps": [
           {
             "step_id": "s1",
-            "step_completed": true,
-            "missing_outputs": [],
+            "step_completed": false,
+            "missing_outputs": [
+              "currency",
+              "attributable_profit"
+            ],
             "scope_match": true,
-            "required_outputs_satisfied": true,
-            "false_accept_or_reject_review": null
+            "required_outputs_satisfied": false,
+            "classification": "correctly_rejected_incomplete"
           }
-        ]
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": false
       },
-      "primary_blocking": false
+      "primary_blocking": true
     },
     {
       "task_id": "fin_ht_016",
-      "status": "pass",
+      "status": "fail",
       "detail": {
         "steps": [
           {
             "step_id": "s1",
-            "step_completed": true,
-            "missing_outputs": [],
+            "step_completed": false,
+            "missing_outputs": [
+              "company_name",
+              "report_date",
+              "fiscal_period",
+              "currency",
+              "revenue",
+              "source_url",
+              "page_number",
+              "snippet"
+            ],
             "scope_match": true,
-            "required_outputs_satisfied": true,
-            "false_accept_or_reject_review": null
+            "required_outputs_satisfied": false,
+            "classification": "correctly_rejected_incomplete"
+          },
+          {
+            "step_id": "s2",
+            "step_completed": null,
+            "missing_outputs": [],
+            "scope_match": null,
+            "required_outputs_satisfied": null,
+            "classification": null
           }
-        ]
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": false
       },
       "primary_blocking": false
     },
@@ -102,15 +166,25 @@
             "missing_outputs": [],
             "scope_match": true,
             "required_outputs_satisfied": true,
-            "false_accept_or_reject_review": null
+            "classification": null
+          },
+          {
+            "step_id": "s2",
+            "step_completed": true,
+            "missing_outputs": [],
+            "scope_match": true,
+            "required_outputs_satisfied": true,
+            "classification": null
           }
-        ]
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": true
       },
       "primary_blocking": false
     },
     {
       "task_id": "xd_ht_007",
-      "status": "pass",
+      "status": "fail",
       "detail": {
         "steps": [
           {
@@ -119,28 +193,62 @@
             "missing_outputs": [],
             "scope_match": true,
             "required_outputs_satisfied": true,
-            "false_accept_or_reject_review": null
+            "classification": null
+          },
+          {
+            "step_id": "s2",
+            "step_completed": false,
+            "missing_outputs": [
+              "title",
+              "release_date"
+            ],
+            "scope_match": true,
+            "required_outputs_satisfied": false,
+            "classification": "correctly_rejected_incomplete"
           }
-        ]
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": false
       },
-      "primary_blocking": false
+      "primary_blocking": true
     },
     {
       "task_id": "xd_ht_014",
-      "status": "pass",
+      "status": "fail",
       "detail": {
         "steps": [
           {
             "step_id": "s1",
-            "step_completed": true,
-            "missing_outputs": [],
+            "step_completed": false,
+            "missing_outputs": [
+              "attributable_profit",
+              "currency"
+            ],
             "scope_match": true,
-            "required_outputs_satisfied": true,
-            "false_accept_or_reject_review": null
+            "required_outputs_satisfied": false,
+            "classification": "correctly_rejected_incomplete"
+          },
+          {
+            "step_id": "s2",
+            "step_completed": null,
+            "missing_outputs": [],
+            "scope_match": null,
+            "required_outputs_satisfied": null,
+            "classification": null
+          },
+          {
+            "step_id": "s3",
+            "step_completed": null,
+            "missing_outputs": [],
+            "scope_match": null,
+            "required_outputs_satisfied": null,
+            "classification": null
           }
-        ]
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": false
       },
-      "primary_blocking": false
+      "primary_blocking": true
     },
     {
       "task_id": "mkt_dev_014",
@@ -153,15 +261,17 @@
             "missing_outputs": [],
             "scope_match": true,
             "required_outputs_satisfied": true,
-            "false_accept_or_reject_review": null
+            "classification": null
           }
-        ]
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": true
       },
       "primary_blocking": false
     },
     {
       "task_id": "fin_cf_024",
-      "status": "pass",
+      "status": "fail",
       "detail": {
         "steps": [
           {
@@ -170,9 +280,26 @@
             "missing_outputs": [],
             "scope_match": true,
             "required_outputs_satisfied": true,
-            "false_accept_or_reject_review": null
+            "classification": null
+          },
+          {
+            "step_id": "s2",
+            "step_completed": false,
+            "missing_outputs": [
+              "local_key",
+              "title",
+              "release_date",
+              "snippet",
+              "page_number",
+              "source_url"
+            ],
+            "scope_match": true,
+            "required_outputs_satisfied": false,
+            "classification": "correctly_rejected_incomplete"
           }
-        ]
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": false
       },
       "primary_blocking": false
     },
@@ -187,9 +314,11 @@
             "missing_outputs": [],
             "scope_match": true,
             "required_outputs_satisfied": true,
-            "false_accept_or_reject_review": null
+            "classification": null
           }
-        ]
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": true
       },
       "primary_blocking": false
     },
@@ -204,9 +333,11 @@
             "missing_outputs": [],
             "scope_match": true,
             "required_outputs_satisfied": true,
-            "false_accept_or_reject_review": null
+            "classification": null
           }
-        ]
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": true
       },
       "primary_blocking": false
     }

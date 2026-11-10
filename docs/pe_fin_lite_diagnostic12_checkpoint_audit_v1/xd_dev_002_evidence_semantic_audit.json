@@ -1,0 +1,45 @@
+{
+  "task_id": "xd_dev_002",
+  "audit_mode": "offline_raw_only",
+  "required_outputs_satisfied": true,
+  "answer_correct": false,
+  "auto_grade_reason": "numeric_mismatch;numeric_match_labeled",
+  "final_answer_summary": "EPS USD 8.504848; volume 13,123,569 on 2026-06-30",
+  "gold_reference_summary": "EPS USD 1.21; volume 13123569.0 on 2026-06-30 (from benchmark question file; not used to patch adapters)",
+  "components": {
+    "financial_eps": {
+      "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+      "observed_basic_eps": 8.504848,
+      "currency": "美元",
+      "fiscal_period": "FY2025",
+      "report_date": "2025-12-31",
+      "issuer_code": "00005",
+      "issue": "metric_basis_or_scale_mismatch_vs_benchmark_basic_eps",
+      "classification": "evidence_semantic_issue"
+    },
+    "market_volume": {
+      "operation_id": "aktools.stock_hk_hist",
+      "observed_volume": 13123569,
+      "trade_date": "2026-06-30T00:00:00.000",
+      "adjustment": "",
+      "issuer_code": "00005",
+      "issue": null,
+      "classification": "scope_ok_matches_benchmark_volume"
+    },
+    "reason": {
+      "reason_parse_failed": true,
+      "runtime_recovered_via_verified_evidence": true,
+      "invented_numbers": false
+    },
+    "evaluator": {
+      "executed": true,
+      "correctly_flagged_numeric_mismatch": true,
+      "classification": "not_evaluator_bug"
+    }
+  },
+  "actions_this_round": [
+    "document only",
+    "no gold-number adapter patch",
+    "generic issuer/period/unit/canonicalization rules only"
+  ]
+}

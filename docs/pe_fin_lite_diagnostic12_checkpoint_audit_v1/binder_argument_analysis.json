@@ -2,29 +2,31 @@
   "C05": {
     "checkpoint": "C05_binder",
     "counts": {
-      "fail": 1,
-      "pass": 11
+      "pass": 12
     },
     "tasks": [
       {
         "task_id": "fin_cf_003",
-        "status": "fail",
+        "status": "pass",
         "detail": {
           "funnels": [
             {
-              "primary": "op.outside",
-              "fallback": "op.b",
+              "primary": "aktools.stock_financial_hk_report_em",
+              "fallback": "aktools.stock_financial_hk_analysis_indicator_em",
               "described": [
-                "op.a",
-                "op.b",
-                "op.c"
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em"
               ],
-              "selected_outside_described": true,
+              "selected_outside_described": false,
               "binding_ok": true
+            },
+            {
+              "disclosure_composite": true
             }
           ]
         },
-        "primary_blocking": true
+        "primary_blocking": false
       },
       {
         "task_id": "fin_cf_011",
@@ -32,12 +34,12 @@
         "detail": {
           "funnels": [
             {
-              "primary": "op.a",
-              "fallback": "op.b",
+              "primary": "aktools.stock_financial_hk_report_em",
+              "fallback": "aktools.stock_financial_hk_analysis_indicator_em",
               "described": [
-                "op.a",
-                "op.b",
-                "op.c"
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_hk_company_profile_em"
               ],
               "selected_outside_described": false,
               "binding_ok": true
@@ -52,15 +54,18 @@
         "detail": {
           "funnels": [
             {
-              "primary": "op.a",
-              "fallback": "op.b",
+              "primary": "aktools.stock_financial_hk_report_em",
+              "fallback": "aktools.stock_financial_hk_analysis_indicator_em",
               "described": [
-                "op.a",
-                "op.b",
-                "op.c"
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em"
               ],
               "selected_outside_described": false,
               "binding_ok": true
+            },
+            {
+              "disclosure_composite": true
             }
           ]
         },
@@ -72,12 +77,12 @@
         "detail": {
           "funnels": [
             {
-              "primary": "op.a",
-              "fallback": "op.b",
+              "primary": "aktools.stock_financial_hk_report_em",
+              "fallback": "aktools.stock_financial_hk_analysis_indicator_em",
               "described": [
-                "op.a",
-                "op.b",
-                "op.c"
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em"
               ],
               "selected_outside_described": false,
               "binding_ok": true
@@ -92,15 +97,7 @@
         "detail": {
           "funnels": [
             {
-              "primary": "op.a",
-              "fallback": "op.b",
-              "described": [
-                "op.a",
-                "op.b",
-                "op.c"
-              ],
-              "selected_outside_described": false,
-              "binding_ok": true
+              "disclosure_composite": true
             }
           ]
         },
@@ -112,12 +109,23 @@
         "detail": {
           "funnels": [
             {
-              "primary": "op.a",
-              "fallback": "op.b",
+              "primary": "aktools.stock_financial_hk_analysis_indicator_em",
+              "fallback": "aktools.stock_financial_hk_report_em",
               "described": [
-                "op.a",
-                "op.b",
-                "op.c"
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            },
+            {
+              "primary": "aktools.stock_hk_hist",
+              "fallback": null,
+              "described": [
+                "aktools.stock_hk_hist",
+                "aktools.stock_hk_index_daily_sina",
+                "aktools.stock_hk_index_daily_em"
               ],
               "selected_outside_described": false,
               "binding_ok": true
@@ -132,12 +140,22 @@
         "detail": {
           "funnels": [
             {
-              "primary": "op.a",
-              "fallback": "op.b",
+              "primary": "aktools.stock_financial_hk_analysis_indicator_em",
+              "fallback": "aktools.stock_financial_hk_report_em",
               "described": [
-                "op.a",
-                "op.b",
-                "op.c"
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            },
+            {
+              "primary": "ah_disclosure.search_annual_report",
+              "fallback": "ah_disclosure.resolve_company",
+              "described": [
+                "ah_disclosure.search_annual_report",
+                "ah_disclosure.resolve_company"
               ],
               "selected_outside_described": false,
               "binding_ok": true
@@ -152,12 +170,12 @@
         "detail": {
           "funnels": [
             {
-              "primary": "op.a",
-              "fallback": "op.b",
+              "primary": "aktools.stock_financial_hk_report_em",
+              "fallback": "aktools.stock_financial_hk_analysis_indicator_em",
               "described": [
-                "op.a",
-                "op.b",
-                "op.c"
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_hk_company_profile_em"
               ],
               "selected_outside_described": false,
               "binding_ok": true
@@ -172,12 +190,11 @@
         "detail": {
           "funnels": [
             {
-              "primary": "op.a",
-              "fallback": "op.b",
+              "primary": "aktools.stock_hk_hist",
+              "fallback": null,
               "described": [
-                "op.a",
-                "op.b",
-                "op.c"
+                "aktools.stock_hk_hist",
+                "aktools.tool_trade_date_hist_sina"
               ],
               "selected_outside_described": false,
               "binding_ok": true
@@ -192,15 +209,18 @@
         "detail": {
           "funnels": [
             {
-              "primary": "op.a",
-              "fallback": "op.b",
+              "primary": "aktools.stock_financial_hk_analysis_indicator_em",
+              "fallback": "aktools.stock_financial_hk_report_em",
               "described": [
-                "op.a",
-                "op.b",
-                "op.c"
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_hk_company_profile_em",
+                "aktools.stock_financial_hk_report_em"
               ],
               "selected_outside_described": false,
               "binding_ok": true
+            },
+            {
+              "disclosure_composite": true
             }
           ]
         },
@@ -212,12 +232,12 @@
         "detail": {
           "funnels": [
             {
-              "primary": "op.a",
-              "fallback": "op.b",
+              "primary": "aktools.stock_hk_hist",
+              "fallback": "aktools.stock_hk_daily",
               "described": [
-                "op.a",
-                "op.b",
-                "op.c"
+                "aktools.stock_hk_hist",
+                "aktools.stock_hk_daily",
+                "aktools.stock_hk_index_daily_em"
               ],
               "selected_outside_described": false,
               "binding_ok": true
@@ -232,15 +252,7 @@
         "detail": {
           "funnels": [
             {
-              "primary": "op.a",
-              "fallback": "op.b",
-              "described": [
-                "op.a",
-                "op.b",
-                "op.c"
-              ],
-              "selected_outside_described": false,
-              "binding_ok": true
+              "disclosure_composite": true
             }
           ]
         },
@@ -260,13 +272,24 @@
         "detail": {
           "funnels": [
             {
-              "operation_id": "op.outside",
+              "operation_id": "aktools.stock_financial_hk_report_em",
               "argument_keys": [
-                "stock_code"
+                "indicator",
+                "max_rows",
+                "offset",
+                "stock",
+                "symbol"
               ],
               "grounding": {
-                "stock_code": "0700"
+                "stock_code": "00700",
+                "from_date": null,
+                "to_date": null,
+                "title_keyword": "entity",
+                "code_available": true
               }
+            },
+            {
+              "disclosure_composite": true
             }
           ]
         },
@@ -278,12 +301,20 @@
         "detail": {
           "funnels": [
             {
-              "operation_id": "op.a",
+              "operation_id": "aktools.stock_financial_hk_report_em",
               "argument_keys": [
-                "stock_code"
+                "indicator",
+                "max_rows",
+                "offset",
+                "stock",
+                "symbol"
               ],
               "grounding": {
-                "stock_code": "0700"
+                "stock_code": "00005",
+                "from_date": null,
+                "to_date": null,
+                "title_keyword": "entity",
+                "code_available": true
               }
             }
           ]
@@ -296,13 +327,24 @@
         "detail": {
           "funnels": [
             {
-              "operation_id": "op.a",
+              "operation_id": "aktools.stock_financial_hk_report_em",
               "argument_keys": [
-                "stock_code"
+                "indicator",
+                "max_rows",
+                "offset",
+                "stock",
+                "symbol"
               ],
               "grounding": {
-                "stock_code": "0700"
+                "stock_code": "09988",
+                "from_date": null,
+                "to_date": null,
+                "title_keyword": "entity",
+                "code_available": true
               }
+            },
+            {
+              "disclosure_composite": true
             }
           ]
         },
@@ -314,12 +356,20 @@
         "detail": {
           "funnels": [
             {
-              "operation_id": "op.a",
+              "operation_id": "aktools.stock_financial_hk_report_em",
               "argument_keys": [
-                "stock_code"
+                "indicator",
+                "max_rows",
+                "offset",
+                "stock",
+                "symbol"
               ],
               "grounding": {
-                "stock_code": "0700"
+                "stock_code": "09988",
+                "from_date": null,
+                "to_date": null,
+                "title_keyword": "entity",
+                "code_available": true
               }
             }
           ]
@@ -332,13 +382,7 @@
         "detail": {
           "funnels": [
             {
-              "operation_id": "op.a",
-              "argument_keys": [
-                "stock_code"
-              ],
-              "grounding": {
-                "stock_code": "0700"
-              }
+              "disclosure_composite": true
             }
           ]
         },
@@ -350,12 +394,36 @@
         "detail": {
           "funnels": [
             {
-              "operation_id": "op.a",
+              "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
               "argument_keys": [
-                "stock_code"
+                "indicator",
+                "max_rows",
+                "offset",
+                "symbol"
               ],
               "grounding": {
-                "stock_code": "0700"
+                "stock_code": "00005",
+                "from_date": "2026-06-30",
+                "to_date": "2026-06-30",
+                "title_keyword": "). Report both; do not claim EPS caused that day",
+                "code_available": true
+              }
+            },
+            {
+              "operation_id": "aktools.stock_hk_hist",
+              "argument_keys": [
+                "adjust",
+                "end_date",
+                "period",
+                "start_date",
+                "symbol"
+              ],
+              "grounding": {
+                "stock_code": "00005",
+                "from_date": "2026-06-30",
+                "to_date": "2026-06-30",
+                "title_keyword": "). Report both; do not claim EPS caused that day",
+                "code_available": true
               }
             }
           ]
@@ -368,12 +436,34 @@
         "detail": {
           "funnels": [
             {
-              "operation_id": "op.a",
+              "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
               "argument_keys": [
-                "stock_code"
+                "indicator",
+                "max_rows",
+                "offset",
+                "symbol"
               ],
               "grounding": {
-                "stock_code": "0700"
+                "stock_code": "00005",
+                "from_date": null,
+                "to_date": null,
+                "title_keyword": "entity",
+                "code_available": true
+              }
+            },
+            {
+              "operation_id": "ah_disclosure.search_annual_report",
+              "argument_keys": [
+                "market",
+                "symbol",
+                "year"
+              ],
+              "grounding": {
+                "stock_code": "00005",
+                "from_date": null,
+                "to_date": null,
+                "title_keyword": "2025 Annual Report",
+                "code_available": true
               }
             }
           ]
@@ -386,12 +476,20 @@
         "detail": {
           "funnels": [
             {
-              "operation_id": "op.a",
+              "operation_id": "aktools.stock_financial_hk_report_em",
               "argument_keys": [
-                "stock_code"
+                "indicator",
+                "max_rows",
+                "offset",
+                "stock",
+                "symbol"
               ],
               "grounding": {
-                "stock_code": "0700"
+                "stock_code": "09988",
+                "from_date": "2026-07-01",
+                "to_date": "2026-08-12",
+                "title_keyword": "entity",
+                "code_available": true
               }
             }
           ]
@@ -404,12 +502,20 @@
         "detail": {
           "funnels": [
             {
-              "operation_id": "op.a",
+              "operation_id": "aktools.stock_hk_hist",
               "argument_keys": [
-                "stock_code"
+                "adjust",
+                "end_date",
+                "period",
+                "start_date",
+                "symbol"
               ],
               "grounding": {
-                "stock_code": "0700"
+                "stock_code": "00700",
+                "from_date": null,
+                "to_date": null,
+                "title_keyword": "s latest / current / today",
+                "code_available": true
               }
             }
           ]
@@ -422,13 +528,23 @@
         "detail": {
           "funnels": [
             {
-              "operation_id": "op.a",
+              "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
               "argument_keys": [
-                "stock_code"
+                "indicator",
+                "max_rows",
+                "offset",
+                "symbol"
               ],
               "grounding": {
-                "stock_code": "0700"
+                "stock_code": "09988",
+                "from_date": null,
+                "to_date": null,
+                "title_keyword": "entity",
+                "code_available": true
               }
+            },
+            {
+              "disclosure_composite": true
             }
           ]
         },
@@ -440,12 +556,20 @@
         "detail": {
           "funnels": [
             {
-              "operation_id": "op.a",
+              "operation_id": "aktools.stock_hk_hist",
               "argument_keys": [
-                "stock_code"
+                "adjust",
+                "end_date",
+                "period",
+                "start_date",
+                "symbol"
               ],
               "grounding": {
-                "stock_code": "0700"
+                "stock_code": "00700",
+                "from_date": "2026-07-31",
+                "to_date": "2026-07-31",
+                "title_keyword": "entity",
+                "code_available": true
               }
             }
           ]
@@ -458,13 +582,7 @@
         "detail": {
           "funnels": [
             {
-              "operation_id": "op.a",
-              "argument_keys": [
-                "stock_code"
-              ],
-              "grounding": {
-                "stock_code": "0700"
-              }
+              "disclosure_composite": true
             }
           ]
         },

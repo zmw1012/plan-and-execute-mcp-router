@@ -93,6 +93,12 @@ _ROW_CODE_KEYS = (
 _ROW_NAME_KEYS = ("company_name", "SECURITY_NAME_ABBR", "name", "entity_name")
 
 
+def _canonical_row_issuer_code(raw: Any) -> Optional[str]:
+    from hk_equity_mcp.pe_fin_lite.issuer_code import canonicalize_hk_issuer_code
+
+    return canonicalize_hk_issuer_code(raw)
+
+
 def _collect_from_rows(rows: Any) -> Dict[str, Any]:
     """Lift common identity fields from the first non-empty row into the pool."""
     out: Dict[str, Any] = {}
@@ -103,7 +109,14 @@ def _collect_from_rows(rows: Any) -> Dict[str, Any]:
             continue
         for key in _ROW_CODE_KEYS:
             if key not in out and row.get(key) not in (None, ""):
-                out[key] = row.get(key)
+                # Never promote statement labels (e.g. 利润表) via symbol→issuer alias.
+                if key in {"symbol", "code", "issuer_code", "SECURITY_CODE", "SECUCODE", "stock_code", "hk_code"}:
+                    canon = _canonical_row_issuer_code(row.get(key))
+                    if canon is None:
+                        continue
+                    out[key] = canon
+                else:
+                    out[key] = row.get(key)
         for key in _ROW_NAME_KEYS:
             if key not in out and row.get(key) not in (None, ""):
                 out[key] = row.get(key)
@@ -159,8 +172,32 @@ def _resolve_required(
                 break
         if found is None:
             missing.append(str(req))
-        else:
-            values[str(req)] = found
+            continue
+        if str(req) == "issuer_code":
+            canon = _canonical_row_issuer_code(found)
+            if canon is None:
+                # Keep scanning remaining synonyms for a real HK code.
+                found = None
+                for syn in synonyms:
+                    candidates = []
+                    if syn in pool and pool[syn] not in (None, ""):
+                        candidates.append(pool[syn])
+                    for pk, pv in pool.items():
+                        if str(pk).lower() == str(syn).lower() and pv not in (None, ""):
+                            candidates.append(pv)
+                    for cand in candidates:
+                        canon = _canonical_row_issuer_code(cand)
+                        if canon is not None:
+                            found = canon
+                            break
+                    if found is not None:
+                        break
+                if found is None:
+                    missing.append(str(req))
+                    continue
+            else:
+                found = canon
+        values[str(req)] = found
     return values, missing
 
 

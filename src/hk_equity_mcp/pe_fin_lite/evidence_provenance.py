@@ -181,23 +181,30 @@ def grounded_context_from_arguments(
     g = question_grounding or {}
     out: Dict[str, Dict[str, Any]] = {}
 
-    symbol = (
-        args.get("symbol")
-        or args.get("stock")
-        or args.get("stock_code")
-        or args.get("code")
-        or g.get("stock_code")
-    )
-    if symbol not in (None, ""):
-        # Normalize digit codes when unambiguous.
-        text = str(symbol).strip()
-        digits = re.sub(r"[^\d]", "", text)
-        code = digits.zfill(5) if digits and len(digits) <= 5 else text
+    from hk_equity_mcp.pe_fin_lite.issuer_code import canonicalize_hk_issuer_code
+
+    # Try candidates independently — do NOT short-circuit on statement labels
+    # in `symbol` (e.g. report_em uses symbol="利润表" while stock="00005").
+    code = None
+    code_ref = None
+    for ref, candidate in (
+        ("stock", args.get("stock")),
+        ("stock_code", args.get("stock_code")),
+        ("code", args.get("code")),
+        ("symbol", args.get("symbol")),
+        ("question.stock_code", g.get("stock_code")),
+    ):
+        canon = canonicalize_hk_issuer_code(candidate)
+        if canon is not None:
+            code = canon
+            code_ref = ref
+            break
+    if code is not None:
         out["issuer_code"] = make_field_provenance(
             value=code,
             provenance_class="grounded_input",
             source="validated_argument_or_question",
-            ref="symbol/stock_code",
+            ref=code_ref or "stock_code",
         )
 
     if "adjust" in args or "adjustment" in args or "adjustment" in scope:
@@ -235,12 +242,22 @@ def observed_field_map(
     source: str = "mcp",
     ref: Optional[str] = None,
 ) -> Dict[str, Dict[str, Any]]:
+    from hk_equity_mcp.pe_fin_lite.issuer_code import canonicalize_hk_issuer_code
+
     out: Dict[str, Dict[str, Any]] = {}
     for key, value in (values or {}).items():
         if value is None:
             continue
-        out[str(key)] = make_field_provenance(
-            value=value,
+        k = str(key)
+        v = value
+        if k == "issuer_code":
+            canon = canonicalize_hk_issuer_code(value)
+            if canon is None:
+                # Drop non-code pollutants (statement names, free text).
+                continue
+            v = canon
+        out[k] = make_field_provenance(
+            value=v,
             provenance_class="observed",
             source=source,
             ref=ref,
@@ -284,7 +301,41 @@ def merge_field_maps(
                 continue
             prev = merged[key].get("value")
             cur = entry.get("value")
-            if prev == cur:
+            equivalent = prev == cur
+            if key == "issuer_code":
+                from hk_equity_mcp.pe_fin_lite.issuer_code import (
+                    canonicalize_hk_issuer_code,
+                    issuer_codes_equivalent,
+                )
+
+                # Drop non-canonical existing pollution when incoming is a real code.
+                prev_c = canonicalize_hk_issuer_code(prev)
+                cur_c = canonicalize_hk_issuer_code(cur)
+                if prev_c is None and cur_c is not None:
+                    merged[key] = deepcopy(entry)
+                    merged[key]["value"] = cur_c
+                    continue
+                if cur_c is None and prev_c is not None:
+                    continue
+                if prev_c is None and cur_c is None:
+                    # Neither is a valid issuer_code — drop both from merge.
+                    merged.pop(key, None)
+                    continue
+                equivalent = issuer_codes_equivalent(prev, cur)
+                if equivalent:
+                    # Canonicalize stored value.
+                    preferred = deepcopy(entry)
+                    preferred["value"] = cur_c or prev_c
+                    rank = {"observed": 3, "derived": 2, "grounded_input": 1}
+                    if rank.get(str(entry.get("provenance_class")), 0) >= rank.get(
+                        str(merged[key].get("provenance_class")), 0
+                    ):
+                        merged[key] = preferred
+                    else:
+                        merged[key] = deepcopy(merged[key])
+                        merged[key]["value"] = prev_c or cur_c
+                    continue
+            if equivalent:
                 # Prefer observed > derived > grounded_input when equal value.
                 rank = {"observed": 3, "derived": 2, "grounded_input": 1}
                 if rank.get(str(entry.get("provenance_class")), 0) > rank.get(

@@ -9,16 +9,24 @@
       "status": "pass",
       "detail": {
         "predicted_status": "answered",
-        "fallback_used_count": 0,
-        "local_fallback_count": 0,
+        "fallback_used_count": 1,
+        "local_fallback_count": 1,
         "funnels": [
+          {
+            "trigger_reason": "required_outputs_missing",
+            "fallback_invoked": true,
+            "incremental_evidence": true,
+            "merge_conflicts": [],
+            "recovered": true,
+            "unavailable_or_refusal_type": null
+          },
           {
             "trigger_reason": null,
             "fallback_invoked": false,
             "incremental_evidence": false,
             "merge_conflicts": [],
             "recovered": false,
-            "unavailable_or_refusal_type": null
+            "unavailable_or_refusal_type": "unavailable"
           }
         ]
       },
@@ -28,17 +36,33 @@
       "task_id": "fin_cf_011",
       "status": "pass",
       "detail": {
-        "predicted_status": "answered",
-        "fallback_used_count": 0,
-        "local_fallback_count": 0,
+        "predicted_status": "unavailable",
+        "fallback_used_count": 1,
+        "local_fallback_count": 1,
         "funnels": [
           {
-            "trigger_reason": null,
-            "fallback_invoked": false,
-            "incremental_evidence": false,
-            "merge_conflicts": [],
+            "trigger_reason": "required_outputs_missing",
+            "fallback_invoked": true,
+            "incremental_evidence": true,
+            "merge_conflicts": [
+              {
+                "field": "issuer_code",
+                "existing": {
+                  "value": "利润表",
+                  "provenance_class": "grounded_input",
+                  "source": "validated_argument_or_question",
+                  "ref": "symbol/stock_code"
+                },
+                "incoming": {
+                  "value": "00005",
+                  "provenance_class": "grounded_input",
+                  "source": "validated_argument_or_question",
+                  "ref": "symbol/stock_code"
+                }
+              }
+            ],
             "recovered": false,
-            "unavailable_or_refusal_type": null
+            "unavailable_or_refusal_type": "unavailable"
           }
         ]
       },
@@ -48,17 +72,25 @@
       "task_id": "fin_cf_020",
       "status": "pass",
       "detail": {
-        "predicted_status": "answered",
-        "fallback_used_count": 0,
-        "local_fallback_count": 0,
+        "predicted_status": "unavailable",
+        "fallback_used_count": 1,
+        "local_fallback_count": 1,
         "funnels": [
+          {
+            "trigger_reason": "required_outputs_missing",
+            "fallback_invoked": true,
+            "incremental_evidence": true,
+            "merge_conflicts": [],
+            "recovered": true,
+            "unavailable_or_refusal_type": null
+          },
           {
             "trigger_reason": null,
             "fallback_invoked": false,
             "incremental_evidence": false,
             "merge_conflicts": [],
             "recovered": false,
-            "unavailable_or_refusal_type": null
+            "unavailable_or_refusal_type": "unavailable"
           }
         ]
       },
@@ -68,17 +100,33 @@
       "task_id": "fin_cf_023",
       "status": "pass",
       "detail": {
-        "predicted_status": "answered",
-        "fallback_used_count": 0,
-        "local_fallback_count": 0,
+        "predicted_status": "unavailable",
+        "fallback_used_count": 1,
+        "local_fallback_count": 1,
         "funnels": [
           {
-            "trigger_reason": null,
-            "fallback_invoked": false,
-            "incremental_evidence": false,
-            "merge_conflicts": [],
+            "trigger_reason": "required_outputs_missing",
+            "fallback_invoked": true,
+            "incremental_evidence": true,
+            "merge_conflicts": [
+              {
+                "field": "issuer_code",
+                "existing": {
+                  "value": "利润表",
+                  "provenance_class": "grounded_input",
+                  "source": "validated_argument_or_question",
+                  "ref": "symbol/stock_code"
+                },
+                "incoming": {
+                  "value": "09988",
+                  "provenance_class": "grounded_input",
+                  "source": "validated_argument_or_question",
+                  "ref": "symbol/stock_code"
+                }
+              }
+            ],
             "recovered": false,
-            "unavailable_or_refusal_type": null
+            "unavailable_or_refusal_type": "unavailable"
           }
         ]
       },
@@ -88,7 +136,7 @@
       "task_id": "fin_ht_016",
       "status": "pass",
       "detail": {
-        "predicted_status": "answered",
+        "predicted_status": "unavailable",
         "fallback_used_count": 0,
         "local_fallback_count": 0,
         "funnels": [
@@ -98,7 +146,7 @@
             "incremental_evidence": false,
             "merge_conflicts": [],
             "recovered": false,
-            "unavailable_or_refusal_type": null
+            "unavailable_or_refusal_type": "unavailable"
           }
         ]
       },
@@ -119,6 +167,14 @@
             "merge_conflicts": [],
             "recovered": false,
             "unavailable_or_refusal_type": null
+          },
+          {
+            "trigger_reason": null,
+            "fallback_invoked": false,
+            "incremental_evidence": false,
+            "merge_conflicts": [],
+            "recovered": false,
+            "unavailable_or_refusal_type": null
           }
         ]
       },
@@ -128,9 +184,9 @@
       "task_id": "xd_ht_007",
       "status": "pass",
       "detail": {
-        "predicted_status": "answered",
-        "fallback_used_count": 0,
-        "local_fallback_count": 0,
+        "predicted_status": "unavailable",
+        "fallback_used_count": 1,
+        "local_fallback_count": 1,
         "funnels": [
           {
             "trigger_reason": null,
@@ -139,6 +195,14 @@
             "merge_conflicts": [],
             "recovered": false,
             "unavailable_or_refusal_type": null
+          },
+          {
+            "trigger_reason": "required_outputs_missing",
+            "fallback_invoked": true,
+            "incremental_evidence": true,
+            "merge_conflicts": [],
+            "recovered": false,
+            "unavailable_or_refusal_type": "unavailable"
           }
         ]
       },
@@ -148,17 +212,33 @@
       "task_id": "xd_ht_014",
       "status": "pass",
       "detail": {
-        "predicted_status": "answered",
-        "fallback_used_count": 0,
-        "local_fallback_count": 0,
+        "predicted_status": "unavailable",
+        "fallback_used_count": 1,
+        "local_fallback_count": 1,
         "funnels": [
           {
-            "trigger_reason": null,
-            "fallback_invoked": false,
-            "incremental_evidence": false,
-            "merge_conflicts": [],
+            "trigger_reason": "required_outputs_missing",
+            "fallback_invoked": true,
+            "incremental_evidence": true,
+            "merge_conflicts": [
+              {
+                "field": "issuer_code",
+                "existing": {
+                  "value": "利润表",
+                  "provenance_class": "grounded_input",
+                  "source": "validated_argument_or_question",
+                  "ref": "symbol/stock_code"
+                },
+                "incoming": {
+                  "value": "09988",
+                  "provenance_class": "grounded_input",
+                  "source": "validated_argument_or_question",
+                  "ref": "symbol/stock_code"
+                }
+              }
+            ],
             "recovered": false,
-            "unavailable_or_refusal_type": null
+            "unavailable_or_refusal_type": "unavailable"
           }
         ]
       },
@@ -168,7 +248,7 @@
       "task_id": "mkt_dev_014",
       "status": "pass",
       "detail": {
-        "predicted_status": "unavailable",
+        "predicted_status": "answered",
         "fallback_used_count": 0,
         "local_fallback_count": 0,
         "funnels": [
@@ -188,7 +268,7 @@
       "task_id": "fin_cf_024",
       "status": "pass",
       "detail": {
-        "predicted_status": "answered",
+        "predicted_status": "unavailable",
         "fallback_used_count": 0,
         "local_fallback_count": 0,
         "funnels": [
@@ -199,6 +279,14 @@
             "merge_conflicts": [],
             "recovered": false,
             "unavailable_or_refusal_type": null
+          },
+          {
+            "trigger_reason": null,
+            "fallback_invoked": false,
+            "incremental_evidence": false,
+            "merge_conflicts": [],
+            "recovered": false,
+            "unavailable_or_refusal_type": "unavailable"
           }
         ]
       },

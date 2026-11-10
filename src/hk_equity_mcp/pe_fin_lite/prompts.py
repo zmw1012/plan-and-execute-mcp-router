@@ -16,6 +16,10 @@ from hk_equity_mcp.pe_fin_lite.output_vocabulary import (
     SCOPE_CONSTRAINT_KEYS,
     SCOPE_CONTRACT_VERSION,
 )
+from hk_equity_mcp.pe_fin_lite.calculator import (
+    COMPUTE_FUNCTION_CONTRACT_VERSION,
+    SAFE_FUNCTION_NAMES,
+)
 from hk_equity_mcp.pe_fin_lite.schemas import (
     ADJUSTMENT_MAX_LENGTH,
     COMPUTE_EXPRESSION_MAX_LENGTH,
@@ -77,6 +81,10 @@ Compact plan JSON rules (protocol v3):
   Example: {{"entity":{{"name":"Issuer","code":"00000"}},"period":"FY2025","metric_basis":"reported","currency":"HKD","adjustment":""}}
 - Omit null optional fields. Do not emit explanations, CoT, or selection reasons.
 - Compute steps need compute_spec (expression maxLength={compute_expression_max_length}) and depends_on prior evidence.
+  Allowed operators: + - * / ** % and parentheses. Allowed functions ONLY: abs, min, max, round_half_up.
+  Operand names in expression must match compute_spec.operand_refs keys (verified evidence only).
+  No attribute access, imports, or other function calls.
+- For latest/current/today market requests without an explicit historical date: plan for unavailable/refusal under dataset cutoff — do not treat an earlier session as current.
 - Disclosure retrieve may set workflow=retrieve_official_disclosure_evidence (domain=disclosure).
 - Max {max_plan_steps} steps. JSON must be complete and closed.
 - Planner output budget: max_tokens={planner_max_tokens} for this stage only.
@@ -121,7 +129,14 @@ Step:
 Verified evidence store:
 {evidence_json}
 
-Return JSON with keys: summary, claims (optional), gaps (optional)."""
+Return ONE complete closed JSON object only (no markdown fences, no trailing text).
+Required keys:
+- summary: non-empty string
+Optional keys:
+- claims: array (use [] if none)
+- gaps: array (use [] if none)
+Null/empty/truncated output is invalid; if evidence is insufficient, still return valid JSON with gaps listing what is missing.
+Do not invent numbers not present in verified evidence."""
 
 PE_FIN_LITE_FINAL_USER_TEMPLATE = """Produce the final answer under the shared contract.
 
@@ -169,6 +184,7 @@ def pe_fin_lite_prompt_hash() -> str:
             f"planner_max_tokens={PLANNER_MAX_TOKENS}",
             f"scope={SCOPE_CONTRACT_VERSION}",
             f"vocab={CANONICAL_OUTPUT_VOCABULARY_VERSION}",
+            f"compute_fns={COMPUTE_FUNCTION_CONTRACT_VERSION}:{','.join(sorted(SAFE_FUNCTION_NAMES))}",
             ",".join(CANONICAL_OUTPUT_FIELDS),
             ",".join(SCOPE_CONSTRAINT_KEYS),
             _COMPACT_PLAN_EXAMPLE,

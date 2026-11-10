@@ -364,37 +364,44 @@ class PeFinLiteAgent:
                     )
                     total_usage = _merge_usage(total_usage, out.get("usage") or {})
                     result = out["step_result"]
+                    # Reason parse failure does not block dependents of verified evidence,
+                    # but stage_outcome is fail when reason_parse_failed.
                     completed_ok.add(sid)
-                    step_state[sid] = "completed"
+                    step_state[sid] = str(result.get("status") or "completed")
                     step_statuses.append(
                         {
                             "id": sid,
                             "type": "reason",
                             "status": result.get("status"),
-                            "execution_ok": True,
+                            "execution_ok": bool(result.get("execution_ok")),
+                            "failure_reason": result.get("failure_reason"),
+                            "reason_parse_failed": bool(
+                                out.get("reason_parse_failed")
+                                or result.get("reason_parse_failed")
+                            ),
+                            "runtime_recovered": bool(
+                                out.get("runtime_recovered")
+                                or result.get("runtime_recovered")
+                            ),
                         }
                     )
-                    reason_payload = result.get("values") or result.get("reason") or {}
+                    artifact = out.get("reason_artifact") or {}
                     trace.append(
                         {
                             "stage": "reason",
                             "step_id": sid,
-                            "status": "completed",
+                            "status": result.get("status"),
                             "passive": {
-                                "summary_present": bool(
-                                    (reason_payload or {}).get("summary")
-                                    if isinstance(reason_payload, dict)
-                                    else reason_payload
+                                "summary_present": bool(artifact.get("summary")),
+                                "unsupported_claim": False,
+                                "gaps": artifact.get("gaps"),
+                                "reason_parse_failed": bool(
+                                    out.get("reason_parse_failed")
                                 ),
-                                "unsupported_claim": bool(
-                                    isinstance(reason_payload, dict)
-                                    and reason_payload.get("unsupported_claim")
+                                "runtime_recovered": bool(
+                                    out.get("runtime_recovered")
                                 ),
-                                "gaps": (
-                                    (reason_payload or {}).get("gaps")
-                                    if isinstance(reason_payload, dict)
-                                    else None
-                                ),
+                                "repair_count": int(out.get("repair_count") or 0),
                             },
                         }
                     )
@@ -412,6 +419,37 @@ class PeFinLiteAgent:
 
             # Final synthesizer (1 + optional 1 repair). Skipped on structured planner failure.
             if not skip_execution:
+                from hk_equity_mcp.pe_fin_lite.temporal_policy import (
+                    assess_latest_current_refusal,
+                )
+
+                temporal = assess_latest_current_refusal(
+                    question=question,
+                    evidence_store=store.to_dict(),
+                )
+                if temporal and temporal.get("should_refuse"):
+                    final_obj = {
+                        "status": "unavailable",
+                        "final_answer": "",
+                        "reasoning_brief": (
+                            "Question requests latest/current/today, but the "
+                            "benchmark temporal cutoff forbids silently "
+                            "substituting an earlier historical quote."
+                        ),
+                        "refusal_reason": temporal.get("reason"),
+                    }
+                    status = "partial"
+                    stopping_reason = stopping_reason or str(temporal.get("reason"))
+                    error_type = error_type or "temporal_latest_current_unsatisfied"
+                    trace.append(
+                        {
+                            "stage": "temporal_policy",
+                            "status": "unavailable",
+                            "detail": temporal,
+                        }
+                    )
+
+            if not skip_execution and final_obj is None:
                 missing_notes = [
                     f"{m.get('step_id')}:{m.get('failure_reason') or m.get('missing_outputs')}"
                     for m in store.missing

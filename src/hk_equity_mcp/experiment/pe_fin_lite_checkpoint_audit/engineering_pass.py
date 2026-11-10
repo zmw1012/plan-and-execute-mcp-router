@@ -125,21 +125,35 @@ def funnel_counts(per_task: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     from collections import Counter
 
     by_cp: Dict[str, Counter] = {}
+    by_stage: Dict[str, Counter] = {}
+    by_contract: Dict[str, Counter] = {}
     for t in per_task:
         for c in t.get("checkpoint_list") or []:
             cid = c["checkpoint"]
             by_cp.setdefault(cid, Counter())
             by_cp[cid][c["status"]] += 1
+            by_stage.setdefault(cid, Counter())
+            by_stage[cid][c.get("stage_outcome_status") or c["status"]] += 1
+            by_contract.setdefault(cid, Counter())
+            by_contract[cid][c.get("contract_status") or c["status"]] += 1
     return {
         cid: {
             "pass": int(cnt.get("pass", 0)),
             "fail": int(cnt.get("fail", 0)),
             "N/A": int(cnt.get("N/A", 0)),
             "unknown": int(cnt.get("unknown", 0)),
+            "not_evaluated": int(cnt.get("not_evaluated", 0)),
             "pass_rate_excluding_na": (
                 float(cnt.get("pass", 0))
-                / max(1, int(cnt.get("pass", 0)) + int(cnt.get("fail", 0)) + int(cnt.get("unknown", 0)))
+                / max(
+                    1,
+                    int(cnt.get("pass", 0))
+                    + int(cnt.get("fail", 0))
+                    + int(cnt.get("unknown", 0)),
+                )
             ),
+            "contract_status_counts": dict(by_contract.get(cid) or {}),
+            "stage_outcome_status_counts": dict(by_stage.get(cid) or {}),
         }
         for cid, cnt in by_cp.items()
     }

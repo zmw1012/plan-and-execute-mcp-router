@@ -1,7 +1,8 @@
 {
   "checkpoint": "C11_compute",
   "counts": {
-    "N/A": 11,
+    "N/A": 9,
+    "pass": 2,
     "fail": 1
   },
   "tasks": [
@@ -31,31 +32,37 @@
     },
     {
       "task_id": "fin_cf_023",
-      "status": "fail",
+      "status": "pass",
       "detail": {
         "items": [
           {
             "id": "s2",
             "type": "compute",
-            "status": "failed",
+            "status": "skipped_due_to_dependency",
             "execution_ok": false,
-            "failure_reason": "missing_operand"
-          },
-          {
-            "record": {
-              "error": "missing_operand",
-              "expression": "(a-b)/b"
-            }
+            "missing_outputs": [],
+            "failure_reason": "depends_on_failed:['s1']"
           }
-        ]
+        ],
+        "classification": "N/A_upstream_blocked"
       },
-      "primary_blocking": true
+      "primary_blocking": false
     },
     {
       "task_id": "fin_ht_016",
-      "status": "N/A",
+      "status": "pass",
       "detail": {
-        "applicable": false
+        "items": [
+          {
+            "id": "s3",
+            "type": "compute",
+            "status": "skipped_due_to_dependency",
+            "execution_ok": false,
+            "missing_outputs": [],
+            "failure_reason": "depends_on_failed:['s1', 's2']"
+          }
+        ],
+        "classification": "N/A_upstream_blocked"
       },
       "primary_blocking": false
     },
@@ -101,11 +108,20 @@
     },
     {
       "task_id": "mkt_dev_001",
-      "status": "N/A",
+      "status": "fail",
       "detail": {
-        "applicable": false
+        "items": [
+          {
+            "id": "s2",
+            "type": "compute",
+            "status": "failed",
+            "execution_ok": false,
+            "failure_reason": "disallowed expression construct: Call"
+          }
+        ],
+        "classification": "direct_compute_failure"
       },
-      "primary_blocking": false
+      "primary_blocking": true
     },
     {
       "task_id": "news_ht_004",

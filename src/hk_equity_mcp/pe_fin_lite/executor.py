@@ -77,6 +77,7 @@ def execute_compute_step(
             spec=spec,
             error=f"skipped_due_to_dependency:missing_operands:{missing}",
         )
+        store.add_compute_record(record)
         return {
             "step_result": make_step_result(
                 status="skipped_due_to_dependency",
@@ -101,6 +102,7 @@ def execute_compute_step(
         }
     except CalculatorError as exc:
         record = compute_record(step_id=str(step["id"]), spec=spec, error=str(exc))
+        store.add_compute_record(record)
         return {
             "step_result": make_step_result(
                 status="failed",
@@ -120,25 +122,85 @@ def execute_reason_step(
     temperature: float = 0.0,
     max_tokens: int = 1024,
 ) -> Dict[str, Any]:
+    """Reason with at most one JSON repair; verified-evidence fallback on second fail.
+
+    Parse failure is recorded as reason_parse_failed. Runtime may still recover
+    via verified-evidence fallback (runtime_recovered=true) without counting as
+    reason-stage pass.
+    """
+    from hk_equity_mcp.pe_fin_lite.schemas import format_repair_user_message
+
     evidence = store.compact_for_prompt()
     user = render_reason_user(question=question, step=step, evidence=evidence)
-    completion = llm.complete(
-        [
-            {"role": "system", "content": PE_FIN_LITE_SYSTEM_PROMPT},
-            {"role": "user", "content": user},
-        ],
-        temperature=temperature,
-        max_tokens=max_tokens,
-        stage="reason",
-    )
-    content = completion.get("content")
-    parsed = parse_and_validate(str(content or ""), "reason")
-    payload = parsed[0]
-    if payload is None:
-        # Soft fallback: keep a short deterministic note without inventing facts.
+    messages = [
+        {"role": "system", "content": PE_FIN_LITE_SYSTEM_PROMPT},
+        {"role": "user", "content": user},
+    ]
+    usage: Dict[str, Any] = {}
+    repair_count = 0
+    reason_parse_failed = False
+    runtime_recovered = False
+    content = None
+    try:
+        completion = llm.complete(
+            messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stage="reason",
+        )
+        usage = dict(completion.get("usage") or {})
+        content = completion.get("content")
+        parsed = parse_and_validate(
+            str(content) if content is not None else "", "reason"
+        )
+        payload = parsed[0]
+        if payload is None:
+            reason_parse_failed = True
+            repair_msg = format_repair_user_message(
+                "reason",
+                parsed[2] or "invalid reason JSON",
+                previous_content=str(content or ""),
+            )
+            repair = llm.complete(
+                messages
+                + [
+                    {"role": "assistant", "content": str(content or "")},
+                    {"role": "user", "content": repair_msg},
+                ],
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stage="reason_repair",
+            )
+            repair_count = 1
+            for key, val in (repair.get("usage") or {}).items():
+                if isinstance(val, (int, float)) and isinstance(usage.get(key), (int, float)):
+                    usage[key] = usage[key] + val
+                else:
+                    usage[key] = val
+            content = repair.get("content")
+            parsed = parse_and_validate(
+                str(content) if content is not None else "", "reason"
+            )
+            payload = parsed[0]
+        if payload is None:
+            reason_parse_failed = True
+            runtime_recovered = True
+            payload = {
+                "summary": (
+                    "Reason step could not parse model output; "
+                    "relying on verified evidence only."
+                ),
+                "gaps": ["reason_parse_failed"],
+                "claims": [],
+            }
+    except Exception as exc:  # noqa: BLE001 — budget/network isolation
+        reason_parse_failed = True
+        runtime_recovered = True
         payload = {
-            "summary": "Reason step could not parse model output; relying on verified evidence only.",
-            "gaps": ["reason_parse_failed"],
+            "summary": (
+                "Reason step unavailable; relying on verified evidence only."
+            ),
+            "gaps": [f"reason_runtime_error:{type(exc).__name__}"],
             "claims": [],
         }
     artifact = {
@@ -146,17 +208,31 @@ def execute_reason_step(
         "summary": payload.get("summary"),
         "claims": payload.get("claims") or [],
         "gaps": payload.get("gaps") or [],
+        "reason_parse_failed": reason_parse_failed,
+        "runtime_recovered": runtime_recovered,
+        "repair_count": repair_count,
     }
     store.add_reason_artifact(artifact)
+    # Stage outcome fails on parse failure even if runtime recovered.
+    stage_ok = not reason_parse_failed
     return {
         "step_result": make_step_result(
-            execution_ok=True,
+            execution_ok=stage_ok,
             values={"reason_summary": artifact["summary"]},
             provenance={"source": "reason"},
-            status="completed",
+            status="completed" if stage_ok else "failed",
+            failure_reason="reason_parse_failed" if reason_parse_failed else None,
+            extra={
+                "reason_parse_failed": reason_parse_failed,
+                "runtime_recovered": runtime_recovered,
+                "repair_count": repair_count,
+            },
         ),
         "reason_artifact": artifact,
-        "usage": completion.get("usage") or {},
+        "usage": usage,
+        "reason_parse_failed": reason_parse_failed,
+        "runtime_recovered": runtime_recovered,
+        "repair_count": repair_count,
     }
 
 

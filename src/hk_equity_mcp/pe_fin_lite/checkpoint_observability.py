@@ -205,6 +205,19 @@ def enrich_retrieve_funnel_passive(
             else None,
         },
     }
+    # Preserve non-null fields already recorded on the funnel (offline audit must
+    # not wipe live-written normalize/evidence observability).
+    existing = out.get("checkpoint_passive")
+    if isinstance(existing, dict):
+        for section, payload in passive.items():
+            if section == "contract_version":
+                continue
+            prev = existing.get(section)
+            if not isinstance(prev, dict) or not isinstance(payload, dict):
+                continue
+            for key, value in payload.items():
+                if value in (None, [], {}) and prev.get(key) not in (None, [], {}):
+                    payload[key] = prev.get(key)
     out["checkpoint_passive"] = _redact_secret_keys(passive)
     out["checkpoint_trace_contract_version"] = CHECKPOINT_TRACE_CONTRACT_VERSION
     return out
