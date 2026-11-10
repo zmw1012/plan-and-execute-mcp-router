@@ -107,8 +107,10 @@ operations:
     audit_status: verified_live
     summary: HK financial statements (IS/BS/CF) from East Money via AKTools.
     description: >
-      Line-item statements for HK stocks. Use symbol like 00700 and indicator
-      利润表 / 资产负债表 / 现金流量表. Bank templates expose 净利息收入 etc.
+      Line-item statements for HK stocks. Use stock as a 5-digit HK issuer code
+      (e.g. 00700); symbol as the statement type only
+      (资产负债表|利润表|现金流量表); indicator as reporting frequency only
+      (年度|报告期). Bank templates expose 净利息收入 etc.
       HSBC absolute amounts are NOT gold versus IR USD snapshots.
     action_terms: [income, balance, cashflow, statement, report, bank, NII]
     parameters:
