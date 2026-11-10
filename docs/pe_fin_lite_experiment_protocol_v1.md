@@ -65,6 +65,47 @@ PYTHONPATH=src ../hk-equity-mcp-agent/.venv-aktools-discovery/bin/python \
 
 Do not mutate Smoke-5/D12 manifests. Optional second probe: `--ids fin_cf_003` with a separate output dir.
 
+## Future HK-155 Retrieval Audit (DO NOT RUN live this round)
+
+Offline framework entrypoint:
+
+```bash
+PYTHONPATH=src python scripts/run_pe_fin_lite_retrieval_audit.py \
+  --mock --question-level --planner-only --rank-from-planner-cache \
+  --catalog-coverage --select-formula --evaluate-frozen-formula --report-all \
+  --output-dir outputs/pe_fin_lite_retrieval_all155_v1
+```
+
+Future real question-level (paid embedding; do not run until confirmed):
+
+```bash
+PYTHONPATH=src ../hk-equity-mcp-agent/.venv-aktools-discovery/bin/python \
+  scripts/run_pe_fin_lite_retrieval_audit.py \
+  --no-mock --question-level \
+  --output-dir outputs/pe_fin_lite_retrieval_all155_v1
+```
+
+Future planner-only 155 (generation API; do not run until confirmed):
+
+```bash
+PYTHONPATH=src ../hk-equity-mcp-agent/.venv-aktools-discovery/bin/python \
+  scripts/run_pe_fin_lite_retrieval_audit.py \
+  --no-mock --planner-only \
+  --output-dir outputs/pe_fin_lite_retrieval_all155_v1
+```
+
+Future offline ranking from frozen planner cache + formula selection / reserved85 / all155:
+
+```bash
+PYTHONPATH=src ../hk-equity-mcp-agent/.venv-aktools-discovery/bin/python \
+  scripts/run_pe_fin_lite_retrieval_audit.py \
+  --no-mock --rank-from-planner-cache --select-formula \
+  --evaluate-frozen-formula --catalog-coverage --report-all \
+  --output-dir outputs/pe_fin_lite_retrieval_all155_v1
+```
+
+Results are exploratory/descriptive only. No unseen held-out claim.
+
 ## Identity locks
 
 - generation_provider=`openai_compatible`
