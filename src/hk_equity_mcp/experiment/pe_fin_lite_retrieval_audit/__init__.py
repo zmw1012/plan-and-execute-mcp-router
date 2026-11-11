@@ -22,6 +22,7 @@ RUNTIME_LEXICAL_WEIGHT = 0.12
 PLAN_FIRST_SELECTABLE_VARIANTS = ("R1", "R2", "R3", "R_runtime")
 DEFAULT_STEP_RANK_VARIANTS = ("R1", "R2", "R3", "R_runtime")
 PLANNER_ONLY_PROTOCOL_VERSION = "pe_fin_lite_planner_only_v3"
+PLANNER_FAILED_RETRY_PROTOCOL_VERSION = "pe_fin_lite_planner_failed_retry_v1"
 PLANNER_ONLY_PROTOCOL_VERSION_V1 = "pe_fin_lite_planner_only_v1"
 PLANNER_ONLY_PROTOCOL_VERSION_V2 = "pe_fin_lite_planner_only_v2"
 DEFAULT_PLANNER_V2_OUTPUT_DIR = "outputs/pe_fin_lite_retrieval_all155_planner_v2"

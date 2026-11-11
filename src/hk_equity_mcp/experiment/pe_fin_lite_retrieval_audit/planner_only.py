@@ -147,6 +147,99 @@ def _load_completed_ids(path: Path) -> Dict[str, Dict[str, Any]]:
     return out
 
 
+def run_single_live_planner_task(
+    *,
+    task: Dict[str, Any],
+    llm: Any,
+    capability_profile: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Run the frozen Planner protocol for one task (optional one repair).
+
+    Does not call Embedding / MCP / Binder / Reason / Final.
+    """
+    from hk_equity_mcp.pe_fin_lite.schemas import PLANNER_MAX_TOKENS
+
+    tid = str(task.get("task_id") or task.get("id") or "")
+    if not tid:
+        raise RuntimeError("planner task missing task_id")
+    if llm is None:
+        raise RuntimeError("live planner task requires non-None llm (fail-closed)")
+
+    t0 = time.perf_counter()
+    result = run_planner(
+        llm=llm,
+        question=str(task.get("question") or ""),
+        capability_profile=capability_profile or {},
+        limits={
+            "max_total_llm_calls_per_task": 8,
+            "max_total_mcp_invocations": 8,
+        },
+        max_tokens=int(PLANNER_MAX_TOKENS),
+    )
+    latency_ms = (time.perf_counter() - t0) * 1000.0
+    plan = result.get("plan") if result.get("ok") else None
+    retrieve_steps = extract_retrieve_steps(plan or {})
+    usage = dict(result.get("usage") or {})
+    call_obs = list(result.get("call_observability") or [])
+    sanitized_obs = []
+    for item in call_obs:
+        if not isinstance(item, dict):
+            continue
+        clean = {
+            k: v
+            for k, v in item.items()
+            if k
+            not in {
+                "api_key",
+                "authorization",
+                "reasoning_content",
+                "reasoning_text",
+                "thinking",
+                "secret",
+            }
+        }
+        sanitized_obs.append(clean)
+    row = {
+        "task_id": tid,
+        "ok": bool(result.get("ok")),
+        "mock": False,
+        "live": True,
+        "plan": plan,
+        "retrieve_steps": retrieve_steps,
+        "raw_planner_response": result.get("raw_content"),
+        "repair_raw_content": result.get("repair_raw_content"),
+        "validated_plan": plan,
+        "error": result.get("error"),
+        "error_type": result.get("error_type"),
+        "repair_count": result.get("repair_count"),
+        "usage": usage,
+        "latency_ms": latency_ms,
+        "llm_calls": int(
+            usage.get("calls")
+            or usage.get("llm_calls")
+            or (1 + int(result.get("repair_count") or 0))
+        ),
+        "tokens_in": usage.get("input_tokens") or usage.get("prompt_tokens"),
+        "tokens_out": usage.get("output_tokens") or usage.get("completion_tokens"),
+        "tokens_total": usage.get("total_tokens"),
+        "planner_max_tokens": result.get("planner_max_tokens") or int(PLANNER_MAX_TOKENS),
+        "call_observability": sanitized_obs,
+        "planner_only_protocol_version": PLANNER_ONLY_PROTOCOL_VERSION,
+        "no_embedding": True,
+        "no_mcp": True,
+        "no_binder": True,
+    }
+    _assert_no_gold_leakage(
+        {
+            "task_id": tid,
+            "plan": plan,
+            "retrieve_steps": retrieve_steps,
+            "raw": result.get("raw_content"),
+        }
+    )
+    return row
+
+
 def run_planner_only(
     *,
     root: Path,
@@ -242,80 +335,10 @@ def run_planner_only(
             continue
 
         # Live planner path — llm already validated non-None.
-        from hk_equity_mcp.pe_fin_lite.schemas import PLANNER_MAX_TOKENS
-
-        t0 = time.perf_counter()
-        result = run_planner(
+        row = run_single_live_planner_task(
+            task=task,
             llm=llm,
-            question=str(task.get("question") or ""),
             capability_profile=profile or {},
-            limits={
-                "max_total_llm_calls_per_task": 8,
-                "max_total_mcp_invocations": 8,
-            },
-            max_tokens=int(PLANNER_MAX_TOKENS),
-        )
-        latency_ms = (time.perf_counter() - t0) * 1000.0
-        plan = result.get("plan") if result.get("ok") else None
-        retrieve_steps = extract_retrieve_steps(plan or {})
-        usage = dict(result.get("usage") or {})
-        call_obs = list(result.get("call_observability") or [])
-        # Strip any accidental secret / reasoning text keys from observability.
-        sanitized_obs = []
-        for item in call_obs:
-            if not isinstance(item, dict):
-                continue
-            clean = {
-                k: v
-                for k, v in item.items()
-                if k
-                not in {
-                    "api_key",
-                    "authorization",
-                    "reasoning_content",
-                    "reasoning_text",
-                    "thinking",
-                    "secret",
-                }
-            }
-            sanitized_obs.append(clean)
-        row = {
-            "task_id": tid,
-            "ok": bool(result.get("ok")),
-            "mock": False,
-            "live": True,
-            "plan": plan,
-            "retrieve_steps": retrieve_steps,
-            "raw_planner_response": result.get("raw_content"),
-            "repair_raw_content": result.get("repair_raw_content"),
-            "validated_plan": plan,
-            "error": result.get("error"),
-            "error_type": result.get("error_type"),
-            "repair_count": result.get("repair_count"),
-            "usage": usage,
-            "latency_ms": latency_ms,
-            "llm_calls": int(
-                usage.get("calls")
-                or usage.get("llm_calls")
-                or (1 + int(result.get("repair_count") or 0))
-            ),
-            "tokens_in": usage.get("input_tokens") or usage.get("prompt_tokens"),
-            "tokens_out": usage.get("output_tokens") or usage.get("completion_tokens"),
-            "tokens_total": usage.get("total_tokens"),
-            "planner_max_tokens": result.get("planner_max_tokens") or int(PLANNER_MAX_TOKENS),
-            "call_observability": sanitized_obs,
-            "planner_only_protocol_version": PLANNER_ONLY_PROTOCOL_VERSION,
-            "no_embedding": True,
-            "no_mcp": True,
-            "no_binder": True,
-        }
-        _assert_no_gold_leakage(
-            {
-                "task_id": tid,
-                "plan": plan,
-                "retrieve_steps": retrieve_steps,
-                "raw": result.get("raw_content"),
-            }
         )
         _append_jsonl(out_path, row)
         written += 1

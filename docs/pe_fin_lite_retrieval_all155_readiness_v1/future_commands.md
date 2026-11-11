@@ -65,6 +65,46 @@ PYTHONPATH=src "$PY" scripts/run_pe_fin_lite_retrieval_audit.py \
 If `systemic_schema_or_protocol_failure=true` → stop and inspect.  
 Sparse provider empty/truncated failures → report only; do not invent Planner v4.
 
+If audit shows `ok=154` / `failed=1` (or any `ok=false` rows) and
+`systemic_schema_or_protocol_failure=false`, run the generic failed-row retry
+**before** step-query embedding. Do **not** pass `--allow-incomplete-planner-cache`
+for formal step embedding / formula lock.
+
+### 3b) Retry failed Planner rows only (generation LLM; auto-derive failed IDs)
+
+Freezes `planner_cache_attempt1/` (immutable snapshot of the incomplete cache),
+retries every `ok=false` task once with the same prompt/schema/canonicalizer /
+provider/model, and atomically promotes `planner_cache/planner_outputs.jsonl`
+only if the merge is 155/155 ok. Original attempt1 SHA remains unchanged.
+No task-id hardcode.
+
+```bash
+PYTHONPATH=src "$PY" scripts/run_pe_fin_lite_retrieval_audit.py \
+  --retry-failed-planner-cache \
+  --live \
+  --env-file "$GEN" \
+  --embedding-env-file "$EMB" \
+  --embedding-cache-dir "$CACHE" \
+  --output-dir "$OUT"
+```
+
+Then re-run step 3 (`--planner-cache-audit`). Expect:
+
+- `rows=155`, `unique_task_ids=155`, `ok=155`, `failed=0`
+- `complete_155_ok=true`
+- `formal_step_pipeline_allowed=true`
+
+Optional dry-run (no LLM; lists failed IDs + freezes/verifies snapshot):
+
+```bash
+PYTHONPATH=src "$PY" scripts/run_pe_fin_lite_retrieval_audit.py \
+  --retry-failed-planner-cache \
+  --dry-run \
+  --embedding-env-file "$EMB" \
+  --embedding-cache-dir "$CACHE" \
+  --output-dir "$OUT"
+```
+
 ## 4) Step-query embeddings live (Embedding API)
 
 ```bash

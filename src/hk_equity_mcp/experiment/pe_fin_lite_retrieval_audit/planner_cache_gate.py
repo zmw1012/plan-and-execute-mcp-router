@@ -261,6 +261,7 @@ def audit_planner_cache_zero_network(
             )
         ),
         "complete_155_ok": bool(summary["complete"]),
+        "formal_step_pipeline_allowed": bool(summary["complete"]),
     }
 
     audit_dir = out / "planner_cache_audit"

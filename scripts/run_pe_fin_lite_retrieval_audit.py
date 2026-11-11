@@ -61,6 +61,15 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Zero-network Planner-only gate/audit after --planner-only",
     )
+    p.add_argument(
+        "--retry-failed-planner-cache",
+        action="store_true",
+        help=(
+            "Live: derive ok=false task IDs from planner_cache, freeze attempt "
+            "snapshot, retry only those tasks once, atomic-promote iff 155/155 ok. "
+            "Requires --live + --env-file. No task-id hardcode."
+        ),
+    )
     p.add_argument("--catalog-coverage", action="store_true")
     p.add_argument("--select-formula", action="store_true")
     p.add_argument("--evaluate-frozen-formula", action="store_true")
@@ -141,6 +150,7 @@ def _classify_stages(args: argparse.Namespace) -> dict:
         args.embed_question_queries,
         args.embed_planner_step_queries,
         args.planner_only and args.live,
+        args.retry_failed_planner_cache and args.live,
     ]
     offline_stages = [
         args.question_level,
@@ -152,6 +162,7 @@ def _classify_stages(args: argparse.Namespace) -> dict:
         args.report_all,
         args.index_status,
         args.planner_only and (args.mock or args.dry_run),
+        args.retry_failed_planner_cache and args.dry_run,
     ]
     any_stage = any(
         [
@@ -163,6 +174,7 @@ def _classify_stages(args: argparse.Namespace) -> dict:
             args.planner_only,
             args.rank_from_planner_cache,
             args.planner_cache_audit,
+            args.retry_failed_planner_cache,
             args.catalog_coverage,
             args.select_formula,
             args.evaluate_frozen_formula,
@@ -205,6 +217,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.question_level,
                 args.rank_from_planner_cache,
                 args.planner_cache_audit,
+                args.retry_failed_planner_cache,
                 args.catalog_coverage,
                 args.select_formula,
                 args.evaluate_frozen_formula,
@@ -214,6 +227,42 @@ def main(argv: list[str] | None = None) -> int:
                 raise LivePathError(
                     "--planner-diagnostic10 only supports --planner-only "
                     "(no ranking / embeddings / formula / report)"
+                )
+
+        if args.retry_failed_planner_cache:
+            other = [
+                args.index_status,
+                args.build_index_only,
+                args.embed_question_queries,
+                args.embed_planner_step_queries,
+                args.question_level,
+                args.planner_only,
+                args.rank_from_planner_cache,
+                args.planner_cache_audit,
+                args.catalog_coverage,
+                args.select_formula,
+                args.evaluate_frozen_formula,
+                args.report_all,
+            ]
+            if any(other):
+                raise LivePathError(
+                    "--retry-failed-planner-cache must run alone "
+                    "(with --live --env-file [--embedding-env-file] "
+                    "--embedding-cache-dir --output-dir)"
+                )
+            if args.mock:
+                raise LivePathError(
+                    "--retry-failed-planner-cache refuses --mock on CLI; "
+                    "use --live for real retry (unit tests cover mock path)"
+                )
+            if not args.live and not args.dry_run:
+                raise LivePathError(
+                    "--retry-failed-planner-cache requires --live "
+                    "(or --dry-run for failed-ID / snapshot check only)"
+                )
+            if args.live and not args.env_file:
+                raise LivePathError(
+                    "--retry-failed-planner-cache --live requires --env-file"
                 )
 
         # Default: offline ranking stages without mode → offline_rank;
@@ -248,6 +297,7 @@ def main(argv: list[str] | None = None) -> int:
                 or args.embed_question_queries
                 or args.embed_planner_step_queries
                 or args.planner_only
+                or args.retry_failed_planner_cache
             )
         ):
             offline_rank = True
@@ -257,6 +307,10 @@ def main(argv: list[str] | None = None) -> int:
             if args.planner_only:
                 raise LivePathError(
                     "planner-only requires --mock, --dry-run, or --live"
+                )
+            if args.retry_failed_planner_cache:
+                raise LivePathError(
+                    "retry-failed-planner-cache requires --live or --dry-run"
                 )
             raise LivePathError(
                 "Ambiguous mode. Pass --mock, --dry-run, or --live."
@@ -293,6 +347,10 @@ def main(argv: list[str] | None = None) -> int:
             results["embed_question_queries"] = runner.embed_question_queries_stage()
         if args.planner_only:
             results["planner_only"] = runner.run_planner_only()
+        if args.retry_failed_planner_cache:
+            results["retry_failed_planner_cache"] = (
+                runner.run_retry_failed_planner_cache()
+            )
         if args.embed_planner_step_queries:
             results["embed_planner_step_queries"] = (
                 runner.embed_planner_step_queries_stage()

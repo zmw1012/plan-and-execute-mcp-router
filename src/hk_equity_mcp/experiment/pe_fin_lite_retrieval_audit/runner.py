@@ -1707,6 +1707,7 @@ class RetrievalAuditRunner:
         meta["zero_network"] = True
         meta["planner_cache_audit"] = {
             "complete_155_ok": audit.get("complete_155_ok"),
+            "formal_step_pipeline_allowed": audit.get("formal_step_pipeline_allowed"),
             "ok": audit.get("ok"),
             "failed": audit.get("failed"),
             "gate_recommendation": audit.get("gate_recommendation"),
@@ -1716,6 +1717,115 @@ class RetrievalAuditRunner:
             self.output_dir / "planner_cache_audit" / "run_metadata.json", meta
         )
         return audit
+
+    def run_retry_failed_planner_cache(self) -> Dict[str, Any]:
+        """Retry only ok=false Planner rows; freeze attempt1; atomic promote if complete.
+
+        Live CLI path only. Does not call Embedding/MCP. Does not hardcode task IDs.
+        """
+        from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.planner_cache_gate import (
+            IncompletePlannerCacheError,
+        )
+        from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.planner_cache_retry import (
+            PlannerCacheRetryError,
+            retry_failed_planner_cache,
+        )
+        from hk_equity_mcp.pe_fin_lite.identity import combined_schema_hash
+        from hk_equity_mcp.pe_fin_lite.output_vocabulary import scope_contract_hash
+        from hk_equity_mcp.pe_fin_lite.plan_canonicalizer import plan_canonicalizer_hash
+        from hk_equity_mcp.pe_fin_lite.prompts import pe_fin_lite_prompt_hash
+        from hk_equity_mcp.pe_fin_lite.schemas import PLANNER_MAX_TOKENS
+
+        if self.planner_diagnostic10:
+            raise LivePathError(
+                "--retry-failed-planner-cache cannot combine with --planner-diagnostic10"
+            )
+        profile = load_capability_profile(self.root)
+
+        if self.live:
+            require_live_env_files(
+                env_file=self.env_file,
+                embedding_env_file=self.embedding_env_file,
+                need_generation=True,
+                need_embedding=False,
+            )
+            self.gen_meta = load_and_assert_generation(
+                self.root, self.env_file  # type: ignore[arg-type]
+            )
+            self._llm = build_generation_llm(json_mode=True)
+            gen_provider = EXPECTED_GENERATION_PROVIDER
+            gen_host = EXPECTED_GENERATION_HOST
+            gen_model = EXPECTED_GENERATION_MODEL
+        elif self.mock or self.dry_run:
+            self._llm = None
+            # Expected identity must match the on-disk planner_cache_identity.
+            # For dry-run against a live cache, rebuild from the frozen live identity
+            # fields below after load; mock tests supply matching offline identity.
+            gen_provider = EXPECTED_GENERATION_PROVIDER
+            gen_host = EXPECTED_GENERATION_HOST
+            gen_model = EXPECTED_GENERATION_MODEL
+        else:
+            raise LivePathError(
+                "--retry-failed-planner-cache requires --live "
+                "(or --mock/--dry-run for offline tests only)"
+            )
+
+        # Prefer on-disk identity as source of truth for generation fields when present,
+        # then assert it matches current prompt/schema/canonicalizer hashes.
+        identity_path = (
+            self.output_dir / "planner_cache" / "planner_cache_identity.json"
+        )
+        if identity_path.exists():
+            on_disk = json.loads(identity_path.read_text(encoding="utf-8"))
+            gen_provider = str(
+                on_disk.get("generation_provider") or gen_provider
+            )
+            gen_host = str(on_disk.get("generation_host") or gen_host)
+            gen_model = str(on_disk.get("generation_model") or gen_model)
+
+        expected = planner_only_cache_identity(
+            dataset_identities=self.dataset["identities"],
+            planner_prompt_hash=pe_fin_lite_prompt_hash(),
+            planner_schema_hash=combined_schema_hash(),
+            capability_profile_hash=capability_profile_hash(profile),
+            plan_canonicalizer_hash=plan_canonicalizer_hash(),
+            generation_provider=gen_provider,
+            generation_host=gen_host,
+            generation_model=gen_model,
+            max_tokens=int(PLANNER_MAX_TOKENS),
+            scope_contract_hash=scope_contract_hash(),
+        )
+        try:
+            report = retry_failed_planner_cache(
+                output_dir=self.output_dir,
+                tasks_by_id=self.tasks_by_id,
+                ordered_task_ids=self.dataset["task_ids"],
+                expected_identity=expected,
+                llm=self._llm,
+                capability_profile=profile,
+                mock=bool(self.mock),
+                dry_run=bool(self.dry_run),
+            )
+        except (PlannerCacheRetryError, IncompletePlannerCacheError) as exc:
+            raise LivePathError(str(exc)) from exc
+
+        meta = self._base_run_metadata("retry_failed_planner_cache")
+        meta["retry"] = {
+            "promoted": report.get("promoted"),
+            "failed_ids": report.get("failed_ids_derived_from_source_cache"),
+            "merged_sha256": report.get("merged_planner_outputs_sha256"),
+            "source_sha256": report.get("source_planner_cache_sha256"),
+            "combined_costs": report.get("combined_costs"),
+            "formal_step_pipeline_allowed": report.get("formal_step_pipeline_allowed"),
+            "dry_run": bool(self.dry_run),
+        }
+        if self.gen_meta:
+            meta["generation"] = public_meta_without_secrets(self.gen_meta)
+        _write_json(
+            self.output_dir / "planner_cache" / "retry_run_metadata.json",
+            public_meta_without_secrets(meta),
+        )
+        return report
 
     def run_evaluate_frozen_formula(self) -> Dict[str, Any]:
         if self.live:
