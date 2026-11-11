@@ -56,6 +56,11 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     p.add_argument("--rank-from-planner-cache", action="store_true")
+    p.add_argument(
+        "--planner-cache-audit",
+        action="store_true",
+        help="Zero-network Planner-only gate/audit after --planner-only",
+    )
     p.add_argument("--catalog-coverage", action="store_true")
     p.add_argument("--select-formula", action="store_true")
     p.add_argument("--evaluate-frozen-formula", action="store_true")
@@ -140,6 +145,7 @@ def _classify_stages(args: argparse.Namespace) -> dict:
     offline_stages = [
         args.question_level,
         args.rank_from_planner_cache,
+        args.planner_cache_audit,
         args.select_formula,
         args.evaluate_frozen_formula,
         args.catalog_coverage,
@@ -156,6 +162,7 @@ def _classify_stages(args: argparse.Namespace) -> dict:
             args.question_level,
             args.planner_only,
             args.rank_from_planner_cache,
+            args.planner_cache_audit,
             args.catalog_coverage,
             args.select_formula,
             args.evaluate_frozen_formula,
@@ -197,6 +204,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.embed_planner_step_queries,
                 args.question_level,
                 args.rank_from_planner_cache,
+                args.planner_cache_audit,
                 args.catalog_coverage,
                 args.select_formula,
                 args.evaluate_frozen_formula,
@@ -228,6 +236,7 @@ def main(argv: list[str] | None = None) -> int:
             and (
                 args.question_level
                 or args.rank_from_planner_cache
+                or args.planner_cache_audit
                 or args.select_formula
                 or args.evaluate_frozen_formula
                 or args.catalog_coverage
@@ -292,6 +301,8 @@ def main(argv: list[str] | None = None) -> int:
             results["question_level"] = runner.run_question_level()
         if args.rank_from_planner_cache:
             results["rank_from_planner_cache"] = runner.run_rank_from_planner_cache()
+        if args.planner_cache_audit:
+            results["planner_cache_audit"] = runner.run_planner_cache_audit()
         if args.catalog_coverage:
             results["catalog_coverage"] = runner.run_catalog_coverage()
         if args.select_formula:

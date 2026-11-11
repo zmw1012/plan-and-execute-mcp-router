@@ -4,6 +4,10 @@ Zero-network readiness audit only. No LLM / Embedding / MCP / HK-155 agent run.
 
 Audit commit context: method freeze `pe_fin_lite_v1.2` @ `baf572461dce670fddb71291128e82360dbef2f0`.
 
+**Formula experiment protocol:** [`retrieval_experiment_protocol_v1.md`](./retrieval_experiment_protocol_v1.md)  
+**Future Terminal commands:** [`future_commands.md`](./future_commands.md)  
+Invalid mixed-dim R0 archive: `outputs/pe_fin_lite_retrieval_all155_planner_v3/question_level_invalid_mixed_dim64_v1/` (do not promote).
+
 ## Inventory checked (read-only)
 
 | Path | Role |

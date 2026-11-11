@@ -1,180 +1,162 @@
-# Future retrieval-audit commands (DO NOT EXECUTE in this freeze round)
+# Future retrieval-audit commands (DO NOT EXECUTE in the readiness/prep round)
 
-Absolute paths:
+Verified against CLI `--help` / dry-run patterns. Use the absolute paths below (not system Python).
 
-```text
-PYTHON=/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group\ project/hk-equity-mcp-agent-pe-fin-lite/.venv/bin/python
-ROOT=/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group\ project/hk-equity-mcp-agent-pe-fin-lite
-GEN_ENV=/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group\ project/hk-equity-mcp-agent/.env.relay-v41
-EMB_ENV=/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group\ project/hk-equity-mcp-agent/.env.embedding-relay
-OUT=$ROOT/outputs/pe_fin_lite_retrieval_all155_planner_v3
-CACHE=$ROOT/.cache/pe_fin_lite_operation_embeddings_v1
+```bash
+PY="/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.venv-aktools-discovery/bin/python"
+ROOT="/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-pe-fin-lite"
+GEN="/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.env.relay-v41"
+EMB="/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent/.env.embedding-relay"
+OUT="$ROOT/outputs/pe_fin_lite_retrieval_all155_planner_v3"
+CACHE="$ROOT/.cache/pe_fin_lite_operation_embeddings_v1"
 ```
 
-Constraints for all steps:
+Constraints:
 
-- independent `OUT` (never mix with invalid planner v1 / Diagnostic-10 caches)
-- resume/checkpoint protections remain enabled by runner defaults
+- independent `OUT` (do not mix invalid planner v1 / Diagnostic-10 trees into formal selection)
+- keep INVALIDATED mixed-dim archive under `question_level_invalid_mixed_dim64_v1/`
+- reuse complete QQ 1536 cache + real catalog `ac4c109b…` (no re-embed if identities match)
 - `no_unseen_heldout_claim=True`
-- **do not** run full PE-Fin Lite agent155
-- **real offline stages MUST pass `--embedding-env-file "$EMB_ENV"`** so catalog identity uses host/model/dim (identity-only read; zero network). Never omit it and silently select host=null/64-d mock cache.
-- Current question-level R0 under `$OUT` is **INVALIDATED** (mixed 1536 query + 64 catalog). Do not use for report/formula. Re-run R0 only after identity fix; reuse QQ + real catalog caches (no re-embed required if identities match).
+- real offline stages **must** pass `--embedding-env-file "$EMB"` (identity-only; zero network)
+- do **not** run full PE-Fin Lite agent155 in this sequence
 
-Identity source for offline ranking:
-
-1. Preferred: `--embedding-env-file` → host/model from env (no API call)
-2. Fallback: complete question/step query-cache identity (`embedding_provider_host` + model + dim)
-3. Catalog index selected by full identity digest (host/model/docs/registry/catalog); must match query dim/host/model
-4. Fail-closed on mismatch / host=null / mock-hash under real backend
+Protocol: `retrieval_experiment_protocol_v1.md`
 
 ---
 
-## 1) index-status (offline)
+## 1) real index-status (zero network; emb identity)
 
 ```bash
 cd "$ROOT"
-PYTHONPATH=src "$PYTHON" scripts/run_pe_fin_lite_retrieval_audit.py \
+PYTHONPATH=src "$PY" scripts/run_pe_fin_lite_retrieval_audit.py \
   --index-status \
   --require-complete-index \
-  --embedding-env-file "$EMB_ENV" \
-  --output-dir "$OUT" \
-  --embedding-cache-dir "$CACHE"
-```
-
-Expect selected real identity `ac4c109bed0edb21fb2b837dfdbd745680b24f33efa62e13ad6bca53f174b0df`
-(host=`api.zhizengzeng.com`, model=`text-embedding-3-small`, dim=1536).
-
-Without `--embedding-env-file`, status is **inventory-only** (lists all caches; does not claim a formal selected index). Do not use inventory-only output as proof of the real index.
-
-If incomplete only then run `--build-index-only --live` with `$EMB_ENV` (not required if status is complete).
-
-## 2) embed-question-queries (Embedding API — only if not reusing)
-
-If reusing existing complete QQ vectors (1536 / host=api.zhizengzeng.com), skip re-embed. Otherwise:
-
-```bash
-PYTHONPATH=src "$PYTHON" scripts/run_pe_fin_lite_retrieval_audit.py \
-  --embed-question-queries \
-  --live \
-  --require-complete-index \
-  --env-file "$GEN_ENV" \
-  --embedding-env-file "$EMB_ENV" \
+  --embedding-env-file "$EMB" \
   --embedding-cache-dir "$CACHE" \
   --output-dir "$OUT"
 ```
 
-## 3) planner-only all155 v3 (Generation API — required)
+Expect selected identity `ac4c109bed0edb21fb2b837dfdbd745680b24f33efa62e13ad6bca53f174b0df`
+(host=`api.zhizengzeng.com`, model=`text-embedding-3-small`, dim=1536).
+
+## 2) Planner-only all155 v3 live (generation LLM)
 
 ```bash
-PYTHONPATH=src "$PYTHON" scripts/run_pe_fin_lite_retrieval_audit.py \
+PYTHONPATH=src "$PY" scripts/run_pe_fin_lite_retrieval_audit.py \
   --planner-only \
   --live \
   --require-complete-index \
-  --env-file "$GEN_ENV" \
-  --embedding-env-file "$EMB_ENV" \
+  --env-file "$GEN" \
+  --embedding-env-file "$EMB" \
   --embedding-cache-dir "$CACHE" \
   --output-dir "$OUT"
 ```
 
-Must produce 155 unique rows under `planner_only_v3` identity.  
-Do **not** pass `--planner-diagnostic10` here.
-
-## 4) embed-planner-step-queries (Embedding API)
+## 3) zero-network Planner gate/audit
 
 ```bash
-PYTHONPATH=src "$PYTHON" scripts/run_pe_fin_lite_retrieval_audit.py \
+PYTHONPATH=src "$PY" scripts/run_pe_fin_lite_retrieval_audit.py \
+  --planner-cache-audit \
+  --embedding-env-file "$EMB" \
+  --embedding-cache-dir "$CACHE" \
+  --output-dir "$OUT"
+```
+
+If `systemic_schema_or_protocol_failure=true` → stop and inspect.  
+Sparse provider empty/truncated failures → report only; do not invent Planner v4.
+
+## 4) Step-query embeddings live (Embedding API)
+
+```bash
+PYTHONPATH=src "$PY" scripts/run_pe_fin_lite_retrieval_audit.py \
   --embed-planner-step-queries \
   --live \
   --require-complete-index \
-  --env-file "$GEN_ENV" \
-  --embedding-env-file "$EMB_ENV" \
+  --env-file "$GEN" \
+  --embedding-env-file "$EMB" \
   --embedding-cache-dir "$CACHE" \
   --output-dir "$OUT"
 ```
 
-## 5) question-level R0 offline ranking
+## 5) zero-network R0 / R1 / R2 / R3 / R_runtime ranking
+
+Question-level R0 (reuse QQ; do not pass `--live`):
 
 ```bash
-PYTHONPATH=src "$PYTHON" scripts/run_pe_fin_lite_retrieval_audit.py \
+PYTHONPATH=src "$PY" scripts/run_pe_fin_lite_retrieval_audit.py \
   --question-level \
   --require-complete-index \
-  --embedding-env-file "$EMB_ENV" \
+  --embedding-env-file "$EMB" \
   --embedding-cache-dir "$CACHE" \
   --output-dir "$OUT"
 ```
 
-Writes under a **fresh** question_level tree or after clearing INVALIDATED markers only when intentionally re-running. Catalog must be 1536-d real cache matching QQ identity. Zero network.
-
-## 6) step-level R1/R2/R3 offline ranking
+Step-level R1/R2/R3@α/R_runtime:
 
 ```bash
-PYTHONPATH=src "$PYTHON" scripts/run_pe_fin_lite_retrieval_audit.py \
+PYTHONPATH=src "$PY" scripts/run_pe_fin_lite_retrieval_audit.py \
   --rank-from-planner-cache \
   --require-complete-index \
-  --embedding-env-file "$EMB_ENV" \
+  --embedding-env-file "$EMB" \
   --embedding-cache-dir "$CACHE" \
   --output-dir "$OUT"
 ```
 
-## 7) formula selection on development70 only
+## 6–7) development70 formula selection + formal lock
 
 ```bash
-PYTHONPATH=src "$PYTHON" scripts/run_pe_fin_lite_retrieval_audit.py \
+PYTHONPATH=src "$PY" scripts/run_pe_fin_lite_retrieval_audit.py \
   --select-formula \
   --formal-lock \
   --require-complete-index \
-  --embedding-env-file "$EMB_ENV" \
+  --embedding-env-file "$EMB" \
   --embedding-cache-dir "$CACHE" \
   --output-dir "$OUT"
 ```
 
-Selection must use development-origin 70 only; no retune on reserved85.  
-Do **not** select from INVALIDATED R0 metrics.
+R0 is excluded from Plan-first selection. If R1/R2/R3 wins → `runtime_sync_required=true` (sync later; do not patch method now).
 
-## 8) freeze selected formula
-
-Produced by step 7 when formal gates pass (`formula_lock.json`).  
-Do not hand-edit lock contents.
-
-## 9) descriptive evaluation on development70 / reserved85 / all155
+## 8) reserved85 frozen evaluation
 
 ```bash
-PYTHONPATH=src "$PYTHON" scripts/run_pe_fin_lite_retrieval_audit.py \
+PYTHONPATH=src "$PY" scripts/run_pe_fin_lite_retrieval_audit.py \
   --evaluate-frozen-formula \
   --require-complete-index \
-  --embedding-env-file "$EMB_ENV" \
+  --embedding-env-file "$EMB" \
   --embedding-cache-dir "$CACHE" \
   --output-dir "$OUT"
 ```
 
-Optional combined report:
+## 9) all155 descriptive report
 
 ```bash
-PYTHONPATH=src "$PYTHON" scripts/run_pe_fin_lite_retrieval_audit.py \
+PYTHONPATH=src "$PY" scripts/run_pe_fin_lite_retrieval_audit.py \
   --report-all \
   --require-complete-index \
-  --embedding-env-file "$EMB_ENV" \
+  --embedding-env-file "$EMB" \
   --embedding-cache-dir "$CACHE" \
   --output-dir "$OUT"
 ```
 
-## 10) catalog coverage report
+## 10) catalog coverage
 
 ```bash
-PYTHONPATH=src "$PYTHON" scripts/run_pe_fin_lite_retrieval_audit.py \
+PYTHONPATH=src "$PY" scripts/run_pe_fin_lite_retrieval_audit.py \
   --catalog-coverage \
   --require-complete-index \
-  --embedding-env-file "$EMB_ENV" \
+  --embedding-env-file "$EMB" \
   --embedding-cache-dir "$CACHE" \
   --output-dir "$OUT"
 ```
 
 ---
 
-## Explicitly out of scope
+## Explicitly out of scope here
 
 ```text
-# DO NOT RUN as part of retrieval audit readiness
 # full PE-Fin Lite agent over HK-155
-# re-use INVALIDATED R0 metrics for report or formula selection
+# re-embed question queries when QQ identity already matches
+# treat INVALIDATED mixed-dim R0 as valid
+# retune alpha on reserved-85
+# modify Planner prompt/schema/method runtime in this sequence
 ```

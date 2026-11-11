@@ -16,6 +16,11 @@ HYBRID_ALPHAS = (1.0, 0.9, 0.8, 0.7)
 QUERY_CONSTRUCTION_VERSION = "pe_fin_lite_step_query_v1"
 OPERATION_DOCUMENT_VERSION = "pe_fin_lite_op_doc_v1"
 DOMAIN_FILTER_VERSION = "pe_fin_lite_domain_filter_v1"
+OUTPUT_COVERAGE_VERSION = "pe_fin_lite_required_output_coverage_v1"
+# Fixed runtime lexical weight (operation_resolver.retrieval.LEXICAL_WEIGHT). Not tuned.
+RUNTIME_LEXICAL_WEIGHT = 0.12
+PLAN_FIRST_SELECTABLE_VARIANTS = ("R1", "R2", "R3", "R_runtime")
+DEFAULT_STEP_RANK_VARIANTS = ("R1", "R2", "R3", "R_runtime")
 PLANNER_ONLY_PROTOCOL_VERSION = "pe_fin_lite_planner_only_v3"
 PLANNER_ONLY_PROTOCOL_VERSION_V1 = "pe_fin_lite_planner_only_v1"
 PLANNER_ONLY_PROTOCOL_VERSION_V2 = "pe_fin_lite_planner_only_v2"
@@ -23,7 +28,7 @@ DEFAULT_PLANNER_V2_OUTPUT_DIR = "outputs/pe_fin_lite_retrieval_all155_planner_v2
 DEFAULT_PLANNER_DIAGNOSTIC10_OUTPUT_DIR = (
     "outputs/pe_fin_lite_planner_protocol_diagnostic10_v3"
 )
-RANKING_PROTOCOL_VERSION = "pe_fin_lite_retrieval_rank_v1"
+RANKING_PROTOCOL_VERSION = "pe_fin_lite_retrieval_rank_v2"
 
 __all__ = [
     "AUDIT_VERSION",

@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Sequence, Set
 from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit import (
     AUDIT_VERSION,
     DEFAULT_OUTPUT_DIR,
+    DEFAULT_STEP_RANK_VARIANTS,
     DESCRIBE_N,
     HYBRID_ALPHAS,
     RESULT_ROLE,
@@ -72,6 +73,7 @@ from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.operation_documents im
 )
 from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.planner_cache_gate import (
     assert_planner_cache_for_step_pipeline,
+    audit_planner_cache_zero_network,
 )
 from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.planner_only import (
     run_planner_only,
@@ -259,6 +261,7 @@ class RetrievalAuditRunner:
                 documents=self.docs["documents"],
                 metadata_by_id=self.meta_by_id,
                 runtime_operation_ids=self.catalog["runtime_operation_ids"],
+                registry=self.registry,
             )
             self.embedding_backend_kind = "mock_hash"
         else:
@@ -567,6 +570,7 @@ class RetrievalAuditRunner:
             embedding_model=str(
                 (self.emb_meta or {}).get("model") or EXPECTED_EMBEDDING_MODEL
             ),
+            registry=self.registry,
         )
         index.embedding_dim = dim
         index.embedding_provider_host = chosen.get("embedding_provider_host")
@@ -1201,7 +1205,7 @@ class RetrievalAuditRunner:
         variants: Optional[Sequence[str]] = None,
         alphas: Optional[Sequence[float]] = None,
     ) -> Dict[str, Any]:
-        variants = list(variants or ("R1", "R2", "R3"))
+        variants = list(variants or DEFAULT_STEP_RANK_VARIANTS)
         alphas = list(alphas or HYBRID_ALPHAS)
         out_dir = self.output_dir / "ranking_variants"
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -1318,7 +1322,7 @@ class RetrievalAuditRunner:
             if variant == "R3":
                 alpha_list = list(alphas)
             else:
-                alpha_list = [None]
+                alpha_list = [None]  # R1/R2/R_runtime: no alpha grid
 
             for alpha in alpha_list:
                 formula_key = f"{variant}@{alpha}" if alpha is not None else variant
@@ -1581,16 +1585,19 @@ class RetrievalAuditRunner:
             payload.get("embedding_backend") or self.embedding_backend_kind
         )
         dev_inputs = payload.get("development70_selection_inputs") or {}
-        comparison = compare_formulas(development_metrics_by_formula=dev_inputs)
+        comparison = compare_formulas(
+            development_metrics_by_formula=dev_inputs, exclude_r0=True
+        )
         comparison["embedding_backend"] = embedding_backend
         _write_json(out_dir / "formula_comparison.json", comparison)
 
         schema_only = {
-            "lock_version": "retrieval_formula_lock_v1",
+            "lock_version": "retrieval_formula_lock_v2",
             "status": "schema_only_no_formal_selection",
             "note": (
                 "Formal formula lock requires real text-embedding-3-small ranking "
-                "caches on development-origin 70. Mock/hash results cannot formal-lock."
+                "caches on development-origin 70. Mock/hash results cannot formal-lock. "
+                "R0 is excluded from Plan-first selection."
             ),
             "selection_policy": [
                 "complete_route@3",
@@ -1600,9 +1607,12 @@ class RetrievalAuditRunner:
                 "simpler_formula",
                 "larger_alpha",
             ],
+            "selectable_variants": list(comparison.get("selectable_variants") or []),
+            "r0_excluded_from_plan_first_selection": True,
             "no_retune_on_reserved85": True,
             "embedding_backend": embedding_backend,
             "mock_selection_preview": comparison.get("selected"),
+            "runtime_sync_required": comparison.get("runtime_sync_required"),
         }
         _write_json(out_dir / "formula_lock_schema.json", schema_only)
 
@@ -1610,6 +1620,7 @@ class RetrievalAuditRunner:
         meta["formal_lock_written"] = False
         meta["embedding_backend"] = embedding_backend
         meta["zero_network"] = True
+        meta["runtime_sync_required"] = comparison.get("runtime_sync_required")
 
         write_formal = bool(formal) and bool(comparison.get("selected"))
         if write_formal:
@@ -1624,14 +1635,50 @@ class RetrievalAuditRunner:
 
         if write_formal:
             selected = comparison["selected"]
+            planner_sha = None
+            step_sha = None
+            p_ident = self.output_dir / "planner_cache" / "planner_cache_identity.json"
+            if p_ident.exists():
+                planner_sha = json.loads(p_ident.read_text(encoding="utf-8")).get(
+                    "identity_sha256"
+                )
+            s_ident = (
+                self.output_dir / "step_query_cache" / "step_query_cache_identity.json"
+            )
+            if s_ident.exists():
+                step_sha = json.loads(s_ident.read_text(encoding="utf-8")).get(
+                    "identity_sha256"
+                )
+            emb_host = None
+            emb_dim = None
+            index_id = None
+            if self._selected_catalog_cache:
+                emb_host = self._selected_catalog_cache.get("embedding_provider_host")
+                emb_dim = self._selected_catalog_cache.get("vector_dimension")
+                index_id = self._selected_catalog_cache.get("identity_digest")
+            elif self.index is not None:
+                emb_host = getattr(self.index, "embedding_provider_host", None)
+                emb_dim = getattr(self.index, "embedding_dim", None)
+                index_id = getattr(self.index, "catalog_identity_sha256", None)
             lock = build_formula_lock(
                 selected=selected,
                 development_metrics=selected.get("metrics") or {},
+                runtime_sync_required=bool(comparison.get("runtime_sync_required")),
+                runtime_sync_specification=comparison.get(
+                    "runtime_sync_specification"
+                ),
                 config={
                     "catalog_fingerprint": self.catalog["catalog_fingerprint"],
-                    "operation_documents_sha256": self.docs["operation_documents_sha256"],
+                    "operation_documents_sha256": self.docs[
+                        "operation_documents_sha256"
+                    ],
                     "embedding_model": EXPECTED_EMBEDDING_MODEL,
+                    "embedding_provider_host": emb_host,
+                    "embedding_dimension": emb_dim,
                     "embedding_backend": embedding_backend,
+                    "operation_index_identity": index_id,
+                    "planner_cache_sha256": planner_sha,
+                    "step_query_cache_sha256": step_sha,
                     "dataset": self.dataset["identities"],
                 },
             )
@@ -1641,9 +1688,34 @@ class RetrievalAuditRunner:
                 "variant": lock.get("selected_variant"),
                 "alpha": lock.get("alpha"),
                 "lock_sha256": lock.get("lock_sha256"),
+                "runtime_sync_required": lock.get("runtime_sync_required"),
             }
         _write_json(out_dir / "run_metadata.json", meta)
         return meta
+
+    def run_planner_cache_audit(self) -> Dict[str, Any]:
+        """Zero-network Planner-only gate after future live Planner-155."""
+        if self.live:
+            raise LivePathError(
+                "--planner-cache-audit is zero-network; do not pass --live"
+            )
+        audit = audit_planner_cache_zero_network(
+            output_dir=self.output_dir,
+            expected_task_ids=self.dataset["task_ids"],
+        )
+        meta = self._base_run_metadata("planner_cache_audit")
+        meta["zero_network"] = True
+        meta["planner_cache_audit"] = {
+            "complete_155_ok": audit.get("complete_155_ok"),
+            "ok": audit.get("ok"),
+            "failed": audit.get("failed"),
+            "gate_recommendation": audit.get("gate_recommendation"),
+            "planner_outputs_sha256": audit.get("planner_outputs_sha256"),
+        }
+        _write_json(
+            self.output_dir / "planner_cache_audit" / "run_metadata.json", meta
+        )
+        return audit
 
     def run_evaluate_frozen_formula(self) -> Dict[str, Any]:
         if self.live:

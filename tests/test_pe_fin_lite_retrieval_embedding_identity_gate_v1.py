@@ -30,6 +30,7 @@ from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.ranking import (
 
 ROOT = Path(__file__).resolve().parents[1]
 PLANNER_V3 = ROOT / "outputs" / "pe_fin_lite_retrieval_all155_planner_v3"
+INVALID_R0 = PLANNER_V3 / "question_level_invalid_mixed_dim64_v1"
 QQ_VECTORS = (
     PLANNER_V3 / "question_query_cache" / "question_query_vectors.json"
 )
@@ -277,9 +278,9 @@ def test_mock_mode_64_classified_as_mock_hash():
     )
 
 
-@pytest.mark.skipif(not PLANNER_V3.exists(), reason="planner_v3 outputs missing")
+@pytest.mark.skipif(not INVALID_R0.exists(), reason="invalid R0 archive missing")
 def test_invalid_r0_marker_present_and_raw_unchanged():
-    marker = PLANNER_V3 / "question_level" / "INVALIDATED_R0_MIXED_EMBEDDING_DIMENSIONS.json"
+    marker = INVALID_R0 / "INVALIDATED_R0_MIXED_EMBEDDING_DIMENSIONS.json"
     assert marker.exists()
     payload = json.loads(marker.read_text(encoding="utf-8"))
     assert (
@@ -293,12 +294,13 @@ def test_invalid_r0_marker_present_and_raw_unchanged():
     assert payload["selected_wrong_catalog"]["identity_sha256"].startswith("1caff45e")
     assert payload["expected_real_catalog"]["identity_sha256"].startswith("ac4c109b")
 
-    # Raw ranking artifacts must keep pre-invalidation hashes.
+    # Archived raw ranking artifacts must keep frozen hashes.
     frozen = payload["raw_hashes_at_invalidation"]
     for rel, info in frozen.items():
         if not str(rel).startswith("question_level/"):
             continue
-        path = PLANNER_V3 / rel
+        name = Path(rel).name
+        path = INVALID_R0 / name
         assert path.exists()
         blob = path.read_bytes()
         assert hashlib.sha256(blob).hexdigest() == info["sha256"]
@@ -309,16 +311,11 @@ def test_invalid_r0_marker_present_and_raw_unchanged():
 def test_valid_question_query_cache_sha_unchanged():
     digest = hashlib.sha256(QQ_VECTORS.read_bytes()).hexdigest()
     assert digest == EXPECTED_QQ_SHA
-    # Marker must also record the same reusable QQ sha.
-    marker = json.loads(
-        (
-            PLANNER_V3
-            / "question_level"
-            / "INVALIDATED_R0_MIXED_EMBEDDING_DIMENSIONS.json"
-        ).read_text(encoding="utf-8")
-    )
-    assert marker["query"]["vectors_sha256"] == EXPECTED_QQ_SHA
-    assert marker["query"]["reusable"] is True
+    marker_path = INVALID_R0 / "INVALIDATED_R0_MIXED_EMBEDDING_DIMENSIONS.json"
+    if marker_path.exists():
+        marker = json.loads(marker_path.read_text(encoding="utf-8"))
+        assert marker["query"]["vectors_sha256"] == EXPECTED_QQ_SHA
+        assert marker["query"]["reusable"] is True
 
 
 @pytest.mark.skipif(
