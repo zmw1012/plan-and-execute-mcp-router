@@ -263,11 +263,13 @@ def rank_operations(
       R0/R1: global cosine (no domain filter)
       R2: domain-filtered cosine
       R3: domain-filtered hybrid (alpha*cos + (1-alpha)*coverage)
+      R4: global hybrid coverage (no domain filter; ablates coverage vs R1)
+      R5: global cosine + fixed 0.12 lexical (no domain filter; ablates lexical vs R1)
       R_runtime: exact runtime path (cosine + 0.12*lexical, Top-K then hard filter)
     """
-    if variant not in {"R0", "R1", "R2", "R3", "R_runtime"}:
+    if variant not in {"R0", "R1", "R2", "R3", "R4", "R5", "R_runtime"}:
         raise ValueError(f"Unknown ranking variant: {variant}")
-    if variant == "R3" and alpha not in HYBRID_ALPHAS:
+    if variant in {"R3", "R4"} and alpha not in HYBRID_ALPHAS:
         raise ValueError(f"Unsupported alpha {alpha}; allowed={HYBRID_ALPHAS}")
 
     runtime = set(index.runtime_operation_ids)
@@ -291,7 +293,8 @@ def rank_operations(
             )
 
     use_domain = variant in {"R2", "R3"}
-    use_hybrid = variant == "R3"
+    use_hybrid = variant in {"R3", "R4"}
+    use_global_lexical = variant == "R5"
     is_runtime = variant == "R_runtime"
 
     filter_info: Dict[str, Any] = {
@@ -408,29 +411,51 @@ def rank_operations(
         filter_info["candidates_before_filter"] = len(candidate_ids)
         filter_info["candidates_after_filter"] = len(pool)
 
+    if use_global_lexical:
+        assert_lexical_weight_frozen()
+        registry = index.registry or {}
+        if not registry:
+            raise RuntimeError(
+                "R5 requires OfflineEmbeddingIndex.registry for lexical_score"
+            )
+
     scored: List[Dict[str, Any]] = []
     for oid in pool:
         meta = index.metadata_by_id.get(oid) or {}
         cos = cosine(qvec, index.vectors[oid])
+        provides = list(meta.get("provides") or [])
         cov = required_output_coverage(
             required_outputs=required_outputs or [],
-            provides=list(meta.get("provides") or []),
+            provides=provides,
         )
-        if use_hybrid:
+        lex = None
+        if use_global_lexical:
+            if oid not in registry:
+                raise RuntimeError(f"R5 missing OperationSpec for {oid}")
+            lex = float(lexical_score(query, registry[oid]))
+            score = float(cos) + float(LEXICAL_WEIGHT) * lex
+            cov_out = None
+        elif use_hybrid:
             score = float(alpha) * cos + (1.0 - float(alpha)) * cov
+            cov_out = cov
         else:
             score = cos
-            cov = None if variant in {"R0", "R1", "R2"} else cov
-        scored.append(
-            {
-                "operation_id": oid,
-                "score": score,
-                "cosine_similarity": cos,
-                "required_output_coverage": cov,
-                "domain": meta.get("domain"),
-            }
-        )
+            cov_out = None if variant in {"R0", "R1", "R2"} else cov
+        row = {
+            "operation_id": oid,
+            "score": score,
+            "cosine_similarity": cos,
+            "required_output_coverage": cov_out,
+            "lexical_score": lex,
+            "lexical_weight": float(LEXICAL_WEIGHT) if use_global_lexical else None,
+            "domain": meta.get("domain"),
+            "provides_empty": (not provides),
+        }
+        scored.append(row)
     scored.sort(key=lambda r: (-float(r["score"]), str(r["operation_id"])))
+    for i, row in enumerate(scored):
+        row["final_rank"] = i + 1
+        row["final_score"] = float(row["score"])
     top = scored[: max(1, int(top_k))]
     ranked_ids = [r["operation_id"] for r in top]
     gold = [str(x) for x in (gold_ops_for_filter_diag or [])]
@@ -446,13 +471,14 @@ def rank_operations(
 
     return {
         "variant": variant,
-        "alpha": alpha if use_hybrid else None,
-        "lexical_weight": None,
+        "alpha": float(alpha) if use_hybrid else None,
+        "lexical_weight": float(LEXICAL_WEIGHT) if use_global_lexical else None,
         "query": query,
         "top_k": top_k,
         "describe_n": DESCRIBE_N,
         "ranked": top,
         "ranked_ids": ranked_ids,
+        "ranked_full": scored,
         "filter": filter_info,
         "hard_exclusions": exclusion_reasons[:20],
         "blocked_leakage": blocked_leakage,

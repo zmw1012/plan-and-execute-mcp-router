@@ -1693,6 +1693,22 @@ class RetrievalAuditRunner:
         _write_json(out_dir / "run_metadata.json", meta)
         return meta
 
+    def run_global_signal_ablation(self) -> Dict[str, Any]:
+        """Zero-network R4/R5 ablations into global_signal_ablation_v1/."""
+        if self.live:
+            raise LivePathError(
+                "--global-signal-ablation is zero-network; do not pass --live"
+            )
+        from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.global_signal_ablation import (
+            run_global_signal_ablation,
+        )
+
+        return run_global_signal_ablation(
+            root=self.root,
+            output_dir=self.output_dir,
+            embedding_cache_dir=self.embedding_cache_dir,
+        )
+
     def run_planner_cache_audit(self) -> Dict[str, Any]:
         """Zero-network Planner-only gate after future live Planner-155."""
         if self.live:

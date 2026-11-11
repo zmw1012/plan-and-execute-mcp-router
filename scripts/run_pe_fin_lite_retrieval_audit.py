@@ -70,6 +70,14 @@ def build_parser() -> argparse.ArgumentParser:
             "Requires --live + --env-file. No task-id hardcode."
         ),
     )
+    p.add_argument(
+        "--global-signal-ablation",
+        action="store_true",
+        help=(
+            "Zero-network R4_global_coverage / R5_global_lexical ablations "
+            "from complete planner + step-query + catalog caches."
+        ),
+    )
     p.add_argument("--catalog-coverage", action="store_true")
     p.add_argument("--select-formula", action="store_true")
     p.add_argument("--evaluate-frozen-formula", action="store_true")
@@ -156,6 +164,7 @@ def _classify_stages(args: argparse.Namespace) -> dict:
         args.question_level,
         args.rank_from_planner_cache,
         args.planner_cache_audit,
+        args.global_signal_ablation,
         args.select_formula,
         args.evaluate_frozen_formula,
         args.catalog_coverage,
@@ -175,6 +184,7 @@ def _classify_stages(args: argparse.Namespace) -> dict:
             args.rank_from_planner_cache,
             args.planner_cache_audit,
             args.retry_failed_planner_cache,
+            args.global_signal_ablation,
             args.catalog_coverage,
             args.select_formula,
             args.evaluate_frozen_formula,
@@ -286,6 +296,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.question_level
                 or args.rank_from_planner_cache
                 or args.planner_cache_audit
+                or args.global_signal_ablation
                 or args.select_formula
                 or args.evaluate_frozen_formula
                 or args.catalog_coverage
@@ -361,6 +372,8 @@ def main(argv: list[str] | None = None) -> int:
             results["rank_from_planner_cache"] = runner.run_rank_from_planner_cache()
         if args.planner_cache_audit:
             results["planner_cache_audit"] = runner.run_planner_cache_audit()
+        if args.global_signal_ablation:
+            results["global_signal_ablation"] = runner.run_global_signal_ablation()
         if args.catalog_coverage:
             results["catalog_coverage"] = runner.run_catalog_coverage()
         if args.select_formula:
