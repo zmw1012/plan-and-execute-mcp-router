@@ -17,6 +17,15 @@ Constraints for all steps:
 - resume/checkpoint protections remain enabled by runner defaults
 - `no_unseen_heldout_claim=True`
 - **do not** run full PE-Fin Lite agent155
+- **real offline stages MUST pass `--embedding-env-file "$EMB_ENV"`** so catalog identity uses host/model/dim (identity-only read; zero network). Never omit it and silently select host=null/64-d mock cache.
+- Current question-level R0 under `$OUT` is **INVALIDATED** (mixed 1536 query + 64 catalog). Do not use for report/formula. Re-run R0 only after identity fix; reuse QQ + real catalog caches (no re-embed required if identities match).
+
+Identity source for offline ranking:
+
+1. Preferred: `--embedding-env-file` → host/model from env (no API call)
+2. Fallback: complete question/step query-cache identity (`embedding_provider_host` + model + dim)
+3. Catalog index selected by full identity digest (host/model/docs/registry/catalog); must match query dim/host/model
+4. Fail-closed on mismatch / host=null / mock-hash under real backend
 
 ---
 
@@ -26,16 +35,22 @@ Constraints for all steps:
 cd "$ROOT"
 PYTHONPATH=src "$PYTHON" scripts/run_pe_fin_lite_retrieval_audit.py \
   --index-status \
+  --require-complete-index \
+  --embedding-env-file "$EMB_ENV" \
   --output-dir "$OUT" \
   --embedding-cache-dir "$CACHE"
 ```
 
-Expect: complete identity `ac4c109bed0edb21fb2b837dfdbd745680b24f33efa62e13ad6bca53f174b0df`.  
+Expect selected real identity `ac4c109bed0edb21fb2b837dfdbd745680b24f33efa62e13ad6bca53f174b0df`
+(host=`api.zhizengzeng.com`, model=`text-embedding-3-small`, dim=1536).
+
+Without `--embedding-env-file`, status is **inventory-only** (lists all caches; does not claim a formal selected index). Do not use inventory-only output as proof of the real index.
+
 If incomplete only then run `--build-index-only --live` with `$EMB_ENV` (not required if status is complete).
 
 ## 2) embed-question-queries (Embedding API — only if not reusing)
 
-If reusing live_v1 QQ vectors, copy/re-point only after identity checks; otherwise:
+If reusing existing complete QQ vectors (1536 / host=api.zhizengzeng.com), skip re-embed. Otherwise:
 
 ```bash
 PYTHONPATH=src "$PYTHON" scripts/run_pe_fin_lite_retrieval_audit.py \
@@ -83,9 +98,12 @@ PYTHONPATH=src "$PYTHON" scripts/run_pe_fin_lite_retrieval_audit.py \
 PYTHONPATH=src "$PYTHON" scripts/run_pe_fin_lite_retrieval_audit.py \
   --question-level \
   --require-complete-index \
+  --embedding-env-file "$EMB_ENV" \
   --embedding-cache-dir "$CACHE" \
   --output-dir "$OUT"
 ```
+
+Writes under a **fresh** question_level tree or after clearing INVALIDATED markers only when intentionally re-running. Catalog must be 1536-d real cache matching QQ identity. Zero network.
 
 ## 6) step-level R1/R2/R3 offline ranking
 
@@ -93,6 +111,7 @@ PYTHONPATH=src "$PYTHON" scripts/run_pe_fin_lite_retrieval_audit.py \
 PYTHONPATH=src "$PYTHON" scripts/run_pe_fin_lite_retrieval_audit.py \
   --rank-from-planner-cache \
   --require-complete-index \
+  --embedding-env-file "$EMB_ENV" \
   --embedding-cache-dir "$CACHE" \
   --output-dir "$OUT"
 ```
@@ -104,11 +123,13 @@ PYTHONPATH=src "$PYTHON" scripts/run_pe_fin_lite_retrieval_audit.py \
   --select-formula \
   --formal-lock \
   --require-complete-index \
+  --embedding-env-file "$EMB_ENV" \
   --embedding-cache-dir "$CACHE" \
   --output-dir "$OUT"
 ```
 
-Selection must use development-origin 70 only; no retune on reserved85.
+Selection must use development-origin 70 only; no retune on reserved85.  
+Do **not** select from INVALIDATED R0 metrics.
 
 ## 8) freeze selected formula
 
@@ -121,6 +142,7 @@ Do not hand-edit lock contents.
 PYTHONPATH=src "$PYTHON" scripts/run_pe_fin_lite_retrieval_audit.py \
   --evaluate-frozen-formula \
   --require-complete-index \
+  --embedding-env-file "$EMB_ENV" \
   --embedding-cache-dir "$CACHE" \
   --output-dir "$OUT"
 ```
@@ -131,6 +153,7 @@ Optional combined report:
 PYTHONPATH=src "$PYTHON" scripts/run_pe_fin_lite_retrieval_audit.py \
   --report-all \
   --require-complete-index \
+  --embedding-env-file "$EMB_ENV" \
   --embedding-cache-dir "$CACHE" \
   --output-dir "$OUT"
 ```
@@ -141,6 +164,7 @@ PYTHONPATH=src "$PYTHON" scripts/run_pe_fin_lite_retrieval_audit.py \
 PYTHONPATH=src "$PYTHON" scripts/run_pe_fin_lite_retrieval_audit.py \
   --catalog-coverage \
   --require-complete-index \
+  --embedding-env-file "$EMB_ENV" \
   --embedding-cache-dir "$CACHE" \
   --output-dir "$OUT"
 ```
@@ -152,4 +176,5 @@ PYTHONPATH=src "$PYTHON" scripts/run_pe_fin_lite_retrieval_audit.py \
 ```text
 # DO NOT RUN as part of retrieval audit readiness
 # full PE-Fin Lite agent over HK-155
+# re-use INVALIDATED R0 metrics for report or formula selection
 ```

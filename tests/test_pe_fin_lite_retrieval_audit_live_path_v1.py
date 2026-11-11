@@ -470,9 +470,11 @@ def test_dry_run_index_status_zero_network(tmp_path: Path):
         root=ROOT, output_dir=tmp_path / "st", dry_run=True
     )
     status = runner.get_index_status()
-    assert "completed" in status
-    assert "expected" in status or "total" in status
+    # Without --embedding-env-file: inventory-only (no silent host=null selection).
     assert status.get("zero_network") is True
+    assert status.get("selection_mode") == "inventory_only"
+    assert "cache_inventory" in status
+    assert status.get("selected") is None
 
 
 def test_build_embedding_backend_refuses_offline_rank():

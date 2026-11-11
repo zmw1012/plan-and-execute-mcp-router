@@ -19,6 +19,15 @@ from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit import (
 from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.catalog_audit import (
     analyze_catalog_coverage,
 )
+from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.embedding_identity_gate import (
+    REAL_TEXT_EMBEDDING_DIM,
+    assert_query_catalog_alignment,
+    assert_real_backend_identity,
+    classify_catalog_source,
+    list_catalog_cache_inventory,
+    resolve_embedding_meta_for_offline,
+    select_matching_catalog_cache,
+)
 from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.formula_selection import (
     REAL_EMBEDDING_BACKEND,
     assert_formal_formula_lock_allowed,
@@ -233,6 +242,7 @@ class RetrievalAuditRunner:
         self.emb_meta: Optional[Dict[str, Any]] = None
         self._index_identity: Optional[Dict[str, Any]] = None
         self._catalog_vectors: Optional[Dict[str, List[float]]] = None
+        self._selected_catalog_cache: Optional[Dict[str, Any]] = None
         self._llm = None
 
         self.dataset = load_hk155_locked(self.root)
@@ -309,80 +319,263 @@ class RetrievalAuditRunner:
             emb_model = "mock-hash-embedding-v1"
             emb_host = "local_hash"
         else:
-            if self.emb_meta is None and self.live:
-                raise LivePathError("emb_meta required before catalog index identity")
+            if self.emb_meta is None:
+                raise LivePathError(
+                    "emb_meta with non-null host required before catalog index "
+                    "identity (pass --embedding-env-file; refuse host=null)"
+                )
             emb_model = str(
                 (self.emb_meta or {}).get("model") or EXPECTED_EMBEDDING_MODEL
             )
-            emb_host = host_from_base_url((self.emb_meta or {}).get("base_url"))
+            emb_host = (
+                (self.emb_meta or {}).get("host")
+                or host_from_base_url((self.emb_meta or {}).get("base_url"))
+            )
+            if not emb_host:
+                raise LivePathError(
+                    "catalog index identity requires non-null embedding_provider_host "
+                    "(fail-closed; no mock/hash selection)"
+                )
             if emb_model != EXPECTED_EMBEDDING_MODEL and not self.dry_run:
-                # dry-run / index-status may use expected model without env
-                if self.emb_meta is not None:
-                    raise LivePathError(
-                        f"embedding model locked to {EXPECTED_EMBEDDING_MODEL}"
-                    )
+                raise LivePathError(
+                    f"embedding model locked to {EXPECTED_EMBEDDING_MODEL}"
+                )
+        expected_dim = None
+        if self.emb_meta and self.emb_meta.get("expected_vector_dimension") is not None:
+            expected_dim = int(self.emb_meta["expected_vector_dimension"])
+        elif not self.mock:
+            expected_dim = REAL_TEXT_EMBEDDING_DIM
         identity = build_index_identity(
             registry=self.registry,
             catalog_fingerprint=self.catalog["catalog_fingerprint"],
             embedding_model=emb_model,
             embedding_provider_host=emb_host,
+            expected_vector_dimension=expected_dim,
         )
         self._index_identity = identity
         return identity
 
-    def _ensure_embedding_meta_for_status(self) -> None:
-        """index-status is zero-network; may use locked model without loading secrets."""
-        if self.emb_meta is not None:
-            return
-        if self.embedding_env_file:
-            # Load only if file exists; still no network calls.
-            try:
-                self.emb_meta = load_and_assert_embedding(
-                    self.root, self.embedding_env_file
-                )
-            except (LivePathError, FileNotFoundError, RuntimeError):
-                self.emb_meta = {
-                    "model": EXPECTED_EMBEDDING_MODEL,
-                    "base_url": None,
-                    "host": None,
-                    "provider": "openai_compatible",
-                }
-        else:
+    def _ensure_real_embedding_meta_offline(
+        self, *, query_cache_identity: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Load embedding identity for real offline stages (zero network)."""
+        if self.mock:
             self.emb_meta = {
-                "model": EXPECTED_EMBEDDING_MODEL,
+                "model": "mock-hash-embedding-v1",
                 "base_url": None,
-                "host": None,
-                "provider": "openai_compatible",
+                "host": "local_hash",
+                "provider": "mock_hash",
+                "identity_source": "mock_mode",
+                "expected_vector_dimension": 64,
             }
+            return self.emb_meta
+        meta = resolve_embedding_meta_for_offline(
+            root=self.root,
+            embedding_env_file=self.embedding_env_file,
+            query_cache_identity=query_cache_identity,
+        )
+        self.emb_meta = meta
+        return meta
 
     def get_index_status(self) -> Dict[str, Any]:
-        """Zero-network catalog index status."""
-        self._ensure_embedding_meta_for_status()
-        identity = self._catalog_index_identity()
-        status = index_status(
-            registry=self.registry,
-            identity=identity,
-            cache_dir=self.embedding_cache_dir,
-        ).to_dict()
+        """Zero-network catalog index status / inventory.
+
+        Without ``--embedding-env-file``: inventory-only (does not claim a formal
+        selected identity). With env file: select exact real identity and report
+        completeness for that digest only.
+        """
         out_dir = self.output_dir / "catalog_index"
         out_dir.mkdir(parents=True, exist_ok=True)
-        payload = {
-            **status,
-            "final_complete": bool(status.get("complete")),
-            "expected": status.get("total"),
-            "identity_digest": identity_digest(identity),
-            "zero_network": True,
-        }
-        _write_json(out_dir / "index_status.json", payload)
+        inventory = list_catalog_cache_inventory(self.embedding_cache_dir)
+        _write_json(out_dir / "cache_inventory.json", {"caches": inventory})
+
+        selected: Optional[Dict[str, Any]] = None
+        status_payload: Dict[str, Any]
+        if self.mock:
+            self._ensure_real_embedding_meta_offline()
+            identity = self._catalog_index_identity()
+            status = index_status(
+                registry=self.registry,
+                identity=identity,
+                cache_dir=self.embedding_cache_dir,
+            ).to_dict()
+            status_payload = {
+                **status,
+                "final_complete": bool(status.get("complete")),
+                "expected": status.get("total"),
+                "identity_digest": identity_digest(identity),
+                "source": "mock_hash",
+                "selection_mode": "mock",
+                "zero_network": True,
+                "cache_inventory": inventory,
+            }
+        elif self.embedding_env_file:
+            self._ensure_real_embedding_meta_offline()
+            identity = self._catalog_index_identity()
+            digest = identity_digest(identity)
+            status = index_status(
+                registry=self.registry,
+                identity=identity,
+                cache_dir=self.embedding_cache_dir,
+            ).to_dict()
+            dim = status.get("vector_dimension")
+            host = identity.get("embedding_provider_host")
+            source = classify_catalog_source(
+                embedding_provider_host=host,
+                vector_dimension=dim,
+                embedding_model=identity.get("embedding_model"),
+            )
+            assert_real_backend_identity(
+                embedding_backend=REAL_EMBEDDING_BACKEND,
+                embedding_provider_host=host,
+                vector_dimension=dim,
+                source=source,
+            )
+            if self.require_complete_index and not status.get("complete"):
+                raise LivePathError(
+                    f"--require-complete-index: real catalog identity {digest} incomplete"
+                )
+            if self.require_complete_index and source != "real":
+                raise LivePathError(
+                    f"--require-complete-index requires real catalog source; got {source}"
+                )
+            selected = {
+                "identity_digest": digest,
+                "embedding_provider_host": host,
+                "embedding_model": identity.get("embedding_model"),
+                "vector_dimension": dim,
+                "documents_hash": identity.get("documents_hash"),
+                "registry_fingerprint": identity.get("registry_fingerprint"),
+                "complete": bool(status.get("complete")),
+                "source": source,
+            }
+            status_payload = {
+                **status,
+                "final_complete": bool(status.get("complete")),
+                "expected": status.get("total"),
+                "identity_digest": digest,
+                "embedding_provider_host": host,
+                "embedding_model": identity.get("embedding_model"),
+                "vector_dimension": dim,
+                "documents_hash": identity.get("documents_hash"),
+                "source": source,
+                "selection_mode": "embedding_env_file",
+                "selected": selected,
+                "zero_network": True,
+                "cache_inventory": inventory,
+            }
+        else:
+            # Inventory only — do not silently select host=null mock cache.
+            status_payload = {
+                "namespace": "pe_fin_lite_operation_embeddings_v1",
+                "cache_dir": str(self.embedding_cache_dir),
+                "selection_mode": "inventory_only",
+                "selected": None,
+                "note": (
+                    "No --embedding-env-file: listed all catalog caches only. "
+                    "Refusing to claim host=null/64-d mock cache as formal index."
+                ),
+                "cache_inventory": inventory,
+                "zero_network": True,
+            }
+            if self.require_complete_index:
+                raise LivePathError(
+                    "--require-complete-index requires --embedding-env-file to select "
+                    "the real catalog identity (fail-closed)"
+                )
+
+        _write_json(out_dir / "index_status.json", status_payload)
         meta = self._base_run_metadata("index_status")
         meta["index_status"] = {
-            "completed": status.get("completed"),
-            "expected": status.get("total"),
-            "final_complete": status.get("complete"),
-            "identity_sha256": status.get("identity_sha256"),
+            "selection_mode": status_payload.get("selection_mode"),
+            "selected": selected,
+            "n_inventory": len(inventory),
+            "identity_sha256": (selected or {}).get("identity_digest"),
+            "zero_network": True,
         }
+        if self.emb_meta:
+            meta["embedding"] = public_meta_without_secrets(self.emb_meta)
         _write_json(out_dir / "run_metadata.json", meta)
-        return payload
+        return status_payload
+
+    def _load_complete_catalog_index(
+        self, *, query_cache_identity: Optional[Dict[str, Any]] = None
+    ) -> OfflineEmbeddingIndex:
+        if self.mock:
+            assert self.index is not None
+            return self.index
+        self._ensure_real_embedding_meta_offline(
+            query_cache_identity=query_cache_identity
+        )
+        identity = self._catalog_index_identity()
+        digest = identity_digest(identity)
+        inventory = list_catalog_cache_inventory(self.embedding_cache_dir)
+        expected_dim = int(
+            (self.emb_meta or {}).get("expected_vector_dimension")
+            or (
+                (query_cache_identity or {}).get("embedding_dim")
+                if query_cache_identity
+                else REAL_TEXT_EMBEDDING_DIM
+            )
+            or REAL_TEXT_EMBEDDING_DIM
+        )
+        chosen = select_matching_catalog_cache(
+            inventory=inventory,
+            expected_identity=identity,
+            expected_digest=digest,
+            require_real=True,
+            require_dim=expected_dim,
+        )
+        assert_real_backend_identity(
+            embedding_backend=REAL_EMBEDDING_BACKEND,
+            embedding_provider_host=chosen.get("embedding_provider_host"),
+            vector_dimension=chosen.get("vector_dimension"),
+            source=chosen.get("source"),
+        )
+        try:
+            vectors = load_complete_index(
+                registry=self.registry,
+                identity=identity,
+                cache_dir=self.embedding_cache_dir,
+            )
+        except IncompleteOperationIndexError as exc:
+            raise LivePathError(
+                f"Incomplete catalog embedding index (fail-closed): {exc}"
+            ) from exc
+        self._catalog_vectors = vectors
+        dim = len(next(iter(vectors.values()))) if vectors else None
+        if dim != expected_dim:
+            raise LivePathError(
+                f"Loaded catalog dim={dim} != expected_dim={expected_dim} "
+                f"(identity={digest}; fail-closed)"
+            )
+        if query_cache_identity:
+            assert_query_catalog_alignment(
+                query_dim=int(query_cache_identity.get("embedding_dim") or expected_dim),
+                catalog_dim=int(dim or 0),
+                query_host=query_cache_identity.get("embedding_provider_host"),
+                catalog_host=chosen.get("embedding_provider_host"),
+                query_model=query_cache_identity.get("embedding_model"),
+                catalog_model=chosen.get("embedding_model"),
+            )
+        self.embedding_backend_kind = REAL_EMBEDDING_BACKEND
+        index = OfflineEmbeddingIndex.from_preloaded_vectors(
+            documents=self.docs["documents"],
+            metadata_by_id=self.meta_by_id,
+            runtime_operation_ids=self.catalog["runtime_operation_ids"],
+            vectors=vectors,
+            embedding_model=str(
+                (self.emb_meta or {}).get("model") or EXPECTED_EMBEDDING_MODEL
+            ),
+        )
+        index.embedding_dim = dim
+        index.embedding_provider_host = chosen.get("embedding_provider_host")
+        index.catalog_identity_sha256 = digest
+        index.catalog_source = chosen.get("source")
+        self.index = index
+        self._index_identity = identity
+        self._selected_catalog_cache = chosen
+        return index
 
     def build_index_only(self) -> Dict[str, Any]:
         """Live embedding only: build/resume catalog index. No generation/planner."""
@@ -431,38 +624,6 @@ class RetrievalAuditRunner:
         }
         _write_json(out_dir / "run_metadata.json", meta)
         return meta
-
-    def _load_complete_catalog_index(self) -> OfflineEmbeddingIndex:
-        if self.mock:
-            assert self.index is not None
-            return self.index
-        self._ensure_embedding_meta_for_status()
-        identity = self._catalog_index_identity()
-        try:
-            vectors = load_complete_index(
-                registry=self.registry,
-                identity=identity,
-                cache_dir=self.embedding_cache_dir,
-            )
-        except IncompleteOperationIndexError as exc:
-            raise LivePathError(
-                f"Incomplete catalog embedding index (fail-closed): {exc}"
-            ) from exc
-        self._catalog_vectors = vectors
-        dim = len(next(iter(vectors.values()))) if vectors else None
-        self.embedding_backend_kind = REAL_EMBEDDING_BACKEND
-        index = OfflineEmbeddingIndex.from_preloaded_vectors(
-            documents=self.docs["documents"],
-            metadata_by_id=self.meta_by_id,
-            runtime_operation_ids=self.catalog["runtime_operation_ids"],
-            vectors=vectors,
-            embedding_model=str(
-                (self.emb_meta or {}).get("model") or EXPECTED_EMBEDDING_MODEL
-            ),
-        )
-        index.embedding_dim = dim
-        self.index = index
-        return index
 
     def embed_question_queries_stage(self) -> Dict[str, Any]:
         """Live: embed 155 question queries. No planner/MCP/ranking."""
@@ -588,15 +749,25 @@ class RetrievalAuditRunner:
             )
 
         query_vectors: Optional[Dict[str, List[float]]] = None
+        query_dim: Optional[int] = None
+        catalog_dim: Optional[int] = None
+        alignment: Dict[str, bool] = {}
         if self.mock:
             index = self.index
             assert index is not None
             emb_model = index.embedding_model
             emb_host = "local_hash"
             self.embedding_backend_kind = "mock_hash"
+            catalog_dim = index.embedding_dim
+            query_dim = catalog_dim
+            alignment = {
+                "identity_match": True,
+                "dimension_match": True,
+                "host_match": True,
+                "model_match": True,
+            }
         else:
-            # Offline ranking from complete caches.
-            index = self._load_complete_catalog_index()
+            # Offline ranking from complete caches — catalog must match query identity.
             qpath = out_dir.parent / "question_query_cache" / "question_query_vectors.json"
             try:
                 qcache = load_complete_question_query_cache(qpath)
@@ -604,16 +775,42 @@ class RetrievalAuditRunner:
                 raise LivePathError(
                     f"Incomplete question-query cache (fail-closed): {exc}"
                 ) from exc
+            q_ident_raw = dict(qcache.get("identity") or {})
             query_vectors = {
                 str(k): list(v)
                 for k, v in (qcache.get("vectors_by_task_id") or {}).items()
             }
+            if query_vectors:
+                query_dim = len(next(iter(query_vectors.values())))
+                q_ident_raw["embedding_dim"] = query_dim
             emb_model = str(
-                ((qcache.get("identity") or {}).get("embedding_model"))
-                or EXPECTED_EMBEDDING_MODEL
+                q_ident_raw.get("embedding_model") or EXPECTED_EMBEDDING_MODEL
             )
-            emb_host = str(
-                ((qcache.get("identity") or {}).get("embedding_provider_host")) or ""
+            emb_host = str(q_ident_raw.get("embedding_provider_host") or "").strip()
+            if not emb_host:
+                raise LivePathError(
+                    "question query cache missing embedding_provider_host "
+                    "(fail-closed; refuse host=null catalog)"
+                )
+            index = self._load_complete_catalog_index(
+                query_cache_identity=q_ident_raw
+            )
+            catalog_dim = index.embedding_dim
+            alignment = assert_query_catalog_alignment(
+                query_dim=int(query_dim or 0),
+                catalog_dim=int(catalog_dim or 0),
+                query_host=emb_host,
+                catalog_host=getattr(index, "embedding_provider_host", None),
+                query_model=emb_model,
+                catalog_model=index.embedding_model,
+            )
+            assert_real_backend_identity(
+                embedding_backend=REAL_EMBEDDING_BACKEND,
+                embedding_provider_host=getattr(
+                    index, "embedding_provider_host", emb_host
+                ),
+                vector_dimension=catalog_dim,
+                source=getattr(index, "catalog_source", None),
             )
             self.embedding_backend_kind = REAL_EMBEDDING_BACKEND
 
@@ -771,6 +968,36 @@ class RetrievalAuditRunner:
         meta["n_rankings"] = len(rankings)
         meta["cache_identity"] = q_identity
         meta["zero_network"] = True
+        meta["mock"] = bool(self.mock)
+        meta["query_identity"] = {
+            "embedding_model": emb_model,
+            "embedding_provider_host": emb_host,
+            "embedding_dim": query_dim,
+            "identity_sha256": (q_identity or {}).get("identity_sha256"),
+        }
+        meta["catalog_identity"] = {
+            "identity_sha256": getattr(index, "catalog_identity_sha256", None)
+            or (
+                identity_digest(self._index_identity)
+                if self._index_identity
+                else None
+            ),
+            "embedding_provider_host": getattr(
+                index, "embedding_provider_host", emb_host
+            ),
+            "embedding_model": getattr(index, "embedding_model", emb_model),
+            "vector_dimension": catalog_dim,
+            "source": getattr(index, "catalog_source", None)
+            or ("mock_hash" if self.mock else "real"),
+            "selected_cache": self._selected_catalog_cache,
+        }
+        meta["query_dimension"] = query_dim
+        meta["catalog_dimension"] = catalog_dim
+        meta["embedding_dim"] = catalog_dim
+        meta["identity_match"] = bool(alignment.get("identity_match"))
+        meta["dimension_match"] = bool(alignment.get("dimension_match"))
+        if self.emb_meta:
+            meta["embedding"] = public_meta_without_secrets(self.emb_meta)
         _write_json(out_dir / "run_metadata.json", meta)
         _write_json(out_dir / "error_summary.json", {"errors": errors})
         return meta
@@ -1012,13 +1239,25 @@ class RetrievalAuditRunner:
             return meta
 
         step_vectors: Optional[Dict[str, Dict[str, Any]]] = None
+        query_dim: Optional[int] = None
+        catalog_dim: Optional[int] = None
+        alignment: Dict[str, bool] = {}
+        emb_host: Optional[str] = None
         if self.mock:
             index = self.index
             assert index is not None
             emb_model = index.embedding_model
+            emb_host = "local_hash"
             self.embedding_backend_kind = "mock_hash"
+            catalog_dim = index.embedding_dim
+            query_dim = catalog_dim
+            alignment = {
+                "identity_match": True,
+                "dimension_match": True,
+                "host_match": True,
+                "model_match": True,
+            }
         else:
-            index = self._load_complete_catalog_index()
             spath = (
                 self.output_dir / "step_query_cache" / "step_query_vectors.json"
             )
@@ -1029,9 +1268,44 @@ class RetrievalAuditRunner:
                     f"Incomplete step-query cache (fail-closed): {exc}"
                 ) from exc
             step_vectors = dict(scache.get("vectors_by_task_step") or {})
+            s_ident = dict(scache.get("identity") or {})
+            # Infer dim from first step vector when present.
+            if step_vectors and s_ident.get("embedding_dim") is None:
+                first = next(iter(step_vectors.values()))
+                vec = first.get("vector") if isinstance(first, dict) else first
+                if isinstance(vec, list):
+                    s_ident["embedding_dim"] = len(vec)
+            query_dim = (
+                int(s_ident["embedding_dim"])
+                if s_ident.get("embedding_dim") is not None
+                else None
+            )
             emb_model = str(
-                ((scache.get("identity") or {}).get("embedding_model"))
-                or EXPECTED_EMBEDDING_MODEL
+                s_ident.get("embedding_model") or EXPECTED_EMBEDDING_MODEL
+            )
+            emb_host = str(s_ident.get("embedding_provider_host") or "").strip() or None
+            if not emb_host:
+                raise LivePathError(
+                    "step query cache missing embedding_provider_host "
+                    "(fail-closed; refuse host=null catalog)"
+                )
+            index = self._load_complete_catalog_index(query_cache_identity=s_ident)
+            catalog_dim = index.embedding_dim
+            alignment = assert_query_catalog_alignment(
+                query_dim=int(query_dim or 0),
+                catalog_dim=int(catalog_dim or 0),
+                query_host=emb_host,
+                catalog_host=getattr(index, "embedding_provider_host", None),
+                query_model=emb_model,
+                catalog_model=index.embedding_model,
+            )
+            assert_real_backend_identity(
+                embedding_backend=REAL_EMBEDDING_BACKEND,
+                embedding_provider_host=getattr(
+                    index, "embedding_provider_host", emb_host
+                ),
+                vector_dimension=catalog_dim,
+                source=getattr(index, "catalog_source", None),
             )
             self.embedding_backend_kind = REAL_EMBEDDING_BACKEND
 
@@ -1209,6 +1483,35 @@ class RetrievalAuditRunner:
         meta["n_step_rankings"] = len(all_step_rankings)
         meta["formulas"] = list(formula_metrics.keys())
         meta["zero_network"] = True
+        meta["mock"] = bool(self.mock)
+        meta["query_identity"] = {
+            "embedding_model": emb_model,
+            "embedding_provider_host": emb_host,
+            "embedding_dim": query_dim,
+        }
+        meta["catalog_identity"] = {
+            "identity_sha256": getattr(index, "catalog_identity_sha256", None)
+            or (
+                identity_digest(self._index_identity)
+                if self._index_identity
+                else None
+            ),
+            "embedding_provider_host": getattr(
+                index, "embedding_provider_host", emb_host
+            ),
+            "embedding_model": getattr(index, "embedding_model", emb_model),
+            "vector_dimension": catalog_dim,
+            "source": getattr(index, "catalog_source", None)
+            or ("mock_hash" if self.mock else "real"),
+            "selected_cache": self._selected_catalog_cache,
+        }
+        meta["query_dimension"] = query_dim
+        meta["catalog_dimension"] = catalog_dim
+        meta["embedding_dim"] = catalog_dim
+        meta["identity_match"] = bool(alignment.get("identity_match"))
+        meta["dimension_match"] = bool(alignment.get("dimension_match"))
+        if self.emb_meta:
+            meta["embedding"] = public_meta_without_secrets(self.emb_meta)
         _write_json(out_dir / "run_metadata.json", meta)
         _write_json(out_dir / "error_summary.json", {"errors": []})
         _write_json(out_dir / "retrieval_metrics.json", {

@@ -100,7 +100,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--embedding-env-file",
         type=str,
         default=None,
-        help="Embedding env (e.g. .env.embedding-relay)",
+        help=(
+            "Embedding env (e.g. .env.embedding-relay). Required for real "
+            "index-status (--require-complete-index) and recommended for all "
+            "offline ranking so catalog identity uses host/model/dim "
+            "(identity-only; zero network). Without it, index-status is "
+            "inventory-only and will not select host=null mock/hash cache."
+        ),
     )
     p.add_argument(
         "--embedding-cache-dir",

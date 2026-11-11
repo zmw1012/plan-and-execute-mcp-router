@@ -11,6 +11,10 @@ from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit import (
     HYBRID_ALPHAS,
     TOP_K,
 )
+from hk_equity_mcp.experiment.pe_fin_lite_retrieval_audit.embedding_identity_gate import (
+    EmbeddingDimensionMismatch,
+    assert_vector_dimensions_match,
+)
 from hk_equity_mcp.operation_resolver.retrieval import DeterministicHashEmbeddingBackend
 from hk_equity_mcp.pe_fin_lite.tool_retrieval import (
     build_step_search_query,
@@ -20,8 +24,8 @@ from hk_equity_mcp.pe_fin_lite.tool_retrieval import (
 
 
 def cosine(a: Sequence[float], b: Sequence[float]) -> float:
-    if not a or not b or len(a) != len(b):
-        return 0.0
+    """Cosine similarity; fail-closed on length mismatch (never zip/truncate)."""
+    assert_vector_dimensions_match(a, b, context="cosine")
     dot = sum(x * y for x, y in zip(a, b))
     na = math.sqrt(sum(x * x for x in a)) or 1.0
     nb = math.sqrt(sum(y * y for y in b)) or 1.0
@@ -192,6 +196,20 @@ def rank_operations(
         qvec = [float(x) for x in query_vector]
     else:
         qvec = index.embed_query(query)
+
+    # Fail closed before scoring if catalog vectors disagree with query dim.
+    if index.vectors:
+        sample_oid = next(iter(index.vectors))
+        try:
+            assert_vector_dimensions_match(
+                qvec, index.vectors[sample_oid], context=f"rank_operations:{variant}"
+            )
+        except EmbeddingDimensionMismatch:
+            raise
+        if getattr(index, "embedding_dim", None) not in (None, len(qvec)):
+            raise EmbeddingDimensionMismatch(
+                f"index.embedding_dim={index.embedding_dim} != query_dim={len(qvec)}"
+            )
 
     use_domain = variant in {"R2", "R3"}
     use_hybrid = variant == "R3"
