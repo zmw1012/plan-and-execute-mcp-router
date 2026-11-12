@@ -75,6 +75,12 @@ from hk_equity_mcp.pe_fin_lite import (
     PE_FIN_LITE_CONDITION,
     PE_FIN_LITE_METHOD_VERSION,
 )
+from hk_equity_mcp.pe_fin_lite.eea_identity import (
+    EEA_FLAGS,
+    PE_FIN_LITE_EEA_CONDITION,
+    PE_FIN_LITE_EEA_METHOD_VERSION,
+    PE_FIN_LITE_EEA_PROTOCOL_VERSION,
+)
 from hk_equity_mcp.pe_fin_lite.agent import PeFinLiteAgent
 from hk_equity_mcp.pe_fin_lite.budget import McpBudgetExhausted, structured_budget_failure
 from hk_equity_mcp.pe_fin_lite.checkpoint_observability import (
@@ -127,6 +133,7 @@ from hk_equity_mcp.real_mcp.unified_gateway import (
 )
 
 DIAGNOSTIC12_MANIFEST = "benchmarks/manifests/hk_pe_fin_lite_diagnostic12_v1.json"
+DIAGNOSTIC20_EEA_MANIFEST = "benchmarks/manifests/hk_pe_fin_lite_eea_diagnostic20_v1.json"
 SMOKE5_MANIFEST = "benchmarks/manifests/hk_pe_fin_lite_smoke5_v1.json"
 
 PE_RESUME_IDENTITY_KEYS = (
@@ -217,6 +224,32 @@ def load_smoke5_tasks(root: Optional[Path] = None) -> List[Dict[str, Any]]:
     return select_by_ids(all_tasks, man["ordered_task_ids"], preserve_id_order=True)
 
 
+def load_diagnostic20_eea_manifest(root: Optional[Path] = None) -> Dict[str, Any]:
+    root = root or repo_root()
+    path = root / DIAGNOSTIC20_EEA_MANIFEST
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if data.get("manifest_id") != "hk_pe_fin_lite_eea_diagnostic20_v1":
+        raise RuntimeError("Unexpected diagnostic20 EEA manifest_id")
+    if len(data.get("ordered_task_ids") or []) != 20:
+        raise RuntimeError("diagnostic20 EEA must contain exactly 20 ordered_task_ids")
+    if data.get("explicitly_not_formal_accuracy") is not True:
+        raise RuntimeError("diagnostic20 EEA must declare explicitly_not_formal_accuracy")
+    return data
+
+
+def load_diagnostic20_eea_tasks(root: Optional[Path] = None) -> List[Dict[str, Any]]:
+    root = root or repo_root()
+    man = load_diagnostic20_eea_manifest(root)
+    all_tasks = load_split_tasks(root, "exploratory_all")
+    tasks = select_by_ids(all_tasks, man["ordered_task_ids"], preserve_id_order=True)
+    for t in tasks:
+        if t.get("source_split") != "development":
+            raise RuntimeError(
+                f"diagnostic20 EEA task {t.get('task_id')} is not development-origin"
+            )
+    return tasks
+
+
 def assert_output_dir_safe(
     *,
     output_dir: Path,
@@ -280,11 +313,18 @@ class _CyclingScriptedLLM(ScriptedLLMClient):
     def reset_script(self) -> None:
         self._queue = list(self._script)
 
-    def complete(self, messages, *, temperature: float = 0.0, max_tokens: int = 1024):
+    def complete(
+        self,
+        messages,
+        *,
+        temperature: float = 0.0,
+        max_tokens: int = 1024,
+        **kwargs,
+    ):
         if not self._queue:
             self._queue = list(self._script)
         return super().complete(
-            messages, temperature=temperature, max_tokens=max_tokens
+            messages, temperature=temperature, max_tokens=max_tokens, **kwargs
         )
 
 
@@ -354,6 +394,8 @@ class UnifiedHkPeFinLiteRunner:
         smoke: bool = False,
         diagnostic12: bool = False,
         smoke5: bool = False,
+        diagnostic20_eea: bool = False,
+        eea_enabled: bool = False,
         ids: Optional[Sequence[str]] = None,
         max_tasks: Optional[int] = None,
         resume: bool = False,
@@ -378,8 +420,12 @@ class UnifiedHkPeFinLiteRunner:
         self.smoke = bool(smoke)
         self.diagnostic12 = bool(diagnostic12)
         self.smoke5 = bool(smoke5)
+        self.diagnostic20_eea = bool(diagnostic20_eea)
+        self.eea_enabled = bool(eea_enabled) or self.diagnostic20_eea
         if self.diagnostic12 and self.smoke5:
             raise RuntimeError("Cannot combine --diagnostic12 and --smoke5")
+        if self.diagnostic20_eea and (self.diagnostic12 or self.smoke5):
+            raise RuntimeError("Cannot combine --diagnostic20-eea with diagnostic12/smoke5")
         self.ids = list(ids) if ids else None
         self.max_tasks = max_tasks
         self.resume = resume
@@ -416,8 +462,14 @@ class UnifiedHkPeFinLiteRunner:
             float(x)
             for x in (self.config.get("embedding_retry_backoff_seconds") or [1, 2, 4])
         ]
-        self.condition = PE_FIN_LITE_CONDITION
-        self.method_version = PE_FIN_LITE_METHOD_VERSION
+        if self.eea_enabled:
+            self.condition = PE_FIN_LITE_EEA_CONDITION
+            self.method_version = PE_FIN_LITE_EEA_METHOD_VERSION
+            self.protocol_version = PE_FIN_LITE_EEA_PROTOCOL_VERSION
+        else:
+            self.condition = PE_FIN_LITE_CONDITION
+            self.method_version = PE_FIN_LITE_METHOD_VERSION
+            self.protocol_version = None
         self.architecture = PE_FIN_LITE_ARCHITECTURE
         self.execution_backend = "real_mcp"
         self.system_prompt = PE_FIN_LITE_SYSTEM_PROMPT
@@ -449,13 +501,13 @@ class UnifiedHkPeFinLiteRunner:
     def _load_tasks(self) -> List[Dict[str, Any]]:
         effective_split = self.split
         confirm_retire = self.confirm_retire_heldout
-        if self.diagnostic12 or self.smoke5:
+        if self.diagnostic12 or self.smoke5 or self.diagnostic20_eea:
             effective_split = "exploratory_all"
             if self.dry_run and not confirm_retire:
                 confirm_retire = True
             if not self.dry_run and not confirm_retire:
                 raise RuntimeError(
-                    "diagnostic12/smoke5 requires --split exploratory_all "
+                    "diagnostic12/smoke5/diagnostic20-eea requires --split exploratory_all "
                     "--confirm-retire-heldout (except dry-run)."
                 )
 
@@ -466,7 +518,13 @@ class UnifiedHkPeFinLiteRunner:
             split=effective_split, confirm_retire_heldout=confirm_retire
         )
 
-        if self.diagnostic12:
+        if self.diagnostic20_eea:
+            self._diagnostic20_eea_manifest = load_diagnostic20_eea_manifest(self.root)
+            self.split = "exploratory_all"
+            tasks = load_diagnostic20_eea_tasks(self.root)
+            self._exploratory_manifest = load_exploratory_manifest(self.root)
+            self._exploratory_run_order = load_exploratory_run_order(self.root)
+        elif self.diagnostic12:
             self._diagnostic_manifest = load_diagnostic12_manifest(self.root)
             self.split = "exploratory_all"
             tasks = load_diagnostic12_tasks(self.root)
@@ -586,6 +644,14 @@ class UnifiedHkPeFinLiteRunner:
             smoke5_manifest_hash = man.get("manifest_hash")
             dman = self._diagnostic_manifest or load_diagnostic12_manifest(self.root)
             diagnostic_manifest_hash = dman.get("manifest_hash")
+        elif self.diagnostic20_eea:
+            subset_kind = "diagnostic20_eea"
+            man = getattr(self, "_diagnostic20_eea_manifest", None) or load_diagnostic20_eea_manifest(
+                self.root
+            )
+            subset_manifest_hash = man.get("manifest_sha256")
+            subset_ordered_id_hash = man.get("ordered_task_ids_hash")
+            diagnostic_manifest_hash = man.get("manifest_sha256")
         elif self.smoke:
             subset_kind = "smoke"
 
@@ -666,6 +732,19 @@ class UnifiedHkPeFinLiteRunner:
             "smoke5_manifest_hash": smoke5_manifest_hash,
             "diagnostic12": self.diagnostic12,
             "smoke5": self.smoke5,
+            "diagnostic20_eea": self.diagnostic20_eea,
+            "eea_enabled": self.eea_enabled,
+            "protocol_version": self.protocol_version,
+            **(
+                {
+                    "posthoc_exploratory": True,
+                    "formal_primary_result": False,
+                    "developed_after_hk155_result_inspection": True,
+                    "eea_flags": dict(EEA_FLAGS),
+                }
+                if self.eea_enabled
+                else {}
+            ),
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
             "planner_max_tokens": self.planner_max_tokens,
@@ -695,7 +774,10 @@ class UnifiedHkPeFinLiteRunner:
                 dry_run=self.dry_run,
                 mock=self.mock,
                 confirm_retire_heldout=self.confirm_retire_heldout
-                or bool((self.diagnostic12 or self.smoke5) and self.dry_run),
+                or bool(
+                    (self.diagnostic12 or self.smoke5 or self.diagnostic20_eea)
+                    and self.dry_run
+                ),
                 git_commit=git_commit(self.root),
                 prompt_hash=prompt_h,
                 catalog_fingerprint=cat_fp,
@@ -879,6 +961,7 @@ class UnifiedHkPeFinLiteRunner:
             "limits": dict(self.limits),
             "retrieval": dict(self.retrieval),
             "use_mock_binder": bool(self.mock),
+            "eea_enabled": bool(self.eea_enabled),
         }
         return PeFinLiteAgent(
             llm=llm,
@@ -942,6 +1025,15 @@ class UnifiedHkPeFinLiteRunner:
             "condition": self.condition,
             "method_version": self.method_version,
             "architecture": self.architecture,
+            "eea_enabled": bool(self.eea_enabled),
+            "protocol_version": self.protocol_version,
+            "posthoc_exploratory": bool(self.eea_enabled),
+            "formal_primary_result": False if self.eea_enabled else None,
+            "answerability_state": result.get("answerability_state"),
+            "answerability_reason_code": result.get("answerability_reason_code"),
+            "core_outputs_satisfied": result.get("core_outputs_satisfied"),
+            "optional_outputs_missing": result.get("optional_outputs_missing"),
+            "infeasibility_evidence": result.get("infeasibility_evidence"),
             "initial_plan": result.get("initial_plan"),
             "step_statuses": result.get("step_statuses"),
             "retrieval_funnels": result.get("retrieval_funnels"),
@@ -1295,7 +1387,10 @@ class UnifiedHkPeFinLiteRunner:
                 if self._gateway is not None and hasattr(self._gateway, "begin_task"):
                     self._gateway.begin_task()
                 try:
-                    result = agent.run(item["question"])
+                    result = agent.run(
+                        item["question"],
+                        answerability_class=item.get("answerability_class"),
+                    )
                 except (LlmCallBudgetExhausted, McpBudgetExhausted) as exc:
                     result = structured_budget_failure(exc)
                 except (KeyboardInterrupt, SystemExit):

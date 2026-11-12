@@ -48,6 +48,19 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Run engineering Smoke-5 (not a formal accuracy result)",
     )
+    p.add_argument(
+        "--diagnostic20-eea",
+        action="store_true",
+        help=(
+            "Run PE-Fin Lite v1.2-EEA Development Diagnostic-20 "
+            "(post-hoc exploratory; NOT formal accuracy)"
+        ),
+    )
+    p.add_argument(
+        "--eea",
+        action="store_true",
+        help="Enable PE-Fin Lite v1.2-EEA execution/evidence alignment (post-hoc)",
+    )
     p.add_argument("--ids", default=None, help="Comma-separated task ids")
     p.add_argument("--max-tasks", type=int, default=None)
     p.add_argument(
@@ -99,6 +112,8 @@ def main() -> None:
 
     if args.diagnostic12 and args.smoke5:
         raise SystemExit("Cannot combine --diagnostic12 and --smoke5")
+    if args.diagnostic20_eea and (args.diagnostic12 or args.smoke5):
+        raise SystemExit("Cannot combine --diagnostic20-eea with diagnostic12/smoke5")
 
     if args.output_dir:
         output_dir = Path(args.output_dir)
@@ -118,6 +133,8 @@ def main() -> None:
         smoke=args.smoke,
         diagnostic12=args.diagnostic12,
         smoke5=args.smoke5,
+        diagnostic20_eea=args.diagnostic20_eea,
+        eea_enabled=bool(args.eea or args.diagnostic20_eea),
         ids=parse_ids(args.ids),
         max_tasks=args.max_tasks,
         resume=args.resume,

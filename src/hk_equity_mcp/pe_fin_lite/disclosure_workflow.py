@@ -913,6 +913,7 @@ def run_disclosure_composite(
     max_stages: int = 5,
     question: str = "",
     grounding: Optional[Dict[str, Any]] = None,
+    eea_enabled: bool = False,
 ) -> Dict[str, Any]:
     """Execute shortest required prefix of the disclosure chain."""
     from hk_equity_mcp.pe_fin_lite.argument_grounding import (
@@ -942,6 +943,8 @@ def run_disclosure_composite(
     need_text = needs_document_text(required_outputs)
     title_broadened = False
     selection_obs: Dict[str, Any] = {}
+    list_ordered_rows: List[Dict[str, Any]] = []
+    alternate_list_row_used = False
 
     # Optional lookup when name-only.
     if g.get("needs_lookup") and not g.get("stock_code"):
@@ -1191,6 +1194,9 @@ def run_disclosure_composite(
                 "rejected_sample": ranked.get("rejected") or [],
                 "title_broadened": title_broadened,
             }
+            list_ordered_rows = [
+                r for r in (ranked.get("ordered") or []) if isinstance(r, dict)
+            ]
             if selected:
                 row_vals = _row_to_values(selected, stock_code=g.get("stock_code"))
                 list_evidence.update(row_vals)
@@ -1270,8 +1276,78 @@ def run_disclosure_composite(
             }
         )
         if not success:
-            last_error = f"stage_failed:{stage}"
-            break
+            # EEA: at most one second-candidate switch on download/parse failure.
+            # Never erase already-verified list evidence.
+            if (
+                eea_enabled
+                and stage in {"download", "parse"}
+                and not alternate_list_row_used
+                and len(list_ordered_rows) >= 2
+            ):
+                alt = list_ordered_rows[1]
+                alt_vals = _row_to_values(alt, stock_code=g.get("stock_code"))
+                # Keep list_evidence; replace document pointers only.
+                for k in ("news_id", "local_key", "title", "release_date", "source_url", "file_link"):
+                    if alt_vals.get(k) is not None:
+                        chain_state[k] = alt_vals[k]
+                        values.setdefault(k, alt_vals[k])
+                alternate_list_row_used = True
+                trace.append(
+                    {
+                        "stage": f"{stage}_alternate_list_row",
+                        "success": False,
+                        "gateway_success": False,
+                        "error": f"stage_failed:{stage};switching_to_second_candidate",
+                        "alternate_list_row_used": True,
+                    }
+                )
+                # Retry same stage once with second candidate (counts as MCP via re-invoke).
+                args = build_stage_arguments(
+                    stage=stage,
+                    contract=contract,
+                    chain_state=chain_state,
+                    step=step,
+                    grounding=g,
+                    omit_title=False,
+                )
+                try:
+                    result = _invoke_once(args)
+                except Exception as exc:  # noqa: BLE001
+                    last_error = f"stage_exception:{stage}_alt:{type(exc).__name__}:{exc}"
+                    break
+                invoked.append(oid)
+                success = bool(result.get("success")) if isinstance(result, dict) else False
+                gateway_flags[oid] = gateway_flags.get(oid, False) or success
+                payload = result.get("result") if isinstance(result, dict) else result
+                extracted = _extract_chain_fields(payload)
+                if isinstance(result, dict):
+                    extracted.update(_extract_chain_fields(result))
+                trace.append(
+                    {
+                        "stage": f"{stage}_second_candidate",
+                        "operation_id": oid,
+                        "arguments": {
+                            k: args[k]
+                            for k in args
+                            if "key" not in k.lower() or k == "local_key"
+                        },
+                        "success": success,
+                        "gateway_success": success,
+                        "extracted_fields": sorted(extracted.keys()),
+                        "alternate_list_row_used": True,
+                        "error": None if success else (
+                            result.get("error") if isinstance(result, dict) else "invoke_failed"
+                        ),
+                    }
+                )
+                if not success:
+                    last_error = f"stage_failed:{stage}_second_candidate"
+                    break
+                chain_state.update({k: v for k, v in extracted.items() if v is not None})
+                values.update({k: v for k, v in extracted.items() if v is not None})
+            else:
+                last_error = f"stage_failed:{stage}"
+                break
 
         # After successful list: stop if required outputs already satisfied and
         # no document-text fields are required.
@@ -1326,4 +1402,6 @@ def run_disclosure_composite(
         "title_broadened": title_broadened,
         "selection_observability": selection_obs,
         "disclosure_policy_version": DISCLOSURE_POLICY_VERSION,
+        "alternate_list_row_used": alternate_list_row_used,
+        "eea_enabled": bool(eea_enabled),
     }

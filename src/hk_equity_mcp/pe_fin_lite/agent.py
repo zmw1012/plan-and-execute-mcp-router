@@ -96,10 +96,16 @@ class PeFinLiteAgent:
         self.allow_hkex_download = bool(allow_hkex_download)
         self.budget = BudgetTracker(self.limits)
         self._use_mock_binder = bool(self.config.get("use_mock_binder", False))
+        self.eea_enabled = bool(self.config.get("eea_enabled", False))
         if self.live_mode and self._use_mock_binder:
             raise RuntimeError("PE-Fin Lite fail-closed: use_mock_binder forbidden in live_mode")
 
-    def run(self, question: str) -> Dict[str, Any]:
+    def run(
+        self,
+        question: str,
+        *,
+        answerability_class: Optional[str] = None,
+    ) -> Dict[str, Any]:
         started = time.perf_counter()
         self.budget = BudgetTracker(self.limits)
         self.llm = BudgetedLLMClient(self._raw_llm, self.budget)
@@ -124,6 +130,7 @@ class PeFinLiteAgent:
         step_state: Dict[str, str] = {}
         skip_execution = False
         planner_out: Dict[str, Any] = {}
+        answerability_info: Optional[Dict[str, Any]] = None
 
         try:
             planner_out = run_planner(
@@ -210,6 +217,7 @@ class PeFinLiteAgent:
                         temperature=self.temperature,
                         max_tokens=self.max_tokens,
                         use_mock_binder=self._use_mock_binder,
+                        eea_enabled=self.eea_enabled,
                     )
                     total_usage = _merge_usage(total_usage, out.get("usage") or {})
                     funnel = out.get("funnel") or {}
@@ -314,7 +322,9 @@ class PeFinLiteAgent:
                         }
                     )
                 elif stype == "compute":
-                    out = execute_compute_step(step=step, store=store)
+                    out = execute_compute_step(
+                        step=step, store=store, eea_enabled=self.eea_enabled
+                    )
                     result = out["step_result"]
                     if result.get("status") == "completed":
                         completed_ok.add(sid)
@@ -449,11 +459,77 @@ class PeFinLiteAgent:
                         }
                     )
 
+            if not skip_execution and self.eea_enabled and final_obj is None:
+                from hk_equity_mcp.pe_fin_lite.answerability_eea import (
+                    classify_answerability,
+                    final_status_from_answerability,
+                )
+                from hk_equity_mcp.pe_fin_lite.temporal_policy import (
+                    assess_latest_current_refusal,
+                )
+
+                temporal2 = assess_latest_current_refusal(
+                    question=question,
+                    evidence_store=store.to_dict(),
+                )
+                merge_conflicts = []
+                for f in funnels:
+                    lf = f.get("local_fallback") or {}
+                    merge_conflicts.extend(list(lf.get("merge_conflicts") or []))
+                answerability_info = classify_answerability(
+                    plan=plan,
+                    store=store,
+                    step_statuses=step_statuses,
+                    merge_conflicts=merge_conflicts,
+                    answerability_class=answerability_class,
+                    temporal_blocked=bool(temporal2 and temporal2.get("should_refuse")),
+                )
+                trace.append({"stage": "answerability_eea", **answerability_info})
+                guided = final_status_from_answerability(
+                    str(answerability_info.get("answerability_state"))
+                )
+                if guided == "unavailable" and answerability_info.get(
+                    "answerability_state"
+                ) == "infeasible":
+                    final_obj = {
+                        "status": "unavailable",
+                        "final_answer": "",
+                        "reasoning_brief": (
+                            "EEA answerability=infeasible; refuse/clarify without inventing."
+                        ),
+                        "refusal_reason": answerability_info.get(
+                            "answerability_reason_code"
+                        ),
+                    }
+                    status = "partial"
+                    stopping_reason = stopping_reason or str(
+                        answerability_info.get("answerability_reason_code")
+                    )
+                elif answerability_info.get("answerability_state") == "contradictory":
+                    final_obj = {
+                        "status": "answered",
+                        "final_answer": (
+                            "Conflicting verified evidence for the same entity/period/basis; "
+                            "cannot deterministically resolve. "
+                            f"Conflicts: {answerability_info.get('infeasibility_evidence')}"
+                        ),
+                        "reasoning_brief": "EEA answerability=contradictory; report conflict.",
+                        "limitations": ["conflicting_evidence"],
+                    }
+                    status = "partial"
+
             if not skip_execution and final_obj is None:
                 missing_notes = [
                     f"{m.get('step_id')}:{m.get('failure_reason') or m.get('missing_outputs')}"
                     for m in store.missing
                 ]
+                if answerability_info and answerability_info.get(
+                    "answerability_state"
+                ) == "partial_but_answerable":
+                    missing_notes.append(
+                        "eea_partial_but_answerable:"
+                        + str(answerability_info.get("optional_outputs_missing"))
+                    )
                 final_user = render_final_user(
                     question=question,
                     step_statuses=step_statuses,
@@ -648,7 +724,7 @@ class PeFinLiteAgent:
             invoke_records=invoke_records,
             status=status,
         )
-        return {
+        out_row = {
             "status": status,
             "error": error,
             "error_type": error_type,
@@ -703,3 +779,31 @@ class PeFinLiteAgent:
             "checkpoint_trace_contract_version": CHECKPOINT_TRACE_CONTRACT_VERSION,
             "checkpoint_observability_hash": checkpoint_observability_hash(),
         }
+        if self.eea_enabled:
+            from hk_equity_mcp.pe_fin_lite.eea_identity import (
+                PE_FIN_LITE_EEA_METHOD_VERSION,
+                PE_FIN_LITE_EEA_PROTOCOL_VERSION,
+            )
+
+            out_row["eea_enabled"] = True
+            out_row["method_version_eea"] = PE_FIN_LITE_EEA_METHOD_VERSION
+            out_row["protocol_version"] = PE_FIN_LITE_EEA_PROTOCOL_VERSION
+            out_row["posthoc_exploratory"] = True
+            out_row["formal_primary_result"] = False
+            if answerability_info:
+                out_row["answerability_state"] = answerability_info.get(
+                    "answerability_state"
+                )
+                out_row["answerability_reason_code"] = answerability_info.get(
+                    "answerability_reason_code"
+                )
+                out_row["core_outputs_satisfied"] = answerability_info.get(
+                    "core_outputs_satisfied"
+                )
+                out_row["optional_outputs_missing"] = answerability_info.get(
+                    "optional_outputs_missing"
+                )
+                out_row["infeasibility_evidence"] = answerability_info.get(
+                    "infeasibility_evidence"
+                )
+        return out_row

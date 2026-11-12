@@ -65,8 +65,60 @@ def execute_compute_step(
     *,
     step: Dict[str, Any],
     store: EvidenceStore,
+    eea_enabled: bool = False,
 ) -> Dict[str, Any]:
     spec = step.get("compute_spec") or {}
+    if eea_enabled:
+        from hk_equity_mcp.pe_fin_lite.compute_binding_eea import bind_compute_operands
+
+        bound = bind_compute_operands(spec=spec, store=store)
+        if not bound.get("ok"):
+            fc = str(bound.get("failure_class") or "operand_binding_failed")
+            status = (
+                "skipped_due_to_dependency"
+                if fc == "upstream_evidence_missing"
+                else "failed"
+            )
+            record = compute_record(
+                step_id=str(step["id"]),
+                spec=spec,
+                error=f"{fc}:{bound.get('errors')}",
+            )
+            record["compute_operand_bindings"] = bound.get("bindings")
+            record["failure_class"] = fc
+            store.add_compute_record(record)
+            return {
+                "step_result": make_step_result(
+                    status=status,
+                    failure_reason=record["error"],
+                    missing_outputs=[
+                        str(b.get("operand_ref"))
+                        for b in (bound.get("bindings") or [])
+                        if not b.get("ok")
+                    ],
+                    execution_ok=False,
+                    extra={
+                        "compute_operand_bindings": bound.get("bindings"),
+                        "failure_class": fc,
+                    },
+                ),
+                "compute_record": record,
+            }
+        evaluated = bound["evaluated"]
+        record = compute_record(step_id=str(step["id"]), spec=spec, evaluated=evaluated)
+        record["compute_operand_bindings"] = bound.get("bindings")
+        store.add_compute_record(record)
+        return {
+            "step_result": make_step_result(
+                execution_ok=True,
+                values={str(spec.get("output_name")): evaluated["result"]},
+                provenance={"source": "compute", "formula": evaluated["expression"]},
+                status="completed",
+                extra={"compute_operand_bindings": bound.get("bindings")},
+            ),
+            "compute_record": record,
+        }
+
     refs = dict(spec.get("operand_refs") or {})
     resolved = {}
     missing = []
@@ -301,6 +353,8 @@ def _build_accepted_field_map(
     arguments: Dict[str, Any],
     operation_id: str,
     question_grounding: Optional[Dict[str, Any]] = None,
+    eea_enabled: bool = False,
+    question: str = "",
 ) -> Dict[str, Any]:
     from hk_equity_mcp.pe_fin_lite.evidence_provenance import (
         apply_deterministic_derivations,
@@ -310,8 +364,25 @@ def _build_accepted_field_map(
         values_from_field_map,
     )
 
+    pool = dict(projected_values or {})
+    if eea_enabled:
+        from hk_equity_mcp.pe_fin_lite.evidence_acceptance_eea import (
+            apply_aliases_to_pool,
+            forbid_question_target_as_observed,
+            make_evidence_field_record,
+            required_outputs_satisfaction_eea,
+        )
+
+        pool = apply_aliases_to_pool(pool)
+        # Drop answer-bearing values that are verbatim question target numbers.
+        for key in list(pool.keys()):
+            if forbid_question_target_as_observed(
+                field=str(key), value=pool.get(key), question=question
+            ):
+                pool.pop(key, None)
+
     observed = observed_field_map(
-        projected_values,
+        pool,
         source="mcp",
         ref=f"invoke:{operation_id}",
     )
@@ -329,12 +400,29 @@ def _build_accepted_field_map(
     merged = apply_deterministic_derivations(
         merged, arguments=arguments, step=step
     )
-    sat = required_outputs_satisfaction(merged, required_outputs)
+    if eea_enabled:
+        sat = required_outputs_satisfaction_eea(merged, required_outputs)
+        field_records = [
+            make_evidence_field_record(
+                canonical_name=k,
+                raw_name=k,
+                value=(v or {}).get("value"),
+                provenance_class=str((v or {}).get("provenance_class") or ""),
+                operation_id=operation_id,
+            )
+            for k, v in merged.items()
+        ]
+    else:
+        sat = required_outputs_satisfaction(merged, required_outputs)
+        field_records = []
     return {
         "field_map": merged,
         "values": values_from_field_map(merged),
         "satisfaction": sat,
         "missing_outputs": list(sat.get("missing") or []),
+        "missing_context": list(sat.get("missing_context") or []) if eea_enabled else [],
+        "missing_optional": list(sat.get("missing_optional") or []) if eea_enabled else [],
+        "evidence_field_records": field_records,
     }
 
 
@@ -346,6 +434,8 @@ def _evaluate_invoke(
     operation_id: str,
     arguments: Dict[str, Any],
     question_grounding: Optional[Dict[str, Any]] = None,
+    eea_enabled: bool = False,
+    question: str = "",
 ) -> Dict[str, Any]:
     from hk_equity_mcp.pe_fin_lite.evidence_provenance import scope_fingerprint
 
@@ -394,6 +484,8 @@ def _evaluate_invoke(
         arguments=arguments,
         operation_id=operation_id,
         question_grounding=question_grounding,
+        eea_enabled=eea_enabled,
+        question=question,
     )
     values = dict(accepted["values"])
     missing = list(accepted["missing_outputs"])
@@ -453,6 +545,18 @@ def _evaluate_invoke(
                 "field_map": field_map,
                 "scope_fingerprint": scope_fingerprint(step, arguments),
                 "satisfaction": accepted.get("satisfaction"),
+                "evidence_field_records": accepted.get("evidence_field_records") or [],
+                "missing_context": accepted.get("missing_context") or [],
+                "missing_optional": accepted.get("missing_optional") or [],
+                "answer_bearing_outputs_satisfied": bool(
+                    (accepted.get("satisfaction") or {}).get("ok")
+                )
+                if eea_enabled
+                else None,
+                "context_outputs_satisfied": (
+                    not bool(accepted.get("missing_context")) if eea_enabled else None
+                ),
+                "optional_outputs_missing": accepted.get("missing_optional") or [],
             },
         )
     )
@@ -460,12 +564,19 @@ def _evaluate_invoke(
     result["gateway_success"] = gateway_success
     result["normalization_success"] = normalization_success
     result["required_outputs_satisfied"] = required_ok
+    if eea_enabled:
+        result["evidence_field_records"] = accepted.get("evidence_field_records") or []
+        result["optional_outputs_missing"] = accepted.get("missing_optional") or []
+        result["context_outputs_missing"] = accepted.get("missing_context") or []
+        result["answer_bearing_outputs_satisfied"] = required_ok
     return result
 
 
 def merge_partial_retrieve_results(
     primary: Dict[str, Any],
     fallback: Dict[str, Any],
+    *,
+    eea_enabled: bool = False,
 ) -> Dict[str, Any]:
     """Merge primary partial verified values with fallback fill-ins (same scope only)."""
     from hk_equity_mcp.pe_fin_lite.evidence_provenance import (
@@ -479,7 +590,36 @@ def merge_partial_retrieve_results(
     f_map = dict(fallback.get("field_map") or (fallback.get("provenance") or {}).get("field_provenance") or {})
     p_scope = primary.get("scope_fingerprint") or {}
     f_scope = fallback.get("scope_fingerprint") or {}
-    if p_scope and f_scope and not scopes_compatible(p_scope, f_scope):
+    if eea_enabled:
+        from hk_equity_mcp.pe_fin_lite.evidence_acceptance_eea import (
+            merge_primary_fallback_eea,
+            required_outputs_satisfaction_eea,
+        )
+
+        merge_out = merge_primary_fallback_eea(
+            p_map, f_map, primary_scope=p_scope, fallback_scope=f_scope
+        )
+        if not merge_out.get("ok"):
+            out = dict(primary)
+            out.update(
+                {
+                    "status": "unavailable",
+                    "execution_ok": False,
+                    "failure_reason": "partial_merge_rejected_eea",
+                    "merge_conflicts": merge_out.get("conflicts") or [],
+                    "field_map": merge_out.get("merged") or p_map,
+                    "values": values_from_field_map(merge_out.get("merged") or p_map),
+                    "step_completed": False,
+                    "required_outputs_satisfied": False,
+                    "primary_fallback_merge_status": merge_out.get(
+                        "primary_fallback_merge_status"
+                    ),
+                }
+            )
+            return out
+        merged_map = merge_out["merged"]
+        conflicts: List[Any] = []
+    elif p_scope and f_scope and not scopes_compatible(p_scope, f_scope):
         out = dict(fallback)
         out["status"] = "unavailable"
         out["execution_ok"] = False
@@ -489,9 +629,11 @@ def merge_partial_retrieve_results(
         out["step_completed"] = False
         # Preserve primary partials in merge_trace only.
         out["primary_partial_values"] = dict(primary.get("values") or {})
+        out["primary_fallback_merge_status"] = "rejected_scope"
         return out
+    else:
+        merged_map, conflicts = merge_field_maps(p_map, f_map)
 
-    merged_map, conflicts = merge_field_maps(p_map, f_map)
     if conflicts:
         out = dict(primary)
         out.update(
@@ -536,7 +678,14 @@ def merge_partial_retrieve_results(
             + list((fallback.get("satisfaction") or {}).get("missing") or [])
         )
     ) or req_outputs
-    sat = required_outputs_satisfaction(merged_map, required_outputs)
+    if eea_enabled:
+        from hk_equity_mcp.pe_fin_lite.evidence_acceptance_eea import (
+            required_outputs_satisfaction_eea,
+        )
+
+        sat = required_outputs_satisfaction_eea(merged_map, required_outputs)
+    else:
+        sat = required_outputs_satisfaction(merged_map, required_outputs)
     values = values_from_field_map(merged_map)
     out = dict(primary)
     out["values"] = values
@@ -568,6 +717,7 @@ def merge_partial_retrieve_results(
     out = finalize_retrieve_status(out)
     out["step_completed"] = retrieve_step_succeeded(out)
     out["merge_conflicts"] = []
+    out["primary_fallback_merge_status"] = "merged"
     return out
 
 
@@ -585,6 +735,7 @@ def execute_retrieve_step(
     temperature: float = 0.0,
     max_tokens: int = 1024,
     use_mock_binder: bool = False,
+    eea_enabled: bool = False,
 ) -> Dict[str, Any]:
     funnel: Dict[str, Any] = {
         "step_id": step.get("id"),
@@ -633,6 +784,7 @@ def execute_retrieve_step(
             allow_hkex_download=allow_hkex_download,
             question=question,
             grounding=grounding,
+            eea_enabled=eea_enabled,
         )
         gw_flags = dict(composite.get("gateway_success_by_operation") or {})
         result = finalize_retrieve_status(
@@ -841,11 +993,12 @@ def execute_retrieve_step(
 
     required_outputs = list(step.get("required_outputs") or [])
     budget.primary_selected += 1
+    primary_args = dict(primary["arguments"] or {})
     primary_invoke = _invoke_with_budget(
         resolver=resolver,
         budget=budget,
         operation_id=primary["operation_id"],
-        arguments=primary["arguments"],
+        arguments=primary_args,
     )
     funnel["invoked_operations"].append(primary["operation_id"])
     result = _evaluate_invoke(
@@ -853,12 +1006,180 @@ def execute_retrieve_step(
         required_outputs=required_outputs,
         step=step,
         operation_id=primary["operation_id"],
-        arguments=primary["arguments"],
+        arguments=primary_args,
         question_grounding=grounding,
+        eea_enabled=eea_enabled,
+        question=question,
     )
     funnel["invoke_gateway_success"] = {
         primary["operation_id"]: bool(result.get("gateway_success")),
     }
+
+    eea_obs: Dict[str, Any] = {
+        "execution_failure_class": None,
+        "local_repair_attempted": False,
+        "local_repair_kind": None,
+        "local_repair_success": None,
+        "fallback_attempted": False,
+        "fallback_success": None,
+        "transport_retry_attempted": False,
+    }
+
+    # EEA: classify + at most one local repair / transport retry before fallback.
+    if eea_enabled and not retrieve_step_succeeded(result):
+        from hk_equity_mcp.pe_fin_lite.execution_error_handling import (
+            classify_execution_failure,
+            empty_or_no_result,
+            local_repair_arguments,
+            should_argument_repair,
+            should_skip_primary_retry_use_fallback,
+            should_transport_retry,
+        )
+
+        failure_class = classify_execution_failure(
+            invoke_result=primary_invoke,
+            evaluated=result,
+            arguments=primary_args,
+            required_schema_props=list(
+                (
+                    (described_contracts.get(primary["operation_id"]) or {}).get(
+                        "json_schema"
+                    )
+                    or {}
+                ).get("required")
+                or []
+            ),
+        )
+        eea_obs["execution_failure_class"] = failure_class
+        contract = described_contracts.get(primary["operation_id"]) or {}
+
+        if should_transport_retry(failure_class):
+            eea_obs["transport_retry_attempted"] = True
+            retry_invoke = _invoke_with_budget(
+                resolver=resolver,
+                budget=budget,
+                operation_id=primary["operation_id"],
+                arguments=primary_args,
+            )
+            funnel["invoked_operations"].append(primary["operation_id"])
+            result = _evaluate_invoke(
+                invoke_result=retry_invoke,
+                required_outputs=required_outputs,
+                step=step,
+                operation_id=primary["operation_id"],
+                arguments=primary_args,
+                question_grounding=grounding,
+                eea_enabled=eea_enabled,
+                question=question,
+            )
+            funnel["invoke_gateway_success"][primary["operation_id"]] = bool(
+                result.get("gateway_success")
+            )
+            primary_invoke = retry_invoke
+            if not retrieve_step_succeeded(result):
+                failure_class = classify_execution_failure(
+                    invoke_result=retry_invoke,
+                    evaluated=result,
+                    arguments=primary_args,
+                )
+                eea_obs["execution_failure_class"] = failure_class
+
+        if (
+            not retrieve_step_succeeded(result)
+            and should_argument_repair(failure_class)
+        ):
+            repaired = local_repair_arguments(
+                arguments=primary_args,
+                step=step,
+                grounding=grounding,
+                contract=contract,
+                evidence_values=store.values,
+            )
+            eea_obs["local_repair_attempted"] = True
+            eea_obs["local_repair_kind"] = repaired.get("local_repair_kind")
+            if repaired.get("changed"):
+                primary_args = repaired["arguments"]
+                repair_invoke = _invoke_with_budget(
+                    resolver=resolver,
+                    budget=budget,
+                    operation_id=primary["operation_id"],
+                    arguments=primary_args,
+                )
+                funnel["invoked_operations"].append(primary["operation_id"])
+                result = _evaluate_invoke(
+                    invoke_result=repair_invoke,
+                    required_outputs=required_outputs,
+                    step=step,
+                    operation_id=primary["operation_id"],
+                    arguments=primary_args,
+                    question_grounding=grounding,
+                    eea_enabled=eea_enabled,
+                    question=question,
+                )
+                funnel["invoke_gateway_success"][primary["operation_id"]] = bool(
+                    result.get("gateway_success")
+                )
+                eea_obs["local_repair_success"] = retrieve_step_succeeded(result)
+                if not retrieve_step_succeeded(result):
+                    failure_class = classify_execution_failure(
+                        invoke_result=repair_invoke,
+                        evaluated=result,
+                        arguments=primary_args,
+                    )
+                    eea_obs["execution_failure_class"] = failure_class
+            else:
+                eea_obs["local_repair_success"] = False
+
+        # Empty/no-result: allow one safe query relaxation OR fallback (not both extra tools beyond fallback).
+        if (
+            not retrieve_step_succeeded(result)
+            and empty_or_no_result(failure_class)
+            and fallback is None
+        ):
+            relaxed = local_repair_arguments(
+                arguments=primary_args,
+                step=step,
+                grounding=grounding,
+                contract=contract,
+                evidence_values=store.values,
+            )
+            # Safe relaxation: drop overly-specific optional title filters only.
+            args2 = dict(relaxed.get("arguments") or primary_args)
+            for drop_key in ("title", "title_keyword", "keyword"):
+                if drop_key in args2 and drop_key not in (
+                    list((contract.get("json_schema") or {}).get("required") or [])
+                ):
+                    args2.pop(drop_key, None)
+            if args2 != primary_args:
+                eea_obs["local_repair_attempted"] = True
+                eea_obs["local_repair_kind"] = (
+                    str(eea_obs.get("local_repair_kind") or "") + "+query_relax"
+                ).strip("+")
+                relax_invoke = _invoke_with_budget(
+                    resolver=resolver,
+                    budget=budget,
+                    operation_id=primary["operation_id"],
+                    arguments=args2,
+                )
+                funnel["invoked_operations"].append(primary["operation_id"])
+                result = _evaluate_invoke(
+                    invoke_result=relax_invoke,
+                    required_outputs=required_outputs,
+                    step=step,
+                    operation_id=primary["operation_id"],
+                    arguments=args2,
+                    question_grounding=grounding,
+                    eea_enabled=eea_enabled,
+                    question=question,
+                )
+                funnel["invoke_gateway_success"][primary["operation_id"]] = bool(
+                    result.get("gateway_success")
+                )
+                eea_obs["local_repair_success"] = retrieve_step_succeeded(result)
+
+        if should_skip_primary_retry_use_fallback(failure_class):
+            # Do not further retry primary; fall through to fallback if any.
+            pass
 
     # Local fallback at most once — merge partial verified values when scopes match.
     need_fallback = (not retrieve_step_succeeded(result)) and fallback is not None
@@ -883,6 +1204,7 @@ def execute_retrieve_step(
         else:
             budget.local_fallback_count += 1
             budget.fallback_used += 1
+            eea_obs["fallback_attempted"] = True
             fb_invoke = _invoke_with_budget(
                 resolver=resolver,
                 budget=budget,
@@ -897,11 +1219,16 @@ def execute_retrieve_step(
                 operation_id=fallback["operation_id"],
                 arguments=fallback["arguments"],
                 question_grounding=grounding,
+                eea_enabled=eea_enabled,
+                question=question,
             )
             funnel["invoke_gateway_success"][fallback["operation_id"]] = bool(
                 fb_result.get("gateway_success")
             )
-            merged = merge_partial_retrieve_results(result, fb_result)
+            merged = merge_partial_retrieve_results(
+                result, fb_result, eea_enabled=eea_enabled
+            )
+            eea_obs["fallback_success"] = retrieve_step_succeeded(merged)
             funnel["local_fallback"] = {
                 "attempted": True,
                 "reason": fallback_reason,
@@ -909,8 +1236,19 @@ def execute_retrieve_step(
                 "success": retrieve_step_succeeded(merged),
                 "merged": True,
                 "merge_conflicts": merged.get("merge_conflicts") or [],
+                "primary_fallback_merge_status": merged.get("primary_fallback_merge_status"),
             }
             result = merged
+
+    if eea_enabled:
+        funnel["eea_execution"] = eea_obs
+        result["execution_failure_class"] = eea_obs.get("execution_failure_class")
+        result["local_repair_attempted"] = eea_obs.get("local_repair_attempted")
+        result["local_repair_success"] = eea_obs.get("local_repair_success")
+        result["primary_fallback_merge_status"] = (
+            (funnel.get("local_fallback") or {}).get("primary_fallback_merge_status")
+            or result.get("primary_fallback_merge_status")
+        )
 
     store.add_retrieve_result(step_id=str(step["id"]), result=result)
     gateway_ok_ids = [
