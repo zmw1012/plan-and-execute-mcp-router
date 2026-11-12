@@ -102,7 +102,7 @@ def main() -> int:
         out = (
             Path(args.output_dir)
             if args.output_dir
-            else ROOT / "outputs/pe_fin_replan_tool_readiness_v1/market_sina_probe"
+            else ROOT / "outputs/pe_fin_replan_tool_readiness_v1/market_sina_probe_v2"
         )
         if not out.is_absolute():
             out = (ROOT / out).resolve()

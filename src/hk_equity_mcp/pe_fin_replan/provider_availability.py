@@ -355,6 +355,11 @@ def validate_bound_operation(
 
 
 def resume_identity_fields(profile: Optional[Dict[str, Any]], filter_trace: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    from hk_equity_mcp.pe_fin_replan.sina_symbol import (
+        SINA_HK_SYMBOL_NORMALIZER_VERSION,
+        sina_symbol_normalizer_hash,
+    )
+
     if not profile:
         return {
             "market_provider_profile_id": None,
@@ -367,6 +372,8 @@ def resume_identity_fields(profile: Optional[Dict[str, Any]], filter_trace: Opti
             "provider_availability_contract_hash": None,
             "tool_readiness_contract_version": None,
             "tool_readiness_contract_hash": None,
+            "sina_symbol_normalizer_version": None,
+            "sina_symbol_normalizer_hash": None,
         }
     trace = filter_trace or {}
     preferred = dict(profile.get("preferred_operations") or {})
@@ -389,6 +396,8 @@ def resume_identity_fields(profile: Optional[Dict[str, Any]], filter_trace: Opti
         "provider_availability_contract_hash": provider_availability_contract_hash(),
         "tool_readiness_contract_version": TOOL_READINESS_CONTRACT_VERSION,
         "tool_readiness_contract_hash": tool_readiness_contract_hash(),
+        "sina_symbol_normalizer_version": SINA_HK_SYMBOL_NORMALIZER_VERSION,
+        "sina_symbol_normalizer_hash": sina_symbol_normalizer_hash(),
     }
 
 
@@ -405,8 +414,14 @@ def assert_tool_readiness_for_live(
     expected_profile_hash: str,
     mock: bool,
     dry_run: bool,
+    expected_normalizer_hash: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Live runs require a matching readiness artifact. Mock/dry-run must not forge pass."""
+    from hk_equity_mcp.pe_fin_replan.sina_symbol import (
+        SINA_HK_SYMBOL_NORMALIZER_VERSION,
+        sina_symbol_normalizer_hash,
+    )
+
     if mock or dry_run:
         return {
             "required": False,
@@ -417,13 +432,37 @@ def assert_tool_readiness_for_live(
         raise ProviderAvailabilityError(
             "require_tool_readiness: readiness artifact missing"
         )
+    # Reject invalidated v1 probe directory by path marker / sibling INVALIDATED.json
+    art_path = Path(artifact_path).resolve()
+    if (art_path.parent / "INVALIDATED.json").is_file():
+        raise ProviderAvailabilityError(
+            "require_tool_readiness: readiness artifact invalidated "
+            "(incorrect_hk_symbol_format); use market_sina_probe_v2"
+        )
     raw = Path(artifact_path).read_bytes()
     artifact_hash = _sha_bytes(raw)
     data = json.loads(raw.decode("utf-8"))
-    if data.get("status") != "pass":
+    norm_hash = expected_normalizer_hash or sina_symbol_normalizer_hash()
+
+    required_true = {
+        "status": "pass",
+        "gateway_success": True,
+        "normalization_success": True,
+        "scope_match": True,
+        "provider": "sina_via_akshare",
+        "network_called": True,
+        "live_probe_pass": True,
+        "normalized_symbol": "09988",
+    }
+    for key, expected in required_true.items():
+        if data.get(key) != expected:
+            raise ProviderAvailabilityError(
+                f"require_tool_readiness: {key}={data.get(key)!r} "
+                f"expected={expected!r} (v1 fail artifacts not accepted)"
+            )
+    if list(data.get("missing_outputs") or []) != []:
         raise ProviderAvailabilityError(
-            f"require_tool_readiness: artifact status={data.get('status')!r} "
-            "(market_provider_unavailable)"
+            "require_tool_readiness: missing_outputs must be empty"
         )
     if data.get("market_provider_profile_hash") != expected_profile_hash:
         raise ProviderAvailabilityError(
@@ -433,14 +472,20 @@ def assert_tool_readiness_for_live(
         raise ProviderAvailabilityError(
             f"require_tool_readiness: unexpected mode={data.get('mode')!r}"
         )
-    if data.get("network_called") is not True:
+    if data.get("sina_symbol_normalizer_version") != SINA_HK_SYMBOL_NORMALIZER_VERSION:
         raise ProviderAvailabilityError(
-            "require_tool_readiness: artifact did not record network_called=true"
+            "require_tool_readiness: sina_symbol_normalizer_version mismatch"
+        )
+    if data.get("sina_symbol_normalizer_hash") != norm_hash:
+        raise ProviderAvailabilityError(
+            "require_tool_readiness: sina_symbol_normalizer_hash mismatch"
         )
     return {
         "required": True,
         "status": "pass",
-        "artifact_path": str(Path(artifact_path).resolve()),
+        "artifact_path": str(art_path),
         "artifact_sha256": artifact_hash,
         "live_pass_forged": False,
+        "sina_symbol_normalizer_version": SINA_HK_SYMBOL_NORMALIZER_VERSION,
+        "sina_symbol_normalizer_hash": norm_hash,
     }

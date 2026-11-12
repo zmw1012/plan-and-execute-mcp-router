@@ -168,7 +168,8 @@ class MarketRealMcpGateway:
                     error_type="validation_error",
                 )
 
-        # Sina stock_hk_daily: unadjusted only; normalize symbol to XXXXX.HK.
+        # Sina stock_hk_daily: unadjusted only; Sina invoke symbol = five-digit numeric.
+        symbol_transform: Optional[Dict[str, Any]] = None
         if operation_id == "aktools.stock_hk_daily":
             adj = arguments.get("adjust", arguments.get("adjustment", ""))
             if adj in (None,):
@@ -184,18 +185,43 @@ class MarketRealMcpGateway:
                 )
             arguments["adjust"] = ""
             arguments["adjustment"] = ""
-            sym = arguments.get("symbol")
-            if sym is not None:
-                from hk_equity_mcp.pe_fin_lite.issuer_code import (
-                    canonicalize_hk_issuer_code,
-                )
+            from hk_equity_mcp.pe_fin_replan.sina_symbol import (
+                SinaHkSymbolError,
+                normalize_sina_hk_symbol_v1,
+            )
 
-                code = canonicalize_hk_issuer_code(sym)
-                if code:
-                    arguments["symbol"] = f"{code}.HK"
+            try:
+                symbol_transform = normalize_sina_hk_symbol_v1(arguments.get("symbol"))
+            except SinaHkSymbolError as exc:
+                return self._fail(
+                    operation_id,
+                    server_id,
+                    arguments,
+                    str(exc),
+                    error_type="invalid_symbol_format",
+                )
+            arguments["symbol"] = symbol_transform["normalized_symbol"]
 
         if kind == "aktools_get_data":
-            return self._invoke_get_data(operation_id, raw, execution, arguments)
+            result = self._invoke_get_data(operation_id, raw, execution, arguments)
+            if symbol_transform and isinstance(result.normalized, dict):
+                prov = dict(result.normalized.get("provenance") or {})
+                prov.update(symbol_transform)
+                result.normalized["provenance"] = prov
+                result.normalized["symbol_format_original"] = symbol_transform[
+                    "symbol_format_original"
+                ]
+                result.normalized["symbol_format_normalized"] = symbol_transform[
+                    "symbol_format_normalized"
+                ]
+                result.normalized["symbol_normalizer_version"] = symbol_transform[
+                    "symbol_normalizer_version"
+                ]
+                result.normalized["symbol_normalizer_hash"] = symbol_transform[
+                    "symbol_normalizer_hash"
+                ]
+                result.normalized["argument_transform_applied"] = True
+            return result
         if kind == "mcp_tool":
             tool = execution.get("tool") or raw.get("exposed_mcp_tool")
             arg_map = dict(execution.get("arg_map") or {})

@@ -196,6 +196,8 @@ PE_RESUME_IDENTITY_KEYS = (
     "preferred_single_equity_operation",
     "preferred_index_operation",
     "tool_readiness_artifact_sha256",
+    "sina_symbol_normalizer_version",
+    "sina_symbol_normalizer_hash",
 )
 
 
@@ -1714,7 +1716,7 @@ class UnifiedHkPeFinLiteRunner:
                     self.root
                     / "outputs"
                     / "pe_fin_replan_tool_readiness_v1"
-                    / "market_sina_probe"
+                    / "market_sina_probe_v2"
                     / "readiness.json"
                 )
                 self.tool_readiness_artifact_path = artifact

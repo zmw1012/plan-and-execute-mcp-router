@@ -308,14 +308,28 @@ def test_mock_dry_run_cannot_forge_live_readiness(tmp_path, profile):
 
 
 def test_readiness_hash_mismatch_fail_closed(tmp_path, profile):
+    from hk_equity_mcp.pe_fin_replan.sina_symbol import (
+        SINA_HK_SYMBOL_NORMALIZER_VERSION,
+        sina_symbol_normalizer_hash,
+    )
+
     art = tmp_path / "readiness.json"
     art.write_text(
         json.dumps(
             {
                 "mode": "market_sina_probe",
                 "status": "pass",
+                "gateway_success": True,
+                "normalization_success": True,
+                "scope_match": True,
+                "missing_outputs": [],
+                "provider": "sina_via_akshare",
                 "network_called": True,
+                "live_probe_pass": True,
+                "normalized_symbol": "09988",
                 "market_provider_profile_hash": "0" * 64,
+                "sina_symbol_normalizer_version": SINA_HK_SYMBOL_NORMALIZER_VERSION,
+                "sina_symbol_normalizer_hash": sina_symbol_normalizer_hash(),
             }
         ),
         encoding="utf-8",

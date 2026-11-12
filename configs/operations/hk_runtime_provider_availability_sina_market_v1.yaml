@@ -23,10 +23,20 @@ preferred_operations:
     provider: sina_via_akshare
     supports_adjustment: [""]
     unsupported_adjustment: ["qfq", "hfq"]
-    symbol_format: "XXXXX.HK"
+    # AKShare stock_hk_daily (Sina) invoke format is five-digit numeric, NOT XXXXX.HK.
+    symbol_format: "XXXXX"
+    single_equity_symbol_format:
+      input_aliases:
+        - "09988.HK"
+        - "hk09988"
+        - "09988"
+      invoke_format: five_digit_numeric
+      example: "09988"
+      normalizer_version: normalize_sina_hk_symbol_v1
     notes: >
       Unadjusted daily OHLCV only. adjust="" allowed. qfq/hfq must NOT be
       claimed or served by this operation; return unsupported_provider_capability.
+      Binder may emit 09988.HK; runtime must transform to 09988 before Sina invoke.
   index_daily_ohlc:
     operation_id: aktools.stock_hk_index_daily_sina
     provider: sina_via_akshare
@@ -60,3 +70,8 @@ observability_fields:
   - provider_substitution_reason
   - requested_adjustment
   - provider_capability_match
+  - symbol_format_original
+  - symbol_format_normalized
+  - symbol_normalizer_version
+  - symbol_normalizer_hash
+  - argument_transform_applied
