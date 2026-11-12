@@ -431,7 +431,7 @@ class _StageAwareReplanMockLLM(ScriptedLLMClient):
             ],
         }
         keep_reason = {
-            "schema_version": "pe_fin_replan_v1",
+            "schema_version": "pe_fin_replan_v1_1",
             "action": "plan",
             "decision_reason": "Keep remaining reason step after retrieve",
             "remaining_steps": [
@@ -456,16 +456,13 @@ class _StageAwareReplanMockLLM(ScriptedLLMClient):
             "gaps": [],
         }
         final_resp = {
-            "schema_version": "pe_fin_replan_v1",
+            "schema_version": "pe_fin_replan_v1_1",
             "action": "response",
             "decision_reason": "Goal achieved from verified mock trajectory",
             "response": {
-                "status": "answered",
+                "completion": "answered",
                 "final_answer": "mock answer from replanner",
                 "reasoning_brief": "offline PE-Fin RePlan mock trajectory",
-                "clarification_question": None,
-                "refusal_reason": None,
-                "limitations": None,
             },
         }
         # Queue unused — complete() is stage-routed.
@@ -605,8 +602,9 @@ class UnifiedHkPeFinLiteRunner:
         )
         self.limits = dict(self.config.get("limits") or {})
         if self.replan_enabled:
+            # Force RePlan v1.1 budgets/rounds (do not inherit Lite's LLM=8 / steps=6).
             for k, v in REPLAN_DEFAULT_BUDGETS.items():
-                self.limits.setdefault(k, v)
+                self.limits[k] = v
         self.retrieval = dict(self.config.get("retrieval") or {})
         self.embedding_batch_size = int(self.config.get("embedding_batch_size", 16))
         self.embedding_request_timeout_sec = float(
@@ -1263,6 +1261,18 @@ class UnifiedHkPeFinLiteRunner:
             "failed_signature_blocks": result.get("failed_signature_blocks"),
             "no_progress_rounds": result.get("no_progress_rounds"),
             "final_response_source": result.get("final_response_source"),
+            "completion": result.get("completion"),
+            "execution_round_count": result.get("execution_round_count"),
+            "max_execution_rounds": result.get("max_execution_rounds"),
+            "replan_round_count": result.get("replan_round_count"),
+            "max_replan_rounds": result.get("max_replan_rounds"),
+            "forced_final_round": result.get("forced_final_round"),
+            "round7_response_only": result.get("round7_response_only"),
+            "premature_insufficient_blocked_count": result.get(
+                "premature_insufficient_blocked_count"
+            ),
+            "llm_calls_by_stage": result.get("llm_calls_by_stage")
+            or result.get("calls_by_stage"),
             "resource_limit_failure": result.get("resource_limit_failure"),
             "loop_prevention_trigger": result.get("loop_prevention_trigger"),
             "graph_edges": result.get("graph_edges"),

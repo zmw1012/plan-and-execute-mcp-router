@@ -44,8 +44,11 @@ class PlanExecuteState:
     final_response: Optional[Dict[str, Any]] = None
 
     executed_step_count: int = 0
+    execution_round_count: int = 0
     replan_round_count: int = 0
     no_progress_round_count: int = 0
+    premature_insufficient_blocked_count: int = 0
+    forced_final_round: bool = False
 
     llm_calls: int = 0
     mcp_calls: int = 0
@@ -53,6 +56,7 @@ class PlanExecuteState:
 
     max_llm_calls: int = DEFAULT_BUDGETS["max_total_llm_calls_per_task"]
     max_mcp_calls: int = DEFAULT_BUDGETS["max_total_mcp_invocations"]
+    max_execution_rounds: int = DEFAULT_BUDGETS["max_execution_rounds"]
     max_executed_steps: int = DEFAULT_BUDGETS["max_executed_steps"]
     max_replan_rounds: int = DEFAULT_BUDGETS["max_replan_rounds"]
     max_new_steps_per_replan: int = DEFAULT_BUDGETS["max_new_steps_per_replan"]
@@ -124,6 +128,9 @@ class PlanExecuteState:
             "budgets_remaining": {
                 "llm_calls_remaining": max(0, self.max_llm_calls - self.llm_calls),
                 "mcp_calls_remaining": max(0, self.max_mcp_calls - self.mcp_calls),
+                "execution_rounds_remaining": max(
+                    0, self.max_execution_rounds - self.execution_round_count
+                ),
                 "executed_steps_remaining": max(
                     0, self.max_executed_steps - self.executed_step_count
                 ),
@@ -131,6 +138,8 @@ class PlanExecuteState:
                     0, self.max_replan_rounds - self.replan_round_count
                 ),
             },
+            "execution_round_count": self.execution_round_count,
+            "max_execution_rounds": self.max_execution_rounds,
         }
 
     def to_audit_dict(self) -> Dict[str, Any]:
@@ -140,8 +149,13 @@ class PlanExecuteState:
             "remaining_plan": list(self.remaining_plan),
             "past_steps": list(self.past_steps),
             "executed_step_count": self.executed_step_count,
+            "execution_round_count": self.execution_round_count,
+            "max_execution_rounds": self.max_execution_rounds,
             "replan_round_count": self.replan_round_count,
+            "max_replan_rounds": self.max_replan_rounds,
             "no_progress_round_count": self.no_progress_round_count,
+            "premature_insufficient_blocked_count": self.premature_insufficient_blocked_count,
+            "forced_final_round": self.forced_final_round,
             "llm_calls": self.llm_calls,
             "mcp_calls": self.mcp_calls,
             "embedding_queries": self.embedding_queries,

@@ -1,4 +1,4 @@
-"""Identity hashes for PE-Fin RePlan v1 (separate from Lite Planner identity)."""
+"""Identity hashes for PE-Fin RePlan v1.1 (separate from Lite Planner identity)."""
 
 from __future__ import annotations
 
@@ -20,14 +20,25 @@ from hk_equity_mcp.pe_fin_replan.schemas import (
 )
 
 DEFAULT_BUDGETS = {
-    "max_total_llm_calls_per_task": 8,
+    "max_total_llm_calls_per_task": 16,
     "max_total_mcp_invocations": 8,
-    "max_executed_steps": 6,
-    "max_replan_rounds": 6,
+    "max_execution_rounds": 7,
+    "max_executed_steps": 7,
+    "max_replan_rounds": 7,
     "max_new_steps_per_replan": 2,
     "max_local_fallback_per_retrieve": 1,
     "retrieval_top_k": 5,
     "describe_top_n": 3,
+}
+
+# Theoretical LLM ceiling (hard cap, not per-task target):
+# Planner 1 + ≤7 executor-internal LLM + ≤7 Replanner + ≤1 repair = 16
+LLM_BUDGET_RATIONALE = {
+    "initial_planner": 1,
+    "max_executor_internal_llm": 7,
+    "max_replanner": 7,
+    "repair_slack": 1,
+    "hard_ceiling": 16,
 }
 
 
@@ -67,12 +78,14 @@ def replan_protocol_identity() -> Dict[str, Any]:
         "method_version": PE_FIN_REPLAN_METHOD_VERSION,
         "protocol_version": PE_FIN_REPLAN_PROTOCOL_VERSION,
         "architecture": PE_FIN_REPLAN_ARCHITECTURE,
+        "replanner_schema_version": REPLAN_SCHEMA_VERSION,
         "flags": dict(REPLAN_FLAGS),
         "planner_prompt_hash": pe_fin_lite_prompt_hash(),
         "replanner_prompt_hash": replanner_prompt_hash(),
         "replanner_schema_hash": replanner_schema_hash(),
         "loop_policy_hash": loop_policy_hash(),
         "budget_identity_hash": budget_identity_hash(),
+        "llm_budget_rationale": dict(LLM_BUDGET_RATIONALE),
         "eea_identity_hash": eea_protocol_hash(),
         "retrieval_formula_name": RETRIEVAL_FORMULA_NAME,
         "retrieval_formula_hash": retrieval_formula_hash(),

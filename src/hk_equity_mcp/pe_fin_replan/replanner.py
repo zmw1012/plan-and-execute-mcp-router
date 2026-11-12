@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from hk_equity_mcp.agent.llm_client import LLMClient
 from hk_equity_mcp.pe_fin_lite.temporal_policy import DEFAULT_DATASET_CUTOFF
 from hk_equity_mcp.pe_fin_replan.prompts import (
+    REPLANNER_FINAL_ROUND_SYSTEM_PROMPT,
     REPLANNER_SYSTEM_PROMPT,
     render_replanner_user,
 )
@@ -33,12 +34,24 @@ def run_replanner(
     temperature: float = 0.0,
     max_tokens: int = 2048,
     benchmark_cutoff: str = DEFAULT_DATASET_CUTOFF,
+    response_only: bool = False,
+    execution_round: int = 0,
+    max_execution_rounds: int = 7,
 ) -> Dict[str, Any]:
+    system = (
+        REPLANNER_FINAL_ROUND_SYSTEM_PROMPT
+        if response_only
+        else REPLANNER_SYSTEM_PROMPT
+    )
     user = render_replanner_user(
-        compact_state=compact_state, benchmark_cutoff=benchmark_cutoff
+        compact_state=compact_state,
+        benchmark_cutoff=benchmark_cutoff,
+        response_only=response_only,
+        execution_round=execution_round,
+        max_execution_rounds=max_execution_rounds,
     )
     messages = [
-        {"role": "system", "content": REPLANNER_SYSTEM_PROMPT},
+        {"role": "system", "content": system},
         {"role": "user", "content": user},
     ]
     completion = llm.complete(
@@ -46,11 +59,15 @@ def run_replanner(
     )
     usage = dict(completion.get("usage") or {})
     content = completion.get("content")
-    parsed, _, err = parse_replanner_output(str(content or ""))
+    parsed, _, err = parse_replanner_output(
+        str(content or ""), response_only=response_only
+    )
     repair_count = 0
     repair_content = None
     if parsed is None:
-        repair_msg = format_replanner_repair_message(err or "invalid")
+        repair_msg = format_replanner_repair_message(
+            err or "invalid", response_only=response_only
+        )
         repair = llm.complete(
             messages
             + [
@@ -65,7 +82,9 @@ def run_replanner(
         repair_count = 1
         repair_content = repair.get("content")
         parsed, _, err = parse_replanner_output(
-            str(content or ""), repair_content=str(repair_content or "")
+            str(content or ""),
+            repair_content=str(repair_content or ""),
+            response_only=response_only,
         )
     if parsed is None:
         return {
@@ -75,6 +94,18 @@ def run_replanner(
             "repair_count": repair_count,
             "usage": usage,
             "stopping_reason": "invalid_replanner_output_after_repair",
+            "response_only": response_only,
+        }
+    # Round-7 safety: plan after successful parse is still forbidden
+    if response_only and parsed.get("action") != "response":
+        return {
+            "ok": False,
+            "payload": None,
+            "error": "round7_plan_not_allowed",
+            "repair_count": repair_count,
+            "usage": usage,
+            "stopping_reason": "round7_plan_after_repair",
+            "response_only": response_only,
         }
     return {
         "ok": True,
@@ -84,4 +115,5 @@ def run_replanner(
         "usage": usage,
         "action": parsed.get("action"),
         "decision_reason": parsed.get("decision_reason"),
+        "response_only": response_only,
     }

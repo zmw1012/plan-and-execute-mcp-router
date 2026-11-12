@@ -14,10 +14,6 @@ from copy import deepcopy
 from typing import Any, Dict, List, Optional
 
 from hk_equity_mcp.agent.llm_client import LLMClient
-from hk_equity_mcp.experiment.normalize import (
-    agent_completion_to_fallback,
-    normalize_final_payload,
-)
 from hk_equity_mcp.operation_resolver.server import OperationResolverServer
 from hk_equity_mcp.pe_fin_lite.answerability_eea import classify_answerability
 from hk_equity_mcp.pe_fin_lite.budget import (
@@ -44,15 +40,18 @@ from hk_equity_mcp.pe_fin_replan import (
     PE_FIN_REPLAN_PROTOCOL_VERSION,
     REPLAN_FLAGS,
 )
-from hk_equity_mcp.pe_fin_replan.grounding import validate_replanner_response
+from hk_equity_mcp.pe_fin_replan.grounding import (
+    is_premature_insufficient,
+    validate_replanner_response,
+)
 from hk_equity_mcp.pe_fin_replan.identity import DEFAULT_BUDGETS, replan_protocol_identity
 from hk_equity_mcp.pe_fin_replan.plan_ops import (
     remove_step,
     select_one_ready_step,
-    step_fingerprint,
     validate_updated_remaining_plan,
 )
 from hk_equity_mcp.pe_fin_replan.replanner import run_replanner
+from hk_equity_mcp.pe_fin_replan.schemas import map_completion_to_predicted_status
 from hk_equity_mcp.pe_fin_replan.state import PlanExecuteState, failed_signature
 
 
@@ -210,12 +209,21 @@ class PeFinReplanAgent:
         started = time.perf_counter()
         self.budget = BudgetTracker(self.limits)
         self.llm = BudgetedLLMClient(self._raw_llm, self.budget)
+        max_rounds = int(
+            self.limits.get(
+                "max_execution_rounds",
+                self.limits.get("max_replan_rounds", DEFAULT_BUDGETS["max_execution_rounds"]),
+            )
+        )
         state = PlanExecuteState(
             question=question,
             max_llm_calls=int(self.limits["max_total_llm_calls_per_task"]),
             max_mcp_calls=int(self.limits["max_total_mcp_invocations"]),
-            max_executed_steps=int(self.limits.get("max_executed_steps", 6)),
-            max_replan_rounds=int(self.limits.get("max_replan_rounds", 6)),
+            max_execution_rounds=max_rounds,
+            max_executed_steps=int(
+                self.limits.get("max_executed_steps", max_rounds)
+            ),
+            max_replan_rounds=int(self.limits.get("max_replan_rounds", max_rounds)),
             max_new_steps_per_replan=int(self.limits.get("max_new_steps_per_replan", 2)),
         )
         total_usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
@@ -235,9 +243,10 @@ class PeFinReplanAgent:
         steps_added = 0
         steps_removed = 0
         steps_modified = 0
+        completion_out: Optional[str] = None
 
         try:
-            # ---- Planner exactly once ----
+            # ---- Planner exactly once (not an execution round) ----
             planner_out = run_planner(
                 llm=self.llm,
                 question=question,
@@ -248,7 +257,6 @@ class PeFinReplanAgent:
                 max_tokens=self.planner_max_tokens,
             )
             planner_calls = 1 + int(planner_out.get("repair_count") or 0)
-            # BudgetedLLM already counted; track usage merge
             total_usage = _merge_usage(total_usage, planner_out.get("usage") or {})
             self._sync_state_counters(state)
             trace.append(
@@ -257,6 +265,7 @@ class PeFinReplanAgent:
                     "ok": planner_out.get("ok"),
                     "repair_count": planner_out.get("repair_count"),
                     "error": planner_out.get("error"),
+                    "counts_as_execution_round": False,
                 }
             )
             if not planner_out.get("ok"):
@@ -264,14 +273,15 @@ class PeFinReplanAgent:
                     planner_out.get("stopping_reason") or "planner_invalid"
                 )
                 state.final_response = {
-                    "status": "unavailable",
+                    "completion": "insufficient_evidence",
                     "final_answer": "",
                     "reasoning_brief": "Planner failed; controlled stop.",
-                    "refusal_reason": state.stopping_reason,
                 }
                 state.final_response_source = "planner_failure"
                 error = planner_out.get("error")
-                error_type = str(planner_out.get("error_type") or "planner_schema_or_semantics")
+                error_type = str(
+                    planner_out.get("error_type") or "planner_schema_or_semantics"
+                )
             else:
                 plan = planner_out["plan"]
                 state.original_plan = deepcopy(plan)
@@ -280,7 +290,7 @@ class PeFinReplanAgent:
                     {"round": 0, "remaining_steps": deepcopy(state.remaining_plan)}
                 )
 
-            # ---- Loop: Executor(one) → Replanner ----
+            # ---- Loop: Executor(one) → Replanner  (rounds 1..7) ----
             while state.final_response is None:
                 self._sync_state_counters(state)
                 if state.llm_calls >= state.max_llm_calls:
@@ -291,12 +301,8 @@ class PeFinReplanAgent:
                     state.stopping_reason = "max_total_mcp_calls"
                     state.resource_limit_failure = True
                     break
-                if state.executed_step_count >= state.max_executed_steps:
-                    state.stopping_reason = "max_executed_steps"
-                    state.resource_limit_failure = True
-                    break
-                if state.replan_round_count >= state.max_replan_rounds:
-                    state.stopping_reason = "max_replan_rounds"
+                if state.execution_round_count >= state.max_execution_rounds:
+                    state.stopping_reason = "max_execution_rounds"
                     state.resource_limit_failure = True
                     break
                 if state.no_progress_round_count >= state.max_no_progress_rounds:
@@ -304,23 +310,33 @@ class PeFinReplanAgent:
                     state.loop_prevention_trigger = "no_progress"
                     break
 
+                next_round = state.execution_round_count + 1
+                response_only = next_round >= state.max_execution_rounds
+                state.forced_final_round = bool(response_only)
+
                 step = select_one_ready_step(
                     state.remaining_plan, state.completed_step_ids
                 )
                 if step is None:
-                    # No ready step — force Replanner with empty remaining signal
                     latest = {
                         "step_id": None,
                         "status": "no_executable_ready_step",
                         "note": "remaining_plan_blocked_or_empty",
                     }
-                else:
-                    # Block repeating failed signatures for binder-selected ops is
-                    # enforced post-invoke; execute one step now.
-                    before_progress = (
-                        len(state.evidence_store.values),
-                        state.executed_step_count,
+                    trace.append(
+                        {
+                            "stage": "executor",
+                            "round": next_round,
+                            "step_id": None,
+                            "status": "no_executable_ready_step",
+                            "ok": False,
+                        }
                     )
+                else:
+                    if state.executed_step_count >= state.max_executed_steps:
+                        state.stopping_reason = "max_executed_steps"
+                        state.resource_limit_failure = True
+                        break
                     exec_out = self._execute_one_step(
                         state=state, step=step, question=question
                     )
@@ -347,18 +363,10 @@ class PeFinReplanAgent:
                         "execution_failure_class": past.get("execution_failure_class"),
                         "values_keys": sorted((past.get("values") or {}).keys()),
                     }
-                    after_progress = (
-                        len(state.evidence_store.values),
-                        state.executed_step_count,
-                    )
-                    if after_progress == before_progress or (
-                        not exec_out.get("ok") and not (past.get("values") or {})
-                    ):
-                        # progress measured after replan too; mark tentative
-                        pass
                     trace.append(
                         {
                             "stage": "executor",
+                            "round": next_round,
                             "step_id": sid,
                             "step_type": step.get("type"),
                             "status": past.get("status"),
@@ -367,12 +375,18 @@ class PeFinReplanAgent:
                     )
                     self._sync_state_counters(state)
 
-                # Answerability signal for Replanner (does NOT auto-stop)
                 ans = classify_answerability(
-                    plan={"steps": list(state.remaining_plan) + [
-                        {"id": p["step_id"], "type": p["step_type"], "required_outputs": p.get("missing_outputs") or []}
-                        for p in state.past_steps
-                    ]},
+                    plan={
+                        "steps": list(state.remaining_plan)
+                        + [
+                            {
+                                "id": p["step_id"],
+                                "type": p["step_type"],
+                                "required_outputs": p.get("missing_outputs") or [],
+                            }
+                            for p in state.past_steps
+                        ]
+                    },
                     store=state.evidence_store,
                     step_statuses=[
                         {
@@ -386,7 +400,6 @@ class PeFinReplanAgent:
                 )
                 state.answerability_snapshots.append(ans)
 
-                # ---- Replanner (mandatory after executor / no-ready) ----
                 if state.llm_calls >= state.max_llm_calls:
                     state.stopping_reason = "max_total_llm_calls"
                     state.resource_limit_failure = True
@@ -394,17 +407,22 @@ class PeFinReplanAgent:
 
                 compact = state.compact_for_replanner(latest=latest)
                 compact["answerability_latest"] = ans
+                compact["forced_final_round"] = response_only
                 replan_out = run_replanner(
                     llm=self.llm,
                     compact_state=compact,
                     temperature=self.temperature,
                     max_tokens=self.max_tokens,
                     benchmark_cutoff=DEFAULT_DATASET_CUTOFF,
+                    response_only=response_only,
+                    execution_round=next_round,
+                    max_execution_rounds=state.max_execution_rounds,
                 )
                 replan_calls += 1
                 replan_repairs += int(replan_out.get("repair_count") or 0)
                 total_usage = _merge_usage(total_usage, replan_out.get("usage") or {})
-                state.replan_round_count += 1
+                state.execution_round_count = next_round
+                state.replan_round_count = next_round
                 self._sync_state_counters(state)
 
                 if not replan_out.get("ok"):
@@ -415,23 +433,68 @@ class PeFinReplanAgent:
                     state.resource_limit_failure = True
                     error = replan_out.get("error")
                     error_type = "replanner_schema_or_semantics"
+                    trace.append(
+                        {
+                            "stage": "replanner",
+                            "round": next_round,
+                            "ok": False,
+                            "response_only": response_only,
+                            "error": error,
+                        }
+                    )
                     break
 
                 payload = replan_out["payload"]
                 action = payload.get("action")
                 remaining_before_ids = [s.get("id") for s in state.remaining_plan]
                 decision = {
-                    "round": state.replan_round_count,
+                    "round": next_round,
                     "latest_step_id": (latest or {}).get("step_id"),
                     "latest_step_status": (latest or {}).get("status"),
                     "remaining_steps_before": remaining_before_ids,
                     "action": action,
                     "decision_reason": payload.get("decision_reason"),
                     "repair_count": replan_out.get("repair_count"),
+                    "response_only": response_only,
+                    "forced_final_round": response_only,
                 }
+
+                if action == "plan" and response_only:
+                    state.stopping_reason = "round7_plan_not_allowed"
+                    state.resource_limit_failure = True
+                    error = "round7_plan_not_allowed"
+                    error_type = "replanner_schema_or_semantics"
+                    state.replan_decisions.append(decision)
+                    trace.append({"stage": "replanner", **decision})
+                    break
 
                 if action == "response":
                     resp = dict(payload.get("response") or {})
+                    completion = str(resp.get("completion") or "")
+                    if completion == "insufficient_evidence" and is_premature_insufficient(
+                        execution_round=next_round,
+                        max_execution_rounds=state.max_execution_rounds,
+                        remaining_plan=state.remaining_plan,
+                        completed_ids=state.completed_step_ids,
+                        answerability=ans,
+                        decision_reason=str(payload.get("decision_reason") or ""),
+                        evidence_values=dict(state.evidence_store.values),
+                    ):
+                        state.premature_insufficient_blocked_count += 1
+                        decision["premature_insufficient_blocked"] = True
+                        state.replan_decisions.append(decision)
+                        trace.append({"stage": "replanner", **decision})
+                        # Not a normal end — require Plan; controlled failure if final round
+                        if response_only:
+                            state.stopping_reason = "premature_insufficient_on_final_round"
+                            state.resource_limit_failure = True
+                            error = "premature_insufficient_blocked"
+                            error_type = "premature_insufficient"
+                            break
+                        # Non-final: treat as no-progress plan continuation signal
+                        state.no_progress_round_count += 1
+                        continue
+
                     ground = validate_replanner_response(
                         response=resp,
                         question=question,
@@ -439,7 +502,6 @@ class PeFinReplanAgent:
                         answerability=ans,
                     )
                     if not ground.get("ok"):
-                        # Controlled failure — do not pretend normal unavailable
                         state.stopping_reason = "ungrounded_replanner_response"
                         state.loop_prevention_trigger = "grounding_validator"
                         error = ";".join(ground.get("reasons") or [])
@@ -451,17 +513,19 @@ class PeFinReplanAgent:
                         break
                     state.final_response = resp
                     state.final_response_source = "replanner"
-                    if resp.get("status") == "answered" and state.executed_step_count < len(
+                    completion_out = completion
+                    if completion == "answered" and state.executed_step_count < len(
                         (state.original_plan or {}).get("steps") or []
                     ):
                         early_answer_count += 1
                     decision["grounding_ok"] = True
+                    decision["completion"] = completion
                     decision["remaining_steps_after"] = []
                     state.replan_decisions.append(decision)
                     trace.append({"stage": "replanner", **decision})
                     break
 
-                # action == plan
+                # action == plan (rounds 1–6 only)
                 try:
                     new_remaining, diff = validate_updated_remaining_plan(
                         proposed=list(payload.get("remaining_steps") or []),
@@ -480,13 +544,12 @@ class PeFinReplanAgent:
                     trace.append({"stage": "replanner", **decision})
                     break
 
-                # Progress / recovery bookkeeping
                 if diff.get("changed"):
                     state.no_progress_round_count = 0
                     if not (latest or {}).get("ok"):
                         recovery_attempts += 1
                         if diff.get("n_added") or diff.get("n_modified"):
-                            recovery_successes += 1  # provisional: revised after failure
+                            recovery_successes += 1
                 else:
                     state.no_progress_round_count += 1
 
@@ -497,7 +560,7 @@ class PeFinReplanAgent:
                 state.remaining_plan = new_remaining
                 state.remaining_plan_history.append(
                     {
-                        "round": state.replan_round_count,
+                        "round": next_round,
                         "remaining_steps": deepcopy(new_remaining),
                     }
                 )
@@ -509,8 +572,6 @@ class PeFinReplanAgent:
                 trace.append({"stage": "replanner", **decision})
 
                 if not new_remaining:
-                    # Empty plan without response — force another replan round via loop
-                    # but count as no progress if repeats
                     state.no_progress_round_count += 1
                     continue
 
@@ -530,27 +591,37 @@ class PeFinReplanAgent:
 
         # Finalize prediction fields
         if state.final_response is None:
-            # Safety stop — not a normal unavailable
+            # Safety stop — not a normal Replanner insufficient_evidence
             state.final_response = {
-                "status": "unavailable",
+                "completion": "insufficient_evidence",
                 "final_answer": "",
                 "reasoning_brief": (
                     f"Controlled stop: {state.stopping_reason or 'unknown'}; "
-                    "not a normal Replanner unavailable decision."
+                    "not a normal Replanner insufficient_evidence decision."
                 ),
-                "refusal_reason": state.stopping_reason,
             }
             if state.final_response_source is None:
                 state.final_response_source = "controlled_failure"
 
-        predicted_status, final_text = normalize_final_payload(
-            state.final_response,
-            fallback_status=agent_completion_to_fallback("partial"),
+        completion_out = completion_out or str(
+            (state.final_response or {}).get("completion") or "insufficient_evidence"
         )
-        if state.final_response_source == "replanner" and state.final_response.get(
-            "status"
-        ) == "answered":
-            status = "full" if state.evidence_store.values and not state.resource_limit_failure else "partial"
+        # Evaluator-facing mapping only
+        if state.final_response_source == "replanner":
+            predicted_status = map_completion_to_predicted_status(completion_out)
+        else:
+            predicted_status = "unavailable"
+        final_text = str((state.final_response or {}).get("final_answer") or "")
+
+        if (
+            state.final_response_source == "replanner"
+            and completion_out == "answered"
+        ):
+            status = (
+                "full"
+                if state.evidence_store.values and not state.resource_limit_failure
+                else "partial"
+            )
         elif state.final_response_source == "replanner":
             status = "partial"
         else:
@@ -564,9 +635,11 @@ class PeFinReplanAgent:
             "error_type": error_type,
             "final_answer": final_text,
             "predicted_status": predicted_status,
+            "completion": completion_out,
             "final_payload": state.final_response,
             "tokens": total_usage,
             "llm_calls": self.budget.llm_calls,
+            "llm_calls_by_stage": dict(self.budget.calls_by_stage),
             "latency_ms": (time.perf_counter() - started) * 1000.0,
             "trace": trace,
             "initial_plan": state.original_plan,
@@ -574,8 +647,15 @@ class PeFinReplanAgent:
             "executed_steps": list(state.past_steps),
             "remaining_plan_history": list(state.remaining_plan_history),
             "past_steps": list(state.past_steps),
+            "execution_round_count": state.execution_round_count,
+            "max_execution_rounds": state.max_execution_rounds,
             "replan_calls": replan_calls,
             "replan_repairs": replan_repairs,
+            "replan_round_count": state.replan_round_count,
+            "max_replan_rounds": state.max_replan_rounds,
+            "forced_final_round": state.forced_final_round,
+            "round7_response_only": True,
+            "premature_insufficient_blocked_count": state.premature_insufficient_blocked_count,
             "replan_decisions": list(state.replan_decisions),
             "plan_diff_history": list(state.plan_diff_history),
             "steps_added": steps_added,
