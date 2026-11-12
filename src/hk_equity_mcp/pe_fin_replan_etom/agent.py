@@ -589,7 +589,11 @@ class PeFinReplanEtomAgent:
                         trace.append({"stage": "replanner", **decision})
                         break
 
-                if diff.get("changed"):
+                # ETOM progress rule: a round that executed an ok step, or whose plan
+                # update changed the remaining plan, is progress. (HK counted only plan
+                # diffs, which would stop a multi-step ETOM route after two rounds in
+                # which the Replanner simply kept the remaining steps unchanged.)
+                if diff.get("changed") or bool((latest or {}).get("ok")):
                     state.no_progress_round_count = 0
                 else:
                     state.no_progress_round_count += 1

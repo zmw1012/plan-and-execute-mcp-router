@@ -315,7 +315,14 @@ class UnifiedPeFinReplanEtomRunner:
                 "Use --mock or --dry-run for offline engineering."
             )
 
-        lock_tasks = identity["ordered_task_ids"][: self.max_tasks]
+        # ---- mock formal100: REAL agent loop, scripted LLM, hash embeddings, no network.
+        env = self._build_mock_environment(identity)
+        metadata["operation_documents_sha256"] = env["documents_sha256"]
+        metadata["mock_embedding_model"] = env["embedder"].model_name
+        metadata["generation_model"] = env["llm"].model
+        metadata["embedding_model"] = env["embedder"].model_name
+        metadata["resume_identity_sha256"] = resume_identity_hash(metadata)
+        _write_json(self.output_dir / "run_metadata.json", metadata)
         pred_path = self.output_dir / "predictions.jsonl"
         if not self.resume and pred_path.exists():
             pred_path.unlink()
@@ -324,27 +331,33 @@ class UnifiedPeFinReplanEtomRunner:
             for line in pred_path.read_text(encoding="utf-8").splitlines():
                 if line.strip():
                     completed.add(json.loads(line)["task_id"])
-        for task_id in lock_tasks:
+        rows: List[Dict[str, Any]] = []
+        for task in env["tasks"]:
             if self._stop:
                 break
-            if task_id in completed:
+            if task.task_id in completed:
                 continue
-            # Keep evaluator import live for identity without gold-driven scoring here.
-            _ = evaluate_prediction
-            row = {
-                "task_id": task_id,
-                "mode": "mock",
-                "live_pass_claimed": False,
-                "status": "mock_placeholder",
-                "predicted_tools": [],
-                "exact_match": False,
-                "precision": 0.0,
-                "recall": 0.0,
-                "f1": 0.0,
-                "note": "mock formal100 placeholder; not a live pass",
-                "budgets": dict(DEFAULT_BUDGETS),
-            }
+            row = self._run_mock_task(env, task)
+            rows.append(row)
             _fsync_write_jsonl(pred_path, row)
+        if rows:
+            from hk_equity_mcp.etom.formal_metrics import grouped_results
+
+            all_rows = [
+                json.loads(line)
+                for line in pred_path.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            _write_json(
+                self.output_dir / "mock_summary.json",
+                {
+                    "mode": "mock",
+                    "live_pass_claimed": False,
+                    "note": "mock/engineering only; scripted LLM + hash embeddings; not a result",
+                    "n_rows": len(all_rows),
+                    "grouped": grouped_results(all_rows),
+                },
+            )
 
         self.run_status = "aborted" if self._stop else "completed"
         metadata["run_status"] = self.run_status
@@ -352,6 +365,112 @@ class UnifiedPeFinReplanEtomRunner:
         metadata["live_pass_claimed"] = False
         _write_json(self.output_dir / "run_metadata.json", metadata)
         return metadata
+
+    # ------------------------------------------------------------------ mock path
+    def _build_mock_environment(self, identity: Dict[str, Any]) -> Dict[str, Any]:
+        """Official registry/tasks -> hash-embedded in-memory index. Offline only."""
+        from hk_equity_mcp.etom.adapter import EtomRoutingResolver
+        from hk_equity_mcp.etom.convert import convert_registry
+        from hk_equity_mcp.etom.embeddings import CatalogIndex, EmbeddingUsage
+        from hk_equity_mcp.etom.formal_sampler import select_formal_locked_tasks
+        from hk_equity_mcp.etom.loader import load_official_registry, load_official_tasks
+        from hk_equity_mcp.pe_fin_replan_etom.agent import PeFinReplanEtomAgent
+        from hk_equity_mcp.pe_fin_replan_etom.mock_llm import ScriptedEtomPeFinLLM
+        from hk_equity_mcp.pe_fin_replan_etom.operation_documents import (
+            documents_for_registry,
+            documents_hash as _documents_hash,
+        )
+
+        registry, official = convert_registry(load_official_registry(self.root))
+        tasks = select_formal_locked_tasks(
+            load_official_tasks(self.root), identity["lock"], max_tasks=self.max_tasks
+        )
+        embedder = HashEmbeddingClient(model_name="mock-hash-embedding-v1")
+        docs = documents_for_registry(registry)
+        vectors_list, _usage = embedder.embed([doc for _oid, doc, _h in docs])
+        vectors = {oid: vec for (oid, _d, _h), vec in zip(docs, vectors_list)}
+        index = CatalogIndex(
+            model_name=embedder.model_name,
+            registry_sha256=FROZEN_REGISTRY_SHA256,
+            vectors=vectors,
+            build_usage=EmbeddingUsage(),
+            cache_reused=False,
+        )
+        resolver = EtomRoutingResolver(
+            registry, official, index, embedder, lexical_weight=0.12
+        )
+        llm = ScriptedEtomPeFinLLM()
+        agent = PeFinReplanEtomAgent(
+            llm,
+            resolver,
+            capability_profile=load_capability_profile(self.root),
+            registry=registry,
+            official=official,
+            vectors=vectors,
+            embedder=embedder,
+            limits=dict(DEFAULT_BUDGETS),
+            temperature=float((self.config.get("llm") or {}).get("temperature", 0.0)),
+        )
+        return {
+            "registry": registry,
+            "official": official,
+            "tasks": tasks,
+            "embedder": embedder,
+            "llm": llm,
+            "resolver": resolver,
+            "agent": agent,
+            "documents_sha256": _documents_hash(registry),
+        }
+
+    def _run_mock_task(self, env: Dict[str, Any], task: Any) -> Dict[str, Any]:
+        """One task: agent sees ONLY the question; gold is used after the run to score."""
+        from hk_equity_mcp.etom.formal_metrics import dependency_accuracy
+
+        try:
+            result = env["agent"].run(task.query)
+            run_error = result.get("error")
+            task_status = "failed" if result.get("error_type") == "task_exception" else "completed"
+        except Exception as exc:  # noqa: BLE001 - per-task isolation
+            result = {"predicted_tools": [], "predicted_nodes": [], "trace": []}
+            run_error = f"{type(exc).__name__}: {exc}"
+            task_status = "failed"
+        metrics = evaluate_prediction(
+            task.level, task.ground_truth_tools, result.get("predicted_tools") or []
+        )
+        dep = dependency_accuracy(
+            level=task.level,
+            ground_truth_tools=task.ground_truth_tools,
+            predicted_nodes=result.get("predicted_nodes") or [],
+        )
+        if env["resolver"].real_tool_executions != 0:
+            raise EtomPeFinReplanRunnerError("routing mode executed a real tool")
+        return {
+            "task_id": task.task_id,
+            "level": task.level,
+            "mode": "mock",
+            "live_pass_claimed": False,
+            "status": task_status,
+            "agent_status": result.get("status"),
+            "error": run_error,
+            "completion": result.get("completion"),
+            "final_response_source": result.get("final_response_source"),
+            "stopping_reason": result.get("stopping_reason"),
+            "exact_match": metrics.get("exact_match"),
+            "precision": metrics.get("precision"),
+            "recall": metrics.get("recall"),
+            "f1": metrics.get("f1"),
+            "eval_status": metrics.get("status"),
+            **dep,
+            "llm_calls": int(result.get("llm_calls") or 0),
+            "mcp_invocations": int(result.get("mcp_invocations") or 0),
+            "execution_round_count": result.get("execution_round_count"),
+            "predicted_tools": result.get("predicted_tools") or [],
+            "predicted_nodes": result.get("predicted_nodes") or [],
+            "dependency_edges": result.get("dependency_edges") or [],
+            "real_tool_executions": int(result.get("real_tool_executions") or 0),
+            "executed_etom_mcp_tool": False,
+            "note": "mock run (scripted LLM + hash embeddings); not a live pass",
+        }
 
     def _finalize_metadata(self, extra: Optional[Dict[str, Any]] = None) -> None:
         path = self.output_dir / "run_metadata.json"

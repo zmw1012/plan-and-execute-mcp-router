@@ -11,7 +11,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from hk_equity_mcp.experiment.unified_pe_fin_replan_etom_runner import (  # noqa: E402
+    EtomPeFinReplanRunnerError,
     UnifiedPeFinReplanEtomRunner,
+)
+from hk_equity_mcp.pe_fin_replan_etom.operation_embedding_index import (  # noqa: E402
+    LiveEmbeddingGatedError,
 )
 
 
@@ -65,7 +69,12 @@ def main(argv: list[str] | None = None) -> int:
         mock_embeddings=args.mock_embeddings or args.mock,
         max_tasks=args.max_tasks,
     )
-    result = runner.execute()
+    try:
+        result = runner.execute()
+    except (LiveEmbeddingGatedError, EtomPeFinReplanRunnerError) as exc:
+        # Fail closed with a readable message (offline scaffolding gates live paths).
+        print(f"GATED: {exc}", file=sys.stderr)
+        return 3
     print(json_dumps(result))
     return 0 if result.get("ok", True) is not False and runner.run_status != "aborted" else 2
 
