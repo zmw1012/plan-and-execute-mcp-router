@@ -83,6 +83,16 @@ from hk_equity_mcp.pe_fin_lite.eea_identity import (
 )
 from hk_equity_mcp.pe_fin_lite.agent import PeFinLiteAgent
 from hk_equity_mcp.pe_fin_lite.budget import McpBudgetExhausted, structured_budget_failure
+from hk_equity_mcp.pe_fin_replan import (
+    PE_FIN_REPLAN_ARCHITECTURE,
+    PE_FIN_REPLAN_CONDITION,
+    PE_FIN_REPLAN_METHOD_VERSION,
+    PE_FIN_REPLAN_PROTOCOL_VERSION,
+    REPLAN_FLAGS,
+)
+from hk_equity_mcp.pe_fin_replan.agent import PeFinReplanAgent
+from hk_equity_mcp.pe_fin_replan.identity import DEFAULT_BUDGETS as REPLAN_DEFAULT_BUDGETS
+from hk_equity_mcp.pe_fin_replan.identity import replan_protocol_identity
 from hk_equity_mcp.pe_fin_lite.checkpoint_observability import (
     CHECKPOINT_TRACE_CONTRACT_VERSION,
     checkpoint_observability_hash,
@@ -385,6 +395,132 @@ def _mock_pe_fin_lite_scripted_llm() -> ScriptedLLMClient:
     return _CyclingScriptedLLM([json.dumps(t, ensure_ascii=False) for t in turns])
 
 
+class _StageAwareReplanMockLLM(ScriptedLLMClient):
+    """Offline mock: Planner once, then Replanner Plan/Response by stage."""
+
+    def __init__(self, model: str = "mock-llm-replan"):
+        plan = {
+            "schema_version": "pe_fin_lite_plan_v1",
+            "steps": [
+                {
+                    "id": "s1",
+                    "type": "retrieve",
+                    "domain": "market",
+                    "objective": "retrieve supporting HK equity market evidence",
+                    "required_outputs": ["close", "trade_date"],
+                    "depends_on": [],
+                    "entity": None,
+                    "period": None,
+                    "date": None,
+                    "compute_spec": None,
+                    "workflow": None,
+                },
+                {
+                    "id": "s2",
+                    "type": "reason",
+                    "domain": "general",
+                    "objective": "summarize verified evidence for final answer",
+                    "required_outputs": [],
+                    "depends_on": ["s1"],
+                    "entity": None,
+                    "period": None,
+                    "date": None,
+                    "compute_spec": None,
+                    "workflow": None,
+                },
+            ],
+        }
+        keep_reason = {
+            "schema_version": "pe_fin_replan_v1",
+            "action": "plan",
+            "decision_reason": "Keep remaining reason step after retrieve",
+            "remaining_steps": [
+                {
+                    "id": "s2",
+                    "type": "reason",
+                    "domain": "general",
+                    "objective": "summarize verified evidence for final answer",
+                    "required_outputs": [],
+                    "depends_on": [],
+                    "entity": None,
+                    "period": None,
+                    "date": None,
+                    "compute_spec": None,
+                    "workflow": None,
+                }
+            ],
+        }
+        reason = {
+            "summary": "mock evidence supports a concise answer with stated limitations",
+            "claims": ["mock claim"],
+            "gaps": [],
+        }
+        final_resp = {
+            "schema_version": "pe_fin_replan_v1",
+            "action": "response",
+            "decision_reason": "Goal achieved from verified mock trajectory",
+            "response": {
+                "status": "answered",
+                "final_answer": "mock answer from replanner",
+                "reasoning_brief": "offline PE-Fin RePlan mock trajectory",
+                "clarification_question": None,
+                "refusal_reason": None,
+                "limitations": None,
+            },
+        }
+        # Queue unused — complete() is stage-routed.
+        plan_s = json.dumps(plan, ensure_ascii=False)
+        super().__init__([plan_s], model=model)
+        self._script = [plan_s]
+        self._plan = plan_s
+        self._keep_reason = json.dumps(keep_reason, ensure_ascii=False)
+        self._reason = json.dumps(reason, ensure_ascii=False)
+        self._final = json.dumps(final_resp, ensure_ascii=False)
+        self._replan_calls = 0
+
+    def reset_script(self) -> None:
+        self._queue = list(self._script)
+        self._replan_calls = 0
+
+    def complete(
+        self,
+        messages,
+        *,
+        temperature: float = 0.0,
+        max_tokens: int = 1024,
+        stage: Optional[str] = None,
+        **kwargs,
+    ):
+        st = str(stage or "")
+        if st.startswith("planner"):
+            content = self._plan
+        elif st.startswith("reason"):
+            content = self._reason
+        elif st.startswith("replanner"):
+            self._replan_calls += 1
+            # First replan after retrieve → keep reason; later → response.
+            content = self._keep_reason if self._replan_calls == 1 else self._final
+        else:
+            content = self._final
+        return {
+            "content": content,
+            "usage": {
+                "prompt_tokens": 10,
+                "completion_tokens": 10,
+                "total_tokens": 20,
+                "input_tokens": 10,
+                "output_tokens": 10,
+            },
+            "latency_ms": 1.0,
+            "model": self.model,
+            "provider": "mock",
+        }
+
+
+def _mock_pe_fin_replan_scripted_llm() -> ScriptedLLMClient:
+    return _StageAwareReplanMockLLM()
+
+
 class UnifiedHkPeFinLiteRunner:
     def __init__(
         self,
@@ -395,7 +531,9 @@ class UnifiedHkPeFinLiteRunner:
         diagnostic12: bool = False,
         smoke5: bool = False,
         diagnostic20_eea: bool = False,
+        diagnostic20_replan: bool = False,
         eea_enabled: bool = False,
+        replan_enabled: bool = False,
         ids: Optional[Sequence[str]] = None,
         max_tasks: Optional[int] = None,
         resume: bool = False,
@@ -421,11 +559,25 @@ class UnifiedHkPeFinLiteRunner:
         self.diagnostic12 = bool(diagnostic12)
         self.smoke5 = bool(smoke5)
         self.diagnostic20_eea = bool(diagnostic20_eea)
-        self.eea_enabled = bool(eea_enabled) or self.diagnostic20_eea
+        self.diagnostic20_replan = bool(diagnostic20_replan)
+        self.replan_enabled = bool(replan_enabled) or self.diagnostic20_replan
+        # RePlan always includes EEA execution/evidence alignment.
+        self.eea_enabled = (
+            bool(eea_enabled) or self.diagnostic20_eea or self.replan_enabled
+        )
         if self.diagnostic12 and self.smoke5:
             raise RuntimeError("Cannot combine --diagnostic12 and --smoke5")
         if self.diagnostic20_eea and (self.diagnostic12 or self.smoke5):
             raise RuntimeError("Cannot combine --diagnostic20-eea with diagnostic12/smoke5")
+        if self.diagnostic20_replan and (self.diagnostic12 or self.smoke5):
+            raise RuntimeError(
+                "Cannot combine --diagnostic20-replan with diagnostic12/smoke5"
+            )
+        if self.diagnostic20_eea and self.diagnostic20_replan:
+            raise RuntimeError(
+                "Cannot combine --diagnostic20-eea with --diagnostic20-replan "
+                "(separate output dirs / resume identities)"
+            )
         self.ids = list(ids) if ids else None
         self.max_tasks = max_tasks
         self.resume = resume
@@ -452,6 +604,9 @@ class UnifiedHkPeFinLiteRunner:
             self.config.get("planner_max_tokens", PLANNER_MAX_TOKENS)
         )
         self.limits = dict(self.config.get("limits") or {})
+        if self.replan_enabled:
+            for k, v in REPLAN_DEFAULT_BUDGETS.items():
+                self.limits.setdefault(k, v)
         self.retrieval = dict(self.config.get("retrieval") or {})
         self.embedding_batch_size = int(self.config.get("embedding_batch_size", 16))
         self.embedding_request_timeout_sec = float(
@@ -462,15 +617,21 @@ class UnifiedHkPeFinLiteRunner:
             float(x)
             for x in (self.config.get("embedding_retry_backoff_seconds") or [1, 2, 4])
         ]
-        if self.eea_enabled:
+        if self.replan_enabled:
+            self.condition = PE_FIN_REPLAN_CONDITION
+            self.method_version = PE_FIN_REPLAN_METHOD_VERSION
+            self.protocol_version = PE_FIN_REPLAN_PROTOCOL_VERSION
+            self.architecture = PE_FIN_REPLAN_ARCHITECTURE
+        elif self.eea_enabled:
             self.condition = PE_FIN_LITE_EEA_CONDITION
             self.method_version = PE_FIN_LITE_EEA_METHOD_VERSION
             self.protocol_version = PE_FIN_LITE_EEA_PROTOCOL_VERSION
+            self.architecture = PE_FIN_LITE_ARCHITECTURE
         else:
             self.condition = PE_FIN_LITE_CONDITION
             self.method_version = PE_FIN_LITE_METHOD_VERSION
             self.protocol_version = None
-        self.architecture = PE_FIN_LITE_ARCHITECTURE
+            self.architecture = PE_FIN_LITE_ARCHITECTURE
         self.execution_backend = "real_mcp"
         self.system_prompt = PE_FIN_LITE_SYSTEM_PROMPT
         self.gen_meta: Dict[str, str] = {}
@@ -501,14 +662,19 @@ class UnifiedHkPeFinLiteRunner:
     def _load_tasks(self) -> List[Dict[str, Any]]:
         effective_split = self.split
         confirm_retire = self.confirm_retire_heldout
-        if self.diagnostic12 or self.smoke5 or self.diagnostic20_eea:
+        if (
+            self.diagnostic12
+            or self.smoke5
+            or self.diagnostic20_eea
+            or self.diagnostic20_replan
+        ):
             effective_split = "exploratory_all"
             if self.dry_run and not confirm_retire:
                 confirm_retire = True
             if not self.dry_run and not confirm_retire:
                 raise RuntimeError(
-                    "diagnostic12/smoke5/diagnostic20-eea requires --split exploratory_all "
-                    "--confirm-retire-heldout (except dry-run)."
+                    "diagnostic12/smoke5/diagnostic20-eea/diagnostic20-replan requires "
+                    "--split exploratory_all --confirm-retire-heldout (except dry-run)."
                 )
 
         self._heldout_status = assert_heldout_unlocked(
@@ -518,7 +684,14 @@ class UnifiedHkPeFinLiteRunner:
             split=effective_split, confirm_retire_heldout=confirm_retire
         )
 
-        if self.diagnostic20_eea:
+        if self.diagnostic20_replan:
+            # Reuse frozen Diagnostic-20 IDs/order; separate subset_kind for resume.
+            self._diagnostic20_eea_manifest = load_diagnostic20_eea_manifest(self.root)
+            self.split = "exploratory_all"
+            tasks = load_diagnostic20_eea_tasks(self.root)
+            self._exploratory_manifest = load_exploratory_manifest(self.root)
+            self._exploratory_run_order = load_exploratory_run_order(self.root)
+        elif self.diagnostic20_eea:
             self._diagnostic20_eea_manifest = load_diagnostic20_eea_manifest(self.root)
             self.split = "exploratory_all"
             tasks = load_diagnostic20_eea_tasks(self.root)
@@ -644,6 +817,14 @@ class UnifiedHkPeFinLiteRunner:
             smoke5_manifest_hash = man.get("manifest_hash")
             dman = self._diagnostic_manifest or load_diagnostic12_manifest(self.root)
             diagnostic_manifest_hash = dman.get("manifest_hash")
+        elif self.diagnostic20_replan:
+            subset_kind = "diagnostic20_replan"
+            man = getattr(self, "_diagnostic20_eea_manifest", None) or load_diagnostic20_eea_manifest(
+                self.root
+            )
+            subset_manifest_hash = man.get("manifest_sha256")
+            subset_ordered_id_hash = man.get("ordered_task_ids_hash")
+            diagnostic_manifest_hash = man.get("manifest_sha256")
         elif self.diagnostic20_eea:
             subset_kind = "diagnostic20_eea"
             man = getattr(self, "_diagnostic20_eea_manifest", None) or load_diagnostic20_eea_manifest(
@@ -733,7 +914,9 @@ class UnifiedHkPeFinLiteRunner:
             "diagnostic12": self.diagnostic12,
             "smoke5": self.smoke5,
             "diagnostic20_eea": self.diagnostic20_eea,
+            "diagnostic20_replan": self.diagnostic20_replan,
             "eea_enabled": self.eea_enabled,
+            "replan_enabled": self.replan_enabled,
             "protocol_version": self.protocol_version,
             **(
                 {
@@ -742,7 +925,20 @@ class UnifiedHkPeFinLiteRunner:
                     "developed_after_hk155_result_inspection": True,
                     "eea_flags": dict(EEA_FLAGS),
                 }
-                if self.eea_enabled
+                if self.eea_enabled and not self.replan_enabled
+                else {}
+            ),
+            **(
+                {
+                    "posthoc_exploratory": True,
+                    "formal_primary_result": False,
+                    "developed_after_hk155_result_inspection": True,
+                    "base_method": "pe_fin_lite_v1_2_eea",
+                    "replan_flags": dict(REPLAN_FLAGS),
+                    "replan_identity": replan_protocol_identity(),
+                    "eea_flags": dict(EEA_FLAGS),
+                }
+                if self.replan_enabled
                 else {}
             ),
             "temperature": self.temperature,
@@ -775,7 +971,12 @@ class UnifiedHkPeFinLiteRunner:
                 mock=self.mock,
                 confirm_retire_heldout=self.confirm_retire_heldout
                 or bool(
-                    (self.diagnostic12 or self.smoke5 or self.diagnostic20_eea)
+                    (
+                        self.diagnostic12
+                        or self.smoke5
+                        or self.diagnostic20_eea
+                        or self.diagnostic20_replan
+                    )
                     and self.dry_run
                 ),
                 git_commit=git_commit(self.root),
@@ -870,7 +1071,7 @@ class UnifiedHkPeFinLiteRunner:
         self._index_status = result
         return result
 
-    def build_agent(self) -> PeFinLiteAgent:
+    def build_agent(self):
         if self.dry_run:
             raise RuntimeError("build_agent must not be called during dry-run.")
 
@@ -915,7 +1116,11 @@ class UnifiedHkPeFinLiteRunner:
         )
 
         if self.mock:
-            llm: Any = _mock_pe_fin_lite_scripted_llm()
+            llm: Any = (
+                _mock_pe_fin_replan_scripted_llm()
+                if self.replan_enabled
+                else _mock_pe_fin_lite_scripted_llm()
+            )
             embedding: Any = DeterministicHashEmbeddingBackend()
             gateway = UnifiedRealMcpGateway(
                 catalog_bundle=self.bundle,
@@ -963,7 +1168,7 @@ class UnifiedHkPeFinLiteRunner:
             "use_mock_binder": bool(self.mock),
             "eea_enabled": bool(self.eea_enabled),
         }
-        return PeFinLiteAgent(
+        agent_kwargs = dict(
             llm=llm,
             resolver=resolver,
             capability_profile=self.capability_profile,
@@ -973,6 +1178,9 @@ class UnifiedHkPeFinLiteRunner:
             live_mode=not self.mock,
             allow_hkex_download=self.allow_hkex_download,
         )
+        if self.replan_enabled:
+            return PeFinReplanAgent(**agent_kwargs)
+        return PeFinLiteAgent(**agent_kwargs)
 
     def close(self) -> None:
         if self._gateway is not None:
@@ -1026,15 +1234,40 @@ class UnifiedHkPeFinLiteRunner:
             "method_version": self.method_version,
             "architecture": self.architecture,
             "eea_enabled": bool(self.eea_enabled),
+            "replan_enabled": bool(self.replan_enabled),
             "protocol_version": self.protocol_version,
-            "posthoc_exploratory": bool(self.eea_enabled),
-            "formal_primary_result": False if self.eea_enabled else None,
+            "posthoc_exploratory": bool(self.eea_enabled or self.replan_enabled),
+            "formal_primary_result": (
+                False if (self.eea_enabled or self.replan_enabled) else None
+            ),
             "answerability_state": result.get("answerability_state"),
             "answerability_reason_code": result.get("answerability_reason_code"),
             "core_outputs_satisfied": result.get("core_outputs_satisfied"),
             "optional_outputs_missing": result.get("optional_outputs_missing"),
             "infeasibility_evidence": result.get("infeasibility_evidence"),
             "initial_plan": result.get("initial_plan"),
+            "original_plan_hash": result.get("original_plan_hash"),
+            "executed_steps": result.get("executed_steps"),
+            "remaining_plan_history": result.get("remaining_plan_history"),
+            "past_steps": result.get("past_steps"),
+            "replan_calls": result.get("replan_calls"),
+            "replan_repairs": result.get("replan_repairs"),
+            "replan_decisions": result.get("replan_decisions"),
+            "plan_diff_history": result.get("plan_diff_history"),
+            "steps_added": result.get("steps_added"),
+            "steps_removed": result.get("steps_removed"),
+            "steps_modified": result.get("steps_modified"),
+            "early_answer_count": result.get("early_answer_count"),
+            "recovery_attempts": result.get("recovery_attempts"),
+            "recovery_successes": result.get("recovery_successes"),
+            "failed_signature_blocks": result.get("failed_signature_blocks"),
+            "no_progress_rounds": result.get("no_progress_rounds"),
+            "final_response_source": result.get("final_response_source"),
+            "resource_limit_failure": result.get("resource_limit_failure"),
+            "loop_prevention_trigger": result.get("loop_prevention_trigger"),
+            "graph_edges": result.get("graph_edges"),
+            "replan_identity": result.get("replan_identity"),
+            "replan_flags": result.get("replan_flags"),
             "step_statuses": result.get("step_statuses"),
             "retrieval_funnels": result.get("retrieval_funnels"),
             "predicted_operations": result.get("predicted_operations"),
@@ -1055,7 +1288,9 @@ class UnifiedHkPeFinLiteRunner:
             "error_type": result.get("error_type"),
             "stopping_reason": result.get("stopping_reason"),
             "monitor_decisions": [],
-            "plan_revisions": [],
+            "plan_revisions": result.get("plan_revisions")
+            if self.replan_enabled
+            else [],
             "primary_selected_count": result.get("primary_selected_count"),
             "fallback_used_count": result.get("fallback_used_count"),
             "local_fallback_count": result.get("local_fallback_count"),
@@ -1323,13 +1558,18 @@ class UnifiedHkPeFinLiteRunner:
 
         if self.dry_run:
             atomic_write_json(meta_path, run_meta)
-            print("PE-FIN-LITE DRY-RUN OK")
+            label = "PE-FIN-REPLAN DRY-RUN OK" if self.replan_enabled else "PE-FIN-LITE DRY-RUN OK"
+            print(label)
             print(f"condition={run_meta['condition']}")
             print(f"method_version={run_meta['method_version']}")
             print(f"architecture={run_meta['architecture']}")
+            print(f"protocol_version={run_meta.get('protocol_version')}")
             print(f"subset_kind={run_meta.get('subset_kind')}")
             print(f"diagnostic12={self.diagnostic12}")
             print(f"smoke5={self.smoke5}")
+            print(f"diagnostic20_eea={self.diagnostic20_eea}")
+            print(f"diagnostic20_replan={self.diagnostic20_replan}")
+            print(f"replan_enabled={self.replan_enabled}")
             print(f"question_count={run_meta['question_count']}")
             print(f"capability_profile_hash={run_meta['capability_profile_hash']}")
             print(f"schema_hash={run_meta.get('schema_hash')}")
