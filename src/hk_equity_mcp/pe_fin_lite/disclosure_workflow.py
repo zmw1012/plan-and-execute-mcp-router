@@ -136,6 +136,8 @@ def disclosure_workflow_hash() -> str:
             "no_task_id_branching": True,
             "benchmark_cutoff_enforced": True,
             "default_cutoff": DEFAULT_DATASET_CUTOFF,
+            "missing_from_date_fills_cutoff_not_1999": True,
+            "download_requires_in_cutoff_target": True,
             "deterministic_title_broadening_max": 1,
             "no_default_first_row": True,
             "document_type_intents": sorted(_DOC_TYPE_PATTERNS.keys()),
@@ -280,6 +282,10 @@ def enrich_disclosure_grounding(
     if not to_date:
         to_date = cut
         g["to_date"] = cut
+    # Do not invent from_date here: missing from_date means "no lower bound in
+    # local filters". Invoke-time enforcement supplies an explicit start_date so
+    # the provider cannot open end_date to system today; it must not widen an
+    # existing scoped from_date to 1999 via title broadening.
 
     intent = infer_document_type_intent(
         title_keyword=g.get("title_keyword"),
@@ -750,6 +756,10 @@ def build_stage_arguments(
     grounding: Optional[Dict[str, Any]] = None,
     omit_title: bool = False,
 ) -> Dict[str, Any]:
+    from hk_equity_mcp.pe_fin_lite.benchmark_cutoff_enforcement import (
+        effective_to_date,
+    )
+
     schema = contract.get("json_schema") or {}
     props = schema.get("properties") or {}
     required = list(schema.get("required") or [])
@@ -762,17 +772,19 @@ def build_stage_arguments(
         or chain_state.get("issuer_code")
         or step.get("entity")
     )
-    from_date = g.get("from_date") or scope.get("from_date") or step.get("date")
-    to_date = (
-        g.get("to_date")
-        or scope.get("to_date")
-        or g.get("benchmark_cutoff")
-        or DEFAULT_DATASET_CUTOFF
-    )
     cutoff = _norm_date(g.get("benchmark_cutoff") or DEFAULT_DATASET_CUTOFF)
-    to_date_n = _norm_date(to_date)
-    if to_date_n and cutoff and to_date_n > cutoff:
-        to_date = cutoff
+    from_date = _norm_date(
+        g.get("from_date") or scope.get("from_date") or step.get("date")
+    )
+    to_date = effective_to_date(
+        g.get("to_date") or scope.get("to_date"),
+        cutoff=cutoff or DEFAULT_DATASET_CUTOFF,
+    )
+    if from_date and cutoff and from_date > cutoff:
+        from_date = cutoff
+    # Unscoped list invoke: pass explicit provider lower-bound start_date so the
+    # MCP does not also open toDate=today. Do not treat this as grounded from_date.
+    list_start = from_date or "1999-04-01"
     # List title: document-type intent only; never raw metric phrase.
     if omit_title:
         title_kw = None
@@ -821,9 +833,12 @@ def build_stage_arguments(
     maybe_set("code", stock_code)
     maybe_set("issuer_code", stock_code)
     # Dates: never substitute bare period strings into start/end.
-    maybe_set("start_date", from_date)
+    # Always emit start/end for list-capable schemas so provider cannot open
+    # toDate=today; unscoped start uses explicit 1999-04-01 lower bound.
+    maybe_set("start_date", list_start)
     maybe_set("end_date", to_date)
-    maybe_set("from_date", from_date)
+    if from_date:
+        maybe_set("from_date", from_date)
     maybe_set("to_date", to_date)
     # File / URL links when required by download contracts.
     maybe_set(
@@ -1046,6 +1061,35 @@ def run_disclosure_composite(
             grounding=g,
             omit_title=omit_title,
         )
+        from hk_equity_mcp.pe_fin_lite.benchmark_cutoff_enforcement import (
+            enforce_disclosure_invoke_arguments,
+        )
+
+        args, _cutoff_notes, cutoff_block = enforce_disclosure_invoke_arguments(
+            oid,
+            args,
+            cutoff=str(g.get("benchmark_cutoff") or DEFAULT_DATASET_CUTOFF),
+            grounding=g,
+        )
+        if cutoff_block:
+            last_error = f"benchmark_cutoff_blocked:{cutoff_block}"
+            trace.append(
+                {
+                    "stage": stage,
+                    "operation_id": oid,
+                    "arguments": {
+                        k: args[k]
+                        for k in args
+                        if "key" not in k.lower() or k == "local_key"
+                    },
+                    "success": False,
+                    "gateway_success": False,
+                    "error": last_error,
+                    "rejected_reason": cutoff_block,
+                    "benchmark_cutoff": g.get("benchmark_cutoff"),
+                }
+            )
+            break
         required = list((contract.get("json_schema") or {}).get("required") or [])
         unmet = [r for r in required if r not in args]
         if unmet:
@@ -1131,6 +1175,7 @@ def run_disclosure_composite(
                     selected = ranked.get("selected")
                 else:
                     # API returned 0 under title constraint → one re-list without title.
+                    # Keep issuer/date/cutoff; never expand to system today / 1999 defaults.
                     broad_args = build_stage_arguments(
                         stage=stage,
                         contract=contract,
@@ -1139,6 +1184,31 @@ def run_disclosure_composite(
                         grounding=g,
                         omit_title=True,
                     )
+                    broad_args, _, broad_block = enforce_disclosure_invoke_arguments(
+                        oid,
+                        broad_args,
+                        cutoff=str(g.get("benchmark_cutoff") or DEFAULT_DATASET_CUTOFF),
+                        grounding=g,
+                    )
+                    if broad_block:
+                        last_error = f"benchmark_cutoff_blocked:{broad_block}"
+                        trace.append(
+                            {
+                                "stage": "list_broaden",
+                                "operation_id": oid,
+                                "arguments": {
+                                    k: broad_args[k]
+                                    for k in broad_args
+                                    if "key" not in k.lower() or k == "local_key"
+                                },
+                                "success": False,
+                                "gateway_success": False,
+                                "error": last_error,
+                                "title_broadened": True,
+                                "rejected_reason": broad_block,
+                            }
+                        )
+                        break
                     try:
                         broad_result = _invoke_once(broad_args)
                     except Exception as exc:  # noqa: BLE001

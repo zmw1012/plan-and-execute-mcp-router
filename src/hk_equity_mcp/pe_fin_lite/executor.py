@@ -365,6 +365,32 @@ def _build_accepted_field_map(
     )
 
     pool = dict(projected_values or {})
+    from hk_equity_mcp.pe_fin_lite.benchmark_cutoff_enforcement import (
+        reject_post_cutoff_evidence_values,
+    )
+    from hk_equity_mcp.pe_fin_lite.temporal_policy import DEFAULT_DATASET_CUTOFF
+
+    cutoff = str(
+        (question_grounding or {}).get("benchmark_cutoff") or DEFAULT_DATASET_CUTOFF
+    )
+    pool, cutoff_reject = reject_post_cutoff_evidence_values(pool, cutoff=cutoff)
+    if cutoff_reject:
+        # Post-cutoff disclosure payload must not enter Evidence Store.
+        pool = {
+            k: v
+            for k, v in pool.items()
+            if k
+            not in {
+                "release_date",
+                "title",
+                "news_id",
+                "local_key",
+                "file_link",
+                "source_url",
+                "snippet",
+                "page_number",
+            }
+        }
     if eea_enabled:
         from hk_equity_mcp.pe_fin_lite.evidence_acceptance_eea import (
             apply_aliases_to_pool,
@@ -755,14 +781,61 @@ def execute_retrieve_step(
         "invoked_operations": [],
         "signature_blocks": [],
         "provider_availability": None,
+        "cutoff_enforcement": [],
     }
+    grounding: Dict[str, Any] = {}
 
     def _guarded_invoke(oid: str, args: Dict[str, Any]) -> Dict[str, Any]:
+        from hk_equity_mcp.pe_fin_lite.benchmark_cutoff_enforcement import (
+            blocked_invoke_response,
+            enforce_disclosure_invoke_arguments,
+            is_disclosure_download_operation,
+            is_disclosure_list_operation,
+        )
+        from hk_equity_mcp.pe_fin_lite.temporal_policy import DEFAULT_DATASET_CUTOFF
+
+        call_args = dict(args or {})
+        g_live = grounding if isinstance(grounding, dict) else {}
+        if is_disclosure_list_operation(oid) or is_disclosure_download_operation(oid):
+            call_args, cutoff_notes, block_reason = enforce_disclosure_invoke_arguments(
+                oid,
+                call_args,
+                cutoff=str(g_live.get("benchmark_cutoff") or DEFAULT_DATASET_CUTOFF),
+                grounding=g_live,
+            )
+            if cutoff_notes or block_reason:
+                funnel.setdefault("cutoff_enforcement", []).append(
+                    {
+                        "operation_id": oid,
+                        "notes": cutoff_notes,
+                        "block_reason": block_reason,
+                        "step_id": step.get("id"),
+                        "arguments": {
+                            k: call_args.get(k)
+                            for k in (
+                                "start_date",
+                                "end_date",
+                                "from_date",
+                                "to_date",
+                                "release_date",
+                                "local_key",
+                                "news_id",
+                            )
+                            if k in call_args
+                        },
+                    }
+                )
+            if block_reason:
+                # Do not call MCP — provider would default to 1999..today.
+                return blocked_invoke_response(
+                    operation_id=oid, reason=str(block_reason)
+                )
+
         if invocation_guard is not None:
-            blocked, reason = invocation_guard.is_blocked(oid, args)
+            blocked, reason = invocation_guard.is_blocked(oid, call_args)
             if blocked:
                 invocation_guard.mark_blocked_attempt(
-                    operation_id=oid, arguments=args, reason=str(reason or "blocked")
+                    operation_id=oid, arguments=call_args, reason=str(reason or "blocked")
                 )
                 funnel["signature_blocks"].append(
                     {
@@ -775,12 +848,12 @@ def execute_retrieve_step(
                     operation_id=oid, reason=str(reason or "blocked")
                 )
         result = _invoke_with_budget(
-            resolver=resolver, budget=budget, operation_id=oid, arguments=args
+            resolver=resolver, budget=budget, operation_id=oid, arguments=call_args
         )
         if invocation_guard is not None:
             invocation_guard.observe_invoke_result(
                 operation_id=oid,
-                arguments=args,
+                arguments=call_args,
                 invoke_result=result if isinstance(result, dict) else {},
             )
         return result
@@ -791,6 +864,15 @@ def execute_retrieve_step(
     )
 
     grounding = collect_step_grounding(question=question, step=step)
+    from hk_equity_mcp.pe_fin_lite.disclosure_workflow import enrich_disclosure_grounding
+    from hk_equity_mcp.pe_fin_lite.temporal_policy import DEFAULT_DATASET_CUTOFF
+
+    grounding = enrich_disclosure_grounding(
+        grounding,
+        step=step,
+        question=question or "",
+        cutoff=DEFAULT_DATASET_CUTOFF,
+    )
     step = apply_grounding_to_step(step, grounding)
     funnel["grounding"] = {
         "stock_code": grounding.get("stock_code"),
@@ -798,6 +880,7 @@ def execute_retrieve_step(
         "to_date": grounding.get("to_date"),
         "title_keyword": grounding.get("title_keyword"),
         "code_available": grounding.get("code_available"),
+        "benchmark_cutoff": grounding.get("benchmark_cutoff") or DEFAULT_DATASET_CUTOFF,
     }
 
     # Disclosure composite workflow (fixed chain; still MCP-budgeted).
