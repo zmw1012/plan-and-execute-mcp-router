@@ -737,6 +737,10 @@ def execute_retrieve_step(
     use_mock_binder: bool = False,
     eea_enabled: bool = False,
     invocation_guard: Any = None,
+    provider_profile: Optional[Dict[str, Any]] = None,
+    provider_raw_ops: Optional[Dict[str, Dict[str, Any]]] = None,
+    provider_records: Optional[Dict[str, Any]] = None,
+    question_for_provider: Optional[str] = None,
 ) -> Dict[str, Any]:
     funnel: Dict[str, Any] = {
         "step_id": step.get("id"),
@@ -750,6 +754,7 @@ def execute_retrieve_step(
         "local_fallback": None,
         "invoked_operations": [],
         "signature_blocks": [],
+        "provider_availability": None,
     }
 
     def _guarded_invoke(oid: str, args: Dict[str, Any]) -> Dict[str, Any]:
@@ -880,6 +885,21 @@ def execute_retrieve_step(
         "domain_hard_filter": DOMAIN_HARD_FILTER,
     }
     allowed: Set[str] = set(filt["kept"])
+    provider_trace: Optional[Dict[str, Any]] = None
+    if provider_profile:
+        from hk_equity_mcp.pe_fin_replan.provider_availability import (
+            apply_provider_availability_filter,
+        )
+
+        provider_trace = apply_provider_availability_filter(
+            operation_ids=sorted(allowed),
+            metadata_by_id=metadata_by_id,
+            profile=provider_profile,
+            raw_ops=provider_raw_ops,
+            records=provider_records,
+        )
+        allowed = set(provider_trace.get("operations_after_provider_filter") or [])
+        funnel["provider_availability"] = dict(provider_trace)
 
     budget.embedding_query_calls += 1
     top_k = int(budget.limits.get("retrieval_top_k", RETRIEVAL_TOP_K))
@@ -990,6 +1010,55 @@ def execute_retrieve_step(
     binding = binder_out["binding"]
     primary = binding["primary"]
     fallback = binding.get("fallback")
+    if provider_profile and provider_trace is not None:
+        from hk_equity_mcp.pe_fin_replan.provider_availability import (
+            ProviderAvailabilityError,
+            validate_bound_operation,
+        )
+
+        try:
+            for label, call in (("primary", primary), ("fallback", fallback)):
+                if not call:
+                    continue
+                obs = validate_bound_operation(
+                    operation_id=str(call.get("operation_id")),
+                    arguments=call.get("arguments")
+                    if isinstance(call.get("arguments"), dict)
+                    else {},
+                    step=step,
+                    profile=provider_profile,
+                    filter_trace=provider_trace,
+                    question=str(question_for_provider or question or ""),
+                    metadata_by_id=metadata_by_id,
+                    raw_ops=provider_raw_ops,
+                )
+                if label == "primary":
+                    funnel["provider_availability"] = {
+                        **dict(provider_trace),
+                        **obs,
+                    }
+        except ProviderAvailabilityError as exc:
+            result = make_step_result(
+                status="failed",
+                failure_reason=str(exc),
+                missing_outputs=list(step.get("required_outputs") or []),
+                execution_ok=False,
+                extra={"execution_failure_class": "unsupported_provider_capability"},
+            )
+            result["execution_failure_class"] = "unsupported_provider_capability"
+            store.add_retrieve_result(step_id=str(step["id"]), result=result)
+            from hk_equity_mcp.pe_fin_lite.checkpoint_observability import (
+                enrich_retrieve_funnel_passive,
+            )
+
+            funnel = enrich_retrieve_funnel_passive(
+                funnel, step=step, step_result=result
+            )
+            return {
+                "step_result": result,
+                "funnel": funnel,
+                "usage": binder_out.get("usage"),
+            }
     funnel["primary"] = {
         "operation_id": primary["operation_id"],
         "arguments": _redact_args(primary["arguments"]),

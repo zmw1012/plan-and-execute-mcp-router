@@ -79,6 +79,9 @@ class PeFinReplanAgent:
         runtime_operation_ids: Optional[List[str]] = None,
         live_mode: bool = True,
         allow_hkex_download: bool = False,
+        provider_profile: Optional[Dict[str, Any]] = None,
+        provider_raw_ops: Optional[Dict[str, Dict[str, Any]]] = None,
+        provider_records: Optional[Dict[str, Any]] = None,
     ):
         assert_prompts_clean()
         self._raw_llm = llm
@@ -104,6 +107,9 @@ class PeFinReplanAgent:
         )
         self.live_mode = bool(live_mode)
         self.allow_hkex_download = bool(allow_hkex_download)
+        self.provider_profile = provider_profile
+        self.provider_raw_ops = provider_raw_ops or {}
+        self.provider_records = provider_records or {}
         self.budget = BudgetTracker(self.limits)
         self._use_mock_binder = bool(self.config.get("use_mock_binder", False))
         if self.live_mode and self._use_mock_binder:
@@ -142,6 +148,10 @@ class PeFinReplanAgent:
                 use_mock_binder=self._use_mock_binder,
                 eea_enabled=True,
                 invocation_guard=state.invocation_guard,
+                provider_profile=self.provider_profile,
+                provider_raw_ops=self.provider_raw_ops,
+                provider_records=self.provider_records,
+                question_for_provider=question,
             )
             usage = dict(out.get("usage") or {})
             funnel = out.get("funnel")

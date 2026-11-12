@@ -189,6 +189,13 @@ PE_RESUME_IDENTITY_KEYS = (
     "mock",
     "dry_run",
     "checkpoint_trace_contract_version",
+    "market_provider_profile_id",
+    "market_provider_profile_hash",
+    "disabled_market_provider",
+    "disabled_operation_ids",
+    "preferred_single_equity_operation",
+    "preferred_index_operation",
+    "tool_readiness_artifact_sha256",
 )
 
 
@@ -587,6 +594,9 @@ class UnifiedHkPeFinLiteRunner:
         require_complete_index: bool = False,
         embedding_cache_dir: Optional[Path] = None,
         allow_auto_build_index: bool = False,
+        market_provider_profile: Optional[str] = None,
+        require_tool_readiness: bool = False,
+        tool_readiness_artifact: Optional[str] = None,
     ):
         self.root = root or repo_root()
         self.output_dir = Path(output_dir)
@@ -710,6 +720,48 @@ class UnifiedHkPeFinLiteRunner:
         self._diagnostic_manifest: Optional[Dict[str, Any]] = None
         self._smoke5_manifest: Optional[Dict[str, Any]] = None
         self._replan_smoke5_manifest: Optional[Dict[str, Any]] = None
+        self.market_provider_profile_path = (
+            Path(market_provider_profile) if market_provider_profile else None
+        )
+        if self.market_provider_profile_path and not self.market_provider_profile_path.is_absolute():
+            self.market_provider_profile_path = (
+                self.root / self.market_provider_profile_path
+            ).resolve()
+        self.require_tool_readiness = bool(require_tool_readiness)
+        self.tool_readiness_artifact_path = (
+            Path(tool_readiness_artifact) if tool_readiness_artifact else None
+        )
+        if (
+            self.tool_readiness_artifact_path
+            and not self.tool_readiness_artifact_path.is_absolute()
+        ):
+            self.tool_readiness_artifact_path = (
+                self.root / self.tool_readiness_artifact_path
+            ).resolve()
+        self._provider_profile: Optional[Dict[str, Any]] = None
+        self._provider_filter_trace: Optional[Dict[str, Any]] = None
+        self._tool_readiness_meta: Optional[Dict[str, Any]] = None
+        if self.replan_enabled and self.market_provider_profile_path is not None:
+            from hk_equity_mcp.pe_fin_replan.provider_availability import (
+                apply_provider_availability_filter,
+                load_provider_availability_profile,
+            )
+
+            self._provider_profile = load_provider_availability_profile(
+                self.market_provider_profile_path,
+                condition=PE_FIN_REPLAN_CONDITION,
+            )
+            self._provider_filter_trace = apply_provider_availability_filter(
+                operation_ids=list(self.bundle.stats.runtime_operation_ids),
+                metadata_by_id=self.metadata_by_id,
+                profile=self._provider_profile,
+                raw_ops=dict(self.bundle.raw_ops),
+                records=dict(self.bundle.records),
+            )
+        elif self.require_tool_readiness and not self.replan_enabled:
+            raise RuntimeError(
+                "--require-tool-readiness is only valid for pe_fin_replan condition"
+            )
 
     def _load_tasks(self) -> List[Dict[str, Any]]:
         effective_split = self.split
@@ -1034,6 +1086,21 @@ class UnifiedHkPeFinLiteRunner:
             "global_replan_enabled": False,
             "capability_compiler_enabled": False,
         }
+        from hk_equity_mcp.pe_fin_replan.provider_availability import (
+            resume_identity_fields,
+        )
+
+        run_meta.update(
+            resume_identity_fields(
+                self._provider_profile if self.replan_enabled else None,
+                self._provider_filter_trace if self.replan_enabled else None,
+            )
+        )
+        run_meta["tool_readiness_artifact_sha256"] = (
+            (self._tool_readiness_meta or {}).get("artifact_sha256")
+            if self.replan_enabled
+            else None
+        )
         if self._exploratory_manifest is not None:
             run_meta["exploratory"] = build_retirement_metadata(
                 dry_run=self.dry_run,
@@ -1249,6 +1316,11 @@ class UnifiedHkPeFinLiteRunner:
             allow_hkex_download=self.allow_hkex_download,
         )
         if self.replan_enabled:
+            agent_kwargs.update(
+                provider_profile=self._provider_profile,
+                provider_raw_ops=dict(self.bundle.raw_ops),
+                provider_records=dict(self.bundle.records),
+            )
             return PeFinReplanAgent(**agent_kwargs)
         return PeFinLiteAgent(**agent_kwargs)
 
@@ -1624,6 +1696,38 @@ class UnifiedHkPeFinLiteRunner:
         fsync_file(grading_path)
 
     def run(self) -> Dict[str, Any]:
+        if self.replan_enabled and self.require_tool_readiness:
+            from hk_equity_mcp.pe_fin_replan.provider_availability import (
+                ProviderAvailabilityError,
+                assert_tool_readiness_for_live,
+                profile_hash,
+            )
+
+            if self._provider_profile is None:
+                raise RuntimeError(
+                    "--require-tool-readiness requires --market-provider-profile "
+                    "for pe_fin_replan"
+                )
+            artifact = self.tool_readiness_artifact_path
+            if artifact is None:
+                artifact = (
+                    self.root
+                    / "outputs"
+                    / "pe_fin_replan_tool_readiness_v1"
+                    / "market_sina_probe"
+                    / "readiness.json"
+                )
+                self.tool_readiness_artifact_path = artifact
+            try:
+                self._tool_readiness_meta = assert_tool_readiness_for_live(
+                    artifact_path=artifact,
+                    expected_profile_hash=profile_hash(self._provider_profile),
+                    mock=self.mock,
+                    dry_run=self.dry_run,
+                )
+            except ProviderAvailabilityError as exc:
+                raise RuntimeError(str(exc)) from exc
+
         prepared = self.prepare()
         items = prepared["items"]
         run_meta = prepared["run_metadata"]

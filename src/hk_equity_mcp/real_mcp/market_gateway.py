@@ -46,6 +46,37 @@ BLOCKED_MARKET_OPS = frozenset(
 )
 
 
+def _enrich_sina_market_bars(
+    data: Any,
+    *,
+    operation_id: str,
+    adjustment: Optional[str],
+    currency: Optional[str],
+    issuer_code: Optional[str],
+) -> Any:
+    """Add trade_date/adjustment/currency/issuer_code aliases without dropping OHLC."""
+
+    def _one(bar: Any) -> Any:
+        if not isinstance(bar, dict):
+            return bar
+        out = dict(bar)
+        trade_date = out.get("trade_date") or out.get("date")
+        if trade_date is not None:
+            out["trade_date"] = trade_date
+            out.setdefault("date", trade_date)
+        if adjustment is not None:
+            out["adjustment"] = adjustment
+        if currency is not None:
+            out["currency"] = currency
+        if issuer_code is not None and operation_id == "aktools.stock_hk_daily":
+            out["issuer_code"] = issuer_code
+        return out
+
+    if isinstance(data, list):
+        return [_one(x) for x in data]
+    return _one(data)
+
+
 class MarketRealMcpGateway:
     """Deterministic Market Real-MCP invoke path (no mock FinancialServer)."""
 
@@ -136,6 +167,32 @@ class MarketRealMcpGateway:
                     f"Invalid adjust mode: {arguments['adjust']!r}",
                     error_type="validation_error",
                 )
+
+        # Sina stock_hk_daily: unadjusted only; normalize symbol to XXXXX.HK.
+        if operation_id == "aktools.stock_hk_daily":
+            adj = arguments.get("adjust", arguments.get("adjustment", ""))
+            if adj in (None,):
+                adj = ""
+            adj_s = str(adj).strip().lower()
+            if adj_s in {"qfq", "hfq"}:
+                return self._fail(
+                    operation_id,
+                    server_id,
+                    arguments,
+                    "unsupported_provider_capability:stock_hk_daily_unadjusted_only",
+                    error_type="unsupported_provider_capability",
+                )
+            arguments["adjust"] = ""
+            arguments["adjustment"] = ""
+            sym = arguments.get("symbol")
+            if sym is not None:
+                from hk_equity_mcp.pe_fin_lite.issuer_code import (
+                    canonicalize_hk_issuer_code,
+                )
+
+                code = canonicalize_hk_issuer_code(sym)
+                if code:
+                    arguments["symbol"] = f"{code}.HK"
 
         if kind == "aktools_get_data":
             return self._invoke_get_data(operation_id, raw, execution, arguments)
@@ -314,6 +371,8 @@ class MarketRealMcpGateway:
         adjust_mode = arguments.get("adjust")
         if operation_id == "aktools.stock_hk_hist":
             adjust_mode = arguments.get("adjust", "")
+        elif operation_id == "aktools.stock_hk_daily":
+            adjust_mode = ""
 
         is_price_like = bool(raw.get("formal_gold_price_source")) or operation_id in {
             "aktools.stock_hk_daily",
@@ -327,6 +386,22 @@ class MarketRealMcpGateway:
             currency = "index_points"
             currency_prov = "index_unit"
 
+        # Enrich Sina equity/index bars with PE-Fin Lite required-output fields.
+        if operation_id in {
+            "aktools.stock_hk_daily",
+            "aktools.stock_hk_index_daily_sina",
+        }:
+            from hk_equity_mcp.pe_fin_lite.issuer_code import canonicalize_hk_issuer_code
+
+            issuer = canonicalize_hk_issuer_code(arguments.get("symbol"))
+            selected_data = _enrich_sina_market_bars(
+                selected_data,
+                operation_id=operation_id,
+                adjustment="" if operation_id == "aktools.stock_hk_daily" else None,
+                currency=currency,
+                issuer_code=issuer,
+            )
+
         schema = market_result_schema(
             success=True,
             source_server=server_id,
@@ -338,7 +413,11 @@ class MarketRealMcpGateway:
             timezone=MARKET_TIMEZONE,
             currency_or_unit=currency,
             currency_provenance=currency_prov,
-            adjustment_mode=adjust_mode if operation_id == "aktools.stock_hk_hist" else None,
+            adjustment_mode=(
+                adjust_mode
+                if operation_id in {"aktools.stock_hk_hist", "aktools.stock_hk_daily"}
+                else None
+            ),
             data=selected_data,
             provenance={
                 "exposed_mcp_tool": "get_data",

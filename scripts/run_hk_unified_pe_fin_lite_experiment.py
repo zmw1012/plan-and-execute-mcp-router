@@ -127,6 +127,30 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Override shared PE-Fin Lite embedding cache dir (must end with namespace)",
     )
+    p.add_argument(
+        "--market-provider-profile",
+        default=None,
+        help=(
+            "RePlan-only runtime provider availability profile YAML "
+            "(e.g. configs/operations/hk_runtime_provider_availability_sina_market_v1.yaml)"
+        ),
+    )
+    p.add_argument(
+        "--require-tool-readiness",
+        action="store_true",
+        help=(
+            "Live pe_fin_replan only: require matching Sina market readiness artifact; "
+            "mock/dry-run cannot forge a live pass"
+        ),
+    )
+    p.add_argument(
+        "--tool-readiness-artifact",
+        default=None,
+        help=(
+            "Path to readiness.json from market_sina_probe / critical_live_audit "
+            "(default: outputs/pe_fin_replan_tool_readiness_v1/market_sina_probe/readiness.json)"
+        ),
+    )
     return p.parse_args()
 
 
@@ -205,6 +229,9 @@ def main() -> None:
         require_complete_index=args.require_complete_index,
         embedding_cache_dir=emb_cache,
         allow_auto_build_index=False,
+        market_provider_profile=args.market_provider_profile,
+        require_tool_readiness=bool(args.require_tool_readiness),
+        tool_readiness_artifact=args.tool_readiness_artifact,
     )
 
     if args.index_status:
