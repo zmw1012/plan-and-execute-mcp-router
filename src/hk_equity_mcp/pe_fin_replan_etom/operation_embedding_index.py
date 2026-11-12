@@ -176,10 +176,13 @@ def identity_digest(identity: Dict[str, Any]) -> str:
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
 
-def index_paths(cache_dir: Path, identity: Dict[str, Any]) -> Tuple[Path, Path, Path, str]:
+def index_paths(
+    cache_dir: Path, identity: Dict[str, Any], *, create: bool = True
+) -> Tuple[Path, Path, Path, str]:
     digest = identity_digest(identity)
     root = assert_pe_fin_replan_etom_cache_dir(cache_dir)
-    root.mkdir(parents=True, exist_ok=True)
+    if create:
+        root.mkdir(parents=True, exist_ok=True)
     final = root / f"pe_fin_replan_etom_ops_{digest}.json"
     partial = root / f"pe_fin_replan_etom_ops_{digest}.partial.jsonl"
     partial_meta = root / f"pe_fin_replan_etom_ops_{digest}.partial.meta.json"
@@ -338,7 +341,7 @@ def index_status(
     cache_dir: Path,
 ) -> OperationIndexStatus:
     """Pure local status — no network."""
-    final, partial, _meta, digest = index_paths(cache_dir, identity)
+    final, partial, _meta, digest = index_paths(cache_dir, identity, create=False)
     total = len(identity.get("ordered_operation_ids") or [])
     provenance: Dict[str, Any] = {}
     vectors: Optional[Dict[str, List[float]]] = None
@@ -392,7 +395,7 @@ def load_complete_index(
             f"{status.completed}/{status.total} complete={status.complete} "
             f"cache_dir={cache_dir}"
         )
-    final, _, _, _ = index_paths(cache_dir, identity)
+    final, _, _, _ = index_paths(cache_dir, identity, create=False)
     vectors = _load_final(final, identity)
     assert vectors is not None
     return vectors
@@ -641,7 +644,7 @@ def load_catalog_index(
     from hk_equity_mcp.etom.embeddings import CatalogIndex, EmbeddingUsage
 
     vectors = load_complete_index(registry=registry, identity=identity, cache_dir=cache_dir)
-    final, _p, _m, _d = index_paths(cache_dir, identity)
+    final, _p, _m, _d = index_paths(cache_dir, identity, create=False)
     return CatalogIndex(
         model_name=str(identity["embedding_model"]),
         registry_sha256=registry_sha256,

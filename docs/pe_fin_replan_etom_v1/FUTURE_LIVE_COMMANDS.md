@@ -30,11 +30,14 @@ Ensure pinned ETOM raw checkout exists (`data/etom/raw` symlink or
 
 ## 2) Build index only (AFTER HK-155 freeze; uses embedding relay)
 
+Live build is gated twice: `--allow-live-formal100` AND `PE_FIN_REPLAN_ETOM_ALLOW_LIVE=1`.
+Without both it fails closed (offline: `--build-index-only --mock-embeddings` builds a
+deterministic hash index under the output dir, never under `.cache`).
+
 ```bash
-"$PY" scripts/run_etom_pe_fin_replan_experiment.py \
+PE_FIN_REPLAN_ETOM_ALLOW_LIVE=1 "$PY" scripts/run_etom_pe_fin_replan_experiment.py \
   --build-index-only \
-  --formal100 \
-  --require-complete-index \
+  --allow-live-formal100 \
   --env-file "$ENV_GEN" \
   --embedding-env-file "$ENV_EMB" \
   --embedding-cache-dir "$CACHE" \
@@ -47,7 +50,6 @@ Ensure pinned ETOM raw checkout exists (`data/etom/raw` symlink or
 "$PY" scripts/run_etom_pe_fin_replan_experiment.py \
   --mock \
   --formal100 \
-  --embedding-cache-dir "$CACHE" \
   --output-dir "$ROOT/outputs/pe_fin_replan_etom_formal100_v1_mock"
 ```
 
@@ -67,8 +69,9 @@ Ensure pinned ETOM raw checkout exists (`data/etom/raw` symlink or
 ## 5) Live formal100 (FUTURE ONLY)
 
 ```bash
-caffeinate -dimsu "$PY" scripts/run_etom_pe_fin_replan_experiment.py \
+PE_FIN_REPLAN_ETOM_ALLOW_LIVE=1 caffeinate -dimsu "$PY" scripts/run_etom_pe_fin_replan_experiment.py \
   --formal100 \
+  --allow-live-formal100 \
   --require-complete-index \
   --env-file "$ENV_GEN" \
   --embedding-env-file "$ENV_EMB" \
@@ -80,8 +83,9 @@ caffeinate -dimsu "$PY" scripts/run_etom_pe_fin_replan_experiment.py \
 ## 6) Resume (FUTURE ONLY)
 
 ```bash
-caffeinate -dimsu "$PY" scripts/run_etom_pe_fin_replan_experiment.py \
+PE_FIN_REPLAN_ETOM_ALLOW_LIVE=1 caffeinate -dimsu "$PY" scripts/run_etom_pe_fin_replan_experiment.py \
   --formal100 \
+  --allow-live-formal100 \
   --resume \
   --require-complete-index \
   --env-file "$ENV_GEN" \
@@ -104,7 +108,9 @@ caffeinate -dimsu "$PY" scripts/run_etom_pe_fin_replan_experiment.py \
 
 ## Safety reminders
 
-- mock/dry-run must never be labeled as live pass
+- mock/dry-run must never be labeled as live pass (`live_pass_claimed` is always false in artifacts)
+- a non-resume run into an output dir that already has predictions is refused; use `--resume` (identity-checked) or a new dir
+- Ctrl-C/SIGTERM => `run_status=aborted`, rows kept (exit 130); unknown runner errors also finalize `aborted` and re-raise
 - do not reuse HK embedding index directories
 - do not modify `hk-equity-mcp-agent-pe-fin-lite` or its outputs
 - no push / PR / merge from this offline scaffolding turn

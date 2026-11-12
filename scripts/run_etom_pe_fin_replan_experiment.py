@@ -41,6 +41,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Allow hash embedding index build (offline only).",
     )
+    parser.add_argument(
+        "--allow-live-formal100",
+        action="store_true",
+        help="FUTURE ONLY: also needs env PE_FIN_REPLAN_ETOM_ALLOW_LIVE=1. Never used offline.",
+    )
     args = parser.parse_args(argv)
 
     mode = "dry-run"
@@ -58,7 +63,7 @@ def main(argv: list[str] | None = None) -> int:
         ROOT,
         Path(args.output_dir),
         mode=mode,
-        formal100=bool(args.formal100 or True),
+        formal100=bool(args.formal100),
         resume=args.resume,
         env_file=args.env_file,
         embedding_env_file=args.embedding_env_file,
@@ -68,9 +73,13 @@ def main(argv: list[str] | None = None) -> int:
         build_index_only=args.build_index_only,
         mock_embeddings=args.mock_embeddings or args.mock,
         max_tasks=args.max_tasks,
+        allow_live=args.allow_live_formal100,
     )
     try:
         result = runner.execute()
+    except KeyboardInterrupt:
+        print("ABORTED: run_status=aborted; rows preserved; resume with --resume", file=sys.stderr)
+        return 130
     except (LiveEmbeddingGatedError, EtomPeFinReplanRunnerError) as exc:
         # Fail closed with a readable message (offline scaffolding gates live paths).
         print(f"GATED: {exc}", file=sys.stderr)

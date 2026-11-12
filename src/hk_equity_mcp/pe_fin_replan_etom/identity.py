@@ -261,6 +261,7 @@ RESUME_IDENTITY_KEYS = (
     "run_mode",
     "git_commit",
     "git_dirty",
+    "fixture_run",
 )
 
 
