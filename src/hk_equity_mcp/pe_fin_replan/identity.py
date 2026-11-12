@@ -1,4 +1,4 @@
-"""Identity hashes for PE-Fin RePlan v1.1 (separate from Lite Planner identity)."""
+"""Identity hashes for PE-Fin RePlan v1.2 (separate from Lite Planner identity)."""
 
 from __future__ import annotations
 
@@ -31,14 +31,13 @@ DEFAULT_BUDGETS = {
     "describe_top_n": 3,
 }
 
-# Theoretical LLM ceiling (hard cap, not per-task target):
-# Planner 1 + ≤7 executor-internal LLM + ≤7 Replanner + ≤1 repair = 16
 LLM_BUDGET_RATIONALE = {
     "initial_planner": 1,
     "max_executor_internal_llm": 7,
     "max_replanner": 7,
     "repair_slack": 1,
     "hard_ceiling": 16,
+    "note": "transport retries also count toward the hard ceiling",
 }
 
 

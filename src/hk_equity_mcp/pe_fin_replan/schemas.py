@@ -1,7 +1,8 @@
-"""Strict Replanner output schema for PE-Fin RePlan v1.1."""
+"""Strict Replanner output schema for PE-Fin RePlan v1.2."""
 
 from __future__ import annotations
 
+import json
 from copy import deepcopy
 from typing import Any, Dict, Optional, Tuple
 
@@ -12,10 +13,10 @@ from hk_equity_mcp.pe_fin_lite.schemas import (
     validate_against_schema,
 )
 
-REPLAN_SCHEMA_VERSION = "pe_fin_replan_v1_1"
+REPLAN_SCHEMA_VERSION = "pe_fin_replan_v1_2"
 
 LOOP_POLICY = {
-    "version": "pe_fin_replan_loop_policy_v1_1",
+    "version": "pe_fin_replan_loop_policy_v1_2",
     "executor_one_step_per_round": True,
     "no_executor_to_executor_edge": True,
     "planner_exactly_once": True,
@@ -30,11 +31,17 @@ LOOP_POLICY = {
     "no_json_splice": True,
     "round7_response_only": True,
     "simplified_completion": True,
+    "decision_reason_optional": True,
     "completion_enum": ["answered", "insufficient_evidence"],
+    "one_transient_transport_retry": True,
 }
 
-# Reuse plan-step shape but allow Replanner-generated step ids (r*).
 _REPLAN_STEP = deepcopy(PLAN_STEP_SCHEMA)
+
+_DECISION_REASON = {
+    "type": ["string", "null"],
+    "maxLength": 400,
+}
 
 REPLANNER_PLAN_BRANCH: Dict[str, Any] = {
     "type": "object",
@@ -42,13 +49,12 @@ REPLANNER_PLAN_BRANCH: Dict[str, Any] = {
     "required": [
         "schema_version",
         "action",
-        "decision_reason",
         "remaining_steps",
     ],
     "properties": {
         "schema_version": {"type": "string", "const": REPLAN_SCHEMA_VERSION},
         "action": {"type": "string", "const": "plan"},
-        "decision_reason": {"type": "string", "minLength": 1, "maxLength": 400},
+        "decision_reason": _DECISION_REASON,
         "remaining_steps": {
             "type": "array",
             "minItems": 0,
@@ -78,13 +84,12 @@ REPLANNER_RESPONSE_BRANCH: Dict[str, Any] = {
     "required": [
         "schema_version",
         "action",
-        "decision_reason",
         "response",
     ],
     "properties": {
         "schema_version": {"type": "string", "const": REPLAN_SCHEMA_VERSION},
         "action": {"type": "string", "const": "response"},
-        "decision_reason": {"type": "string", "minLength": 1, "maxLength": 400},
+        "decision_reason": _DECISION_REASON,
         "response": _RESPONSE_OBJECT,
     },
 }
@@ -93,7 +98,6 @@ REPLANNER_OUTPUT_SCHEMA: Dict[str, Any] = {
     "anyOf": [REPLANNER_PLAN_BRANCH, REPLANNER_RESPONSE_BRANCH]
 }
 
-# Round 7: response only (no plan branch).
 REPLANNER_RESPONSE_ONLY_SCHEMA: Dict[str, Any] = {
     "anyOf": [REPLANNER_RESPONSE_BRANCH]
 }
@@ -105,6 +109,63 @@ BANNED_RESPONSE_FIELDS = (
     "clarification_question",
     "limitations",
 )
+
+PLAN_TEMPLATE: Dict[str, Any] = {
+    "schema_version": REPLAN_SCHEMA_VERSION,
+    "action": "plan",
+    "decision_reason": "optional short reason",
+    "remaining_steps": [],
+}
+
+RESPONSE_ANSWERED_TEMPLATE: Dict[str, Any] = {
+    "schema_version": REPLAN_SCHEMA_VERSION,
+    "action": "response",
+    "decision_reason": "optional short reason",
+    "response": {
+        "completion": "answered",
+        "final_answer": "answer grounded in evidence",
+        "reasoning_brief": "short explanation",
+    },
+}
+
+RESPONSE_INSUFFICIENT_TEMPLATE: Dict[str, Any] = {
+    "schema_version": REPLAN_SCHEMA_VERSION,
+    "action": "response",
+    "decision_reason": "optional short reason",
+    "response": {
+        "completion": "insufficient_evidence",
+        "final_answer": (
+            "The answer cannot be reliably determined from the available evidence."
+        ),
+        "reasoning_brief": "short explanation",
+    },
+}
+
+
+def _template_block(*, response_only: bool) -> str:
+    if response_only:
+        return (
+            "Required shape (FINAL ROUND — action=response only):\n"
+            + json.dumps(RESPONSE_ANSWERED_TEMPLATE, ensure_ascii=False, indent=2)
+            + "\n\nOR:\n"
+            + json.dumps(RESPONSE_INSUFFICIENT_TEMPLATE, ensure_ascii=False, indent=2)
+        )
+    return (
+        "Plan template:\n"
+        + json.dumps(PLAN_TEMPLATE, ensure_ascii=False, indent=2)
+        + "\n\nResponse template (answered):\n"
+        + json.dumps(RESPONSE_ANSWERED_TEMPLATE, ensure_ascii=False, indent=2)
+        + "\n\nResponse template (insufficient_evidence):\n"
+        + json.dumps(RESPONSE_INSUFFICIENT_TEMPLATE, ensure_ascii=False, indent=2)
+    )
+
+
+def normalize_decision_reason(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """If model omitted decision_reason, store null — do not invent text."""
+    out = dict(payload)
+    if "decision_reason" not in out:
+        out["decision_reason"] = None
+    return out
 
 
 def validate_replanner_payload(
@@ -163,7 +224,7 @@ def parse_replanner_output(
             continue
         try:
             validate_replanner_payload(obj, response_only=response_only)
-            return obj, None, None
+            return normalize_decision_reason(obj), None, None
         except SchemaValidationError as exc:
             last_err = str(exc)
             continue
@@ -171,24 +232,33 @@ def parse_replanner_output(
 
 
 def format_replanner_repair_message(
-    error: str, *, response_only: bool = False
+    error: str,
+    *,
+    response_only: bool = False,
+    json_path: str = "$",
 ) -> str:
-    if response_only:
-        return (
-            "Your previous Replanner output failed schema validation.\n"
-            f"Error: {error}\n"
-            "This is the FINAL round. Return ONE complete JSON object matching "
-            "pe_fin_replan_v1_1 with action=response only. "
-            "response.completion must be answered|insufficient_evidence. "
-            "Do not return action=plan. No markdown."
+    allowed = "action=response only" if response_only else "action=plan|response"
+    required = (
+        '["schema_version","action","response"]'
+        if response_only
+        else (
+            'plan: ["schema_version","action","remaining_steps"] ; '
+            'response: ["schema_version","action","response"]'
         )
+    )
     return (
         "Your previous Replanner output failed schema validation.\n"
-        f"Error: {error}\n"
-        "Return ONE complete JSON object matching pe_fin_replan_v1_1 with "
-        "action=plan|response, additionalProperties=false. "
-        "response.completion must be answered|insufficient_evidence when "
-        "action=response. No clarification/refusal fields. No markdown."
+        f"JSON path: {json_path}\n"
+        f"Validation error: {error}\n"
+        f"Current round response_only={bool(response_only)}\n"
+        f"Allowed actions: {allowed}\n"
+        f"Required fields: {required}\n"
+        "decision_reason is OPTIONAL (string|null); omit or null is OK — "
+        "do not invent a fake reason.\n"
+        "Disallowed response fields: status, clarification_needed, "
+        "refusal_reason, clarification_question, limitations.\n"
+        "Regenerate ONE complete JSON object. No markdown. No splice.\n\n"
+        + _template_block(response_only=response_only)
     )
 
 

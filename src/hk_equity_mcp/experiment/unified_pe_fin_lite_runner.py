@@ -431,7 +431,7 @@ class _StageAwareReplanMockLLM(ScriptedLLMClient):
             ],
         }
         keep_reason = {
-            "schema_version": "pe_fin_replan_v1_1",
+            "schema_version": "pe_fin_replan_v1_2",
             "action": "plan",
             "decision_reason": "Keep remaining reason step after retrieve",
             "remaining_steps": [
@@ -456,7 +456,7 @@ class _StageAwareReplanMockLLM(ScriptedLLMClient):
             "gaps": [],
         }
         final_resp = {
-            "schema_version": "pe_fin_replan_v1_1",
+            "schema_version": "pe_fin_replan_v1_2",
             "action": "response",
             "decision_reason": "Goal achieved from verified mock trajectory",
             "response": {

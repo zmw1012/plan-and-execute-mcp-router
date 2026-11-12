@@ -6,11 +6,37 @@ import hashlib
 import json
 from typing import Any, Dict
 
-REPLANNER_SYSTEM_PROMPT = """You are the PE-Fin Replanner (v1.1).
-After each executed step you must return exactly one JSON object:
-- action=plan with remaining_steps, OR
-- action=response with completion answered|insufficient_evidence.
+from hk_equity_mcp.pe_fin_replan.schemas import (
+    PLAN_TEMPLATE,
+    REPLAN_SCHEMA_VERSION,
+    RESPONSE_ANSWERED_TEMPLATE,
+    RESPONSE_INSUFFICIENT_TEMPLATE,
+)
+
+_TEMPLATES_BLOCK = (
+    "You must return exactly one complete JSON object matching one template.\n\n"
+    "Plan template:\n"
+    + json.dumps(PLAN_TEMPLATE, ensure_ascii=False, indent=2)
+    + "\n\nResponse template (answered):\n"
+    + json.dumps(RESPONSE_ANSWERED_TEMPLATE, ensure_ascii=False, indent=2)
+    + "\n\nResponse template (insufficient_evidence):\n"
+    + json.dumps(RESPONSE_INSUFFICIENT_TEMPLATE, ensure_ascii=False, indent=2)
+)
+
+_FINAL_TEMPLATES_BLOCK = (
+    "FINAL ROUND: you must return action=response only.\n\n"
+    "Response template (answered):\n"
+    + json.dumps(RESPONSE_ANSWERED_TEMPLATE, ensure_ascii=False, indent=2)
+    + "\n\nResponse template (insufficient_evidence):\n"
+    + json.dumps(RESPONSE_INSUFFICIENT_TEMPLATE, ensure_ascii=False, indent=2)
+)
+
+REPLANNER_SYSTEM_PROMPT = f"""You are the PE-Fin Replanner (v1.2).
+{_TEMPLATES_BLOCK}
+
 Rules:
+- schema_version must be {REPLAN_SCHEMA_VERSION}; additionalProperties=false.
+- decision_reason is OPTIONAL (string or null). Omit or null is allowed.
 - Do not invent observed evidence or numeric answers from the question text.
 - Do not reference gold answers, accepted operation IDs, or task IDs.
 - Do not emit operation_id; retrieval still goes through R5+Binder.
@@ -20,16 +46,23 @@ Rules:
 - Do not give up early while recoverable retrieve/compute paths remain.
 - Optional/context gaps alone must not force insufficient_evidence.
 - Do not emit clarification_needed, refusal_reason, or clarification_question.
-- schema_version must be pe_fin_replan_v1_1; additionalProperties=false.
-Return JSON only."""
+- Return JSON only. No markdown. No splice.
+"""
 
-REPLANNER_FINAL_ROUND_SYSTEM_PROMPT = """You are the PE-Fin Replanner on the FINAL round.
-You MUST return action=response only (no plan).
-response.completion must be answered or insufficient_evidence.
-Do not invent numbers from the question. No clarification/refusal fields.
-schema_version=pe_fin_replan_v1_1; additionalProperties=false. JSON only."""
+REPLANNER_FINAL_ROUND_SYSTEM_PROMPT = f"""You are the PE-Fin Replanner on the FINAL round.
+{_FINAL_TEMPLATES_BLOCK}
 
-REPLANNER_PROMPT_VERSION = "pe_fin_replan_replanner_prompt_v1_1"
+Rules:
+- schema_version must be {REPLAN_SCHEMA_VERSION}; additionalProperties=false.
+- action MUST be response (plan is forbidden).
+- decision_reason is OPTIONAL (string or null).
+- completion must be answered or insufficient_evidence.
+- Do not invent numbers from the question.
+- No clarification/refusal fields.
+- Return JSON only. No markdown. No splice.
+"""
+
+REPLANNER_PROMPT_VERSION = "pe_fin_replan_replanner_prompt_v1_2"
 
 
 def replanner_prompt_hash() -> str:
@@ -38,6 +71,9 @@ def replanner_prompt_hash() -> str:
             "version": REPLANNER_PROMPT_VERSION,
             "system": REPLANNER_SYSTEM_PROMPT,
             "final_round_system": REPLANNER_FINAL_ROUND_SYSTEM_PROMPT,
+            "plan_template": PLAN_TEMPLATE,
+            "response_answered_template": RESPONSE_ANSWERED_TEMPLATE,
+            "response_insufficient_template": RESPONSE_INSUFFICIENT_TEMPLATE,
         },
         sort_keys=True,
         separators=(",", ":"),
@@ -65,17 +101,26 @@ def render_replanner_user(
             "choose": choose,
             "max_new_steps_hint": 0 if response_only else 2,
             "completion_enum": ["answered", "insufficient_evidence"],
+            "decision_reason_optional": True,
             "no_gold": True,
             "no_operation_id": True,
             "no_clarification_fields": True,
             "no_premature_insufficient": not response_only,
+            "templates": {
+                "plan": PLAN_TEMPLATE,
+                "response_answered": RESPONSE_ANSWERED_TEMPLATE,
+                "response_insufficient": RESPONSE_INSUFFICIENT_TEMPLATE,
+            },
         },
     }
     if response_only:
         header = (
-            "FINAL ROUND: produce the final response only "
-            "(action=response; completion=answered|insufficient_evidence).\n"
+            "FINAL ROUND: produce ONE complete JSON object using a Response "
+            "template (action=response only).\n"
         )
     else:
-        header = "Update the remaining plan or produce the final response.\n"
+        header = (
+            "Update the remaining plan or produce the final response using "
+            "ONE complete JSON object from the templates.\n"
+        )
     return header + json.dumps(payload, ensure_ascii=False, indent=2)

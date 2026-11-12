@@ -1,27 +1,25 @@
-# Future LIVE Diagnostic-20 (PE-Fin RePlan v1.1) — do not run until approved
+# Future LIVE Diagnostic-20 (PE-Fin RePlan v1.2) — do not run until approved
 
 **PE-Fin Lite v1.2 remains the frozen formal HK-155 result.**  
 **PE-Fin Lite v1.2-EEA remains a post-hoc execution/evidence ablation.**  
-**PE-Fin RePlan v1.1 is a separate post-hoc exploratory method**  
-(`Planner → Execute-one-step → Replanner × ≤7 → Response`).
+**PE-Fin RePlan v1.2 is a separate post-hoc exploratory method** after the
+invalidated live v1 engineering diagnostic.
 
-Identity:
+## Invalidated prior run
+
+`outputs/pe_fin_replan_diagnostic20_live_v1/` is frozen and marked
+`INVALIDATED.md` — do not modify, resume, or use for accuracy.
+
+## Identity
+
 - `condition=pe_fin_replan`
-- `method_version=pe_fin_replan_v1_1`
-- `protocol_version=planner_executor_replanner_seven_round_v1`
-- `replanner_schema_version=pe_fin_replan_v1_1`
+- `method_version=pe_fin_replan_v1_2`
+- `protocol_version=planner_executor_replanner_contract_v2`
+- `replanner_schema_version=pe_fin_replan_v1_2`
 - `max_execution_rounds=7` / `max_replan_rounds=7`
-- `max_total_llm_calls_per_task=16` (hard ceiling)
+- `max_total_llm_calls_per_task=16` (hard ceiling; transport retries count)
 - `max_total_mcp_invocations=8`
-
-Diagnostic-20 is **not** formal accuracy and **cannot** replace HK-155.
-
-## Prerequisites
-
-- Clean git tree (or explicit `--allow-dirty` only if intentionally used)
-- Complete shared embedding index (same identity as formal R5 run)
-- Valid generation + embedding env files
-- Fresh output dir (do **not** resume EEA-only or RePlan v1 outputs)
+- `decision_reason` optional
 
 ## Exact command (when approved)
 
@@ -37,12 +35,11 @@ PYTHONPATH=src python scripts/run_hk_unified_pe_fin_lite_experiment.py \
   --env-file .env \
   --embedding-env-file .env \
   --require-complete-index \
-  --output-dir outputs/pe_fin_replan_diagnostic20_live_v1
+  --output-dir outputs/pe_fin_replan_diagnostic20_live_v2
 ```
 
 ## Explicitly not this round
 
 - No live Diagnostic-20 until user confirms
-- No HK-155 rerun
-- No ETOM
-- No push / PR / merge
+- No overwrite of invalidated v1
+- No HK-155 rerun / ETOM / push / PR / merge

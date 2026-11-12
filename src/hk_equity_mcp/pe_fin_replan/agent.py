@@ -432,7 +432,9 @@ class PeFinReplanAgent:
                     )
                     state.resource_limit_failure = True
                     error = replan_out.get("error")
-                    error_type = "replanner_schema_or_semantics"
+                    error_type = str(
+                        replan_out.get("error_type") or "replanner_schema_or_semantics"
+                    )
                     trace.append(
                         {
                             "stage": "replanner",
@@ -440,6 +442,8 @@ class PeFinReplanAgent:
                             "ok": False,
                             "response_only": response_only,
                             "error": error,
+                            "error_type": error_type,
+                            "observability": replan_out.get("observability"),
                         }
                     )
                     break
@@ -457,6 +461,7 @@ class PeFinReplanAgent:
                     "repair_count": replan_out.get("repair_count"),
                     "response_only": response_only,
                     "forced_final_round": response_only,
+                    "observability": replan_out.get("observability"),
                 }
 
                 if action == "plan" and response_only:

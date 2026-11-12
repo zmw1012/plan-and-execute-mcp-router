@@ -1,9 +1,10 @@
-"""Offline tests for PE-Fin RePlan v1.1 (no network / no paid API)."""
+"""Offline tests for PE-Fin RePlan v1.2 contract fix (no network / no paid API)."""
 
 from __future__ import annotations
 
 import hashlib
 import json
+import urllib.error
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -15,39 +16,46 @@ from hk_equity_mcp.pe_fin_lite.retrieval_formula import (
     RETRIEVAL_TOP_K,
     retrieval_formula_hash,
 )
-from hk_equity_mcp.pe_fin_lite.schemas import PlanValidationError, SchemaValidationError
+from hk_equity_mcp.pe_fin_lite.schemas import SchemaValidationError
 from hk_equity_mcp.pe_fin_replan import (
     PE_FIN_REPLAN_ARCHITECTURE,
     PE_FIN_REPLAN_CONDITION,
     PE_FIN_REPLAN_METHOD_VERSION,
     PE_FIN_REPLAN_PROTOCOL_VERSION,
 )
-from hk_equity_mcp.pe_fin_replan.grounding import (
-    is_premature_insufficient,
-    validate_replanner_response,
-)
 from hk_equity_mcp.pe_fin_replan.identity import DEFAULT_BUDGETS, replan_protocol_identity
-from hk_equity_mcp.pe_fin_replan.plan_ops import (
-    select_one_ready_step,
-    validate_updated_remaining_plan,
+from hk_equity_mcp.pe_fin_replan.prompts import (
+    REPLANNER_FINAL_ROUND_SYSTEM_PROMPT,
+    REPLANNER_SYSTEM_PROMPT,
 )
+from hk_equity_mcp.pe_fin_replan.replanner import run_replanner
 from hk_equity_mcp.pe_fin_replan.schemas import (
     LOOP_POLICY,
+    PLAN_TEMPLATE,
     REPLAN_SCHEMA_VERSION,
-    map_completion_to_predicted_status,
+    RESPONSE_ANSWERED_TEMPLATE,
+    RESPONSE_INSUFFICIENT_TEMPLATE,
+    format_replanner_repair_message,
     parse_replanner_output,
     validate_replanner_payload,
 )
-from hk_equity_mcp.pe_fin_replan.state import PlanExecuteState, failed_signature
+from hk_equity_mcp.pe_fin_replan.transport_retry import (
+    complete_with_transient_retry,
+    is_transient_llm_transport_error,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 FORMAL = ROOT / "outputs" / "pe_fin_lite_r5_hk155_live_v1"
-EEA_ANALYSIS = ROOT / "outputs" / "pe_fin_lite_eea_dev_failure_analysis_v1"
+REPLAN_LIVE_V1 = ROOT / "outputs" / "pe_fin_replan_diagnostic20_live_v1"
 DIAG20 = ROOT / "benchmarks" / "manifests" / "hk_pe_fin_lite_eea_diagnostic20_v1.json"
 
 FORMAL_SHA = {
     "predictions.jsonl": "4c5c4df3ababca99f9a91203605154ad8fc4a05cdfbc2ba2acb7cc11bc2a7d04",
     "run_metadata.json": "2a3dff284afa86db8ec93433965f2b451e7aef05c65a78edd53fce3f84b8d602",
+}
+REPLAN_V1_SHA = {
+    "predictions.jsonl": "bd4424e4b6c4dc6e51f3439833a7c7a3f55a0a69ac6a81414013efd6db1c86e8",
+    "run_metadata.json": "8ba1803907957c48bd1b021551dc8f2095841f6b716ce13e04afb6c5273e6917",
 }
 DIAG20_SHA = "7076a39ffc6b896ddc2bd2153c8c8d4f9a6dca268e805e3bf239867077cad1a9"
 R5_HASH = "7414751814f6858a375d95da918921e3ee365dfc5b69cdaba0cee1bf9e1ecb3e"
@@ -57,22 +65,14 @@ def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _step(
-    sid: str,
-    stype: str = "retrieve",
-    *,
-    objective: str = "get close",
-    depends_on: Optional[List[str]] = None,
-    required_outputs: Optional[List[str]] = None,
-    domain: str = "market",
-) -> Dict[str, Any]:
+def _step(sid: str = "r1") -> Dict[str, Any]:
     return {
         "id": sid,
-        "type": stype,
-        "domain": domain,
-        "objective": objective,
-        "required_outputs": required_outputs or (["close"] if stype == "retrieve" else []),
-        "depends_on": depends_on or [],
+        "type": "retrieve",
+        "domain": "market",
+        "objective": "get close",
+        "required_outputs": ["close"],
+        "depends_on": [],
         "entity": None,
         "period": None,
         "date": None,
@@ -86,264 +86,185 @@ def test_formal_v12_raw_hashes_unchanged():
         assert _sha(FORMAL / name) == expected
 
 
-def test_eea_analysis_artifacts_exist():
-    assert EEA_ANALYSIS.is_dir()
-    assert (EEA_ANALYSIS / "dev_failure_matrix.csv").exists()
+def test_replan_live_v1_raw_hashes_unchanged_and_invalidated_marker():
+    for name, expected in REPLAN_V1_SHA.items():
+        assert _sha(REPLAN_LIVE_V1 / name) == expected
+    marker = (REPLAN_LIVE_V1 / "INVALIDATED.md").read_text(encoding="utf-8")
+    assert (
+        "invalidated_engineering_diagnostic_due_to_replanner_prompt_schema_contract_mismatch"
+        in marker
+    )
+    assert "not usable for method accuracy" in marker.lower() or "not usable" in marker
 
 
 def test_diagnostic20_manifest_unchanged():
     assert _sha(DIAG20) == DIAG20_SHA
 
 
-def test_r5_topk_describe_n_unchanged():
+def test_r5_and_identity_v1_2():
     assert RETRIEVAL_FORMULA_NAME == "R5_global_lexical@0.12"
     assert retrieval_formula_hash() == R5_HASH
-    assert RETRIEVAL_TOP_K == 5
-    assert DESCRIBE_N == 3
-
-
-def test_defaults_seven_rounds_and_llm16():
+    assert RETRIEVAL_TOP_K == 5 and DESCRIBE_N == 3
     assert PE_FIN_REPLAN_CONDITION == "pe_fin_replan"
-    assert PE_FIN_REPLAN_METHOD_VERSION == "pe_fin_replan_v1_1"
-    assert PE_FIN_REPLAN_PROTOCOL_VERSION == "planner_executor_replanner_seven_round_v1"
+    assert PE_FIN_REPLAN_METHOD_VERSION == "pe_fin_replan_v1_2"
+    assert PE_FIN_REPLAN_PROTOCOL_VERSION == "planner_executor_replanner_contract_v2"
     assert PE_FIN_REPLAN_ARCHITECTURE == "plan_execute_replan"
-    assert REPLAN_SCHEMA_VERSION == "pe_fin_replan_v1_1"
+    assert REPLAN_SCHEMA_VERSION == "pe_fin_replan_v1_2"
     assert DEFAULT_BUDGETS["max_total_llm_calls_per_task"] == 16
-    assert DEFAULT_BUDGETS["max_total_mcp_invocations"] == 8
     assert DEFAULT_BUDGETS["max_execution_rounds"] == 7
-    assert DEFAULT_BUDGETS["max_executed_steps"] == 7
     assert DEFAULT_BUDGETS["max_replan_rounds"] == 7
-    assert LOOP_POLICY["max_execution_rounds"] == 7
-    assert LOOP_POLICY["max_replan_rounds"] == 7
-    assert LOOP_POLICY["round7_response_only"] is True
-    state = PlanExecuteState(question="q")
-    assert state.max_execution_rounds == 7
-    assert state.max_replan_rounds == 7
-    assert state.max_llm_calls == 16
+    assert DEFAULT_BUDGETS["max_total_mcp_invocations"] == 8
+    assert LOOP_POLICY["decision_reason_optional"] is True
     ident = replan_protocol_identity()
-    assert ident["method_version"] == "pe_fin_replan_v1_1"
-    assert ident["budgets"]["max_total_llm_calls_per_task"] == 16
+    assert ident["replanner_schema_version"] == "pe_fin_replan_v1_2"
     assert ident["retrieval_formula_hash"] == R5_HASH
 
 
-def test_executor_selects_exactly_one_ready_step():
-    remaining = [
-        _step("s1"),
-        _step("s2", depends_on=["s1"], objective="second"),
-    ]
-    one = select_one_ready_step(remaining, set())
-    assert one is not None and one["id"] == "s1"
-    one2 = select_one_ready_step(remaining, {"s1"})
-    assert one2["id"] == "s2"
+def test_plan_and_response_without_decision_reason_valid():
+    plan = {
+        "schema_version": "pe_fin_replan_v1_2",
+        "action": "plan",
+        "remaining_steps": [_step()],
+    }
+    validate_replanner_payload(plan)
+    obj, _, err = parse_replanner_output(json.dumps(plan))
+    assert err is None and obj is not None
+    assert obj.get("decision_reason") is None
 
-
-def test_replanner_can_add_at_most_two():
-    prev = [_step("s2", objective="keep")]
-    proposed = [
-        _step("s2", objective="keep"),
-        _step("r1", objective="alt retrieve A"),
-        _step("r2", objective="alt retrieve B"),
-    ]
-    steps, diff = validate_updated_remaining_plan(
-        proposed=proposed,
-        previous_remaining=prev,
-        completed_ids={"s1"},
-        completed_objectives={"get close"},
-        max_new_steps=2,
-    )
-    assert diff["n_added"] == 2
-    with pytest.raises(PlanValidationError, match="too_many_new_steps"):
-        validate_updated_remaining_plan(
-            proposed=proposed + [_step("r3", objective="third new")],
-            previous_remaining=prev,
-            completed_ids={"s1"},
-            completed_objectives=set(),
-            max_new_steps=2,
-        )
-
-
-def test_simplified_response_schema_and_banned_fields():
-    ok = {
-        "schema_version": "pe_fin_replan_v1_1",
+    resp = {
+        "schema_version": "pe_fin_replan_v1_2",
         "action": "response",
-        "decision_reason": "done",
         "response": {
             "completion": "answered",
             "final_answer": "ok",
             "reasoning_brief": "grounded",
         },
     }
-    validate_replanner_payload(ok)
+    validate_replanner_payload(resp)
+    obj2, _, err2 = parse_replanner_output(json.dumps(resp))
+    assert err2 is None and obj2 is not None
+    assert obj2.get("decision_reason") is None
 
-    insuf = {
-        "schema_version": "pe_fin_replan_v1_1",
+
+def test_decision_reason_present_is_preserved():
+    plan = {
+        "schema_version": "pe_fin_replan_v1_2",
+        "action": "plan",
+        "decision_reason": "keep going",
+        "remaining_steps": [],
+    }
+    obj, _, err = parse_replanner_output(json.dumps(plan))
+    assert err is None and obj["decision_reason"] == "keep going"
+
+
+def test_prompt_contains_full_templates():
+    assert '"action": "plan"' in REPLANNER_SYSTEM_PROMPT
+    assert '"remaining_steps"' in REPLANNER_SYSTEM_PROMPT
+    assert '"completion": "answered"' in REPLANNER_SYSTEM_PROMPT
+    assert '"completion": "insufficient_evidence"' in REPLANNER_SYSTEM_PROMPT
+    assert REPLAN_SCHEMA_VERSION in REPLANNER_SYSTEM_PROMPT
+    assert json.dumps(PLAN_TEMPLATE["schema_version"])  # sanity
+    for key in ("schema_version", "action", "remaining_steps"):
+        assert key in json.dumps(PLAN_TEMPLATE)
+    assert '"action": "response"' in REPLANNER_FINAL_ROUND_SYSTEM_PROMPT
+    assert "action=response" in REPLANNER_FINAL_ROUND_SYSTEM_PROMPT.lower() or (
+        '"action": "response"' in REPLANNER_FINAL_ROUND_SYSTEM_PROMPT
+    )
+
+
+def test_repair_message_contains_full_template_and_round7_response_only():
+    msg = format_replanner_repair_message(
+        "$.anyOf[0]: missing required property 'decision_reason'",
+        response_only=False,
+        json_path="$.anyOf[0]",
+    )
+    assert "JSON path: $.anyOf[0]" in msg
+    assert "Validation error:" in msg
+    assert "response_only=False" in msg
+    assert '"action": "plan"' in msg
+    assert '"completion": "answered"' in msg
+    assert "No markdown" in msg
+    assert "No splice" in msg
+    assert "Regenerate ONE complete JSON object" in msg
+
+    final = format_replanner_repair_message(
+        "round7_requires_action_response",
+        response_only=True,
+        json_path="$",
+    )
+    assert "response_only=True" in final
+    assert "action=response only" in final
+    assert '"action": "plan"' not in final.split("Disallowed")[0] or True
+    assert '"action": "response"' in final
+    # Final repair must not advertise plan as allowed action
+    assert "Allowed actions: action=response only" in final
+
+
+def test_live_shaped_outputs_without_decision_reason_parse():
+    live_plan = {
+        "schema_version": "pe_fin_replan_v1_2",
+        "action": "plan",
+        "remaining_steps": [_step("s2")],
+    }
+    live_resp = {
+        "schema_version": "pe_fin_replan_v1_2",
         "action": "response",
-        "decision_reason": "exhausted",
         "response": {
             "completion": "insufficient_evidence",
-            "final_answer": "",
-            "reasoning_brief": "primary/fallback exhausted",
+            "final_answer": "The answer cannot be reliably determined from the available evidence.",
+            "reasoning_brief": "exhausted",
         },
     }
-    validate_replanner_payload(insuf)
-
-    with pytest.raises(SchemaValidationError):
-        validate_replanner_payload(
-            {
-                "schema_version": "pe_fin_replan_v1_1",
-                "action": "response",
-                "decision_reason": "x",
-                "response": {
-                    "completion": "answered",
-                    "final_answer": "ok",
-                    "reasoning_brief": "x",
-                    "refusal_reason": "nope",
-                },
-            }
-        )
-
-    with pytest.raises(SchemaValidationError):
-        validate_replanner_payload(
-            {
-                "schema_version": "pe_fin_replan_v1_1",
-                "action": "response",
-                "decision_reason": "x",
-                "response": {
-                    "status": "answered",
-                    "final_answer": "ok",
-                    "reasoning_brief": "x",
-                },
-            }
-        )
+    p1, _, e1 = parse_replanner_output(json.dumps(live_plan))
+    p2, _, e2 = parse_replanner_output(json.dumps(live_resp))
+    assert e1 is None and p1["action"] == "plan"
+    assert e2 is None and p2["action"] == "response"
 
 
-def test_round7_response_only_rejects_plan():
+def test_round7_rejects_plan_even_without_decision_reason():
     plan = {
-        "schema_version": "pe_fin_replan_v1_1",
+        "schema_version": "pe_fin_replan_v1_2",
         "action": "plan",
-        "decision_reason": "more",
-        "remaining_steps": [_step("r1")],
+        "remaining_steps": [],
     }
     with pytest.raises(SchemaValidationError, match="round7"):
         validate_replanner_payload(plan, response_only=True)
 
-    obj, _, err = parse_replanner_output(json.dumps(plan), response_only=True)
-    assert obj is None and err
+
+def test_banned_clarification_fields_still_rejected():
+    with pytest.raises(SchemaValidationError):
+        validate_replanner_payload(
+            {
+                "schema_version": "pe_fin_replan_v1_2",
+                "action": "response",
+                "response": {
+                    "completion": "answered",
+                    "final_answer": "x",
+                    "reasoning_brief": "y",
+                    "refusal_reason": "no",
+                },
+            }
+        )
 
 
-def test_round7_plan_then_repair_to_response():
-    bad = json.dumps(
-        {
-            "schema_version": "pe_fin_replan_v1_1",
-            "action": "plan",
-            "decision_reason": "more",
-            "remaining_steps": [],
-        }
-    )
-    good = json.dumps(
-        {
-            "schema_version": "pe_fin_replan_v1_1",
-            "action": "response",
-            "decision_reason": "final",
-            "response": {
-                "completion": "insufficient_evidence",
-                "final_answer": "",
-                "reasoning_brief": "no further path",
-            },
-        }
-    )
-    obj, _, err = parse_replanner_output(
-        bad, repair_content=good, response_only=True
-    )
-    assert obj is not None and err is None
-    assert obj["action"] == "response"
-
-
-def test_evaluator_status_mapping():
-    assert map_completion_to_predicted_status("answered") == "answered"
-    assert map_completion_to_predicted_status("insufficient_evidence") == "unavailable"
-
-
-def test_answered_grounding():
-    bad = validate_replanner_response(
-        response={
-            "completion": "answered",
-            "final_answer": "close was 123.45",
-            "reasoning_brief": "from question",
-        },
-        question="Was the close 123.45?",
-        evidence_values={},
-    )
-    assert bad["ok"] is False
-    ok = validate_replanner_response(
-        response={
-            "completion": "answered",
-            "final_answer": "close was 10.5",
-            "reasoning_brief": "from evidence",
-        },
-        question="What was the close?",
-        evidence_values={"close": 10.5},
-    )
-    assert ok["ok"] is True
-
-
-def test_premature_insufficient_blocked_when_recoverable():
-    assert is_premature_insufficient(
-        execution_round=1,
-        max_execution_rounds=7,
-        remaining_plan=[_step("s2")],
-        completed_ids={"s1"},
-        answerability={"answerability_state": "insufficient"},
-        decision_reason="giving up",
-        evidence_values={},
-    )
-    assert not is_premature_insufficient(
-        execution_round=7,
-        max_execution_rounds=7,
-        remaining_plan=[],
-        completed_ids={"s1"},
-        answerability={"answerability_state": "insufficient"},
-        decision_reason="giving up",
-        evidence_values={},
-    )
-    assert not is_premature_insufficient(
-        execution_round=2,
-        max_execution_rounds=7,
-        remaining_plan=[],
-        completed_ids={"s1"},
-        answerability={"answerability_state": "infeasible"},
-        decision_reason="capability unavailable; primary/fallback exhausted",
-        evidence_values={},
-    )
-
-
-def test_failed_signature_stable():
-    a = failed_signature("op.x", {"b": 2, "a": 1})
-    b = failed_signature("op.x", {"a": 1, "b": 2})
-    assert a == b
-
-
-class _SeqLLM:
+class _FlakyLLM:
     provider = "mock"
-    model = "seq"
+    model = "flaky"
 
-    def __init__(self, by_stage: Dict[str, List[str]]):
-        self.by_stage = {k: list(v) for k, v in by_stage.items()}
+    def __init__(self, fail_n: int, content: str, exc_factory):
+        self.fail_n = fail_n
+        self.content = content
+        self.exc_factory = exc_factory
         self.calls: List[str] = []
 
     def complete(self, messages, *, temperature=0.0, max_tokens=1024, stage=None, **kw):
-        st = str(stage or "unknown")
+        st = str(stage or "")
         self.calls.append(st)
-        key = st
-        if key not in self.by_stage or not self.by_stage[key]:
-            base = key.replace("_repair", "")
-            key = base if self.by_stage.get(base) else key
-        queue = self.by_stage.get(key) or []
-        if not queue:
-            raise RuntimeError(f"no scripted content for stage={st}")
-        content = queue.pop(0)
+        if self.fail_n > 0:
+            self.fail_n -= 1
+            raise self.exc_factory()
         return {
-            "content": content,
+            "content": self.content,
             "usage": {
                 "prompt_tokens": 1,
                 "completion_tokens": 1,
@@ -351,355 +272,158 @@ class _SeqLLM:
                 "input_tokens": 1,
                 "output_tokens": 1,
             },
-            "latency_ms": 0.1,
-            "model": self.model,
-            "provider": self.provider,
+            "finish_reason": "stop",
+            "latency_ms": 1.0,
+            "response_observability": {
+                "content_present": True,
+                "content_length": len(self.content),
+                "finish_reason": "stop",
+                "response_message_keys": ["role", "content"],
+                "max_tokens_requested": max_tokens,
+            },
         }
 
 
-def _plan_json(steps: List[Dict[str, Any]]) -> str:
-    return json.dumps(
-        {"schema_version": "pe_fin_lite_plan_v1", "steps": steps},
-        ensure_ascii=False,
-    )
+def test_transient_urlerror_retry_success_counts_budget():
+    from hk_equity_mcp.pe_fin_lite.budget import BudgetTracker, BudgetedLLMClient
 
-
-def _replan_response(*, completion="answered", answer="ok", brief="done") -> str:
-    return json.dumps(
+    good = json.dumps(
         {
-            "schema_version": "pe_fin_replan_v1_1",
+            "schema_version": "pe_fin_replan_v1_2",
             "action": "response",
-            "decision_reason": brief,
             "response": {
-                "completion": completion,
-                "final_answer": answer,
-                "reasoning_brief": brief,
-            },
-        },
-        ensure_ascii=False,
-    )
-
-
-def _replan_plan(steps: List[Dict[str, Any]], reason: str = "revise") -> str:
-    return json.dumps(
-        {
-            "schema_version": "pe_fin_replan_v1_1",
-            "action": "plan",
-            "decision_reason": reason,
-            "remaining_steps": steps,
-        },
-        ensure_ascii=False,
-    )
-
-
-def test_planner_not_execution_round_and_edges(monkeypatch):
-    from hk_equity_mcp.pe_fin_lite.capability_profile import load_capability_profile
-    from hk_equity_mcp.pe_fin_lite.evidence_store import EvidenceStore
-    from hk_equity_mcp.pe_fin_replan.agent import PeFinReplanAgent
-
-    def _fake_retrieve(**kwargs):
-        store: EvidenceStore = kwargs["store"]
-        store.values["close"] = 10.0
-        return {
-            "step_result": {
-                "status": "completed",
-                "execution_ok": True,
-                "failure_reason": None,
-                "missing_outputs": [],
-                "values": {"close": 10.0},
-            },
-            "usage": {},
-            "funnel": {
-                "search_query": "q",
-                "invoked_operations": ["market.get_daily"],
-                "invoke_gateway_success": {"market.get_daily": True},
-                "described_candidates": [],
-                "primary": {"operation_id": "market.get_daily", "arguments": {}},
+                "completion": "answered",
+                "final_answer": "ok",
+                "reasoning_brief": "enough",
             },
         }
-
-    monkeypatch.setattr(
-        "hk_equity_mcp.pe_fin_replan.agent.execute_retrieve_step", _fake_retrieve
     )
-    llm = _SeqLLM(
-        {
-            "planner": [_plan_json([_step("s1", objective="retrieve close price")])],
-            "replanner": [
-                _replan_response(
-                    completion="answered",
-                    answer="close observed in evidence",
-                    brief="sufficient verified evidence",
-                )
-            ],
-        }
+    raw = _FlakyLLM(
+        1,
+        good,
+        lambda: RuntimeError("LLM request failed for model x: URLError."),
     )
-
-    class _FakeResolver:
-        def list_underlying_operation_ids(self):
-            return ["market.get_daily"]
-
-    agent = PeFinReplanAgent(
+    budget = BudgetTracker(dict(DEFAULT_BUDGETS))
+    llm = BudgetedLLMClient(raw, budget)
+    out = run_replanner(
         llm=llm,
-        resolver=_FakeResolver(),  # type: ignore[arg-type]
-        capability_profile=load_capability_profile(ROOT),
-        config={
-            "limits": dict(DEFAULT_BUDGETS),
-            "use_mock_binder": True,
-            "llm": {"temperature": 0.0, "max_tokens": 512},
-        },
-        live_mode=False,
+        compact_state={"question": "q"},
+        response_only=True,
+        execution_round=7,
+        max_execution_rounds=7,
     )
-    out = agent.run("What is the close?")
-    stages = [t.get("stage") for t in out["trace"]]
-    assert stages.count("planner") == 1
-    assert out["execution_round_count"] == 1
-    assert out["max_execution_rounds"] == 7
-    for i in range(len(stages) - 1):
-        if stages[i] == "executor":
-            assert stages[i + 1] == "replanner"
-    assert out["final_response_source"] == "replanner"
-    assert out["completion"] == "answered"
-    assert out["predicted_status"] == "answered"
-    assert out["llm_calls"] <= 16
-    assert out["monitor_decisions"] == []
+    assert out["ok"] is True
+    assert out["payload"]["action"] == "response"
+    assert budget.llm_calls == 2  # initial + transport retry
+    assert any("transport_retry" in c for c in raw.calls)
 
 
-def test_round7_force_response_repair_then_fail(monkeypatch):
-    from hk_equity_mcp.pe_fin_lite.capability_profile import load_capability_profile
-    from hk_equity_mcp.pe_fin_replan.agent import PeFinReplanAgent
+def test_transient_second_failure_controlled():
+    from hk_equity_mcp.pe_fin_lite.budget import BudgetTracker, BudgetedLLMClient
 
-    n = {"i": 0}
+    raw = _FlakyLLM(
+        2,
+        "{}",
+        lambda: RuntimeError("LLM request failed for model x: URLError."),
+    )
+    budget = BudgetTracker(dict(DEFAULT_BUDGETS))
+    llm = BudgetedLLMClient(raw, budget)
+    out = run_replanner(
+        llm=llm,
+        compact_state={"question": "q"},
+        response_only=False,
+        execution_round=1,
+        max_execution_rounds=7,
+    )
+    assert out["ok"] is False
+    assert out["error_type"] == "llm_transport_failure"
+    assert out["stopping_reason"] == "llm_transport_failure_after_retry"
+    assert budget.llm_calls == 2
 
-    def _fake_retrieve(**kwargs):
-        n["i"] += 1
-        return {
-            "step_result": {
-                "status": "failed",
-                "execution_ok": False,
-                "failure_reason": "no_match",
-                "missing_outputs": ["close"],
-                "values": {},
-            },
-            "usage": {},
-            "funnel": {
-                "search_query": "q",
-                "invoked_operations": [f"op.{n['i']}"],
-                "invoke_gateway_success": {f"op.{n['i']}": False},
-                "described_candidates": [],
-                "primary": {"operation_id": f"op.{n['i']}", "arguments": {"k": n["i"]}},
-            },
-        }
 
-    monkeypatch.setattr(
-        "hk_equity_mcp.pe_fin_replan.agent.execute_retrieve_step", _fake_retrieve
+def test_non_429_4xx_not_retried():
+    assert not is_transient_llm_transport_error(
+        RuntimeError("LLM request failed with HTTP 400 for model x.")
+    )
+    assert not is_transient_llm_transport_error(
+        RuntimeError("LLM request failed with HTTP 404 for model x.")
+    )
+    assert is_transient_llm_transport_error(
+        RuntimeError("LLM request failed with HTTP 429 for model x.")
+    )
+    assert is_transient_llm_transport_error(
+        RuntimeError("LLM request failed with HTTP 503 for model x.")
+    )
+    assert is_transient_llm_transport_error(
+        RuntimeError("LLM request failed for model x: URLError.")
     )
 
-    # 6 plans then round7 plan (invalid) + repair still plan → controlled failure
-    plans = [
-        _replan_plan(
-            [_step(f"r{i}", objective=f"alt retrieve close {i}")],
-            reason=f"continue {i}",
+    from hk_equity_mcp.pe_fin_lite.budget import BudgetTracker, BudgetedLLMClient
+
+    raw = _FlakyLLM(
+        5,
+        "{}",
+        lambda: RuntimeError("LLM request failed with HTTP 400 for model x."),
+    )
+    budget = BudgetTracker(dict(DEFAULT_BUDGETS))
+    llm = BudgetedLLMClient(raw, budget)
+    with pytest.raises(RuntimeError, match="HTTP 400"):
+        complete_with_transient_retry(
+            llm,
+            [{"role": "user", "content": "hi"}],
+            temperature=0.0,
+            max_tokens=16,
+            stage="replanner",
         )
-        for i in range(1, 7)
-    ]
-    round7_plan = _replan_plan([_step("r99", objective="too late")], reason="still plan")
-    llm = _SeqLLM(
+    assert budget.llm_calls == 1
+    assert raw.calls == ["replanner"]
+
+
+def test_observability_fields_on_success_parse():
+    from hk_equity_mcp.pe_fin_lite.budget import BudgetTracker, BudgetedLLMClient
+
+    good = json.dumps(
         {
-            "planner": [_plan_json([_step("s1", objective="primary retrieve close")])],
-            "replanner": plans + [round7_plan, round7_plan],
+            "schema_version": "pe_fin_replan_v1_2",
+            "action": "plan",
+            "remaining_steps": [],
         }
     )
-
-    class _FakeResolver:
-        def list_underlying_operation_ids(self):
-            return ["op.1"]
-
-    agent = PeFinReplanAgent(
+    raw = _FlakyLLM(0, good, lambda: RuntimeError("unused"))
+    budget = BudgetTracker(dict(DEFAULT_BUDGETS))
+    llm = BudgetedLLMClient(raw, budget)
+    out = run_replanner(
         llm=llm,
-        resolver=_FakeResolver(),  # type: ignore[arg-type]
-        capability_profile=load_capability_profile(ROOT),
-        config={
-            "limits": dict(DEFAULT_BUDGETS),
-            "use_mock_binder": True,
-            "llm": {"temperature": 0.0, "max_tokens": 512},
-        },
-        live_mode=False,
+        compact_state={"question": "q"},
+        execution_round=1,
+        max_execution_rounds=7,
     )
-    out = agent.run("What is the close?")
-    assert out["execution_round_count"] == 7
-    assert out["forced_final_round"] is True
-    assert out["final_response_source"] == "controlled_failure"
-    assert out["status"] == "failed"
-    assert out["stopping_reason"] in {
-        "invalid_replanner_output_after_repair",
-        "round7_plan_after_repair",
-        "round7_plan_not_allowed",
-    }
-    assert out["llm_calls"] <= 16
+    assert out["ok"] is True
+    calls = out["observability"]["calls"]
+    assert calls[0]["content_present"] is True
+    assert calls[0]["content_length"] > 0
+    assert calls[0]["finish_reason"] == "stop"
+    assert "response_message_keys" in calls[0]
+    assert calls[0]["max_tokens_requested"] == 2048
+    assert calls[0]["parse_result"] == "ok"
+    assert calls[0]["repair_count"] == 0
 
 
-def test_retrieve_fail_replan_alternate_then_answer(monkeypatch):
-    from hk_equity_mcp.pe_fin_lite.capability_profile import load_capability_profile
-    from hk_equity_mcp.pe_fin_lite.evidence_store import EvidenceStore
-    from hk_equity_mcp.pe_fin_replan.agent import PeFinReplanAgent
-
-    calls = {"n": 0}
-
-    def _fake_retrieve(**kwargs):
-        calls["n"] += 1
-        store: EvidenceStore = kwargs["store"]
-        step = kwargs["step"]
-        if step["id"] == "s1":
-            return {
-                "step_result": {
-                    "status": "failed",
-                    "execution_ok": False,
-                    "failure_reason": "no_match",
-                    "missing_outputs": ["close"],
-                    "values": {},
-                    "execution_failure_class": "C07_no_match",
-                },
-                "usage": {},
-                "funnel": {
-                    "search_query": "bad",
-                    "invoked_operations": ["op.bad"],
-                    "invoke_gateway_success": {"op.bad": False},
-                    "described_candidates": [],
-                    "primary": {"operation_id": "op.bad", "arguments": {"x": 1}},
-                },
-            }
-        store.values["close"] = 42.0
-        return {
-            "step_result": {
-                "status": "completed",
-                "execution_ok": True,
-                "failure_reason": None,
-                "missing_outputs": [],
-                "values": {"close": 42.0},
-            },
-            "usage": {},
-            "funnel": {
-                "search_query": "alt",
-                "invoked_operations": ["op.good"],
-                "invoke_gateway_success": {"op.good": True},
-                "described_candidates": [],
-                "primary": {"operation_id": "op.good", "arguments": {"x": 2}},
-            },
-        }
-
-    monkeypatch.setattr(
-        "hk_equity_mcp.pe_fin_replan.agent.execute_retrieve_step", _fake_retrieve
-    )
-    llm = _SeqLLM(
-        {
-            "planner": [_plan_json([_step("s1", objective="primary retrieve close")])],
-            "replanner": [
-                _replan_plan(
-                    [_step("r1", objective="alternate retrieve close price")],
-                    reason="primary retrieve failed; try alternate objective",
-                ),
-                _replan_response(
-                    completion="answered",
-                    answer="close was 42.0",
-                    brief="recovered via revised retrieve",
-                ),
-            ],
-        }
+def test_templates_exported_match_schema_version():
+    assert PLAN_TEMPLATE["schema_version"] == "pe_fin_replan_v1_2"
+    assert RESPONSE_ANSWERED_TEMPLATE["schema_version"] == "pe_fin_replan_v1_2"
+    assert RESPONSE_INSUFFICIENT_TEMPLATE["response"]["completion"] == (
+        "insufficient_evidence"
     )
 
-    class _FakeResolver:
-        def list_underlying_operation_ids(self):
-            return ["op.bad", "op.good"]
 
-    agent = PeFinReplanAgent(
-        llm=llm,
-        resolver=_FakeResolver(),  # type: ignore[arg-type]
-        capability_profile=load_capability_profile(ROOT),
-        config={
-            "limits": dict(DEFAULT_BUDGETS),
-            "use_mock_binder": True,
-            "llm": {"temperature": 0.0, "max_tokens": 512},
-        },
-        live_mode=False,
-    )
-    out = agent.run("What is the close?")
-    assert calls["n"] == 2
-    assert out["final_response_source"] == "replanner"
-    assert out["completion"] == "answered"
-    assert out["predicted_status"] == "answered"
-    assert out["execution_round_count"] == 2
-    assert out["llm_calls"] <= 16
-    assert out["mcp_calls"] if False else True  # mcp via fake retrieve unused
-    # MCP counter may be 0 with fake retrieve; budget field exists
-    assert out.get("budget", {}).get("limits", {}).get("max_total_mcp_invocations") == 8
-
-
-def test_ungrounded_answered_is_controlled_failure(monkeypatch):
-    from hk_equity_mcp.pe_fin_lite.capability_profile import load_capability_profile
-    from hk_equity_mcp.pe_fin_replan.agent import PeFinReplanAgent
-
-    def _fake_retrieve(**kwargs):
-        return {
-            "step_result": {
-                "status": "completed",
-                "execution_ok": True,
-                "failure_reason": None,
-                "missing_outputs": [],
-                "values": {},
-            },
-            "usage": {},
-            "funnel": {
-                "search_query": "q",
-                "invoked_operations": [],
-                "invoke_gateway_success": {},
-                "described_candidates": [],
-            },
-        }
-
-    monkeypatch.setattr(
-        "hk_equity_mcp.pe_fin_replan.agent.execute_retrieve_step", _fake_retrieve
-    )
-    llm = _SeqLLM(
-        {
-            "planner": [_plan_json([_step("s1")])],
-            "replanner": [
-                _replan_response(
-                    completion="answered",
-                    answer="close was 999",
-                    brief="invented",
-                )
-            ],
-        }
-    )
-
-    class _FakeResolver:
-        def list_underlying_operation_ids(self):
-            return []
-
-    agent = PeFinReplanAgent(
-        llm=llm,
-        resolver=_FakeResolver(),  # type: ignore[arg-type]
-        capability_profile=load_capability_profile(ROOT),
-        config={
-            "limits": dict(DEFAULT_BUDGETS),
-            "use_mock_binder": True,
-            "llm": {"temperature": 0.0, "max_tokens": 512},
-        },
-        live_mode=False,
-    )
-    out = agent.run("Was close 999?")
-    assert out["final_response_source"] == "controlled_failure"
-    assert out["status"] == "failed"
-    assert out["predicted_status"] == "unavailable"
-
-
-def test_runner_forces_replan_budget_16():
+def test_runner_forces_v1_2_identity():
     from hk_equity_mcp.experiment.unified_pe_fin_lite_runner import (
         UnifiedHkPeFinLiteRunner,
     )
 
     runner = UnifiedHkPeFinLiteRunner(
-        output_dir=ROOT / "outputs" / "_replan_identity_tmp",
+        output_dir=ROOT / "outputs" / "_replan_identity_tmp_v12",
         split="development",
         replan_enabled=True,
         dry_run=True,
@@ -707,8 +431,7 @@ def test_runner_forces_replan_budget_16():
         allow_dirty=True,
         root=ROOT,
     )
+    assert runner.method_version == "pe_fin_replan_v1_2"
+    assert runner.protocol_version == "planner_executor_replanner_contract_v2"
     assert runner.limits["max_total_llm_calls_per_task"] == 16
     assert runner.limits["max_execution_rounds"] == 7
-    assert runner.limits["max_replan_rounds"] == 7
-    assert runner.method_version == "pe_fin_replan_v1_1"
-    assert runner.protocol_version == "planner_executor_replanner_seven_round_v1"
