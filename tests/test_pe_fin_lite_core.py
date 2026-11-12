@@ -51,6 +51,7 @@ from hk_equity_mcp.pe_fin_lite.tool_retrieval import (
     build_step_search_query,
     domain_compatible,
     hard_filter_operations,
+    safety_filter_operations,
     select_describe_candidates,
     select_embedding_topk,
 )
@@ -193,6 +194,17 @@ def test_step_query_and_hard_filter_and_topk_describe():
         step_domain="market",
     )
     assert filt["kept"] == ["op.market"]
+    assert filt.get("domain_hard_filter_applied") is True
+
+    # R5 safety filter keeps cross-domain ops; still drops blocked / non-runtime.
+    safe = safety_filter_operations(
+        registry_ids=["op.market", "op.fin", "op.blocked", "op.missing"],
+        metadata_by_id=meta,
+        runtime_operation_ids=["op.market", "op.fin", "op.blocked"],
+    )
+    assert set(safe["kept"]) == {"op.market", "op.fin"}
+    assert safe.get("domain_hard_filter_applied") is False
+    assert "op.blocked" not in safe["kept"]
 
     cands = [
         {"operation_id": "op.market", "score": 0.9},

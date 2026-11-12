@@ -63,13 +63,60 @@ def domain_compatible(step_domain: str, op_domain: str) -> bool:
     }
 
 
+def safety_filter_operations(
+    *,
+    registry_ids: Sequence[str],
+    metadata_by_id: Dict[str, Dict[str, Any]],
+    runtime_operation_ids: Sequence[str],
+) -> Dict[str, Any]:
+    """Keep runtime-exposed, non-blocked ops. No domain hard filter (R5).
+
+    Malformed / unknown ids that are not runtime-exposed are rejected via
+    ``not_runtime_exposed``. Domain is intentionally ignored.
+    """
+    runtime = set(runtime_operation_ids)
+    kept: List[str] = []
+    rejected: List[Dict[str, str]] = []
+    for oid in registry_ids:
+        meta = metadata_by_id.get(oid) or {}
+        if not _meta_runtime_exposed(meta, runtime_ids=runtime, operation_id=oid):
+            rejected.append({"operation_id": oid, "reason": "not_runtime_exposed"})
+            continue
+        if _meta_blocked(meta):
+            rejected.append({"operation_id": oid, "reason": "blocked_or_rejected"})
+            continue
+        kept.append(oid)
+    return {
+        "kept": kept,
+        "rejected": rejected,
+        "kept_count": len(kept),
+        "rejected_count": len(rejected),
+        "domain_hard_filter_applied": False,
+        "filter_kind": "safety_only_r5",
+    }
+
+
 def hard_filter_operations(
     *,
     registry_ids: Sequence[str],
     metadata_by_id: Dict[str, Dict[str, Any]],
     runtime_operation_ids: Sequence[str],
     step_domain: str,
+    apply_domain_filter: bool = True,
 ) -> Dict[str, Any]:
+    """Legacy domain+safety hard filter (audit R2/R3/R_runtime parity).
+
+    Runtime retrieve path uses ``safety_filter_operations`` instead (R5).
+    """
+    if not apply_domain_filter:
+        out = safety_filter_operations(
+            registry_ids=registry_ids,
+            metadata_by_id=metadata_by_id,
+            runtime_operation_ids=runtime_operation_ids,
+        )
+        out["filter_kind"] = "safety_only_via_hard_filter_flag"
+        return out
+
     runtime = set(runtime_operation_ids)
     kept: List[str] = []
     rejected: List[Dict[str, str]] = []
@@ -92,6 +139,8 @@ def hard_filter_operations(
         "rejected": rejected,
         "kept_count": len(kept),
         "rejected_count": len(rejected),
+        "domain_hard_filter_applied": True,
+        "filter_kind": "domain_and_safety_legacy",
     }
 
 

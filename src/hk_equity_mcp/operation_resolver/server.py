@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, Dict, List, Optional, Protocol, Sequence
 
 from hk_equity_mcp.mcp_servers.financial import FinancialServer
 from hk_equity_mcp.operation_resolver.registry import build_default_registry
@@ -58,7 +58,11 @@ class OperationResolverServer:
     # ---- public meta-tools -------------------------------------------------
 
     def find_operations(
-        self, query: str, top_k: int = DEFAULT_TOP_K
+        self,
+        query: str,
+        top_k: int = DEFAULT_TOP_K,
+        *,
+        allowed_ids: Optional[Sequence[str]] = None,
     ) -> Dict[str, Any]:
         if not isinstance(query, str) or not query.strip():
             return {
@@ -68,13 +72,18 @@ class OperationResolverServer:
                 "top_k": top_k,
             }
         capped = min(int(top_k), MAX_TOP_K) if top_k is not None else DEFAULT_TOP_K
-        candidates = self.retriever.rank(query.strip(), top_k=capped)
+        candidates = self.retriever.rank(
+            query.strip(), top_k=capped, allowed_ids=allowed_ids
+        )
         return {
             "success": True,
             "query": query.strip(),
             "top_k": capped,
             "max_top_k": MAX_TOP_K,
             "candidates": candidates,
+            "allowed_pool_size": (
+                None if allowed_ids is None else len({str(x) for x in allowed_ids})
+            ),
             "error": None,
         }
 

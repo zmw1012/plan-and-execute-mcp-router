@@ -451,7 +451,11 @@ class OperationRetriever:
             self._doc_vectors[op_id] = vec
 
     def rank(
-        self, query: str, top_k: int = DEFAULT_TOP_K
+        self,
+        query: str,
+        top_k: int = DEFAULT_TOP_K,
+        *,
+        allowed_ids: Optional[Sequence[str]] = None,
     ) -> List[Dict[str, object]]:
         if top_k is None:
             top_k = DEFAULT_TOP_K
@@ -461,23 +465,35 @@ class OperationRetriever:
         if top_k > MAX_TOP_K:
             top_k = MAX_TOP_K
 
+        if allowed_ids is None:
+            pool_ids = list(self.registry.keys())
+        else:
+            allow = {str(x) for x in allowed_ids}
+            pool_ids = [oid for oid in self.registry.keys() if oid in allow]
+
         q_vec = self.backend.embed([query])[0]
-        scored: List[Tuple[float, str]] = []
-        for op_id, op in self.registry.items():
+        scored: List[Tuple[float, str, float, float]] = []
+        for op_id in pool_ids:
+            op = self.registry[op_id]
+            if op_id not in self._doc_vectors:
+                continue
             cos = cosine_similarity(q_vec, self._doc_vectors[op_id])
             lex = lexical_score(query, op)
             score = cos + LEXICAL_WEIGHT * lex
-            scored.append((score, op_id))
+            scored.append((score, op_id, cos, lex))
 
         # Stable ranking: score desc, then operation_id asc for ties.
         scored.sort(key=lambda row: (-row[0], row[1]))
         results: List[Dict[str, object]] = []
-        for score, op_id in scored[:top_k]:
+        for score, op_id, cos, lex in scored[:top_k]:
             op = self.registry[op_id]
             results.append(
                 {
                     "operation_id": op.operation_id,
                     "score": round(float(score), 6),
+                    "cosine_similarity": float(cos),
+                    "lexical_score": float(lex),
+                    "lexical_weight": float(LEXICAL_WEIGHT),
                     "service_id": op.service_id,
                     "name": op.name,
                     "summary": op.summary,

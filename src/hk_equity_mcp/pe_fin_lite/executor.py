@@ -33,9 +33,17 @@ from hk_equity_mcp.pe_fin_lite.tool_binding import (
     mock_binding_from_candidates,
     run_tool_binder,
 )
+from hk_equity_mcp.pe_fin_lite.retrieval_formula import (
+    DESCRIBE_N,
+    DOMAIN_HARD_FILTER,
+    RETRIEVAL_FORMULA_NAME,
+    RETRIEVAL_FORMULA_VERSION,
+    RETRIEVAL_TOP_K,
+    retrieval_formula_hash,
+)
 from hk_equity_mcp.pe_fin_lite.tool_retrieval import (
     build_step_search_query,
-    hard_filter_operations,
+    safety_filter_operations,
     select_describe_candidates,
     select_embedding_topk,
 )
@@ -674,28 +682,48 @@ def execute_retrieve_step(
 
     query = build_step_search_query(step)
     funnel["search_query"] = query
-    filt = hard_filter_operations(
+    # R5: safety filter only (blocked / non-runtime). No domain hard filter.
+    filt = safety_filter_operations(
         registry_ids=list(resolver.registry.keys()),
         metadata_by_id=metadata_by_id,
         runtime_operation_ids=runtime_operation_ids,
-        step_domain=str(step.get("domain") or "general"),
     )
     funnel["hard_filtered"] = filt
+    funnel["domain_hard_filter"] = DOMAIN_HARD_FILTER
+    funnel["retrieval_formula"] = {
+        "name": RETRIEVAL_FORMULA_NAME,
+        "version": RETRIEVAL_FORMULA_VERSION,
+        "hash": retrieval_formula_hash(),
+        "lexical_weight": 0.12,
+        "top_k": int(budget.limits.get("retrieval_top_k", RETRIEVAL_TOP_K)),
+        "describe_n": int(budget.limits.get("describe_top_n", DESCRIBE_N)),
+        "domain_hard_filter": DOMAIN_HARD_FILTER,
+    }
     allowed: Set[str] = set(filt["kept"])
 
     budget.embedding_query_calls += 1
-    find_res = resolver.find_operations(query, top_k=int(budget.limits["retrieval_top_k"]))
+    top_k = int(budget.limits.get("retrieval_top_k", RETRIEVAL_TOP_K))
+    find_res = resolver.find_operations(
+        query, top_k=top_k, allowed_ids=sorted(allowed)
+    )
     candidates = list((find_res or {}).get("candidates") or [])
     topk = select_embedding_topk(
         candidates,
         allowed_ids=allowed,
-        top_k=int(budget.limits["retrieval_top_k"]),
+        top_k=top_k,
     )
     funnel["embedding_topk"] = [
-        {"operation_id": r.get("operation_id"), "score": r.get("score")} for r in topk
+        {
+            "operation_id": r.get("operation_id"),
+            "score": r.get("score"),
+            "cosine_similarity": r.get("cosine_similarity"),
+            "lexical_score": r.get("lexical_score"),
+        }
+        for r in topk
     ]
+    funnel["n_candidates_scored"] = len(allowed)
 
-    describe_n = int(budget.limits["describe_top_n"])
+    describe_n = int(budget.limits.get("describe_top_n", DESCRIBE_N))
     to_describe = select_describe_candidates(topk, top_n=describe_n)
     described_ids = []
     described_contracts: Dict[str, Dict[str, Any]] = {}

@@ -109,6 +109,17 @@ from hk_equity_mcp.pe_fin_lite.operation_embedding_index import (
     resolve_embedding_cache_dir,
 )
 from hk_equity_mcp.pe_fin_lite.prompts import PE_FIN_LITE_SYSTEM_PROMPT, pe_fin_lite_prompt_hash
+from hk_equity_mcp.pe_fin_lite.retrieval_formula import (
+    DESCRIBE_N,
+    DOMAIN_HARD_FILTER,
+    EXPECTED_EMBEDDING_DIMENSION,
+    R5_CANDIDATE_LOCK_SHA256,
+    RETRIEVAL_FORMULA_EXACT,
+    RETRIEVAL_FORMULA_NAME,
+    RETRIEVAL_FORMULA_VERSION,
+    RETRIEVAL_TOP_K,
+    runtime_retrieval_metadata,
+)
 from hk_equity_mcp.real_mcp.unified_catalog import build_unified_catalog
 from hk_equity_mcp.real_mcp.unified_gateway import (
     ScriptedMockTransport,
@@ -129,12 +140,20 @@ PE_RESUME_IDENTITY_KEYS = (
     "embedding_provider",
     "embedding_base_url_host",
     "embedding_model",
+    "embedding_dimension",
     "system_prompt_hash",
     "schema_hash",
     "capability_profile_hash",
     "operation_metadata_hash",
     "catalog_fingerprint",
     "embedding_index_identity_sha256",
+    "operation_documents_sha256",
+    "retrieval_formula_name",
+    "retrieval_formula_version",
+    "retrieval_formula_hash",
+    "lexical_weight",
+    "domain_hard_filter",
+    "candidate_lock_sha256",
     "dataset_split",
     "subset_kind",
     "subset_manifest_hash",
@@ -574,6 +593,22 @@ class UnifiedHkPeFinLiteRunner:
         index_identity = self._embedding_index_identity()
         index_identity_sha = identity_digest(index_identity)
         limits = dict(self.limits)
+        # R5 formula identity — changing these blocks resume of pre-R5 outputs.
+        emb_dim = int(
+            index_identity.get("expected_vector_dimension")
+            or EXPECTED_EMBEDDING_DIMENSION
+        )
+        docs_hash = index_identity.get("documents_hash")
+        formula_meta = runtime_retrieval_metadata(
+            embedding_provider_host=host_from_base_url(
+                (self.emb_meta or {}).get("base_url")
+            ),
+            embedding_model=(self.emb_meta or {}).get("model") or EXPECTED_EMBEDDING_MODEL,
+            embedding_dimension=emb_dim,
+            operation_documents_sha256=docs_hash,
+            operation_index_identity=index_identity_sha,
+            catalog_fingerprint=cat_fp,
+        )
         run_meta: Dict[str, Any] = {
             "condition": self.condition,
             "method_version": self.method_version,
@@ -588,6 +623,18 @@ class UnifiedHkPeFinLiteRunner:
                 (self.emb_meta or {}).get("base_url")
             ),
             "embedding_model": (self.emb_meta or {}).get("model"),
+            "embedding_dimension": emb_dim,
+            "operation_documents_sha256": docs_hash,
+            "retrieval_formula_name": RETRIEVAL_FORMULA_NAME,
+            "retrieval_formula_version": RETRIEVAL_FORMULA_VERSION,
+            "retrieval_formula_exact": RETRIEVAL_FORMULA_EXACT,
+            "retrieval_formula_hash": formula_meta["retrieval_formula_hash"],
+            "lexical_weight": 0.12,
+            "domain_hard_filter": DOMAIN_HARD_FILTER,
+            "candidate_lock_sha256": R5_CANDIDATE_LOCK_SHA256,
+            "retrieval_top_k": int(limits.get("retrieval_top_k", RETRIEVAL_TOP_K)),
+            "describe_top_n": int(limits.get("describe_top_n", DESCRIBE_N)),
+            "retrieval_formula": formula_meta,
             "system_prompt_hash": prompt_h,
             "schema_hash": schema_h,
             "schema_hashes": schemas,

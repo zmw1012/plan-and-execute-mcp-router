@@ -226,6 +226,10 @@ def test_resume_identity_includes_index_and_abort_finalization(tmp_path: Path):
     assert "capability_profile_hash" in PE_RESUME_IDENTITY_KEYS
     assert "system_prompt_hash" in PE_RESUME_IDENTITY_KEYS
     assert "schema_hash" in PE_RESUME_IDENTITY_KEYS
+    assert "retrieval_formula_name" in PE_RESUME_IDENTITY_KEYS
+    assert "retrieval_formula_hash" in PE_RESUME_IDENTITY_KEYS
+    assert "domain_hard_filter" in PE_RESUME_IDENTITY_KEYS
+    assert "candidate_lock_sha256" in PE_RESUME_IDENTITY_KEYS
 
     out = tmp_path / "abort_run"
     runner = UnifiedHkPeFinLiteRunner(
@@ -281,7 +285,7 @@ def test_fallback_at_most_once_local(monkeypatch):
     class FakeResolver:
         registry = {"a": object(), "b": object()}
 
-        def find_operations(self, query, top_k=5):
+        def find_operations(self, query, top_k=5, *, allowed_ids=None):
             return {
                 "success": True,
                 "candidates": [
