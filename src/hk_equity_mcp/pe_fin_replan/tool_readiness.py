@@ -229,15 +229,198 @@ def run_contract_audit(
 
 def run_critical_live_audit(*, root: Path, output_dir: Path, **_: Any) -> Dict[str, Any]:
     raise RuntimeError(
-        "critical_live_audit is deferred: do not run in offline engineering turn"
+        "critical_live_audit not implemented in this turn; use --market-sina-probe "
+        "for market readiness before Smoke-5 v4"
     )
 
 
-def run_market_sina_probe(*, root: Path, output_dir: Path, **_: Any) -> Dict[str, Any]:
-    raise RuntimeError(
-        "market_sina_probe is deferred: do not run in offline engineering turn "
-        "(future live readiness only)"
+def _load_env_file(path: Optional[Path]) -> None:
+    if path is None:
+        return
+    p = Path(path)
+    if not p.is_file():
+        raise FileNotFoundError(f"env file not found: {p}")
+    for line in p.read_text(encoding="utf-8").splitlines():
+        text = line.strip()
+        if not text or text.startswith("#") or "=" not in text:
+            continue
+        key, val = text.split("=", 1)
+        key = key.strip()
+        val = val.strip().strip("'").strip('"')
+        if key and key not in __import__("os").environ:
+            __import__("os").environ[key] = val
+
+
+def run_market_sina_probe(
+    *,
+    root: Path,
+    output_dir: Path,
+    profile_path: Optional[Path] = None,
+    env_file: Optional[str] = None,
+) -> Dict[str, Any]:
+    """One-shot live Sina equity OHLCV readiness probe (no LLM / embedding)."""
+    import time
+
+    from hk_equity_mcp.pe_fin_lite.issuer_code import canonicalize_hk_issuer_code
+    from hk_equity_mcp.real_mcp.market_gateway import MarketRealMcpGateway
+    from hk_equity_mcp.real_mcp.market_normalize import MARKET_CUTOFF, to_ymd
+
+    root = Path(root).resolve()
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    _load_env_file(Path(env_file) if env_file else None)
+
+    profile_path = Path(profile_path) if profile_path else root / DEFAULT_PROFILE_REL
+    profile = load_provider_availability_profile(
+        profile_path, condition="pe_fin_replan"
     )
+
+    args = {
+        "symbol": "09988.HK",
+        "target_date": "2026-05-15",
+        "adjustment": "",
+        "adjust": "",
+        "offset": -400,
+        "max_rows": 400,
+    }
+    t0 = time.perf_counter()
+    network_called = False
+    failure_class = None
+    gateway_success = False
+    normalization_success = False
+    missing_outputs: List[str] = []
+    required_outputs = [
+        "trade_date",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume",
+        "adjustment",
+        "currency",
+        "issuer_code",
+    ]
+    raw_ref = None
+    scope_match = False
+    bar: Dict[str, Any] = {}
+
+    gw = MarketRealMcpGateway()
+    try:
+        gw.open()
+        network_called = True
+        result = gw.invoke("aktools.stock_hk_daily", args)
+        latency_ms = int((time.perf_counter() - t0) * 1000)
+        gateway_success = bool(result.success)
+        norm = result.normalized if isinstance(result.normalized, dict) else {}
+        data = norm.get("data")
+        if isinstance(data, dict):
+            bar = data
+        elif isinstance(data, list) and data and isinstance(data[0], dict):
+            bar = data[0]
+        raw_path = output_dir / "raw_stock_hk_daily_09988.json"
+        _atomic_write_json(
+            raw_path,
+            {
+                "operation_id": "aktools.stock_hk_daily",
+                "arguments_redacted": {
+                    "symbol": args["symbol"],
+                    "target_date": args["target_date"],
+                    "adjustment": "",
+                },
+                "success": gateway_success,
+                "error": result.error,
+                "normalized": norm,
+            },
+        )
+        raw_ref = str(raw_path)
+
+        if not gateway_success:
+            failure_class = "market_provider_unavailable"
+        else:
+            for key in required_outputs:
+                val = bar.get(key)
+                if key == "trade_date" and val in (None, ""):
+                    val = bar.get("date")
+                if val in (None, ""):
+                    missing_outputs.append(key)
+            issuer = canonicalize_hk_issuer_code(
+                bar.get("issuer_code") or args["symbol"]
+            )
+            if issuer != "09988":
+                missing_outputs.append("issuer_code_mismatch")
+            adj = bar.get("adjustment")
+            if adj is None:
+                adj = norm.get("adjustment_mode")
+            if adj != "":
+                missing_outputs.append("adjustment")
+            currency = bar.get("currency") or norm.get("currency_or_unit")
+            if currency != "HKD":
+                missing_outputs.append("currency")
+            eff = (
+                bar.get("trade_date")
+                or bar.get("date")
+                or norm.get("effective_session_date")
+            )
+            if str(eff) != args["target_date"]:
+                missing_outputs.append("target_date_mismatch")
+            # cutoff legal
+            from hk_equity_mcp.real_mcp.market_normalize import parse_session_date
+
+            d = parse_session_date(eff)
+            if d is None or d > MARKET_CUTOFF:
+                missing_outputs.append("cutoff_violation")
+            normalization_success = not missing_outputs
+            scope_match = normalization_success
+            if not normalization_success:
+                failure_class = "market_provider_unavailable"
+    except Exception as exc:  # noqa: BLE001
+        latency_ms = int((time.perf_counter() - t0) * 1000)
+        failure_class = "market_provider_unavailable"
+        gateway_success = False
+        normalization_success = False
+        missing_outputs = [f"exception:{type(exc).__name__}"]
+        raw_ref = str(exc)[:500]
+    finally:
+        try:
+            gw.close()
+        except Exception:  # noqa: BLE001
+            pass
+
+    status = "pass" if gateway_success and normalization_success else "fail"
+    artifact = {
+        "mode": "market_sina_probe",
+        "status": status,
+        "network_called": network_called,
+        "live_pass_forged": False,
+        "market_provider_profile_id": profile.get("profile_id"),
+        "market_provider_profile_hash": profile_hash(profile),
+        "tool_readiness_contract_version": TOOL_READINESS_CONTRACT_VERSION,
+        "tool_readiness_contract_hash": tool_readiness_contract_hash(),
+        "operation_id": "aktools.stock_hk_daily",
+        "provider": "sina_via_akshare",
+        "arguments_redacted": {
+            "symbol": "09988.HK",
+            "target_date": "2026-05-15",
+            "adjustment": "",
+        },
+        "gateway_success": gateway_success,
+        "normalization_success": normalization_success,
+        "required_outputs": required_outputs,
+        "missing_outputs": missing_outputs,
+        "scope_match": scope_match,
+        "latency_ms": latency_ms,
+        "failure_class": failure_class,
+        "raw_result_ref": raw_ref,
+        "cutoff": to_ymd(MARKET_CUTOFF),
+        "engineering_readiness_only": True,
+        "not_accuracy_result": True,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    readiness_path = output_dir / "readiness.json"
+    _atomic_write_json(readiness_path, artifact)
+    artifact["artifact_path"] = str(readiness_path)
+    artifact["artifact_sha256"] = _sha_bytes(readiness_path.read_bytes())
+    return artifact
 
 
 def build_future_sina_probe_command(root: Path) -> str:

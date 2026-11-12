@@ -104,9 +104,22 @@ def main() -> int:
             if args.output_dir
             else ROOT / "outputs/pe_fin_replan_tool_readiness_v1/market_sina_probe"
         )
-        # Live probe intentionally not implemented for this offline turn.
-        run_market_sina_probe(root=ROOT, output_dir=out, env_file=args.env_file)
-        return 1
+        if not out.is_absolute():
+            out = (ROOT / out).resolve()
+        summary = run_market_sina_probe(
+            root=ROOT,
+            output_dir=out,
+            profile_path=Path(args.market_provider_profile),
+            env_file=args.env_file,
+        )
+        print("PE-FIN-REPLAN MARKET SINA PROBE")
+        print(f"status={summary['status']}")
+        print(f"network_called={summary['network_called']}")
+        print(f"gateway_success={summary['gateway_success']}")
+        print(f"normalization_success={summary['normalization_success']}")
+        print(f"failure_class={summary.get('failure_class')}")
+        print(f"output_dir={out}")
+        return 0 if summary["status"] == "pass" else 2
 
     return 1
 
