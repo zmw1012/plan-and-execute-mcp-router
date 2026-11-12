@@ -85,6 +85,18 @@ def parse_args() -> argparse.Namespace:
             "post-hoc exploratory; implies EEA)"
         ),
     )
+    p.add_argument(
+        "--replan-round-cap",
+        type=int,
+        default=None,
+        choices=[4, 7],
+        help=(
+            "RePlan depth ablation: max execution/replan rounds (4 or 7). "
+            "Requires --replan / --replan-smoke5 / --diagnostic20-replan. "
+            "Default 7 preserves pe_fin_replan_v1_4_1 identity; "
+            "4 selects pe_fin_replan_v1_4_1_round4_ablation."
+        ),
+    )
     p.add_argument("--ids", default=None, help="Comma-separated task ids")
     p.add_argument("--max-tasks", type=int, default=None)
     p.add_argument(
@@ -180,6 +192,14 @@ def main() -> None:
         raise SystemExit(
             "Cannot combine --diagnostic20-replan with --replan-smoke5"
         )
+    replan_enabled = bool(
+        args.replan or args.diagnostic20_replan or args.replan_smoke5
+    )
+    if args.replan_round_cap is not None and not replan_enabled:
+        raise SystemExit(
+            "--replan-round-cap requires --replan / --replan-smoke5 / "
+            "--diagnostic20-replan"
+        )
 
     if args.output_dir:
         output_dir = Path(args.output_dir)
@@ -209,9 +229,8 @@ def main() -> None:
             or args.diagnostic20_replan
             or args.replan_smoke5
         ),
-        replan_enabled=bool(
-            args.replan or args.diagnostic20_replan or args.replan_smoke5
-        ),
+        replan_enabled=replan_enabled,
+        replan_round_cap=args.replan_round_cap,
         ids=parse_ids(args.ids),
         max_tasks=args.max_tasks,
         resume=args.resume,

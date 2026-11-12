@@ -35,16 +35,16 @@ from hk_equity_mcp.pe_fin_lite.step_result import retrieve_step_succeeded
 from hk_equity_mcp.pe_fin_lite.temporal_policy import DEFAULT_DATASET_CUTOFF
 from hk_equity_mcp.pe_fin_replan import (
     PE_FIN_REPLAN_ARCHITECTURE,
-    PE_FIN_REPLAN_CONDITION,
-    PE_FIN_REPLAN_METHOD_VERSION,
-    PE_FIN_REPLAN_PROTOCOL_VERSION,
-    REPLAN_FLAGS,
 )
 from hk_equity_mcp.pe_fin_replan.grounding import (
     is_premature_insufficient,
     validate_replanner_response,
 )
 from hk_equity_mcp.pe_fin_replan.identity import DEFAULT_BUDGETS, replan_protocol_identity
+from hk_equity_mcp.pe_fin_replan.round_policy import (
+    identity_labels_for_round_cap,
+    replan_flags_for_round_cap,
+)
 from hk_equity_mcp.pe_fin_replan.plan_ops import (
     remove_step,
     select_one_ready_step,
@@ -501,9 +501,15 @@ class PeFinReplanAgent:
                 }
 
                 if action == "plan" and response_only:
-                    state.stopping_reason = "round7_plan_not_allowed"
+                    # Historical alias kept for cap=7; generic for other caps.
+                    fail_code = (
+                        "round7_plan_not_allowed"
+                        if state.max_execution_rounds == 7
+                        else "forced_final_round_plan_not_allowed"
+                    )
+                    state.stopping_reason = fail_code
                     state.resource_limit_failure = True
-                    error = "round7_plan_not_allowed"
+                    error = fail_code
                     error_type = "replanner_schema_or_semantics"
                     state.replan_decisions.append(decision)
                     trace.append({"stage": "replanner", **decision})
@@ -770,7 +776,8 @@ class PeFinReplanAgent:
             status = "failed"
 
         self._sync_state_counters(state)
-        identity = replan_protocol_identity()
+        round_cap = int(state.max_execution_rounds)
+        identity = replan_protocol_identity(round_cap=round_cap)
         return {
             "status": status,
             "error": error,
@@ -796,7 +803,11 @@ class PeFinReplanAgent:
             "replan_round_count": state.replan_round_count,
             "max_replan_rounds": state.max_replan_rounds,
             "forced_final_round": state.forced_final_round,
-            "round7_response_only": True,
+            "replan_round_cap": round_cap,
+            "response_only_round": round_cap,
+            "final_round_response_only": True,
+            "round7_response_only": round_cap == 7,
+            "round4_response_only": round_cap == 4,
             "premature_insufficient_blocked_count": state.premature_insufficient_blocked_count,
             "replan_decisions": list(state.replan_decisions),
             "plan_diff_history": list(state.plan_diff_history),
@@ -864,12 +875,16 @@ class PeFinReplanAgent:
             "embedding_query_calls": self.budget.embedding_query_calls,
             "binding_calls": self.budget.binder_calls,
             "architecture": PE_FIN_REPLAN_ARCHITECTURE,
-            "condition": PE_FIN_REPLAN_CONDITION,
-            "method_version": PE_FIN_REPLAN_METHOD_VERSION,
-            "protocol_version": PE_FIN_REPLAN_PROTOCOL_VERSION,
+            "condition": identity_labels_for_round_cap(round_cap)["condition"],
+            "method_version": identity_labels_for_round_cap(round_cap)[
+                "method_version"
+            ],
+            "protocol_version": identity_labels_for_round_cap(round_cap)[
+                "protocol_version"
+            ],
             "posthoc_exploratory": True,
             "formal_primary_result": False,
-            "replan_flags": dict(REPLAN_FLAGS),
+            "replan_flags": replan_flags_for_round_cap(round_cap),
             "replan_identity": identity,
             "planner_calls": planner_calls,
             "monitor_decisions": [],

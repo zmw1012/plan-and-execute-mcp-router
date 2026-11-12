@@ -83,16 +83,17 @@ from hk_equity_mcp.pe_fin_lite.eea_identity import (
 )
 from hk_equity_mcp.pe_fin_lite.agent import PeFinLiteAgent
 from hk_equity_mcp.pe_fin_lite.budget import McpBudgetExhausted, structured_budget_failure
-from hk_equity_mcp.pe_fin_replan import (
-    PE_FIN_REPLAN_ARCHITECTURE,
-    PE_FIN_REPLAN_CONDITION,
-    PE_FIN_REPLAN_METHOD_VERSION,
-    PE_FIN_REPLAN_PROTOCOL_VERSION,
-    REPLAN_FLAGS,
-)
 from hk_equity_mcp.pe_fin_replan.agent import PeFinReplanAgent
 from hk_equity_mcp.pe_fin_replan.identity import DEFAULT_BUDGETS as REPLAN_DEFAULT_BUDGETS
 from hk_equity_mcp.pe_fin_replan.identity import replan_protocol_identity
+from hk_equity_mcp.pe_fin_replan.round_policy import (
+    DEFAULT_REPLAN_ROUND_CAP,
+    apply_round_cap_to_limits,
+    identity_labels_for_round_cap,
+    replan_flags_for_round_cap,
+    resume_round_identity_fields,
+    validate_replan_round_cap,
+)
 from hk_equity_mcp.pe_fin_lite.checkpoint_observability import (
     CHECKPOINT_TRACE_CONTRACT_VERSION,
     checkpoint_observability_hash,
@@ -200,6 +201,12 @@ PE_RESUME_IDENTITY_KEYS = (
     "sina_symbol_normalizer_hash",
     "market_gateway_projection_version",
     "market_gateway_projection_hash",
+    # RePlan round-depth ablation resume isolation (R4 ↔ R7 fail-closed).
+    "replan_round_cap",
+    "max_execution_rounds",
+    "max_replan_rounds",
+    "response_only_round",
+    "round_policy_hash",
 )
 
 
@@ -601,6 +608,7 @@ class UnifiedHkPeFinLiteRunner:
         market_provider_profile: Optional[str] = None,
         require_tool_readiness: bool = False,
         tool_readiness_artifact: Optional[str] = None,
+        replan_round_cap: Optional[int] = None,
     ):
         self.root = root or repo_root()
         self.output_dir = Path(output_dir)
@@ -614,6 +622,17 @@ class UnifiedHkPeFinLiteRunner:
         self.replan_enabled = (
             bool(replan_enabled) or self.diagnostic20_replan or self.replan_smoke5
         )
+        if replan_round_cap is None:
+            self.replan_round_cap = DEFAULT_REPLAN_ROUND_CAP
+        else:
+            if not self.replan_enabled:
+                raise RuntimeError(
+                    "--replan-round-cap requires --replan / --replan-smoke5 / "
+                    "--diagnostic20-replan"
+                )
+            self.replan_round_cap = validate_replan_round_cap(replan_round_cap)
+        if not self.replan_enabled:
+            self.replan_round_cap = DEFAULT_REPLAN_ROUND_CAP
         # RePlan always includes EEA execution/evidence alignment.
         self.eea_enabled = (
             bool(eea_enabled) or self.diagnostic20_eea or self.replan_enabled
@@ -669,9 +688,13 @@ class UnifiedHkPeFinLiteRunner:
         )
         self.limits = dict(self.config.get("limits") or {})
         if self.replan_enabled:
-            # Force RePlan v1.1 budgets/rounds (do not inherit Lite's LLM=8 / steps=6).
+            # Force RePlan budgets/rounds (do not inherit Lite's LLM=8 / steps=6).
+            # Round-cap ablation only changes max_*rounds/steps; ceilings stay 16/8.
             for k, v in REPLAN_DEFAULT_BUDGETS.items():
                 self.limits[k] = v
+            self.limits = apply_round_cap_to_limits(
+                self.limits, cap=self.replan_round_cap
+            )
         self.retrieval = dict(self.config.get("retrieval") or {})
         self.embedding_batch_size = int(self.config.get("embedding_batch_size", 16))
         self.embedding_request_timeout_sec = float(
@@ -683,10 +706,11 @@ class UnifiedHkPeFinLiteRunner:
             for x in (self.config.get("embedding_retry_backoff_seconds") or [1, 2, 4])
         ]
         if self.replan_enabled:
-            self.condition = PE_FIN_REPLAN_CONDITION
-            self.method_version = PE_FIN_REPLAN_METHOD_VERSION
-            self.protocol_version = PE_FIN_REPLAN_PROTOCOL_VERSION
-            self.architecture = PE_FIN_REPLAN_ARCHITECTURE
+            labels = identity_labels_for_round_cap(self.replan_round_cap)
+            self.condition = str(labels["condition"])
+            self.method_version = str(labels["method_version"])
+            self.protocol_version = str(labels["protocol_version"])
+            self.architecture = str(labels["architecture"])
         elif self.eea_enabled:
             self.condition = PE_FIN_LITE_EEA_CONDITION
             self.method_version = PE_FIN_LITE_EEA_METHOD_VERSION
@@ -753,7 +777,7 @@ class UnifiedHkPeFinLiteRunner:
 
             self._provider_profile = load_provider_availability_profile(
                 self.market_provider_profile_path,
-                condition=PE_FIN_REPLAN_CONDITION,
+                condition=self.condition,
             )
             self._provider_filter_trace = apply_provider_availability_filter(
                 operation_ids=list(self.bundle.stats.runtime_operation_ids),
@@ -1058,10 +1082,17 @@ class UnifiedHkPeFinLiteRunner:
                     "posthoc_exploratory": True,
                     "formal_primary_result": False,
                     "developed_after_hk155_result_inspection": True,
-                    "base_method": "pe_fin_lite_v1_2_eea",
-                    "replan_flags": dict(REPLAN_FLAGS),
-                    "replan_identity": replan_protocol_identity(),
+                    "base_method": (
+                        "pe_fin_replan_v1_4_1"
+                        if self.replan_round_cap == 4
+                        else "pe_fin_lite_v1_2_eea"
+                    ),
+                    "replan_flags": replan_flags_for_round_cap(self.replan_round_cap),
+                    "replan_identity": replan_protocol_identity(
+                        round_cap=self.replan_round_cap
+                    ),
                     "eea_flags": dict(EEA_FLAGS),
+                    **resume_round_identity_fields(self.replan_round_cap),
                 }
                 if self.replan_enabled
                 else {}
@@ -1416,6 +1447,10 @@ class UnifiedHkPeFinLiteRunner:
             "max_replan_rounds": result.get("max_replan_rounds"),
             "forced_final_round": result.get("forced_final_round"),
             "round7_response_only": result.get("round7_response_only"),
+            "round4_response_only": result.get("round4_response_only"),
+            "final_round_response_only": result.get("final_round_response_only"),
+            "replan_round_cap": result.get("replan_round_cap"),
+            "response_only_round": result.get("response_only_round"),
             "premature_insufficient_blocked_count": result.get(
                 "premature_insufficient_blocked_count"
             ),

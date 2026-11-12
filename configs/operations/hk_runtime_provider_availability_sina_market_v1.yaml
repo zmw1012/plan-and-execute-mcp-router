@@ -8,6 +8,7 @@ profile_version: "1.0"
 status: frozen
 condition_scope:
   - pe_fin_replan
+  - pe_fin_replan_r4
 
 disable_rule:
   domain: market
