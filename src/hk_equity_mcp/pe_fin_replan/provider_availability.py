@@ -83,6 +83,11 @@ def tool_readiness_contract_hash() -> str:
             "runtime_operation_count_expected": 39,
             "live_modes_require_network": True,
             "mock_dry_run_cannot_forge_live_pass": True,
+            "readiness_uses_agent_project_invoke_to_required_outputs": True,
+            "adjustment_empty_string_legal": True,
+            "requires_projection_success": True,
+            "requires_effective_session_date": "2026-05-15",
+            "reject_invalidated_probe_dirs": True,
         },
         sort_keys=True,
         separators=(",", ":"),
@@ -355,6 +360,10 @@ def validate_bound_operation(
 
 
 def resume_identity_fields(profile: Optional[Dict[str, Any]], filter_trace: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    from hk_equity_mcp.pe_fin_lite.envelope_projection import (
+        MARKET_GATEWAY_PROJECTION_VERSION,
+        market_gateway_projection_hash,
+    )
     from hk_equity_mcp.pe_fin_replan.sina_symbol import (
         SINA_HK_SYMBOL_NORMALIZER_VERSION,
         sina_symbol_normalizer_hash,
@@ -374,6 +383,8 @@ def resume_identity_fields(profile: Optional[Dict[str, Any]], filter_trace: Opti
             "tool_readiness_contract_hash": None,
             "sina_symbol_normalizer_version": None,
             "sina_symbol_normalizer_hash": None,
+            "market_gateway_projection_version": None,
+            "market_gateway_projection_hash": None,
         }
     trace = filter_trace or {}
     preferred = dict(profile.get("preferred_operations") or {})
@@ -398,6 +409,8 @@ def resume_identity_fields(profile: Optional[Dict[str, Any]], filter_trace: Opti
         "tool_readiness_contract_hash": tool_readiness_contract_hash(),
         "sina_symbol_normalizer_version": SINA_HK_SYMBOL_NORMALIZER_VERSION,
         "sina_symbol_normalizer_hash": sina_symbol_normalizer_hash(),
+        "market_gateway_projection_version": MARKET_GATEWAY_PROJECTION_VERSION,
+        "market_gateway_projection_hash": market_gateway_projection_hash(),
     }
 
 
@@ -436,29 +449,37 @@ def assert_tool_readiness_for_live(
     art_path = Path(artifact_path).resolve()
     if (art_path.parent / "INVALIDATED.json").is_file():
         raise ProviderAvailabilityError(
-            "require_tool_readiness: readiness artifact invalidated "
-            "(incorrect_hk_symbol_format); use market_sina_probe_v2"
+            "require_tool_readiness: readiness artifact invalidated; "
+            "use market_sina_probe_v3"
         )
+    from hk_equity_mcp.pe_fin_lite.envelope_projection import (
+        MARKET_GATEWAY_PROJECTION_VERSION,
+        market_gateway_projection_hash,
+    )
+
     raw = Path(artifact_path).read_bytes()
     artifact_hash = _sha_bytes(raw)
     data = json.loads(raw.decode("utf-8"))
     norm_hash = expected_normalizer_hash or sina_symbol_normalizer_hash()
+    proj_hash = market_gateway_projection_hash()
 
     required_true = {
         "status": "pass",
         "gateway_success": True,
         "normalization_success": True,
+        "projection_success": True,
         "scope_match": True,
         "provider": "sina_via_akshare",
         "network_called": True,
         "live_probe_pass": True,
         "normalized_symbol": "09988",
+        "effective_session_date": "2026-05-15",
     }
     for key, expected in required_true.items():
         if data.get(key) != expected:
             raise ProviderAvailabilityError(
                 f"require_tool_readiness: {key}={data.get(key)!r} "
-                f"expected={expected!r} (v1 fail artifacts not accepted)"
+                f"expected={expected!r} (invalidated/fail artifacts not accepted)"
             )
     if list(data.get("missing_outputs") or []) != []:
         raise ProviderAvailabilityError(
@@ -480,6 +501,14 @@ def assert_tool_readiness_for_live(
         raise ProviderAvailabilityError(
             "require_tool_readiness: sina_symbol_normalizer_hash mismatch"
         )
+    if data.get("market_gateway_projection_version") != MARKET_GATEWAY_PROJECTION_VERSION:
+        raise ProviderAvailabilityError(
+            "require_tool_readiness: market_gateway_projection_version mismatch"
+        )
+    if data.get("market_gateway_projection_hash") != proj_hash:
+        raise ProviderAvailabilityError(
+            "require_tool_readiness: market_gateway_projection_hash mismatch"
+        )
     return {
         "required": True,
         "status": "pass",
@@ -488,4 +517,6 @@ def assert_tool_readiness_for_live(
         "live_pass_forged": False,
         "sina_symbol_normalizer_version": SINA_HK_SYMBOL_NORMALIZER_VERSION,
         "sina_symbol_normalizer_hash": norm_hash,
+        "market_gateway_projection_version": MARKET_GATEWAY_PROJECTION_VERSION,
+        "market_gateway_projection_hash": proj_hash,
     }

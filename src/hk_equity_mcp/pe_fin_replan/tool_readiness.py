@@ -251,54 +251,111 @@ def _load_env_file(path: Optional[Path]) -> None:
             __import__("os").environ[key] = val
 
 
-def _classify_probe_failure(
+def classify_readiness_failure(
     *,
-    error: Optional[str],
-    error_type: Optional[str],
     gateway_success: bool,
-    bar: Dict[str, Any],
+    projection_success: bool,
     missing_outputs: Sequence[str],
     scope_match: bool,
+    error: Optional[str] = None,
+    error_type: Optional[str] = None,
 ) -> Optional[str]:
+    """Ordered failure classes for market readiness (no over-broad unavailable)."""
     if error_type == "invalid_symbol_format" or (
         error and "invalid_symbol_format" in str(error)
     ):
         return "invalid_symbol_format"
     err = str(error or "").lower()
-    if any(x in err for x in ("rate limit", "429", "too many requests")):
-        return "rate_limit"
-    if any(x in err for x in ("timeout", "connection", "transport", "network")):
-        return "transport_failure"
-    if gateway_success:
-        # Success path but schema/date missing
-        has_date = bool(bar.get("trade_date") or bar.get("date"))
-        if not has_date or "'date'" in err or "keyerror" in err:
-            return "provider_schema_drift"
-        if missing_outputs and not scope_match:
-            return "scope_mismatch"
-        if missing_outputs:
-            return "normalization_failure"
-        return None
-    if any(x in err for x in ("empty", "no session", "no_session", "no data")):
-        return "empty_result"
-    if "'date'" in err or "调用接口出错" in str(error or ""):
-        # Often caused by bad symbol → empty/malformed frame; prefer schema drift
-        # only when gateway claimed success. On hard fail after format fix, keep
-        # market_provider_unavailable as last resort.
-        if "09988.hk" in err:
-            return "invalid_symbol_format"
-        return "provider_schema_drift"
-    if error_type in {
-        "invalid_symbol_format",
-        "provider_schema_drift",
-        "transport_failure",
-        "rate_limit",
-        "empty_result",
-        "normalization_failure",
-        "scope_mismatch",
-    }:
-        return str(error_type)
-    return "market_provider_unavailable"
+    if not gateway_success:
+        if any(x in err for x in ("rate limit", "429", "too many requests")):
+            return "rate_limit"
+        if any(x in err for x in ("timeout", "connection", "transport", "network")):
+            return "transport_failure"
+        if any(x in err for x in ("empty", "no session", "no_session", "no data")):
+            return "empty_result"
+        if error_type in {
+            "provider_schema_drift",
+            "transport_failure",
+            "rate_limit",
+            "empty_result",
+        }:
+            return str(error_type)
+        return "market_provider_unavailable"
+    if not projection_success:
+        return "gateway_envelope_projection_failure"
+    if missing_outputs:
+        return "required_outputs_missing"
+    if not scope_match:
+        return "scope_mismatch"
+    return None
+
+
+def evaluate_market_probe_invoke(
+    *,
+    invoke_result: Dict[str, Any],
+    required_outputs: Sequence[str],
+    target_date: str,
+    expected_issuer: str = "09988",
+) -> Dict[str, Any]:
+    """Shared Agent-parity projection + scope checks for readiness/tests."""
+    from hk_equity_mcp.pe_fin_lite.envelope_projection import (
+        MARKET_GATEWAY_PROJECTION_VERSION,
+        market_gateway_projection_hash,
+        project_invoke_to_required_outputs,
+    )
+    from hk_equity_mcp.pe_fin_lite.issuer_code import canonicalize_hk_issuer_code
+
+    gateway_success = bool(invoke_result.get("success"))
+    projected = project_invoke_to_required_outputs(
+        invoke_result=invoke_result,
+        required_outputs=list(required_outputs),
+        domain="market",
+    )
+    values = dict(projected.get("values") or {})
+    missing = list(projected.get("missing_outputs") or [])
+    projection_success = bool(projected.get("projection_ok")) and not missing
+    # Prefer projected trade_date; fall back to gateway normalized effective date.
+    norm = invoke_result.get("normalized")
+    if not isinstance(norm, dict) and isinstance(invoke_result.get("result"), dict):
+        norm = (invoke_result.get("result") or {}).get("normalized")
+    if not isinstance(norm, dict):
+        norm = {}
+    effective = (
+        values.get("trade_date")
+        or norm.get("effective_session_date")
+        or ""
+    )
+    issuer = canonicalize_hk_issuer_code(values.get("issuer_code"))
+    scope_match = (
+        projection_success
+        and str(effective) == str(target_date)
+        and issuer == expected_issuer
+    )
+    normalization_success = projection_success and not missing
+    failure_class = classify_readiness_failure(
+        gateway_success=gateway_success,
+        projection_success=projection_success,
+        missing_outputs=missing,
+        scope_match=scope_match,
+        error=str(invoke_result.get("error") or "") or None,
+        error_type=invoke_result.get("error_type"),
+    )
+    return {
+        "gateway_success": gateway_success,
+        "projection_success": projection_success,
+        "normalization_success": normalization_success,
+        "scope_match": scope_match,
+        "missing_outputs": missing,
+        "values": values,
+        "effective_session_date": str(effective) if effective not in (None, "") else None,
+        "failure_class": failure_class,
+        "normalization_error": projected.get("normalization_error"),
+        "adapted_ok": projected.get("adapted_ok"),
+        "projection_ok": projected.get("projection_ok"),
+        "market_gateway_projection_version": MARKET_GATEWAY_PROJECTION_VERSION,
+        "market_gateway_projection_hash": market_gateway_projection_hash(),
+        "projected": projected,
+    }
 
 
 def run_market_sina_probe(
@@ -310,11 +367,15 @@ def run_market_sina_probe(
 ) -> Dict[str, Any]:
     """One-shot live Sina equity OHLCV readiness probe (no LLM / embedding).
 
-    v2 invoke symbol must be five-digit numeric ``09988`` (not ``09988.HK``).
+    Uses the same ``project_invoke_to_required_outputs`` path as the Agent executor.
+    Invoke symbol must be five-digit numeric ``09988``.
     """
     import time
 
-    from hk_equity_mcp.pe_fin_lite.issuer_code import canonicalize_hk_issuer_code
+    from hk_equity_mcp.pe_fin_lite.envelope_projection import (
+        MARKET_GATEWAY_PROJECTION_VERSION,
+        market_gateway_projection_hash,
+    )
     from hk_equity_mcp.pe_fin_replan.sina_symbol import (
         SINA_HK_SYMBOL_NORMALIZER_VERSION,
         normalize_sina_hk_symbol_v1,
@@ -334,10 +395,11 @@ def run_market_sina_probe(
     )
 
     requested_symbol = "09988"
+    target_date = "2026-05-15"
     symbol_meta = normalize_sina_hk_symbol_v1(requested_symbol)
     args = {
         "symbol": requested_symbol,
-        "target_date": "2026-05-15",
+        "target_date": target_date,
         "adjustment": "",
         "adjust": "",
         "offset": -400,
@@ -348,6 +410,7 @@ def run_market_sina_probe(
     failure_class = None
     gateway_success = False
     normalization_success = False
+    projection_success = False
     missing_outputs: List[str] = []
     required_outputs = [
         "trade_date",
@@ -362,10 +425,12 @@ def run_market_sina_probe(
     ]
     raw_ref = None
     scope_match = False
-    bar: Dict[str, Any] = {}
     error_text: Optional[str] = None
     error_type: Optional[str] = None
     invoked_symbol = symbol_meta["normalized_symbol"]
+    effective_session_date = None
+    projected_values: Dict[str, Any] = {}
+    latency_ms = 0
 
     gw = MarketRealMcpGateway()
     try:
@@ -382,11 +447,25 @@ def run_market_sina_probe(
             or norm.get("symbol")
             or args["symbol"]
         )
-        data = norm.get("data")
-        if isinstance(data, dict):
-            bar = data
-        elif isinstance(data, list) and data and isinstance(data[0], dict):
-            bar = data[0]
+        invoke_result = {
+            "success": gateway_success,
+            "operation_id": "aktools.stock_hk_daily",
+            "arguments": {
+                "symbol": requested_symbol,
+                "target_date": target_date,
+                "adjust": "",
+            },
+            "error": result.error,
+            "error_type": error_type,
+            "normalized": norm,
+            "result": {
+                "success": gateway_success,
+                "operation_id": "aktools.stock_hk_daily",
+                "normalized": norm,
+                "error": result.error,
+                "error_type": error_type,
+            },
+        }
         raw_path = output_dir / "raw_stock_hk_daily_09988.json"
         _atomic_write_json(
             raw_path,
@@ -396,7 +475,7 @@ def run_market_sina_probe(
                 "normalized_invoked_symbol": invoked_symbol,
                 "arguments_redacted": {
                     "symbol": requested_symbol,
-                    "target_date": args["target_date"],
+                    "target_date": target_date,
                     "adjust": "",
                 },
                 "success": gateway_success,
@@ -407,64 +486,20 @@ def run_market_sina_probe(
         )
         raw_ref = str(raw_path)
 
-        if gateway_success:
-            # Schema drift: success envelope but no date column/fields.
-            if not (bar.get("trade_date") or bar.get("date")):
-                failure_class = "provider_schema_drift"
-                missing_outputs.append("trade_date")
-            for key in required_outputs:
-                if key in missing_outputs:
-                    continue
-                val = bar.get(key)
-                if key == "trade_date" and val in (None, ""):
-                    val = bar.get("date")
-                if val in (None, ""):
-                    missing_outputs.append(key)
-            issuer = canonicalize_hk_issuer_code(
-                bar.get("issuer_code") or invoked_symbol
-            )
-            if issuer != "09988":
-                missing_outputs.append("issuer_code_mismatch")
-            adj = bar.get("adjustment")
-            if adj is None:
-                adj = norm.get("adjustment_mode")
-            if adj != "":
-                missing_outputs.append("adjustment")
-            currency = bar.get("currency") or norm.get("currency_or_unit")
-            if currency != "HKD":
-                missing_outputs.append("currency")
-            eff = (
-                bar.get("trade_date")
-                or bar.get("date")
-                or norm.get("effective_session_date")
-            )
-            if str(eff) != args["target_date"]:
-                missing_outputs.append("target_date_mismatch")
-            from hk_equity_mcp.real_mcp.market_normalize import parse_session_date
-
-            d = parse_session_date(eff)
-            if d is None or d > MARKET_CUTOFF:
-                missing_outputs.append("cutoff_violation")
-            normalization_success = not missing_outputs
-            scope_match = normalization_success and str(eff) == args["target_date"]
-            if not normalization_success and failure_class is None:
-                failure_class = _classify_probe_failure(
-                    error=error_text,
-                    error_type=error_type,
-                    gateway_success=True,
-                    bar=bar,
-                    missing_outputs=missing_outputs,
-                    scope_match=scope_match,
-                )
-        else:
-            failure_class = _classify_probe_failure(
-                error=error_text,
-                error_type=error_type,
-                gateway_success=False,
-                bar=bar,
-                missing_outputs=missing_outputs,
-                scope_match=False,
-            )
+        evaluated = evaluate_market_probe_invoke(
+            invoke_result=invoke_result,
+            required_outputs=required_outputs,
+            target_date=target_date,
+            expected_issuer="09988",
+        )
+        gateway_success = bool(evaluated["gateway_success"])
+        projection_success = bool(evaluated["projection_success"])
+        normalization_success = bool(evaluated["normalization_success"])
+        scope_match = bool(evaluated["scope_match"])
+        missing_outputs = list(evaluated["missing_outputs"])
+        projected_values = dict(evaluated["values"])
+        effective_session_date = evaluated.get("effective_session_date")
+        failure_class = evaluated.get("failure_class")
     except Exception as exc:  # noqa: BLE001
         latency_ms = int((time.perf_counter() - t0) * 1000)
         err_s = str(exc)
@@ -475,6 +510,7 @@ def run_market_sina_probe(
             failure_class = "transport_failure"
         gateway_success = False
         normalization_success = False
+        projection_success = False
         missing_outputs = [f"exception:{type(exc).__name__}"]
         raw_ref = err_s[:500]
     finally:
@@ -486,14 +522,18 @@ def run_market_sina_probe(
     live_probe_pass = bool(
         gateway_success
         and normalization_success
+        and projection_success
         and scope_match
         and not missing_outputs
         and invoked_symbol == "09988"
+        and effective_session_date == target_date
     )
     status = "pass" if live_probe_pass else "fail"
+    if live_probe_pass:
+        failure_class = None
     artifact = {
         "mode": "market_sina_probe",
-        "probe_dir_version": "v2",
+        "probe_dir_version": "v3",
         "status": status,
         "network_called": network_called,
         "live_pass_forged": False,
@@ -504,6 +544,8 @@ def run_market_sina_probe(
         "tool_readiness_contract_hash": tool_readiness_contract_hash(),
         "sina_symbol_normalizer_version": SINA_HK_SYMBOL_NORMALIZER_VERSION,
         "sina_symbol_normalizer_hash": sina_symbol_normalizer_hash(),
+        "market_gateway_projection_version": MARKET_GATEWAY_PROJECTION_VERSION,
+        "market_gateway_projection_hash": market_gateway_projection_hash(),
         "operation_id": "aktools.stock_hk_daily",
         "provider": "sina_via_akshare",
         "original_requested_symbol": requested_symbol,
@@ -513,13 +555,16 @@ def run_market_sina_probe(
         "argument_transform_applied": True,
         "arguments_redacted": {
             "symbol": requested_symbol,
-            "target_date": "2026-05-15",
+            "target_date": target_date,
             "adjust": "",
         },
         "gateway_success": gateway_success,
         "normalization_success": normalization_success,
+        "projection_success": projection_success,
         "required_outputs": required_outputs,
         "missing_outputs": missing_outputs,
+        "projected_values": projected_values,
+        "effective_session_date": effective_session_date,
         "scope_match": scope_match,
         "latency_ms": latency_ms,
         "failure_class": failure_class,
@@ -527,6 +572,7 @@ def run_market_sina_probe(
         "cutoff": to_ymd(MARKET_CUTOFF),
         "engineering_readiness_only": True,
         "not_accuracy_result": True,
+        "uses_agent_project_invoke_to_required_outputs": True,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     readiness_path = output_dir / "readiness.json"
@@ -547,7 +593,7 @@ def build_future_sina_probe_command(root: Path) -> str:
         f"  --market-sina-probe \\\n"
         f"  --market-provider-profile "
         f"configs/operations/hk_runtime_provider_availability_sina_market_v1.yaml \\\n"
-        f"  --output-dir outputs/pe_fin_replan_tool_readiness_v1/market_sina_probe_v2 \\\n"
+        f"  --output-dir outputs/pe_fin_replan_tool_readiness_v1/market_sina_probe_v3 \\\n"
         f"  --env-file .env"
     )
 
@@ -571,7 +617,7 @@ def build_future_smoke5_v4_command(root: Path) -> str:
         f"configs/operations/hk_runtime_provider_availability_sina_market_v1.yaml \\\n"
         f"  --require-tool-readiness \\\n"
         f"  --tool-readiness-artifact "
-        f"outputs/pe_fin_replan_tool_readiness_v1/market_sina_probe_v2/readiness.json \\\n"
+        f"outputs/pe_fin_replan_tool_readiness_v1/market_sina_probe_v3/readiness.json \\\n"
         f"  --env-file .env \\\n"
         f"  --embedding-env-file .env \\\n"
         f"  --embedding-cache-dir \"{cache}\" \\\n"

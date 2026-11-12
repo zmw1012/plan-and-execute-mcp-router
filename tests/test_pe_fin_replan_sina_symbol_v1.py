@@ -164,6 +164,11 @@ def test_v1_probe_artifacts_unchanged():
 
 
 def test_readiness_v2_identity_requires_normalizer(tmp_path):
+    from hk_equity_mcp.pe_fin_lite.envelope_projection import (
+        MARKET_GATEWAY_PROJECTION_VERSION,
+        market_gateway_projection_hash,
+    )
+
     profile = load_provider_availability_profile(PROFILE, condition="pe_fin_replan")
     # Profile hash must have changed vs pre-symbol-format revision.
     assert profile_hash(profile) != PROFILE_HASH_BEFORE
@@ -173,15 +178,19 @@ def test_readiness_v2_identity_requires_normalizer(tmp_path):
         "status": "pass",
         "gateway_success": True,
         "normalization_success": True,
+        "projection_success": True,
         "scope_match": True,
         "missing_outputs": [],
         "provider": "sina_via_akshare",
         "network_called": True,
         "live_probe_pass": True,
         "normalized_symbol": "09988",
+        "effective_session_date": "2026-05-15",
         "market_provider_profile_hash": profile_hash(profile),
         "sina_symbol_normalizer_version": SINA_HK_SYMBOL_NORMALIZER_VERSION,
         "sina_symbol_normalizer_hash": sina_symbol_normalizer_hash(),
+        "market_gateway_projection_version": MARKET_GATEWAY_PROJECTION_VERSION,
+        "market_gateway_projection_hash": market_gateway_projection_hash(),
     }
     art.write_text(json.dumps(payload), encoding="utf-8")
     meta = assert_tool_readiness_for_live(
