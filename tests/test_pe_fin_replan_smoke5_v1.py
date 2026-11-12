@@ -145,13 +145,13 @@ def test_resume_refuses_mock_into_live(tmp_path: Path):
         )
 
 
-def test_resume_refuses_v1_method_into_v2(tmp_path: Path):
-    out = tmp_path / "v1_to_v2"
+def test_resume_refuses_v1_2_method_into_v1_3(tmp_path: Path):
+    out = tmp_path / "v12_to_v13"
     out.mkdir()
     existing = {
         "condition": "pe_fin_replan",
-        "method_version": "pe_fin_replan_v1_1",
-        "protocol_version": "planner_executor_replanner_seven_round_v1",
+        "method_version": "pe_fin_replan_v1_2",
+        "protocol_version": "planner_executor_replanner_contract_v2",
         "architecture": "plan_execute_replan",
         "subset_kind": "replan_smoke5",
         "mock": False,

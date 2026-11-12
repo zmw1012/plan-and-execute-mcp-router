@@ -7,16 +7,32 @@ import json
 from typing import Any, Dict
 
 from hk_equity_mcp.pe_fin_replan.schemas import (
+    COMPUTE_STEP_TEMPLATE,
     PLAN_TEMPLATE,
+    REASON_STEP_TEMPLATE,
     REPLAN_SCHEMA_VERSION,
     RESPONSE_ANSWERED_TEMPLATE,
     RESPONSE_INSUFFICIENT_TEMPLATE,
+    RETRIEVE_STEP_TEMPLATE,
+)
+
+_STEP_TEMPLATES_BLOCK = (
+    "PlanStep templates (use these field names exactly — id/type/domain/"
+    "objective/required_outputs/depends_on):\n"
+    "retrieve step:\n"
+    + json.dumps(RETRIEVE_STEP_TEMPLATE, ensure_ascii=False, indent=2)
+    + "\n\ncompute step:\n"
+    + json.dumps(COMPUTE_STEP_TEMPLATE, ensure_ascii=False, indent=2)
+    + "\n\nreason step:\n"
+    + json.dumps(REASON_STEP_TEMPLATE, ensure_ascii=False, indent=2)
 )
 
 _TEMPLATES_BLOCK = (
     "You must return exactly one complete JSON object matching one template.\n\n"
     "Plan template:\n"
     + json.dumps(PLAN_TEMPLATE, ensure_ascii=False, indent=2)
+    + "\n\n"
+    + _STEP_TEMPLATES_BLOCK
     + "\n\nResponse template (answered):\n"
     + json.dumps(RESPONSE_ANSWERED_TEMPLATE, ensure_ascii=False, indent=2)
     + "\n\nResponse template (insufficient_evidence):\n"
@@ -31,12 +47,15 @@ _FINAL_TEMPLATES_BLOCK = (
     + json.dumps(RESPONSE_INSUFFICIENT_TEMPLATE, ensure_ascii=False, indent=2)
 )
 
-REPLANNER_SYSTEM_PROMPT = f"""You are the PE-Fin Replanner (v1.2).
+REPLANNER_SYSTEM_PROMPT = f"""You are the PE-Fin Replanner (v1.3).
 {_TEMPLATES_BLOCK}
 
 Rules:
 - schema_version must be {REPLAN_SCHEMA_VERSION}; additionalProperties=false.
 - decision_reason is OPTIONAL (string or null). Omit or null is allowed.
+- remaining_steps items MUST use PlanStep fields: id, type, domain, objective,
+  required_outputs, depends_on (not step_id/step_type).
+- Root/first remaining step must include depends_on ([] when none).
 - Do not invent observed evidence or numeric answers from the question text.
 - Do not reference gold answers, accepted operation IDs, or task IDs.
 - Do not emit operation_id; retrieval still goes through R5+Binder.
@@ -62,7 +81,7 @@ Rules:
 - Return JSON only. No markdown. No splice.
 """
 
-REPLANNER_PROMPT_VERSION = "pe_fin_replan_replanner_prompt_v1_2"
+REPLANNER_PROMPT_VERSION = "pe_fin_replan_replanner_prompt_v1_3"
 
 
 def replanner_prompt_hash() -> str:
@@ -72,6 +91,9 @@ def replanner_prompt_hash() -> str:
             "system": REPLANNER_SYSTEM_PROMPT,
             "final_round_system": REPLANNER_FINAL_ROUND_SYSTEM_PROMPT,
             "plan_template": PLAN_TEMPLATE,
+            "retrieve_step_template": RETRIEVE_STEP_TEMPLATE,
+            "compute_step_template": COMPUTE_STEP_TEMPLATE,
+            "reason_step_template": REASON_STEP_TEMPLATE,
             "response_answered_template": RESPONSE_ANSWERED_TEMPLATE,
             "response_insufficient_template": RESPONSE_INSUFFICIENT_TEMPLATE,
         },
@@ -106,8 +128,19 @@ def render_replanner_user(
             "no_operation_id": True,
             "no_clarification_fields": True,
             "no_premature_insufficient": not response_only,
+            "plan_step_required_fields": [
+                "id",
+                "type",
+                "domain",
+                "objective",
+                "required_outputs",
+                "depends_on",
+            ],
             "templates": {
                 "plan": PLAN_TEMPLATE,
+                "retrieve_step": RETRIEVE_STEP_TEMPLATE,
+                "compute_step": COMPUTE_STEP_TEMPLATE,
+                "reason_step": REASON_STEP_TEMPLATE,
                 "response_answered": RESPONSE_ANSWERED_TEMPLATE,
                 "response_insufficient": RESPONSE_INSUFFICIENT_TEMPLATE,
             },

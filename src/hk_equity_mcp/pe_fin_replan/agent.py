@@ -505,6 +505,9 @@ class PeFinReplanAgent:
                         question=question,
                         evidence_values=dict(state.evidence_store.values),
                         answerability=ans,
+                        provenance_by_key=dict(
+                            state.evidence_store.provenance_by_key or {}
+                        ),
                     )
                     if not ground.get("ok"):
                         state.stopping_reason = "ungrounded_replanner_response"
@@ -513,6 +516,9 @@ class PeFinReplanAgent:
                         error_type = "replanner_grounding_failure"
                         decision["grounding_ok"] = False
                         decision["grounding_reasons"] = ground.get("reasons")
+                        decision["grounding_classifications"] = ground.get(
+                            "classifications"
+                        )
                         state.replan_decisions.append(decision)
                         trace.append({"stage": "replanner", **decision})
                         break
@@ -524,6 +530,9 @@ class PeFinReplanAgent:
                     ):
                         early_answer_count += 1
                     decision["grounding_ok"] = True
+                    decision["grounding_classifications"] = ground.get(
+                        "classifications"
+                    )
                     decision["completion"] = completion
                     decision["remaining_steps_after"] = []
                     state.replan_decisions.append(decision)
