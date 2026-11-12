@@ -599,6 +599,11 @@ def build_future_sina_probe_command(root: Path) -> str:
 
 
 def build_future_smoke5_v4_command(root: Path) -> str:
+    """Deprecated helper name; emits Smoke-5 v5 command (v4 is frozen/invalidated)."""
+    return build_future_smoke5_v5_command(root)
+
+
+def build_future_smoke5_v5_command(root: Path) -> str:
     root = Path(root).resolve()
     py = root / ".venv" / "bin" / "python"
     if not py.is_file():
@@ -621,5 +626,5 @@ def build_future_smoke5_v4_command(root: Path) -> str:
         f"  --env-file .env \\\n"
         f"  --embedding-env-file .env \\\n"
         f"  --embedding-cache-dir \"{cache}\" \\\n"
-        f"  --output-dir outputs/pe_fin_replan_smoke5_live_v4"
+        f"  --output-dir outputs/pe_fin_replan_smoke5_live_v5"
     )

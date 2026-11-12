@@ -50,7 +50,10 @@ from hk_equity_mcp.pe_fin_replan.plan_ops import (
     select_one_ready_step,
     validate_updated_remaining_plan,
 )
-from hk_equity_mcp.pe_fin_replan.replanner import run_replanner
+from hk_equity_mcp.pe_fin_replan.replanner import (
+    run_replanner,
+    run_replanner_semantic_repair,
+)
 from hk_equity_mcp.pe_fin_replan.schemas import map_completion_to_predicted_status
 from hk_equity_mcp.pe_fin_replan.state import PlanExecuteState
 
@@ -168,6 +171,7 @@ class PeFinReplanAgent:
             primary = (funnel or {}).get("primary") or {}
             if eea_cls and primary.get("operation_id"):
                 from hk_equity_mcp.pe_fin_replan.failed_invocation import (
+                    BLOCKABLE_FAILURE_CLASSES,
                     classify_blockable_failure,
                 )
 
@@ -176,6 +180,8 @@ class PeFinReplanAgent:
                     eea_failure_class=str(eea_cls),
                     success=False,
                 )
+                if not mapped and str(eea_cls) in BLOCKABLE_FAILURE_CLASSES:
+                    mapped = str(eea_cls)
                 if mapped:
                     state.invocation_guard.record_failure(
                         operation_id=str(primary.get("operation_id")),
@@ -579,14 +585,106 @@ class PeFinReplanAgent:
                         max_new_steps=state.max_new_steps_per_replan,
                     )
                 except PlanValidationError as exc:
-                    state.stopping_reason = f"invalid_plan_update:{exc}"
-                    state.resource_limit_failure = True
-                    error = str(exc)
-                    error_type = "replanner_plan_validation"
-                    decision["plan_validation_error"] = str(exc)
-                    state.replan_decisions.append(decision)
-                    trace.append({"stage": "replanner", **decision})
-                    break
+                    # Shared one-repair budget: schema repair already used → fail.
+                    if int(replan_out.get("repair_count") or 0) != 0:
+                        state.stopping_reason = f"invalid_plan_update:{exc}"
+                        state.resource_limit_failure = True
+                        error = str(exc)
+                        error_type = "replanner_plan_validation"
+                        decision["plan_validation_error"] = str(exc)
+                        state.replan_decisions.append(decision)
+                        trace.append({"stage": "replanner", **decision})
+                        break
+
+                    if state.llm_calls >= state.max_llm_calls:
+                        state.stopping_reason = "max_total_llm_calls"
+                        state.resource_limit_failure = True
+                        error = str(exc)
+                        error_type = "replanner_plan_validation"
+                        decision["plan_validation_error"] = str(exc)
+                        state.replan_decisions.append(decision)
+                        trace.append({"stage": "replanner", **decision})
+                        break
+
+                    semantic_out = run_replanner_semantic_repair(
+                        llm=self.llm,
+                        messages=list(replan_out.get("messages") or []),
+                        previous_content=str(
+                            replan_out.get("assistant_content") or ""
+                        ),
+                        semantic_error=str(exc),
+                        max_new_steps=state.max_new_steps_per_replan,
+                        execution_round=next_round,
+                        temperature=self.temperature,
+                        max_tokens=self.max_tokens,
+                        response_only=response_only,
+                    )
+                    replan_repairs += 1
+                    total_usage = _merge_usage(
+                        total_usage, semantic_out.get("usage") or {}
+                    )
+                    self._sync_state_counters(state)
+                    decision["semantic_repair"] = True
+                    decision["repair_count"] = 1
+                    decision["plan_validation_error_before_repair"] = str(exc)
+                    decision["observability_semantic_repair"] = semantic_out.get(
+                        "observability"
+                    )
+
+                    if not semantic_out.get("ok"):
+                        state.stopping_reason = str(
+                            semantic_out.get("stopping_reason")
+                            or f"invalid_plan_update_after_semantic_repair:{exc}"
+                        )
+                        state.resource_limit_failure = True
+                        error = str(semantic_out.get("error") or exc)
+                        error_type = "replanner_plan_validation"
+                        decision["plan_validation_error"] = str(exc)
+                        state.replan_decisions.append(decision)
+                        trace.append({"stage": "replanner", **decision})
+                        break
+
+                    payload = semantic_out["payload"]
+                    replan_out = {
+                        **replan_out,
+                        "payload": payload,
+                        "repair_count": 1,
+                        "assistant_content": semantic_out.get("assistant_content"),
+                    }
+                    decision["action"] = payload.get("action")
+                    decision["decision_reason"] = payload.get("decision_reason")
+                    if payload.get("action") != "plan":
+                        state.stopping_reason = (
+                            "semantic_repair_expected_plan_got_"
+                            f"{payload.get('action')}"
+                        )
+                        state.resource_limit_failure = True
+                        error = state.stopping_reason
+                        error_type = "replanner_plan_validation"
+                        decision["plan_validation_error"] = str(exc)
+                        state.replan_decisions.append(decision)
+                        trace.append({"stage": "replanner", **decision})
+                        break
+
+                    try:
+                        new_remaining, diff = validate_updated_remaining_plan(
+                            proposed=list(payload.get("remaining_steps") or []),
+                            previous_remaining=state.remaining_plan,
+                            completed_ids=state.completed_step_ids,
+                            completed_objectives=state.completed_objectives,
+                            max_new_steps=state.max_new_steps_per_replan,
+                        )
+                    except PlanValidationError as exc2:
+                        state.stopping_reason = (
+                            f"invalid_plan_update_after_semantic_repair:{exc2}"
+                        )
+                        state.resource_limit_failure = True
+                        error = str(exc2)
+                        error_type = "replanner_plan_validation"
+                        decision["plan_validation_error"] = str(exc2)
+                        state.replan_decisions.append(decision)
+                        trace.append({"stage": "replanner", **decision})
+                        break
 
                 if diff.get("changed"):
                     state.no_progress_round_count = 0
@@ -710,6 +808,10 @@ class PeFinReplanAgent:
             "recovery_successes": recovery_successes,
             "failed_signature_blocks": len(state.invocation_guard.signatures),
             "signature_blocked_count": state.invocation_guard.signature_blocked_count,
+            "blocked_signature_count": state.invocation_guard.signature_blocked_count,
+            "blocked_signature_reasons": dict(
+                state.invocation_guard.blocked_reason_by_key
+            ),
             "no_progress_rounds": state.no_progress_round_count,
             "final_response_source": state.final_response_source,
             "stopping_reason": state.stopping_reason,

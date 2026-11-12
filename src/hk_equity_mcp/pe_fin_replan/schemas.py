@@ -21,7 +21,7 @@ from hk_equity_mcp.pe_fin_replan.step_canonicalizer import (
 REPLAN_SCHEMA_VERSION = "pe_fin_replan_v1_4"
 
 LOOP_POLICY = {
-    "version": "pe_fin_replan_loop_policy_v1_4",
+    "version": "pe_fin_replan_loop_policy_v1_4_1",
     "executor_one_step_per_round": True,
     "no_executor_to_executor_edge": True,
     "planner_exactly_once": True,
@@ -33,6 +33,8 @@ LOOP_POLICY = {
     "max_replan_rounds": 7,
     "max_no_progress_rounds": 2,
     "one_replanner_repair": True,
+    "one_semantic_or_schema_repair": True,
+    "no_silent_step_truncate": True,
     "no_json_splice": True,
     "round7_response_only": True,
     "simplified_completion": True,
@@ -40,8 +42,9 @@ LOOP_POLICY = {
     "completion_enum": ["answered", "insufficient_evidence"],
     "one_transient_transport_retry": True,
     "step_canonicalizer": "pe_fin_replan_step_canonicalizer_v2",
-    "grounding_contract": "pe_fin_replan_grounding_v3",
+    "grounding_contract": "pe_fin_replan_grounding_v3_1",
     "failed_invocation_policy": "pe_fin_replan_failed_invocation_v1",
+    "semantic_plan_repair_policy": "pe_fin_replan_semantic_plan_repair_v1",
     "allowed_domains": [
         "financial",
         "market",
@@ -345,6 +348,27 @@ def parse_replanner_output(
     return None, None, last_err or "invalid_replanner_output"
 
 
+SEMANTIC_PLAN_REPAIR_POLICY = {
+    "version": "pe_fin_replan_semantic_plan_repair_v1",
+    "max_repairs": 1,
+    "shared_with_schema_repair": True,
+    "max_new_steps_per_replan": 2,
+    "no_silent_truncate": True,
+    "no_runtime_step_deletion": True,
+    "revalidate_schema_and_semantics": True,
+    "counts_toward_llm_budget": True,
+}
+
+
+def semantic_plan_repair_policy_hash() -> str:
+    import hashlib
+
+    blob = json.dumps(
+        SEMANTIC_PLAN_REPAIR_POLICY, sort_keys=True, separators=(",", ":")
+    )
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
 def format_replanner_repair_message(
     error: str,
     *,
@@ -380,6 +404,37 @@ def format_replanner_repair_message(
         "refusal_reason, clarification_question, limitations.\n"
         "Regenerate ONE complete JSON object. No markdown. No splice.\n\n"
         + _template_block(response_only=response_only)
+    )
+
+
+def format_semantic_plan_repair_message(
+    error: str,
+    *,
+    max_new_steps: int = 2,
+    execution_round: int = 0,
+    response_only: bool = False,
+) -> str:
+    """One-shot full repair prompt for plan semantic validation failures."""
+    step_required = (
+        'Each PlanStep requires: ["id","type","domain","objective",'
+        '"required_outputs","depends_on"]. '
+        "Use id/type (not step_id/step_type). "
+        "Root/first remaining step must include depends_on (use [] if none)."
+    )
+    return (
+        "Your previous Replanner Plan failed plan semantic validation.\n"
+        f"Semantic error: {error}\n"
+        f"max_new_steps_per_replan={int(max_new_steps)}\n"
+        f"current execution round={int(execution_round)}\n"
+        f"Current round response_only={bool(response_only)}\n"
+        "Do NOT silently truncate 3 steps to 2. "
+        "Do NOT rely on runtime to delete steps. "
+        f"Regenerate one complete Plan JSON with at most {int(max_new_steps)} "
+        "newly added steps versus the previous remaining plan.\n"
+        f"{step_required}\n"
+        "decision_reason is OPTIONAL (string|null); omit or null is OK.\n"
+        "Regenerate ONE complete JSON object. No markdown. No splice.\n\n"
+        + _template_block(response_only=False)
     )
 
 

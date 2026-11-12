@@ -106,8 +106,8 @@ def test_r5_and_identity_v1_3():
     assert retrieval_formula_hash() == R5_HASH
     assert RETRIEVAL_TOP_K == 5 and DESCRIBE_N == 3
     assert PE_FIN_REPLAN_CONDITION == "pe_fin_replan"
-    assert PE_FIN_REPLAN_METHOD_VERSION == "pe_fin_replan_v1_4"
-    assert PE_FIN_REPLAN_PROTOCOL_VERSION == "planner_executor_replanner_contract_v4"
+    assert PE_FIN_REPLAN_METHOD_VERSION == "pe_fin_replan_v1_4_1"
+    assert PE_FIN_REPLAN_PROTOCOL_VERSION == "planner_executor_replanner_contract_v4_1"
     assert PE_FIN_REPLAN_ARCHITECTURE == "plan_execute_replan"
     assert REPLAN_SCHEMA_VERSION == "pe_fin_replan_v1_4"
     assert DEFAULT_BUDGETS["max_total_llm_calls_per_task"] == 16
@@ -431,7 +431,7 @@ def test_runner_forces_v1_4_identity():
         allow_dirty=True,
         root=ROOT,
     )
-    assert runner.method_version == "pe_fin_replan_v1_4"
-    assert runner.protocol_version == "planner_executor_replanner_contract_v4"
+    assert runner.method_version == "pe_fin_replan_v1_4_1"
+    assert runner.protocol_version == "planner_executor_replanner_contract_v4_1"
     assert runner.limits["max_total_llm_calls_per_task"] == 16
     assert runner.limits["max_execution_rounds"] == 7

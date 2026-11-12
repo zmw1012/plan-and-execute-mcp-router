@@ -1,4 +1,4 @@
-"""Identity hashes for PE-Fin RePlan v1.4 (separate from Lite Planner identity)."""
+"""Identity hashes for PE-Fin RePlan v1.4.1 (separate from Lite Planner identity)."""
 
 from __future__ import annotations
 
@@ -83,6 +83,7 @@ def replan_protocol_identity() -> Dict[str, Any]:
         grounding_contract_hash,
     )
     from hk_equity_mcp.pe_fin_replan.prompts import replanner_prompt_hash
+    from hk_equity_mcp.pe_fin_replan.schemas import semantic_plan_repair_policy_hash
     from hk_equity_mcp.pe_fin_replan.step_canonicalizer import (
         CANONICALIZER_VERSION,
         step_canonicalizer_hash,
@@ -106,6 +107,7 @@ def replan_protocol_identity() -> Dict[str, Any]:
         "canonical_output_vocabulary_hash": canonical_output_vocabulary_hash(),
         "failed_invocation_policy_version": FAILED_INVOCATION_POLICY_VERSION,
         "failed_invocation_policy_hash": failed_invocation_policy_hash(),
+        "semantic_plan_repair_policy_hash": semantic_plan_repair_policy_hash(),
         "loop_policy_hash": loop_policy_hash(),
         "budget_identity_hash": budget_identity_hash(),
         "llm_budget_rationale": dict(LLM_BUDGET_RATIONALE),

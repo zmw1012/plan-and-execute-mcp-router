@@ -95,10 +95,10 @@ def test_formal_diag20_r5_unchanged():
     assert ident["retrieval_formula_hash"] == R5_HASH
     assert PE_FIN_REPLAN_CONDITION == "pe_fin_replan"
     assert PE_FIN_REPLAN_ARCHITECTURE == "plan_execute_replan"
-    assert PE_FIN_REPLAN_METHOD_VERSION == "pe_fin_replan_v1_4"
-    assert PE_FIN_REPLAN_PROTOCOL_VERSION == "planner_executor_replanner_contract_v4"
+    assert PE_FIN_REPLAN_METHOD_VERSION == "pe_fin_replan_v1_4_1"
+    assert PE_FIN_REPLAN_PROTOCOL_VERSION == "planner_executor_replanner_contract_v4_1"
     assert CANONICALIZER_VERSION == "pe_fin_replan_step_canonicalizer_v2"
-    assert GROUNDING_CONTRACT_VERSION == "pe_fin_replan_grounding_v3"
+    assert GROUNDING_CONTRACT_VERSION == "pe_fin_replan_grounding_v3_1"
     assert CANONICAL_OUTPUT_VOCABULARY_VERSION == "hk155_canonical_outputs_v2"
     assert DEFAULT_BUDGETS["max_total_llm_calls_per_task"] == 16
     assert DEFAULT_BUDGETS["max_execution_rounds"] == 7

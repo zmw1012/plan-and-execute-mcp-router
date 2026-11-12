@@ -13,6 +13,7 @@ from hk_equity_mcp.pe_fin_replan.prompts import (
 )
 from hk_equity_mcp.pe_fin_replan.schemas import (
     format_replanner_repair_message,
+    format_semantic_plan_repair_message,
     parse_replanner_output,
 )
 from hk_equity_mcp.pe_fin_replan.transport_retry import complete_with_transient_retry
@@ -202,6 +203,9 @@ def run_replanner(
         if repair_transport.get("transport_retry_attempted"):
             call_obs[-1]["transport_retry"] = dict(repair_transport)
 
+    assistant_content = (
+        str(repair_content or "") if repair_count else str(content or "")
+    )
     if parsed is None:
         return {
             "ok": False,
@@ -211,6 +215,8 @@ def run_replanner(
             "usage": usage,
             "stopping_reason": "invalid_replanner_output_after_repair",
             "response_only": response_only,
+            "assistant_content": assistant_content,
+            "messages": messages,
             "observability": {"transport": transport_meta, "calls": call_obs},
         }
     if response_only and parsed.get("action") != "response":
@@ -222,6 +228,8 @@ def run_replanner(
             "usage": usage,
             "stopping_reason": "round7_plan_after_repair",
             "response_only": response_only,
+            "assistant_content": assistant_content,
+            "messages": messages,
             "observability": {"transport": transport_meta, "calls": call_obs},
         }
     return {
@@ -233,5 +241,112 @@ def run_replanner(
         "action": parsed.get("action"),
         "decision_reason": parsed.get("decision_reason"),
         "response_only": response_only,
+        "assistant_content": assistant_content,
+        "messages": messages,
         "observability": {"transport": transport_meta, "calls": call_obs},
+    }
+
+
+def run_replanner_semantic_repair(
+    *,
+    llm: LLMClient,
+    messages: List[Dict[str, str]],
+    previous_content: str,
+    semantic_error: str,
+    max_new_steps: int = 2,
+    execution_round: int = 0,
+    temperature: float = 0.0,
+    max_tokens: int = 2048,
+    response_only: bool = False,
+) -> Dict[str, Any]:
+    """One complete semantic repair after schema-valid Plan fails plan semantics.
+
+    Shares the single repair budget with schema repair (caller must ensure
+    prior repair_count == 0). Counts toward LLM≤16 via the budgeted client.
+    """
+    repair_msg = format_semantic_plan_repair_message(
+        semantic_error,
+        max_new_steps=max_new_steps,
+        execution_round=execution_round,
+        response_only=response_only,
+    )
+    call_obs: List[Dict[str, Any]] = []
+    try:
+        repair, repair_transport = complete_with_transient_retry(
+            llm,
+            list(messages)
+            + [
+                {"role": "assistant", "content": str(previous_content or "")},
+                {"role": "user", "content": repair_msg},
+            ],
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stage="replanner_semantic_repair",
+        )
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "ok": False,
+            "payload": None,
+            "error": str(exc),
+            "error_type": "llm_transport_failure",
+            "repair_count": 1,
+            "usage": {},
+            "stopping_reason": "llm_transport_failure_after_retry",
+            "response_only": response_only,
+            "observability": {"calls": call_obs, "repair_transport_error": str(exc)},
+        }
+
+    usage = dict(repair.get("usage") or {})
+    repair_content = str(repair.get("content") or "")
+    parsed, _, err = parse_replanner_output(
+        repair_content, response_only=response_only
+    )
+    call_obs.append(
+        _obs_from_completion(
+            repair,
+            stage="replanner_semantic_repair",
+            max_tokens=max_tokens,
+            parse_result="ok" if parsed is not None else "failed",
+            schema_error=None if parsed is not None else err,
+            repair_count=1,
+        )
+    )
+    if repair_transport.get("transport_retry_attempted"):
+        call_obs[-1]["transport_retry"] = dict(repair_transport)
+
+    if parsed is None:
+        return {
+            "ok": False,
+            "payload": None,
+            "error": err or "semantic_repair_invalid_after_repair",
+            "repair_count": 1,
+            "usage": usage,
+            "stopping_reason": "invalid_plan_update_after_semantic_repair",
+            "response_only": response_only,
+            "assistant_content": repair_content,
+            "observability": {"calls": call_obs},
+        }
+    if response_only and parsed.get("action") != "response":
+        return {
+            "ok": False,
+            "payload": None,
+            "error": "round7_plan_not_allowed",
+            "repair_count": 1,
+            "usage": usage,
+            "stopping_reason": "round7_plan_after_repair",
+            "response_only": response_only,
+            "assistant_content": repair_content,
+            "observability": {"calls": call_obs},
+        }
+    return {
+        "ok": True,
+        "payload": parsed,
+        "error": None,
+        "repair_count": 1,
+        "usage": usage,
+        "action": parsed.get("action"),
+        "decision_reason": parsed.get("decision_reason"),
+        "response_only": response_only,
+        "assistant_content": repair_content,
+        "observability": {"calls": call_obs},
     }

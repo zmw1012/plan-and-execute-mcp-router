@@ -1,6 +1,9 @@
-"""Final-response grounding validator — pe_fin_replan_grounding_v3.
+"""Final-response grounding validator — pe_fin_replan_grounding_v3_1.
 
 Tokenize before numeric checks (natural-language dates, ISO, FY, units).
+Blank verified evidence identifiers (news_id/local_key/file_link/source_url)
+and structural URL/path spans before residual numeric extraction.
+Allow question tolerance/rounding constraints only when restated in context.
 Use Evidence Store provenance. Allow deterministic unit scaling / display
 rounding only when units are explicit or provenance records a reliable unit.
 Fail closed for question-only targets.
@@ -19,7 +22,7 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 from hk_equity_mcp.pe_fin_lite.evidence_acceptance_eea import forbid_question_target_as_observed
 from hk_equity_mcp.pe_fin_replan.plan_ops import select_one_ready_step
 
-GROUNDING_CONTRACT_VERSION = "pe_fin_replan_grounding_v3"
+GROUNDING_CONTRACT_VERSION = "pe_fin_replan_grounding_v3_1"
 
 # Half-up display rounding: relative tolerance for scaled comparisons.
 _REL_TOL = 5e-4
@@ -81,6 +84,30 @@ _CONTEXT_FIELD_HINTS = (
 )
 
 
+_VERIFIED_IDENTIFIER_FIELDS = frozenset(
+    {
+        "news_id",
+        "local_key",
+        "file_link",
+        "source_url",
+        "stock_id",
+        "stockId",
+        "document_id",
+        "reference_id",
+    }
+)
+
+# Structural URL / HKEX path spans — blank before residual numeric tokenize.
+_URL_OR_LISTEDCO_PATH = re.compile(
+    r"(?i)(?:https?://[^\s\"'<>]+|/listedco/[^\s\"'<>]+)"
+)
+
+_CONSTRAINT_CTX = re.compile(
+    r"(?i)(tolerance|容差|±|\+/-|half[\s-]?up|round(?:ing)?|precision|"
+    r"decimal\s+places?|\b\d+\s*dp\b)"
+)
+
+
 def grounding_contract_hash() -> str:
     blob = json.dumps(
         {
@@ -95,11 +122,19 @@ def grounding_contract_hash() -> str:
                 "context_ticker_ok",
                 "context_year_ok",
                 "context_fiscal_ok",
+                "verified_evidence_identifier",
+                "question_constraint_ok",
                 "ungrounded_answer_value",
                 "unit_mismatch",
             ],
             "rules": [
                 "tokenize_before_numeric",
+                "blank_verified_identifiers_before_numeric",
+                "blank_url_path_local_key_before_numeric",
+                "identifier_exact_verified_match_only",
+                "no_auto_accept_long_digit_as_id",
+                "reject_unverified_identifier",
+                "question_constraint_restatement_only",
                 "natural_language_date_before_iso_year_plain",
                 "iso_date_not_split",
                 "invalid_calendar_date_rejected",
@@ -111,6 +146,7 @@ def grounding_contract_hash() -> str:
                 "reject_question_only_answer_targets",
                 "no_arbitrary_approx_collision",
             ],
+            "identifier_fields": sorted(_VERIFIED_IDENTIFIER_FIELDS),
             "natural_date_formats": [
                 "31 March 2026",
                 "March 31, 2026",
@@ -216,10 +252,173 @@ def _unit_scale(unit: str) -> Optional[float]:
     return None
 
 
-def _tokenize_answer(text: str) -> Tuple[List[Dict[str, Any]], str]:
-    """Return (tokens, residual_text_with_matched_spans_blanked)."""
+def _collect_verified_identifier_strings(
+    evidence_values: Optional[Dict[str, Any]],
+) -> List[str]:
+    """Exact identifier strings from verified evidence (longest first)."""
+    found: Set[str] = set()
+    for key, raw in (evidence_values or {}).items():
+        bare = _bare_field(str(key))
+        if bare not in _VERIFIED_IDENTIFIER_FIELDS and not bare.endswith("_url"):
+            continue
+        if raw is None:
+            continue
+        s = str(raw).strip()
+        if not s or s.lower() in {"none", "null", "nan"}:
+            continue
+        found.add(s)
+    return sorted(found, key=lambda x: (-len(x), x))
+
+
+def _blank_identifiers_and_paths(
+    text: str, verified_identifiers: Sequence[str]
+) -> Tuple[List[Dict[str, Any]], str]:
+    """Blank verified IDs and structural URL/paths before residual numerics."""
     tokens: List[Dict[str, Any]] = []
     work = str(text or "")
+    verified_set = set(verified_identifiers)
+
+    def _blank_span(start: int, end: int, raw: str, *, verified: bool) -> None:
+        nonlocal work
+        tokens.append(
+            {
+                "kind": (
+                    "verified_evidence_identifier"
+                    if verified
+                    else "ungrounded_identifier"
+                ),
+                "raw": raw,
+                "value": raw,
+            }
+        )
+        work = work[:start] + (" " * (end - start)) + work[end:]
+
+    for ident in verified_identifiers:
+        if not ident:
+            continue
+        start = 0
+        while True:
+            idx = work.find(ident, start)
+            if idx < 0:
+                break
+            _blank_span(idx, idx + len(ident), ident, verified=True)
+            start = idx + len(ident)
+
+    while True:
+        m = _URL_OR_LISTEDCO_PATH.search(work)
+        if not m:
+            break
+        raw = m.group(0).rstrip(".,);]'\"")
+        end = m.start() + len(raw)
+        _blank_span(m.start(), end, raw, verified=raw in verified_set)
+
+    return tokens, work
+
+
+def _extract_question_constraints(question: str) -> List[Dict[str, Any]]:
+    """Non-answer constraints stated in the question (tolerance / rounding)."""
+    q = question or ""
+    out: List[Dict[str, Any]] = []
+    for m in re.finditer(
+        r"(?i)tolerance\s*[±+\-]?\s*(\d+(?:\.\d+)?)",
+        q,
+    ):
+        out.append(
+            {
+                "kind": "tolerance",
+                "value": float(m.group(1)),
+                "raw": m.group(0),
+            }
+        )
+    for m in re.finditer(r"±\s*(\d+(?:\.\d+)?)", q):
+        out.append(
+            {
+                "kind": "tolerance",
+                "value": float(m.group(1)),
+                "raw": m.group(0),
+            }
+        )
+    for m in re.finditer(
+        r"(?i)half[\s-]?up\s*(\d+)\s*(?:dp|decimal(?:\s+places?)?)",
+        q,
+    ):
+        out.append(
+            {
+                "kind": "rounding_places",
+                "value": float(m.group(1)),
+                "raw": m.group(0),
+            }
+        )
+    for m in re.finditer(
+        r"(?i)round(?:ing)?\s+to\s+(\d+)\s+decimal\s+places?",
+        q,
+    ):
+        out.append(
+            {
+                "kind": "rounding_places",
+                "value": float(m.group(1)),
+                "raw": m.group(0),
+            }
+        )
+    return out
+
+
+def _answer_restates_constraint(
+    answer: str,
+    tok: Dict[str, Any],
+    constraints: Sequence[Dict[str, Any]],
+) -> bool:
+    """True only when answer restates a question constraint in constraint context."""
+    if not constraints:
+        return False
+    raw = str(tok.get("raw") or "")
+    try:
+        val = float(tok.get("canonical"))
+    except (TypeError, ValueError):
+        return False
+    ans = answer or ""
+    idx = ans.find(raw)
+    if idx < 0:
+        # ±0.05 may have been tokenized without the ±
+        m = re.search(r"±\s*" + re.escape(raw), ans)
+        if m:
+            idx = m.start()
+            window = ans[max(0, idx - 24) : m.end() + 24]
+        else:
+            return False
+    else:
+        window = ans[max(0, idx - 40) : idx + len(raw) + 40]
+    has_ctx = bool(_CONSTRAINT_CTX.search(window)) or bool(
+        re.search(r"±\s*" + re.escape(raw), ans)
+    )
+    if not has_ctx:
+        return False
+    for c in constraints:
+        try:
+            cval = float(c.get("value"))
+        except (TypeError, ValueError):
+            continue
+        if not math.isclose(val, cval, rel_tol=0.0, abs_tol=1e-12):
+            continue
+        kind = str(c.get("kind") or "")
+        if kind == "tolerance":
+            return True
+        if kind == "rounding_places" and re.search(
+            r"(?i)(decimal|dp|half[\s-]?up|round)", window
+        ):
+            return True
+    return False
+
+
+def _tokenize_answer(
+    text: str,
+    verified_identifiers: Optional[Sequence[str]] = None,
+) -> Tuple[List[Dict[str, Any]], str]:
+    """Return (tokens, residual_text_with_matched_spans_blanked)."""
+    id_tokens, work = _blank_identifiers_and_paths(
+        str(text or ""), list(verified_identifiers or [])
+    )
+    tokens: List[Dict[str, Any]] = list(id_tokens)
 
     def _blank(start: int, end: int) -> None:
         nonlocal work
@@ -734,9 +933,11 @@ def validate_replanner_response(
             "classifications": ["ungrounded_answer_value"],
         }
 
-    tokens, _ = _tokenize_answer(answer)
+    verified_ids = _collect_verified_identifier_strings(evidence_values or {})
+    tokens, _ = _tokenize_answer(answer, verified_identifiers=verified_ids)
     evidence_rows = _collect_evidence_numerics(evidence_values or {}, provenance_by_key)
     ctx = _context_pool(question or "", evidence_rows, evidence_values or {})
+    q_constraints = _extract_question_constraints(question or "")
 
     answer_bearing_tokens = [
         t
@@ -753,6 +954,13 @@ def validate_replanner_response(
 
     for tok in tokens:
         kind = tok["kind"]
+        if kind == "verified_evidence_identifier":
+            classifications.append("verified_evidence_identifier")
+            continue
+        if kind == "ungrounded_identifier":
+            reasons.append(f"ungrounded_identifier:{tok['raw']}")
+            classifications.append("ungrounded_answer_value")
+            continue
         if kind == "invalid_date":
             reasons.append(f"invalid_date:{tok['raw']}")
             classifications.append("ungrounded_answer_value")
@@ -792,6 +1000,9 @@ def validate_replanner_response(
             classifications.append("ungrounded_answer_value")
             continue
         if kind == "percentage":
+            if _answer_restates_constraint(answer, tok, q_constraints):
+                classifications.append("question_constraint_ok")
+                continue
             ok, cls, _key = _numeric_match(
                 float(tok["canonical"]),
                 evidence_rows=evidence_rows,
@@ -833,6 +1044,9 @@ def validate_replanner_response(
             continue
         if kind == "plain_number":
             val = float(tok["canonical"])
+            if _answer_restates_constraint(answer, tok, q_constraints):
+                classifications.append("question_constraint_ok")
+                continue
             # Reject question-only target answers lacking evidence
             q_hit = str(tok["raw"]).replace(",", "") in (question or "").replace(",", "")
             if q_hit and forbid_question_target_as_observed(

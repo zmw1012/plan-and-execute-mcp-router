@@ -22,12 +22,19 @@ BLOCKABLE_FAILURE_CLASSES = (
     "transport_disconnect",
     "upstream_unavailable",
     "protocol_failure",
+    # Deterministic no-result / empty-result signatures (cross-round block).
+    "no_matching_result",
+    "empty_result",
+    "verified_zero_rows",
 )
 
 # Map legacy EEA classes into blockable policy classes when appropriate.
 _EEA_TO_BLOCKABLE = {
     "mcp_transport_or_protocol_failure": "protocol_failure",
     "gateway_envelope_failure": "protocol_failure",
+    "no_matching_result": "no_matching_result",
+    "empty_result": "empty_result",
+    "verified_zero_rows": "verified_zero_rows",
 }
 
 _RATE_MARKERS = (
@@ -76,9 +83,11 @@ def failed_invocation_policy_hash() -> str:
             "rules": [
                 "signature_op_args_failure_class",
                 "block_same_op_args_after_blockable_failure",
+                "block_no_matching_empty_verified_zero",
                 "step_id_cannot_bypass",
                 "different_operation_allowed",
                 "semantically_different_args_allowed",
+                "broadened_args_allowed",
                 "blocked_invoke_does_not_count_mcp",
                 "no_task_or_gold_branching",
             ],
@@ -146,17 +155,21 @@ def classify_blockable_failure(
     success: Optional[bool] = None,
 ) -> Optional[str]:
     """Return a blockable failure class, or None if not blockable."""
+    eea = str(eea_failure_class or "").strip()
+    if eea in BLOCKABLE_FAILURE_CLASSES:
+        return eea
+
     text = f"{error or ''} {error_type or ''}".lower()
+    raw = str(error or "")
     if any(m in text for m in _RATE_MARKERS) and (
-        "限流" in f"{error or ''}"
+        "限流" in raw
         or "rate" in text
         or "429" in text
-        or "频率" in f"{error or ''}"
-        or ("ip" in text and ("limit" in text or "限" in f"{error or ''}"))
+        or "频率" in raw
+        or ("ip" in text and ("limit" in text or "限" in raw))
     ):
         return "upstream_rate_limit"
     # Broader IP+limit Chinese patterns
-    raw = str(error or "")
     if "限流" in raw or re.search(r"IP.{0,12}限", raw) or "访问频率" in raw:
         return "upstream_rate_limit"
 
@@ -167,7 +180,20 @@ def classify_blockable_failure(
     if any(m in text for m in _PROTOCOL_MARKERS) and success is False:
         return "protocol_failure"
 
-    mapped = _EEA_TO_BLOCKABLE.get(str(eea_failure_class or ""))
+    # Textual no-result markers (when EEA class not already provided).
+    if (
+        "no_matching" in text
+        or "no matching" in text
+        or "no match" in text
+        or "not found" in text
+    ):
+        return "no_matching_result"
+    if "verified_zero_rows" in text or "zero rows" in text or "zero_rows" in text:
+        return "verified_zero_rows"
+    if "empty_result" in text or "empty result" in text:
+        return "empty_result"
+
+    mapped = _EEA_TO_BLOCKABLE.get(eea)
     if mapped:
         # Prefer more specific rate-limit if markers present
         if "429" in text or "rate" in text or "限流" in raw:
@@ -229,12 +255,19 @@ class FailedInvocationGuard:
         eea_failure_class: Optional[str] = None,
     ) -> Optional[str]:
         success = invoke_result.get("success")
-        if success is True:
+        eea = str(eea_failure_class or "").strip() or None
+        # Successful payloads are not blockable unless an explicit no-result class
+        # is supplied by the executor/EEA layer.
+        if success is True and eea not in {
+            "no_matching_result",
+            "empty_result",
+            "verified_zero_rows",
+        }:
             return None
         cls = classify_blockable_failure(
             error=str(invoke_result.get("error") or ""),
             error_type=str(invoke_result.get("error_type") or ""),
-            eea_failure_class=eea_failure_class,
+            eea_failure_class=eea,
             success=bool(success) if success is not None else False,
         )
         if cls:

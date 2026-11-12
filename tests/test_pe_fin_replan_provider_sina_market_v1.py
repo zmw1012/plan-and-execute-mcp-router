@@ -15,7 +15,10 @@ from hk_equity_mcp.experiment.unified_pe_fin_lite_runner import (
 )
 from hk_equity_mcp.pe_fin_lite.envelope_projection import project_invoke_to_required_outputs
 from hk_equity_mcp.pe_fin_lite.retrieval_formula import retrieval_formula_hash
-from hk_equity_mcp.pe_fin_replan import PE_FIN_REPLAN_METHOD_VERSION
+from hk_equity_mcp.pe_fin_replan import (
+    PE_FIN_REPLAN_METHOD_VERSION,
+    PE_FIN_REPLAN_PROTOCOL_VERSION,
+)
 from hk_equity_mcp.pe_fin_replan.provider_availability import (
     ProviderAvailabilityError,
     apply_provider_availability_filter,
@@ -246,7 +249,7 @@ def test_old_output_dir_resume_refused_without_profile(tmp_path, profile):
     existing = {
         "condition": "pe_fin_replan",
         "method_version": PE_FIN_REPLAN_METHOD_VERSION,
-        "protocol_version": "planner_executor_replanner_contract_v4",
+        "protocol_version": PE_FIN_REPLAN_PROTOCOL_VERSION,
         "architecture": "plan_execute_replan",
         "subset_kind": "replan_smoke5",
         "mock": False,
