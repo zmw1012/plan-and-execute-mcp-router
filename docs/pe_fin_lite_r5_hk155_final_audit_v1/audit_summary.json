@@ -1,0 +1,65 @@
+{
+  "audit_version": "pe_fin_lite_r5_hk155_final_audit_v1",
+  "result_role": "formal_offline_descriptive",
+  "timestamp_utc": "2026-11-12T05:46:30.179540+00:00",
+  "run_dir": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-pe-fin-lite/outputs/pe_fin_lite_r5_hk155_live_v1",
+  "git": {
+    "branch": "feature/pe-fin-lite-proposed-method-v1",
+    "commit": "7500a948d9a0a47483d7fc826178b1b894e8745f",
+    "dirty_at_run": false,
+    "audit_repo_commit_note": "audit commit recorded separately after this artifact write"
+  },
+  "engineering_valid": true,
+  "identity_all_pass": true,
+  "preliminary_facts_match": true,
+  "status_counts": {
+    "failed": 94,
+    "full": 14,
+    "partial": 47
+  },
+  "answer_metrics": {
+    "n": 155,
+    "auto_gradable_n": 154,
+    "manual_required_n": 1,
+    "auto_gradable_accuracy": 0.22727272727272727,
+    "final_answer_accuracy_lower_bound": 0.22580645161290322,
+    "final_answer_accuracy_upper_bound": 0.23225806451612904,
+    "final_answer_accuracy_pending_manual": true,
+    "common_strict_answer_success": {
+      "definition": "status==full AND answer_correct==true; partial/failed forced incorrect; denominator=155",
+      "count": 9,
+      "rate": 0.05806451612903226
+    },
+    "exact_tool_set": {
+      "count": 22,
+      "rate": 0.14193548387096774
+    },
+    "operation_precision_mean": 0.14193548387096774,
+    "operation_recall_mean": 0.14193548387096774,
+    "operation_f1_mean": 0.14193548387096774,
+    "all_mcp_invocations_successful_rate": 0.5655172413793104,
+    "evidence_acceptance_proxy_required_output_satisfaction_mean": 0.21563218390804598,
+    "condition_specific_end_to_end_success": {
+      "formula": "PE-Fin Lite strict_answer_success_rate from aggregate_pe_fin_lite_metrics: answer_correct AND predicted_status=='answered' AND status in {full,partial}; NOT comparable to other conditions' condition-specific strict.",
+      "rate": 0.09032258064516129
+    },
+    "refusal_clarification": {
+      "n_should_refuse_or_clarify": 6,
+      "predicted_unavailable_or_clarify": 133
+    },
+    "status_distribution": {
+      "failed": 94,
+      "full": 14,
+      "partial": 47
+    }
+  },
+  "r5_runtime_effective": true,
+  "manual_review_required": true,
+  "manual_pending_n": 1,
+  "zero_network": true,
+  "no_rerun": true,
+  "no_raw_mutation": true,
+  "no_method_change": true,
+  "no_push": true,
+  "raw_hashes_unchanged": true
+}

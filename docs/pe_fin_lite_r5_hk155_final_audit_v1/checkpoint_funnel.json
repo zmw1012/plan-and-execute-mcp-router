@@ -1,0 +1,467 @@
+{
+  "C01_planner": {
+    "counts": {
+      "pass": 153,
+      "fail": 2,
+      "N/A": 0,
+      "N/A_not_planned": 0,
+      "N/A_not_required": 0,
+      "N/A_not_reached": 0,
+      "N/A_upstream_blocked": 0,
+      "not_evaluated": 0,
+      "unknown": 0
+    },
+    "pass": 153,
+    "fail": 2,
+    "N/A_not_planned": 0,
+    "N/A_not_reached": 0,
+    "N/A_upstream_blocked": 0,
+    "not_evaluated": 0,
+    "unknown": 0,
+    "contract_status_counts": {
+      "pass": 153,
+      "fail": 2
+    },
+    "stage_outcome_status_counts": {
+      "pass": 153,
+      "fail": 2
+    },
+    "downstream_task_effect_counts": {
+      "none": 155
+    },
+    "note": "N/A and not_evaluated are never counted as pass; trace presence ≠ stage success"
+  },
+  "C02_filter": {
+    "counts": {
+      "pass": 0,
+      "fail": 0,
+      "N/A": 10,
+      "N/A_not_planned": 0,
+      "N/A_not_required": 0,
+      "N/A_not_reached": 0,
+      "N/A_upstream_blocked": 0,
+      "not_evaluated": 145,
+      "unknown": 0
+    },
+    "pass": 0,
+    "fail": 0,
+    "N/A_not_planned": 0,
+    "N/A_not_reached": 0,
+    "N/A_upstream_blocked": 0,
+    "not_evaluated": 145,
+    "unknown": 0,
+    "contract_status_counts": {
+      "pass": 145,
+      "N/A": 10
+    },
+    "stage_outcome_status_counts": {
+      "not_evaluated": 145,
+      "N/A": 10
+    },
+    "downstream_task_effect_counts": {
+      "filter_quality_not_evaluated_without_accepted_op_set": 145,
+      "none": 10
+    },
+    "note": "N/A and not_evaluated are never counted as pass; trace presence ≠ stage success"
+  },
+  "C03_embedding": {
+    "counts": {
+      "pass": 0,
+      "fail": 0,
+      "N/A": 10,
+      "N/A_not_planned": 0,
+      "N/A_not_required": 0,
+      "N/A_not_reached": 0,
+      "N/A_upstream_blocked": 0,
+      "not_evaluated": 145,
+      "unknown": 0
+    },
+    "pass": 0,
+    "fail": 0,
+    "N/A_not_planned": 0,
+    "N/A_not_reached": 0,
+    "N/A_upstream_blocked": 0,
+    "not_evaluated": 145,
+    "unknown": 0,
+    "contract_status_counts": {
+      "pass": 145,
+      "N/A": 10
+    },
+    "stage_outcome_status_counts": {
+      "not_evaluated": 145,
+      "N/A": 10
+    },
+    "downstream_task_effect_counts": {
+      "retrieval_quality_separated_from_recall_at_k_all155": 145,
+      "none": 10
+    },
+    "note": "N/A and not_evaluated are never counted as pass; trace presence ≠ stage success"
+  },
+  "C04_describe": {
+    "counts": {
+      "pass": 145,
+      "fail": 0,
+      "N/A": 10,
+      "N/A_not_planned": 0,
+      "N/A_not_required": 0,
+      "N/A_not_reached": 0,
+      "N/A_upstream_blocked": 0,
+      "not_evaluated": 0,
+      "unknown": 0
+    },
+    "pass": 145,
+    "fail": 0,
+    "N/A_not_planned": 0,
+    "N/A_not_reached": 0,
+    "N/A_upstream_blocked": 0,
+    "not_evaluated": 0,
+    "unknown": 0,
+    "contract_status_counts": {
+      "pass": 145,
+      "N/A": 10
+    },
+    "stage_outcome_status_counts": {
+      "pass": 145,
+      "N/A": 10
+    },
+    "downstream_task_effect_counts": {
+      "none": 155
+    },
+    "note": "N/A and not_evaluated are never counted as pass; trace presence ≠ stage success"
+  },
+  "C05_binder": {
+    "counts": {
+      "pass": 145,
+      "fail": 0,
+      "N/A": 10,
+      "N/A_not_planned": 0,
+      "N/A_not_required": 0,
+      "N/A_not_reached": 0,
+      "N/A_upstream_blocked": 0,
+      "not_evaluated": 0,
+      "unknown": 0
+    },
+    "pass": 145,
+    "fail": 0,
+    "N/A_not_planned": 0,
+    "N/A_not_reached": 0,
+    "N/A_upstream_blocked": 0,
+    "not_evaluated": 0,
+    "unknown": 0,
+    "contract_status_counts": {
+      "pass": 145,
+      "N/A": 10
+    },
+    "stage_outcome_status_counts": {
+      "pass": 145,
+      "N/A": 10
+    },
+    "downstream_task_effect_counts": {
+      "none": 155
+    },
+    "note": "N/A and not_evaluated are never counted as pass; trace presence ≠ stage success"
+  },
+  "C06_arguments": {
+    "counts": {
+      "pass": 145,
+      "fail": 0,
+      "N/A": 10,
+      "N/A_not_planned": 0,
+      "N/A_not_required": 0,
+      "N/A_not_reached": 0,
+      "N/A_upstream_blocked": 0,
+      "not_evaluated": 0,
+      "unknown": 0
+    },
+    "pass": 145,
+    "fail": 0,
+    "N/A_not_planned": 0,
+    "N/A_not_reached": 0,
+    "N/A_upstream_blocked": 0,
+    "not_evaluated": 0,
+    "unknown": 0,
+    "contract_status_counts": {
+      "pass": 145,
+      "N/A": 10
+    },
+    "stage_outcome_status_counts": {
+      "pass": 145,
+      "N/A": 10
+    },
+    "downstream_task_effect_counts": {
+      "none": 155
+    },
+    "note": "N/A and not_evaluated are never counted as pass; trace presence ≠ stage success"
+  },
+  "C07_mcp": {
+    "counts": {
+      "pass": 82,
+      "fail": 63,
+      "N/A": 0,
+      "N/A_not_planned": 8,
+      "N/A_not_required": 2,
+      "N/A_not_reached": 0,
+      "N/A_upstream_blocked": 0,
+      "not_evaluated": 0,
+      "unknown": 0
+    },
+    "pass": 82,
+    "fail": 63,
+    "N/A_not_planned": 8,
+    "N/A_not_reached": 0,
+    "N/A_upstream_blocked": 0,
+    "not_evaluated": 0,
+    "unknown": 0,
+    "contract_status_counts": {
+      "fail": 63,
+      "pass": 84,
+      "N/A": 8
+    },
+    "stage_outcome_status_counts": {
+      "fail": 63,
+      "pass": 82,
+      "N/A_not_planned": 8,
+      "N/A_not_required": 2
+    },
+    "downstream_task_effect_counts": {
+      "none": 145,
+      "N/A_not_planned": 8,
+      "N/A_not_required": 2
+    },
+    "note": "N/A and not_evaluated are never counted as pass; trace presence ≠ stage success"
+  },
+  "C08_normalize": {
+    "counts": {
+      "pass": 145,
+      "fail": 0,
+      "N/A": 10,
+      "N/A_not_planned": 0,
+      "N/A_not_required": 0,
+      "N/A_not_reached": 0,
+      "N/A_upstream_blocked": 0,
+      "not_evaluated": 0,
+      "unknown": 0
+    },
+    "pass": 145,
+    "fail": 0,
+    "N/A_not_planned": 0,
+    "N/A_not_reached": 0,
+    "N/A_upstream_blocked": 0,
+    "not_evaluated": 0,
+    "unknown": 0,
+    "contract_status_counts": {
+      "pass": 145,
+      "N/A": 10
+    },
+    "stage_outcome_status_counts": {
+      "pass": 145,
+      "N/A": 10
+    },
+    "downstream_task_effect_counts": {
+      "none": 155
+    },
+    "note": "N/A and not_evaluated are never counted as pass; trace presence ≠ stage success"
+  },
+  "C09_evidence_acceptance": {
+    "counts": {
+      "pass": 15,
+      "fail": 130,
+      "N/A": 10,
+      "N/A_not_planned": 0,
+      "N/A_not_required": 0,
+      "N/A_not_reached": 0,
+      "N/A_upstream_blocked": 0,
+      "not_evaluated": 0,
+      "unknown": 0
+    },
+    "pass": 15,
+    "fail": 130,
+    "N/A_not_planned": 0,
+    "N/A_not_reached": 0,
+    "N/A_upstream_blocked": 0,
+    "not_evaluated": 0,
+    "unknown": 0,
+    "contract_status_counts": {
+      "pass": 145,
+      "N/A": 10
+    },
+    "stage_outcome_status_counts": {
+      "fail": 130,
+      "pass": 15,
+      "N/A": 10
+    },
+    "downstream_task_effect_counts": {
+      "retrieve_incomplete": 130,
+      "retrieve_complete": 15,
+      "none": 10
+    },
+    "note": "N/A and not_evaluated are never counted as pass; trace presence ≠ stage success"
+  },
+  "C10_fallback_unavailable": {
+    "counts": {
+      "pass": 145,
+      "fail": 0,
+      "N/A": 10,
+      "N/A_not_planned": 0,
+      "N/A_not_required": 0,
+      "N/A_not_reached": 0,
+      "N/A_upstream_blocked": 0,
+      "not_evaluated": 0,
+      "unknown": 0
+    },
+    "pass": 145,
+    "fail": 0,
+    "N/A_not_planned": 0,
+    "N/A_not_reached": 0,
+    "N/A_upstream_blocked": 0,
+    "not_evaluated": 0,
+    "unknown": 0,
+    "contract_status_counts": {
+      "pass": 145,
+      "N/A": 10
+    },
+    "stage_outcome_status_counts": {
+      "pass": 145,
+      "N/A": 10
+    },
+    "downstream_task_effect_counts": {
+      "none": 155
+    },
+    "note": "N/A and not_evaluated are never counted as pass; trace presence ≠ stage success"
+  },
+  "C11_compute": {
+    "counts": {
+      "pass": 1,
+      "fail": 0,
+      "N/A": 0,
+      "N/A_not_planned": 122,
+      "N/A_not_required": 0,
+      "N/A_not_reached": 0,
+      "N/A_upstream_blocked": 32,
+      "not_evaluated": 0,
+      "unknown": 0
+    },
+    "pass": 1,
+    "fail": 0,
+    "N/A_not_planned": 122,
+    "N/A_not_reached": 0,
+    "N/A_upstream_blocked": 32,
+    "not_evaluated": 0,
+    "unknown": 0,
+    "contract_status_counts": {
+      "N/A": 122,
+      "pass": 33
+    },
+    "stage_outcome_status_counts": {
+      "N/A_not_planned": 122,
+      "N/A_upstream_blocked": 32,
+      "pass": 1
+    },
+    "downstream_task_effect_counts": {
+      "N/A_not_planned": 122,
+      "N/A_upstream_blocked": 32,
+      "none": 1
+    },
+    "note": "N/A and not_evaluated are never counted as pass; trace presence ≠ stage success"
+  },
+  "C12_reason": {
+    "counts": {
+      "pass": 17,
+      "fail": 2,
+      "N/A": 0,
+      "N/A_not_planned": 50,
+      "N/A_not_required": 0,
+      "N/A_not_reached": 0,
+      "N/A_upstream_blocked": 86,
+      "not_evaluated": 0,
+      "unknown": 0
+    },
+    "pass": 17,
+    "fail": 2,
+    "N/A_not_planned": 50,
+    "N/A_not_reached": 0,
+    "N/A_upstream_blocked": 86,
+    "not_evaluated": 0,
+    "unknown": 0,
+    "contract_status_counts": {
+      "N/A": 50,
+      "pass": 105
+    },
+    "stage_outcome_status_counts": {
+      "N/A_not_planned": 50,
+      "N/A_upstream_blocked": 86,
+      "pass": 17,
+      "fail": 2
+    },
+    "downstream_task_effect_counts": {
+      "N/A_not_planned": 50,
+      "N/A_upstream_blocked": 86,
+      "runtime_recovered_verified_evidence": 10,
+      "reason_stage_fail": 2,
+      "reason_stage_pass": 7
+    },
+    "note": "N/A and not_evaluated are never counted as pass; trace presence ≠ stage success"
+  },
+  "C13_final": {
+    "counts": {
+      "pass": 155,
+      "fail": 0,
+      "N/A": 0,
+      "N/A_not_planned": 0,
+      "N/A_not_required": 0,
+      "N/A_not_reached": 0,
+      "N/A_upstream_blocked": 0,
+      "not_evaluated": 0,
+      "unknown": 0
+    },
+    "pass": 155,
+    "fail": 0,
+    "N/A_not_planned": 0,
+    "N/A_not_reached": 0,
+    "N/A_upstream_blocked": 0,
+    "not_evaluated": 0,
+    "unknown": 0,
+    "contract_status_counts": {
+      "pass": 155
+    },
+    "stage_outcome_status_counts": {
+      "pass": 155
+    },
+    "downstream_task_effect_counts": {
+      "schema_valid_not_necessarily_correct": 120,
+      "semantically_correct": 35
+    },
+    "note": "N/A and not_evaluated are never counted as pass; trace presence ≠ stage success"
+  },
+  "C14_evaluator": {
+    "counts": {
+      "pass": 155,
+      "fail": 0,
+      "N/A": 0,
+      "N/A_not_planned": 0,
+      "N/A_not_required": 0,
+      "N/A_not_reached": 0,
+      "N/A_upstream_blocked": 0,
+      "not_evaluated": 0,
+      "unknown": 0
+    },
+    "pass": 155,
+    "fail": 0,
+    "N/A_not_planned": 0,
+    "N/A_not_reached": 0,
+    "N/A_upstream_blocked": 0,
+    "not_evaluated": 0,
+    "unknown": 0,
+    "contract_status_counts": {
+      "pass": 155
+    },
+    "stage_outcome_status_counts": {
+      "pass": 155
+    },
+    "downstream_task_effect_counts": {
+      "answer_incorrect_or_ungraded": 120,
+      "answer_correct": 35
+    },
+    "note": "N/A and not_evaluated are never counted as pass; trace presence ≠ stage success"
+  }
+}

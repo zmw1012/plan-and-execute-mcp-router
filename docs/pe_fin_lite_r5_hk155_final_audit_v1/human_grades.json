@@ -1,0 +1,13 @@
+{
+  "schema_version": "pe_fin_lite_r5_hk155_human_grades_v1",
+  "instruction": "Fill human_answer_correct with true/false/null per task_id. Do not copy grades from other conditions. No task-id hardcoding in tools.",
+  "pending_task_ids": [
+    "fin_cf_022"
+  ],
+  "grades": {
+    "fin_cf_022": {
+      "human_answer_correct": null,
+      "human_notes": null
+    }
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "primary_blocking_checkpoint_counts": {
+    "C07_mcp": 63,
+    "C09_evidence_acceptance": 67,
+    "none_or_all_non_fail": 21,
+    "C12_reason": 2,
+    "C01_planner": 2
+  },
+  "secondary_failure_total": 63,
+  "by_domain": {
+    "financial": {
+      "C07_mcp": 6,
+      "none_or_all_non_fail": 8,
+      "C12_reason": 1,
+      "C09_evidence_acceptance": 45
+    },
+    "market": {
+      "C07_mcp": 28,
+      "none_or_all_non_fail": 3,
+      "C09_evidence_acceptance": 2,
+      "C01_planner": 2
+    },
+    "news": {
+      "C07_mcp": 13,
+      "none_or_all_non_fail": 8,
+      "C09_evidence_acceptance": 13,
+      "C12_reason": 1
+    },
+    "cross_domain": {
+      "C09_evidence_acceptance": 7,
+      "C07_mcp": 16,
+      "none_or_all_non_fail": 2
+    }
+  },
+  "by_difficulty": {
+    "D1": {
+      "C07_mcp": 13,
+      "none_or_all_non_fail": 7,
+      "C12_reason": 1,
+      "C09_evidence_acceptance": 14
+    },
+    "D2": {
+      "C09_evidence_acceptance": 10,
+      "C07_mcp": 10,
+      "none_or_all_non_fail": 4
+    },
+    "D3": {
+      "C09_evidence_acceptance": 21,
+      "C07_mcp": 16,
+      "none_or_all_non_fail": 3,
+      "C01_planner": 1,
+      "C12_reason": 1
+    },
+    "D4": {
+      "C07_mcp": 15,
+      "none_or_all_non_fail": 4,
+      "C01_planner": 1,
+      "C09_evidence_acceptance": 8
+    },
+    "D5": {
+      "C07_mcp": 9,
+      "C09_evidence_acceptance": 14,
+      "none_or_all_non_fail": 3
+    }
+  },
+  "by_status": {
+    "full": {
+      "none_or_all_non_fail": 12,
+      "C12_reason": 2
+    },
+    "partial": {
+      "C07_mcp": 19,
+      "C09_evidence_acceptance": 19,
+      "none_or_all_non_fail": 9
+    },
+    "failed": {
+      "C07_mcp": 44,
+      "C09_evidence_acceptance": 48,
+      "C01_planner": 2
+    }
+  }
+}
