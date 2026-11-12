@@ -1,0 +1,93 @@
+{
+  "fixture": "pe_fin_replan_etom_mini_registry_v1",
+  "note": "Tiny fake ETOM-style registry for offline unit tests. Not the official registry; contains no gold and no task ids.",
+  "servers": [
+    {
+      "server_name": "Mini Files",
+      "server_description": "Read and list local text files.",
+      "server_summary": "File system access.",
+      "categories": ["file-system"],
+      "tools": [
+        {
+          "tool_name": "read_file",
+          "tool_description": "Read the full text content of a file at a given path.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "path": {"type": "string", "description": "File path to read"}
+            },
+            "required": ["path"]
+          }
+        },
+        {
+          "tool_name": "list_directory",
+          "tool_description": "List the entries of a directory.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "path": {"type": "string", "description": "Directory path"},
+              "recursive": {"type": "boolean", "description": "Recurse into subdirectories"}
+            },
+            "required": ["path"]
+          }
+        }
+      ]
+    },
+    {
+      "server_name": "Mini Search",
+      "server_description": "Web search and page fetch.",
+      "server_summary": "Search the web.",
+      "categories": ["search"],
+      "tools": [
+        {
+          "tool_name": "web_search",
+          "tool_description": "Search the web for a free-text query and return result links.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "query": {"type": "string", "description": "Search query"},
+              "max_results": {"type": "integer", "description": "Maximum number of results"}
+            },
+            "required": ["query"]
+          }
+        },
+        {
+          "tool_name": "fetch_page",
+          "tool_description": "Fetch the text of a web page by URL.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "url": {"type": "string", "description": "Page URL"}
+            },
+            "required": ["url"]
+          }
+        }
+      ]
+    },
+    {
+      "server_name": "Mini Calendar",
+      "server_description": "Create and look up calendar events.",
+      "server_summary": "Calendar management.",
+      "categories": ["calendar"],
+      "tools": [
+        {
+          "tool_name": "get_events",
+          "tool_description": "Get calendar events for a date.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "date": {"type": "string", "description": "ISO date YYYY-MM-DD"},
+              "kind": {"type": "string", "enum": ["meeting", "reminder", "all"]}
+            },
+            "required": ["date", "kind"]
+          }
+        },
+        {
+          "tool_name": "ping",
+          "tool_description": "Health check that takes no arguments.",
+          "input_schema": {"type": "object", "properties": {}}
+        }
+      ]
+    }
+  ]
+}

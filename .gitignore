@@ -47,3 +47,7 @@ results/
 # Large or local data dumps (keep mock/ and .gitkeep)
 data/raw/
 data/private/
+
+# ETOM pinned raw checkout (local fetch / symlink; do not commit)
+data/etom/raw/
+data/etom/raw

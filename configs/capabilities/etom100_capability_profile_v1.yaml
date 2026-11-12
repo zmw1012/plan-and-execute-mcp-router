@@ -1,0 +1,71 @@
+# Static ETOM-100 capability profile (no LLM generation).
+# Forbidden: task IDs, gold operations, accepted tool sets, answers, operation_id.
+
+profile_id: etom100_capability_profile_v1
+version: v1
+domain: etom_external_mcp
+
+capability_summary:
+  overview: >-
+    External multi-server MCP catalog spanning search, documentation, calendar,
+    code/planning, data APIs, communication, browser automation, and utilities.
+  areas:
+    - search
+    - read
+    - write
+    - list
+    - compute
+    - reason
+    - calendar
+    - code
+    - docs
+    - data
+    - communication
+    - general
+
+capability_areas:
+  areas:
+    - search
+    - read
+    - write
+    - list
+    - compute
+    - reason
+    - calendar
+    - code
+    - docs
+    - data
+    - communication
+    - general
+
+server_categories:
+  - search_and_fetch
+  - documentation_and_rag
+  - calendar_and_meetings
+  - code_and_planning
+  - structured_data_apis
+  - communication_and_alerts
+  - browser_automation
+  - storage_and_files
+  - general_utilities
+
+io_summaries:
+  typical_inputs: [identifiers, filters, dates, resource names, free-text queries]
+  typical_outputs: [json objects, lists, text envelopes, status flags]
+  projection: generic_envelope_v1
+  dependency_hint: some tools need prior list/search identifiers
+
+flags:
+  static: true
+  model_generated: false
+  contains_task_ids: false
+  contains_gold: false
+  hk_profile_reused: false
+  routing_capable: true
+
+known_limitations:
+  - Routing evaluation may record invoke without live external business execution.
+  - Not every user request has an available tool route.
+  - Cross-server dependencies require sequential retrieve steps with depends_on.
+  - Required tool arguments must be grounded; empty object is forbidden when required.
+  - Capability profile does not list concrete operation identifiers or gold routes.

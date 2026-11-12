@@ -1,0 +1,46 @@
+{
+  "repository_url": "https://github.com/snooow1029/ETOM",
+  "commit_sha": "790f28727f567b88918420d163c524d46644a694",
+  "commit_subject": "Update contact email in README.md",
+  "license": "MIT",
+  "license_note": "The README at this commit states the project is MIT licensed. The commit does not contain a LICENSE file.",
+  "dataset_files": {
+    "data/mcp_registry.json": {
+      "sha256": "3c362877ec5733cf0fa1d3451b2f353fb97674e66075da0d7a6f41c0f98cc608",
+      "bytes": 3120829,
+      "git_blob_sha": "292829b870f9ccfb4bb6a58e53563a3df17b9345"
+    },
+    "data/queries/level_1.json": {
+      "sha256": "9b6fdab8926cb5e21abddf0178f018de27d5b9636bd549b45798898b92eee028",
+      "bytes": 491476,
+      "git_blob_sha": "e850bb7be0d42e99287afe1fcf655fafaedc8ef6"
+    },
+    "data/queries/level_2.json": {
+      "sha256": "67abbf2574eda7c48a455b8d537ec218219e774ac7814b48f138d5eb662f10e2",
+      "bytes": 1229005,
+      "git_blob_sha": "64f6fdf4da0885f99d4620474b8cb3c064f7012c"
+    },
+    "data/queries/level_3.json": {
+      "sha256": "8eb127ef81f2c54a3dfdbd6ef4fef4594bf1e941a054afc0317e722673636a0f",
+      "bytes": 407448,
+      "git_blob_sha": "402e00bb42d55df68324e7cebb39205ef41dda0e"
+    },
+    "data/queries/level_4.json": {
+      "sha256": "3b6c88c08c29b31bbbc47d578d345866549539b2a1175ad87a512d8df325a315",
+      "bytes": 330625,
+      "git_blob_sha": "2dfbc4415755dd2fce1eb1c4ad27d765e8c641db"
+    },
+    "data/queries/level_5.json": {
+      "sha256": "3fbbc6445c69176e84d7b514b9558433d28ed8592d95c14e1e4d28eba39129ae",
+      "bytes": 19043,
+      "git_blob_sha": "457a0ee7d9439b610a6e9f8930ff9e685771967b"
+    }
+  },
+  "official_counts": {
+    "servers": 491,
+    "tools": 2375,
+    "queries": {"1": 781, "2": 773, "3": 327, "4": 103, "5": 91}
+  },
+  "raw_checkout": "data/etom/raw",
+  "raw_checkout_gitignored": true
+}
