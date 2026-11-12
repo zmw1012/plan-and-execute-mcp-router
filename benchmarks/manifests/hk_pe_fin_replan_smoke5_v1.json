@@ -1,0 +1,71 @@
+{
+  "manifest_id": "hk_pe_fin_replan_smoke5_v1",
+  "version": "1.0",
+  "role": "live_engineering_smoke_only",
+  "explicitly_not_accuracy": true,
+  "source_manifest": "hk_pe_fin_lite_eea_diagnostic20_v1",
+  "cannot_replace_diagnostic20": true,
+  "cannot_replace_hk155": true,
+  "posthoc_exploratory": true,
+  "parent_dataset": "hk_unified_exploratory_all_v1",
+  "selection_rule": {
+    "engineering_failure_coverage_only": true,
+    "no_answer_correctness_sort": true,
+    "domains": [
+      "market",
+      "news",
+      "financial",
+      "cross_domain"
+    ],
+    "includes_transient_urlerror_case": "xd_dev_004",
+    "rationale": [
+      "market/news/financial/cross-domain coverage",
+      "Replanner schema live-path coverage",
+      "multi-round RePlan coverage",
+      "disclosure/MCP coverage",
+      "xd_dev_004 is the single observed transient URLError case",
+      "selected by engineering failure coverage, not answer correctness"
+    ]
+  },
+  "ordered_task_ids": [
+    "mkt_dev_003",
+    "news_dev_004",
+    "fin_cf_019",
+    "xd_dev_008",
+    "xd_dev_004"
+  ],
+  "ordered_task_ids_hash": "0cc161522db767f7252e5f1ec4d35e385e06a8eb06621cadfa831e0f9c4f475f",
+  "tasks": [
+    {
+      "task_id": "mkt_dev_003",
+      "domain": "market",
+      "selection_bucket": "market_replanner_schema_path",
+      "selection_reason": "Market coverage + Replanner live-path schema stress from invalidated Diagnostic-20 v1."
+    },
+    {
+      "task_id": "news_dev_004",
+      "domain": "news",
+      "selection_bucket": "news_disclosure_mcp",
+      "selection_reason": "News/disclosure MCP coverage for engineering smoke."
+    },
+    {
+      "task_id": "fin_cf_019",
+      "domain": "financial",
+      "selection_bucket": "financial_multi_round",
+      "selection_reason": "Financial coverage and multi-round RePlan path."
+    },
+    {
+      "task_id": "xd_dev_008",
+      "domain": "cross_domain",
+      "selection_bucket": "cross_domain_multi_round",
+      "selection_reason": "Cross-domain multi-round RePlan coverage."
+    },
+    {
+      "task_id": "xd_dev_004",
+      "domain": "cross_domain",
+      "selection_bucket": "transient_urlerror",
+      "selection_reason": "Single observed transient URLError case from invalidated live v1; engineering transport coverage only."
+    }
+  ],
+  "manifest_sha256": "74548df427cdbb32e3ef45443b326cbde0f27b59b10a713d4746065c26d75963"
+}

@@ -10,6 +10,10 @@ invalidated live v1 engineering diagnostic.
 `outputs/pe_fin_replan_diagnostic20_live_v1/` is frozen and marked
 `INVALIDATED.md` — do not modify, resume, or use for accuracy.
 
+**Before Diagnostic-20 live v2**, run live engineering Smoke-5 first
+(`docs/pe_fin_replan_v1/FUTURE_LIVE_SMOKE5_COMMAND.md` →
+`outputs/pe_fin_replan_smoke5_live_v2`).
+
 ## Identity
 
 - `condition=pe_fin_replan`

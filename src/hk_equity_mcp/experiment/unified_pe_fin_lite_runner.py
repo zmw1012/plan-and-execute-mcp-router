@@ -145,10 +145,12 @@ from hk_equity_mcp.real_mcp.unified_gateway import (
 DIAGNOSTIC12_MANIFEST = "benchmarks/manifests/hk_pe_fin_lite_diagnostic12_v1.json"
 DIAGNOSTIC20_EEA_MANIFEST = "benchmarks/manifests/hk_pe_fin_lite_eea_diagnostic20_v1.json"
 SMOKE5_MANIFEST = "benchmarks/manifests/hk_pe_fin_lite_smoke5_v1.json"
+REPLAN_SMOKE5_MANIFEST = "benchmarks/manifests/hk_pe_fin_replan_smoke5_v1.json"
 
 PE_RESUME_IDENTITY_KEYS = (
     "condition",
     "method_version",
+    "protocol_version",
     "architecture",
     "execution_backend",
     "generation_provider",
@@ -177,6 +179,7 @@ PE_RESUME_IDENTITY_KEYS = (
     "subset_ordered_id_hash",
     "diagnostic_manifest_hash",
     "smoke5_manifest_hash",
+    "replan_smoke5_manifest_hash",
     "temperature",
     "max_tokens",
     "planner_max_tokens",
@@ -256,6 +259,41 @@ def load_diagnostic20_eea_tasks(root: Optional[Path] = None) -> List[Dict[str, A
         if t.get("source_split") != "development":
             raise RuntimeError(
                 f"diagnostic20 EEA task {t.get('task_id')} is not development-origin"
+            )
+    return tasks
+
+
+def load_replan_smoke5_manifest(root: Optional[Path] = None) -> Dict[str, Any]:
+    root = root or repo_root()
+    path = root / REPLAN_SMOKE5_MANIFEST
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if data.get("manifest_id") != "hk_pe_fin_replan_smoke5_v1":
+        raise RuntimeError("Unexpected replan smoke5 manifest_id")
+    if len(data.get("ordered_task_ids") or []) != 5:
+        raise RuntimeError("replan smoke5 must contain exactly 5 ordered_task_ids")
+    if data.get("role") != "live_engineering_smoke_only":
+        raise RuntimeError("replan smoke5 must declare role=live_engineering_smoke_only")
+    if data.get("explicitly_not_accuracy") is not True:
+        raise RuntimeError("replan smoke5 must declare explicitly_not_accuracy")
+    if data.get("cannot_replace_diagnostic20") is not True:
+        raise RuntimeError("replan smoke5 must declare cannot_replace_diagnostic20")
+    if data.get("cannot_replace_hk155") is not True:
+        raise RuntimeError("replan smoke5 must declare cannot_replace_hk155")
+    if data.get("source_manifest") != "hk_pe_fin_lite_eea_diagnostic20_v1":
+        raise RuntimeError("replan smoke5 source_manifest mismatch")
+    return data
+
+
+def load_replan_smoke5_tasks(root: Optional[Path] = None) -> List[Dict[str, Any]]:
+    root = root or repo_root()
+    man = load_replan_smoke5_manifest(root)
+    # Pointer subset into frozen Diagnostic-20 / exploratory_all development tasks.
+    all_tasks = load_split_tasks(root, "exploratory_all")
+    tasks = select_by_ids(all_tasks, man["ordered_task_ids"], preserve_id_order=True)
+    for t in tasks:
+        if t.get("source_split") != "development":
+            raise RuntimeError(
+                f"replan smoke5 task {t.get('task_id')} is not development-origin"
             )
     return tasks
 
@@ -529,6 +567,7 @@ class UnifiedHkPeFinLiteRunner:
         smoke5: bool = False,
         diagnostic20_eea: bool = False,
         diagnostic20_replan: bool = False,
+        replan_smoke5: bool = False,
         eea_enabled: bool = False,
         replan_enabled: bool = False,
         ids: Optional[Sequence[str]] = None,
@@ -557,7 +596,10 @@ class UnifiedHkPeFinLiteRunner:
         self.smoke5 = bool(smoke5)
         self.diagnostic20_eea = bool(diagnostic20_eea)
         self.diagnostic20_replan = bool(diagnostic20_replan)
-        self.replan_enabled = bool(replan_enabled) or self.diagnostic20_replan
+        self.replan_smoke5 = bool(replan_smoke5)
+        self.replan_enabled = (
+            bool(replan_enabled) or self.diagnostic20_replan or self.replan_smoke5
+        )
         # RePlan always includes EEA execution/evidence alignment.
         self.eea_enabled = (
             bool(eea_enabled) or self.diagnostic20_eea or self.replan_enabled
@@ -570,10 +612,21 @@ class UnifiedHkPeFinLiteRunner:
             raise RuntimeError(
                 "Cannot combine --diagnostic20-replan with diagnostic12/smoke5"
             )
+        if self.replan_smoke5 and (
+            self.diagnostic12 or self.smoke5 or self.diagnostic20_eea
+        ):
+            raise RuntimeError(
+                "Cannot combine --replan-smoke5 with diagnostic12/smoke5/diagnostic20-eea"
+            )
         if self.diagnostic20_eea and self.diagnostic20_replan:
             raise RuntimeError(
                 "Cannot combine --diagnostic20-eea with --diagnostic20-replan "
                 "(separate output dirs / resume identities)"
+            )
+        if self.diagnostic20_replan and self.replan_smoke5:
+            raise RuntimeError(
+                "Cannot combine --diagnostic20-replan with --replan-smoke5 "
+                "(separate subset_kind / resume identities)"
             )
         self.ids = list(ids) if ids else None
         self.max_tasks = max_tasks
@@ -656,6 +709,7 @@ class UnifiedHkPeFinLiteRunner:
         self._exploratory_run_order: Optional[Dict[str, Any]] = None
         self._diagnostic_manifest: Optional[Dict[str, Any]] = None
         self._smoke5_manifest: Optional[Dict[str, Any]] = None
+        self._replan_smoke5_manifest: Optional[Dict[str, Any]] = None
 
     def _load_tasks(self) -> List[Dict[str, Any]]:
         effective_split = self.split
@@ -665,14 +719,16 @@ class UnifiedHkPeFinLiteRunner:
             or self.smoke5
             or self.diagnostic20_eea
             or self.diagnostic20_replan
+            or self.replan_smoke5
         ):
             effective_split = "exploratory_all"
             if self.dry_run and not confirm_retire:
                 confirm_retire = True
             if not self.dry_run and not confirm_retire:
                 raise RuntimeError(
-                    "diagnostic12/smoke5/diagnostic20-eea/diagnostic20-replan requires "
-                    "--split exploratory_all --confirm-retire-heldout (except dry-run)."
+                    "diagnostic12/smoke5/diagnostic20-eea/diagnostic20-replan/"
+                    "replan-smoke5 requires --split exploratory_all "
+                    "--confirm-retire-heldout (except dry-run)."
                 )
 
         self._heldout_status = assert_heldout_unlocked(
@@ -682,7 +738,13 @@ class UnifiedHkPeFinLiteRunner:
             split=effective_split, confirm_retire_heldout=confirm_retire
         )
 
-        if self.diagnostic20_replan:
+        if self.replan_smoke5:
+            self._replan_smoke5_manifest = load_replan_smoke5_manifest(self.root)
+            self.split = "exploratory_all"
+            tasks = load_replan_smoke5_tasks(self.root)
+            self._exploratory_manifest = load_exploratory_manifest(self.root)
+            self._exploratory_run_order = load_exploratory_run_order(self.root)
+        elif self.diagnostic20_replan:
             # Reuse frozen Diagnostic-20 IDs/order; separate subset_kind for resume.
             self._diagnostic20_eea_manifest = load_diagnostic20_eea_manifest(self.root)
             self.split = "exploratory_all"
@@ -801,6 +863,7 @@ class UnifiedHkPeFinLiteRunner:
         subset_ordered_id_hash = None
         diagnostic_manifest_hash = None
         smoke5_manifest_hash = None
+        replan_smoke5_manifest_hash = None
         if self.diagnostic12:
             subset_kind = "diagnostic12"
             man = self._diagnostic_manifest or load_diagnostic12_manifest(self.root)
@@ -815,6 +878,12 @@ class UnifiedHkPeFinLiteRunner:
             smoke5_manifest_hash = man.get("manifest_hash")
             dman = self._diagnostic_manifest or load_diagnostic12_manifest(self.root)
             diagnostic_manifest_hash = dman.get("manifest_hash")
+        elif self.replan_smoke5:
+            subset_kind = "replan_smoke5"
+            man = self._replan_smoke5_manifest or load_replan_smoke5_manifest(self.root)
+            subset_manifest_hash = man.get("manifest_sha256")
+            subset_ordered_id_hash = man.get("ordered_task_ids_hash")
+            replan_smoke5_manifest_hash = man.get("manifest_sha256")
         elif self.diagnostic20_replan:
             subset_kind = "diagnostic20_replan"
             man = getattr(self, "_diagnostic20_eea_manifest", None) or load_diagnostic20_eea_manifest(
@@ -909,10 +978,12 @@ class UnifiedHkPeFinLiteRunner:
             "subset_ordered_id_hash": subset_ordered_id_hash,
             "diagnostic_manifest_hash": diagnostic_manifest_hash,
             "smoke5_manifest_hash": smoke5_manifest_hash,
+            "replan_smoke5_manifest_hash": replan_smoke5_manifest_hash,
             "diagnostic12": self.diagnostic12,
             "smoke5": self.smoke5,
             "diagnostic20_eea": self.diagnostic20_eea,
             "diagnostic20_replan": self.diagnostic20_replan,
+            "replan_smoke5": self.replan_smoke5,
             "eea_enabled": self.eea_enabled,
             "replan_enabled": self.replan_enabled,
             "protocol_version": self.protocol_version,
@@ -974,6 +1045,7 @@ class UnifiedHkPeFinLiteRunner:
                         or self.smoke5
                         or self.diagnostic20_eea
                         or self.diagnostic20_replan
+                        or self.replan_smoke5
                     )
                     and self.dry_run
                 ),
@@ -1579,6 +1651,7 @@ class UnifiedHkPeFinLiteRunner:
             print(f"smoke5={self.smoke5}")
             print(f"diagnostic20_eea={self.diagnostic20_eea}")
             print(f"diagnostic20_replan={self.diagnostic20_replan}")
+            print(f"replan_smoke5={self.replan_smoke5}")
             print(f"replan_enabled={self.replan_enabled}")
             print(f"question_count={run_meta['question_count']}")
             print(f"capability_profile_hash={run_meta['capability_profile_hash']}")

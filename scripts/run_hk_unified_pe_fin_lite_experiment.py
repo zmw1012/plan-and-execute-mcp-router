@@ -60,8 +60,16 @@ def parse_args() -> argparse.Namespace:
         "--diagnostic20-replan",
         action="store_true",
         help=(
-            "Run PE-Fin RePlan v1 on frozen Diagnostic-20 "
+            "Run PE-Fin RePlan on frozen Diagnostic-20 "
             "(post-hoc exploratory; NOT formal accuracy; separate from EEA-only)"
+        ),
+    )
+    p.add_argument(
+        "--replan-smoke5",
+        action="store_true",
+        help=(
+            "Run PE-Fin RePlan live-engineering Smoke-5 "
+            "(NOT accuracy; cannot replace Diagnostic-20 / HK-155)"
         ),
     )
     p.add_argument(
@@ -73,7 +81,7 @@ def parse_args() -> argparse.Namespace:
         "--replan",
         action="store_true",
         help=(
-            "Enable PE-Fin RePlan v1 (Planner→Execute-one→Replanner loop; "
+            "Enable PE-Fin RePlan (Planner→Execute-one→Replanner loop; "
             "post-hoc exploratory; implies EEA)"
         ),
     )
@@ -134,9 +142,19 @@ def main() -> None:
         raise SystemExit(
             "Cannot combine --diagnostic20-replan with diagnostic12/smoke5"
         )
+    if args.replan_smoke5 and (
+        args.diagnostic12 or args.smoke5 or args.diagnostic20_eea
+    ):
+        raise SystemExit(
+            "Cannot combine --replan-smoke5 with diagnostic12/smoke5/diagnostic20-eea"
+        )
     if args.diagnostic20_eea and args.diagnostic20_replan:
         raise SystemExit(
             "Cannot combine --diagnostic20-eea with --diagnostic20-replan"
+        )
+    if args.diagnostic20_replan and args.replan_smoke5:
+        raise SystemExit(
+            "Cannot combine --diagnostic20-replan with --replan-smoke5"
         )
 
     if args.output_dir:
@@ -159,8 +177,17 @@ def main() -> None:
         smoke5=args.smoke5,
         diagnostic20_eea=args.diagnostic20_eea,
         diagnostic20_replan=args.diagnostic20_replan,
-        eea_enabled=bool(args.eea or args.diagnostic20_eea or args.replan or args.diagnostic20_replan),
-        replan_enabled=bool(args.replan or args.diagnostic20_replan),
+        replan_smoke5=args.replan_smoke5,
+        eea_enabled=bool(
+            args.eea
+            or args.diagnostic20_eea
+            or args.replan
+            or args.diagnostic20_replan
+            or args.replan_smoke5
+        ),
+        replan_enabled=bool(
+            args.replan or args.diagnostic20_replan or args.replan_smoke5
+        ),
         ids=parse_ids(args.ids),
         max_tasks=args.max_tasks,
         resume=args.resume,
@@ -193,10 +220,10 @@ def main() -> None:
         return
 
     if not args.dry_run and not args.mock and not args.require_complete_index:
-        if args.smoke5 or args.diagnostic12:
+        if args.smoke5 or args.diagnostic12 or args.replan_smoke5:
             raise SystemExit(
-                "Real Smoke-5 / Diagnostic-12 requires --require-complete-index "
-                "(build with --build-index-only first)."
+                "Real Smoke-5 / Diagnostic-12 / RePlan Smoke-5 requires "
+                "--require-complete-index (build with --build-index-only first)."
             )
 
     runner.run()
