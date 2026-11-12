@@ -106,23 +106,23 @@ def test_r5_and_identity_v1_3():
     assert retrieval_formula_hash() == R5_HASH
     assert RETRIEVAL_TOP_K == 5 and DESCRIBE_N == 3
     assert PE_FIN_REPLAN_CONDITION == "pe_fin_replan"
-    assert PE_FIN_REPLAN_METHOD_VERSION == "pe_fin_replan_v1_3"
-    assert PE_FIN_REPLAN_PROTOCOL_VERSION == "planner_executor_replanner_contract_v3"
+    assert PE_FIN_REPLAN_METHOD_VERSION == "pe_fin_replan_v1_4"
+    assert PE_FIN_REPLAN_PROTOCOL_VERSION == "planner_executor_replanner_contract_v4"
     assert PE_FIN_REPLAN_ARCHITECTURE == "plan_execute_replan"
-    assert REPLAN_SCHEMA_VERSION == "pe_fin_replan_v1_3"
+    assert REPLAN_SCHEMA_VERSION == "pe_fin_replan_v1_4"
     assert DEFAULT_BUDGETS["max_total_llm_calls_per_task"] == 16
     assert DEFAULT_BUDGETS["max_execution_rounds"] == 7
     assert DEFAULT_BUDGETS["max_replan_rounds"] == 7
     assert DEFAULT_BUDGETS["max_total_mcp_invocations"] == 8
     assert LOOP_POLICY["decision_reason_optional"] is True
     ident = replan_protocol_identity()
-    assert ident["replanner_schema_version"] == "pe_fin_replan_v1_3"
+    assert ident["replanner_schema_version"] == "pe_fin_replan_v1_4"
     assert ident["retrieval_formula_hash"] == R5_HASH
 
 
 def test_plan_and_response_without_decision_reason_valid():
     plan = {
-        "schema_version": "pe_fin_replan_v1_3",
+        "schema_version": "pe_fin_replan_v1_4",
         "action": "plan",
         "remaining_steps": [_step()],
     }
@@ -132,7 +132,7 @@ def test_plan_and_response_without_decision_reason_valid():
     assert obj.get("decision_reason") is None
 
     resp = {
-        "schema_version": "pe_fin_replan_v1_3",
+        "schema_version": "pe_fin_replan_v1_4",
         "action": "response",
         "response": {
             "completion": "answered",
@@ -148,7 +148,7 @@ def test_plan_and_response_without_decision_reason_valid():
 
 def test_decision_reason_present_is_preserved():
     plan = {
-        "schema_version": "pe_fin_replan_v1_3",
+        "schema_version": "pe_fin_replan_v1_4",
         "action": "plan",
         "decision_reason": "keep going",
         "remaining_steps": [],
@@ -202,12 +202,12 @@ def test_repair_message_contains_full_template_and_round7_response_only():
 
 def test_live_shaped_outputs_without_decision_reason_parse():
     live_plan = {
-        "schema_version": "pe_fin_replan_v1_3",
+        "schema_version": "pe_fin_replan_v1_4",
         "action": "plan",
         "remaining_steps": [_step("s2")],
     }
     live_resp = {
-        "schema_version": "pe_fin_replan_v1_3",
+        "schema_version": "pe_fin_replan_v1_4",
         "action": "response",
         "response": {
             "completion": "insufficient_evidence",
@@ -223,7 +223,7 @@ def test_live_shaped_outputs_without_decision_reason_parse():
 
 def test_round7_rejects_plan_even_without_decision_reason():
     plan = {
-        "schema_version": "pe_fin_replan_v1_3",
+        "schema_version": "pe_fin_replan_v1_4",
         "action": "plan",
         "remaining_steps": [],
     }
@@ -235,7 +235,7 @@ def test_banned_clarification_fields_still_rejected():
     with pytest.raises(SchemaValidationError):
         validate_replanner_payload(
             {
-                "schema_version": "pe_fin_replan_v1_3",
+                "schema_version": "pe_fin_replan_v1_4",
                 "action": "response",
                 "response": {
                     "completion": "answered",
@@ -289,7 +289,7 @@ def test_transient_urlerror_retry_success_counts_budget():
 
     good = json.dumps(
         {
-            "schema_version": "pe_fin_replan_v1_3",
+            "schema_version": "pe_fin_replan_v1_4",
             "action": "response",
             "response": {
                 "completion": "answered",
@@ -384,7 +384,7 @@ def test_observability_fields_on_success_parse():
 
     good = json.dumps(
         {
-            "schema_version": "pe_fin_replan_v1_3",
+            "schema_version": "pe_fin_replan_v1_4",
             "action": "plan",
             "remaining_steps": [],
         }
@@ -410,20 +410,20 @@ def test_observability_fields_on_success_parse():
 
 
 def test_templates_exported_match_schema_version():
-    assert PLAN_TEMPLATE["schema_version"] == "pe_fin_replan_v1_3"
-    assert RESPONSE_ANSWERED_TEMPLATE["schema_version"] == "pe_fin_replan_v1_3"
+    assert PLAN_TEMPLATE["schema_version"] == "pe_fin_replan_v1_4"
+    assert RESPONSE_ANSWERED_TEMPLATE["schema_version"] == "pe_fin_replan_v1_4"
     assert RESPONSE_INSUFFICIENT_TEMPLATE["response"]["completion"] == (
         "insufficient_evidence"
     )
 
 
-def test_runner_forces_v1_3_identity():
+def test_runner_forces_v1_4_identity():
     from hk_equity_mcp.experiment.unified_pe_fin_lite_runner import (
         UnifiedHkPeFinLiteRunner,
     )
 
     runner = UnifiedHkPeFinLiteRunner(
-        output_dir=ROOT / "outputs" / "_replan_identity_tmp_v13",
+        output_dir=ROOT / "outputs" / "_replan_identity_tmp_v14",
         split="development",
         replan_enabled=True,
         dry_run=True,
@@ -431,7 +431,7 @@ def test_runner_forces_v1_3_identity():
         allow_dirty=True,
         root=ROOT,
     )
-    assert runner.method_version == "pe_fin_replan_v1_3"
-    assert runner.protocol_version == "planner_executor_replanner_contract_v3"
+    assert runner.method_version == "pe_fin_replan_v1_4"
+    assert runner.protocol_version == "planner_executor_replanner_contract_v4"
     assert runner.limits["max_total_llm_calls_per_task"] == 16
     assert runner.limits["max_execution_rounds"] == 7

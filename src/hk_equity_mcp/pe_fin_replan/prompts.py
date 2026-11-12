@@ -6,6 +6,11 @@ import hashlib
 import json
 from typing import Any, Dict
 
+from hk_equity_mcp.pe_fin_lite.output_vocabulary import (
+    CANONICAL_OUTPUT_FIELDS,
+    SCOPE_CONSTRAINT_KEYS,
+)
+from hk_equity_mcp.pe_fin_lite.schemas import STEP_DOMAINS
 from hk_equity_mcp.pe_fin_replan.schemas import (
     COMPUTE_STEP_TEMPLATE,
     PLAN_TEMPLATE,
@@ -27,13 +32,34 @@ _STEP_TEMPLATES_BLOCK = (
     + json.dumps(REASON_STEP_TEMPLATE, ensure_ascii=False, indent=2)
 )
 
+_CONTRACT_BLOCK = (
+    "Allowed domains: "
+    + ", ".join(STEP_DOMAINS)
+    + "\n"
+    "Allowed scope_constraints keys: "
+    + ", ".join(SCOPE_CONSTRAINT_KEYS)
+    + "\n"
+    "Canonical required_outputs field IDs: "
+    + ", ".join(CANONICAL_OUTPUT_FIELDS)
+    + "\n"
+    "Scope/domain contract:\n"
+    "- Use domain=disclosure (not filing).\n"
+    "- Put entity objects under scope_constraints.entity "
+    "(top-level entity may be string|null only).\n"
+    "- Use scope_constraints.entity.code (not ticker).\n"
+    "- Use scope_constraints.entity.name (not entity_name).\n"
+    "- Use scope_constraints.adjustment (not adjust).\n"
+)
+
 _TEMPLATES_BLOCK = (
     "You must return exactly one complete JSON object matching one template.\n\n"
     "Plan template:\n"
     + json.dumps(PLAN_TEMPLATE, ensure_ascii=False, indent=2)
     + "\n\n"
     + _STEP_TEMPLATES_BLOCK
-    + "\n\nResponse template (answered):\n"
+    + "\n\n"
+    + _CONTRACT_BLOCK
+    + "\nResponse template (answered):\n"
     + json.dumps(RESPONSE_ANSWERED_TEMPLATE, ensure_ascii=False, indent=2)
     + "\n\nResponse template (insufficient_evidence):\n"
     + json.dumps(RESPONSE_INSUFFICIENT_TEMPLATE, ensure_ascii=False, indent=2)
@@ -47,7 +73,7 @@ _FINAL_TEMPLATES_BLOCK = (
     + json.dumps(RESPONSE_INSUFFICIENT_TEMPLATE, ensure_ascii=False, indent=2)
 )
 
-REPLANNER_SYSTEM_PROMPT = f"""You are the PE-Fin Replanner (v1.3).
+REPLANNER_SYSTEM_PROMPT = f"""You are the PE-Fin Replanner (v1.4).
 {_TEMPLATES_BLOCK}
 
 Rules:
@@ -81,7 +107,7 @@ Rules:
 - Return JSON only. No markdown. No splice.
 """
 
-REPLANNER_PROMPT_VERSION = "pe_fin_replan_replanner_prompt_v1_3"
+REPLANNER_PROMPT_VERSION = "pe_fin_replan_replanner_prompt_v1_4"
 
 
 def replanner_prompt_hash() -> str:
@@ -96,6 +122,9 @@ def replanner_prompt_hash() -> str:
             "reason_step_template": REASON_STEP_TEMPLATE,
             "response_answered_template": RESPONSE_ANSWERED_TEMPLATE,
             "response_insufficient_template": RESPONSE_INSUFFICIENT_TEMPLATE,
+            "allowed_domains": list(STEP_DOMAINS),
+            "allowed_scope_keys": list(SCOPE_CONSTRAINT_KEYS),
+            "canonical_outputs": list(CANONICAL_OUTPUT_FIELDS),
         },
         sort_keys=True,
         separators=(",", ":"),
@@ -128,6 +157,9 @@ def render_replanner_user(
             "no_operation_id": True,
             "no_clarification_fields": True,
             "no_premature_insufficient": not response_only,
+            "allowed_domains": list(STEP_DOMAINS),
+            "allowed_scope_keys": list(SCOPE_CONSTRAINT_KEYS),
+            "canonical_outputs": list(CANONICAL_OUTPUT_FIELDS),
             "plan_step_required_fields": [
                 "id",
                 "type",

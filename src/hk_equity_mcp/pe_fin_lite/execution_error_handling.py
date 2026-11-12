@@ -215,7 +215,17 @@ def local_repair_arguments(
         if isinstance(prop, dict) and "default" in prop:
             default = prop["default"]
             # Refuse numeric defaults that look like answer-bearing metrics
-            if key in {"close", "volume", "revenue", "attributable_profit", "basic_eps", "eps"}:
+            if key in {
+                "open",
+                "high",
+                "low",
+                "close",
+                "volume",
+                "revenue",
+                "attributable_profit",
+                "basic_eps",
+                "eps",
+            }:
                 continue
             args[key] = default
             repairs.append(f"schema_default:{key}")

@@ -52,7 +52,7 @@ from hk_equity_mcp.pe_fin_replan.plan_ops import (
 )
 from hk_equity_mcp.pe_fin_replan.replanner import run_replanner
 from hk_equity_mcp.pe_fin_replan.schemas import map_completion_to_predicted_status
-from hk_equity_mcp.pe_fin_replan.state import PlanExecuteState, failed_signature
+from hk_equity_mcp.pe_fin_replan.state import PlanExecuteState
 
 
 def _merge_usage(a: Dict[str, Any], b: Dict[str, Any]) -> Dict[str, Any]:
@@ -141,21 +141,41 @@ class PeFinReplanAgent:
                 max_tokens=self.max_tokens,
                 use_mock_binder=self._use_mock_binder,
                 eea_enabled=True,
+                invocation_guard=state.invocation_guard,
             )
             usage = dict(out.get("usage") or {})
             funnel = out.get("funnel")
             result = out["step_result"]
-            # Record failed signatures from invoke map
-            gw = (funnel or {}).get("invoke_gateway_success") or {}
+            # Keep legacy counter in sync with guard signatures.
+            state.failed_signatures = set(state.invocation_guard.signatures)
+            # If EEA classified a blockable failure but observe missed it, record now.
+            eea_cls = (
+                result.get("execution_failure_class")
+                or ((funnel or {}).get("eea_execution") or {}).get(
+                    "execution_failure_class"
+                )
+            )
             primary = (funnel or {}).get("primary") or {}
-            for oid in (funnel or {}).get("invoked_operations") or []:
-                if gw.get(oid) is False:
-                    args = primary.get("arguments") if oid == primary.get("operation_id") else (
-                        ((funnel or {}).get("fallback") or {}).get("arguments")
+            if eea_cls and primary.get("operation_id"):
+                from hk_equity_mcp.pe_fin_replan.failed_invocation import (
+                    classify_blockable_failure,
+                )
+
+                mapped = classify_blockable_failure(
+                    error=str(result.get("failure_reason") or ""),
+                    eea_failure_class=str(eea_cls),
+                    success=False,
+                )
+                if mapped:
+                    state.invocation_guard.record_failure(
+                        operation_id=str(primary.get("operation_id")),
+                        arguments=primary.get("arguments")
+                        if isinstance(primary.get("arguments"), dict)
+                        else {},
+                        failure_class=mapped,
+                        error=str(result.get("failure_reason") or ""),
                     )
-                    state.failed_signatures.add(
-                        failed_signature(str(oid), args if isinstance(args, dict) else {})
-                    )
+                    state.failed_signatures = set(state.invocation_guard.signatures)
             ok = retrieve_step_succeeded(result)
         elif stype == "compute":
             out = execute_compute_step(
@@ -678,7 +698,8 @@ class PeFinReplanAgent:
             "early_answer_count": early_answer_count,
             "recovery_attempts": recovery_attempts,
             "recovery_successes": recovery_successes,
-            "failed_signature_blocks": len(state.failed_signatures),
+            "failed_signature_blocks": len(state.invocation_guard.signatures),
+            "signature_blocked_count": state.invocation_guard.signature_blocked_count,
             "no_progress_rounds": state.no_progress_round_count,
             "final_response_source": state.final_response_source,
             "stopping_reason": state.stopping_reason,

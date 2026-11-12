@@ -123,6 +123,9 @@ def extract_values_from_envelope(
                 break
             # Light aliases
             aliases = {
+                "open": ("open", "Open", "开盘"),
+                "high": ("high", "High", "最高"),
+                "low": ("low", "Low", "最低"),
                 "close": ("close", "Close", "收盘"),
                 "trade_date": ("trade_date", "date", "日期"),
                 "local_key": ("local_key", "localKey"),

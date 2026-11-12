@@ -1,12 +1,14 @@
-"""Final-response grounding validator — pe_fin_replan_grounding_v2.
+"""Final-response grounding validator — pe_fin_replan_grounding_v3.
 
-Tokenize before numeric checks. Use Evidence Store provenance. Allow
-deterministic unit scaling / display rounding only when units are explicit
-or provenance records a reliable unit. Fail closed for question-only targets.
+Tokenize before numeric checks (natural-language dates, ISO, FY, units).
+Use Evidence Store provenance. Allow deterministic unit scaling / display
+rounding only when units are explicit or provenance records a reliable unit.
+Fail closed for question-only targets.
 """
 
 from __future__ import annotations
 
+import calendar
 import hashlib
 import json
 import math
@@ -17,7 +19,7 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 from hk_equity_mcp.pe_fin_lite.evidence_acceptance_eea import forbid_question_target_as_observed
 from hk_equity_mcp.pe_fin_replan.plan_ops import select_one_ready_step
 
-GROUNDING_CONTRACT_VERSION = "pe_fin_replan_grounding_v2"
+GROUNDING_CONTRACT_VERSION = "pe_fin_replan_grounding_v3"
 
 # Half-up display rounding: relative tolerance for scaled comparisons.
 _REL_TOL = 5e-4
@@ -98,7 +100,9 @@ def grounding_contract_hash() -> str:
             ],
             "rules": [
                 "tokenize_before_numeric",
+                "natural_language_date_before_iso_year_plain",
                 "iso_date_not_split",
+                "invalid_calendar_date_rejected",
                 "context_date_year_ticker_from_scope_or_evidence",
                 "compare_canonical_numeric",
                 "unit_scale_only_if_explicit_or_provenance_unit",
@@ -107,11 +111,79 @@ def grounding_contract_hash() -> str:
                 "reject_question_only_answer_targets",
                 "no_arbitrary_approx_collision",
             ],
+            "natural_date_formats": [
+                "31 March 2026",
+                "March 31, 2026",
+                "31 Mar 2026",
+                "Mar 31, 2026",
+            ],
         },
         sort_keys=True,
         separators=(",", ":"),
     )
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
+_MONTHS = {
+    "january": 1,
+    "jan": 1,
+    "february": 2,
+    "feb": 2,
+    "march": 3,
+    "mar": 3,
+    "april": 4,
+    "apr": 4,
+    "may": 5,
+    "june": 6,
+    "jun": 6,
+    "july": 7,
+    "jul": 7,
+    "august": 8,
+    "aug": 8,
+    "september": 9,
+    "sep": 9,
+    "sept": 9,
+    "october": 10,
+    "oct": 10,
+    "november": 11,
+    "nov": 11,
+    "december": 12,
+    "dec": 12,
+}
+
+# 31 March 2026 / 31 Mar 2026
+_NAT_DMY = re.compile(
+    r"(?i)(?<!\d)(\d{1,2})\s+"
+    r"(January|February|March|April|May|June|July|August|September|October|November|December|"
+    r"Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\.?,?\s+"
+    r"((?:19|20)\d{2})(?!\d)"
+)
+# March 31, 2026 / Mar 31, 2026
+_NAT_MDY = re.compile(
+    r"(?i)(?<!\w)(January|February|March|April|May|June|July|August|September|October|November|December|"
+    r"Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\.?\s+"
+    r"(\d{1,2}),?\s+((?:19|20)\d{2})(?!\d)"
+)
+
+
+def _valid_ymd(y: int, m: int, d: int) -> bool:
+    if m < 1 or m > 12:
+        return False
+    last = calendar.monthrange(y, m)[1]
+    return 1 <= d <= last
+
+
+def _parse_natural_date_match(day: str, month: str, year: str) -> Optional[str]:
+    mo = _MONTHS.get(month.strip(".").lower())
+    if mo is None:
+        return None
+    try:
+        y, d = int(year), int(day)
+    except ValueError:
+        return None
+    if not _valid_ymd(y, mo, d):
+        return None
+    return f"{y:04d}-{mo:02d}-{d:02d}"
 
 
 def _parse_number_token(raw: str) -> Optional[float]:
@@ -153,17 +225,47 @@ def _tokenize_answer(text: str) -> Tuple[List[Dict[str, Any]], str]:
         nonlocal work
         work = work[:start] + (" " * (end - start)) + work[end:]
 
-    # ISO dates first — never split into year/month/day fragments.
+    # Natural-language dates BEFORE ISO/year/plain so day/year are not re-checked.
+    for pattern, order in ((_NAT_DMY, "dmy"), (_NAT_MDY, "mdy")):
+        for m in list(pattern.finditer(work)):
+            if order == "dmy":
+                iso = _parse_natural_date_match(m.group(1), m.group(2), m.group(3))
+            else:
+                iso = _parse_natural_date_match(m.group(2), m.group(1), m.group(3))
+            if iso is None:
+                tokens.append(
+                    {
+                        "kind": "invalid_date",
+                        "raw": m.group(0),
+                        "value": None,
+                    }
+                )
+            else:
+                tokens.append(
+                    {
+                        "kind": "iso_date",
+                        "raw": m.group(0),
+                        "value": iso,
+                        "year": int(iso[:4]),
+                        "natural_language": True,
+                    }
+                )
+            _blank(m.start(), m.end())
+
+    # ISO dates — never split into year/month/day fragments.
     for m in list(_ISO_DATE.finditer(work)):
         y, mo, d = m.group(1), m.group(2), m.group(3)
-        tokens.append(
-            {
-                "kind": "iso_date",
-                "raw": m.group(0),
-                "value": f"{y}-{mo}-{d}",
-                "year": int(y),
-            }
-        )
+        if not _valid_ymd(int(y), int(mo), int(d)):
+            tokens.append({"kind": "invalid_date", "raw": m.group(0), "value": None})
+        else:
+            tokens.append(
+                {
+                    "kind": "iso_date",
+                    "raw": m.group(0),
+                    "value": f"{y}-{mo}-{d}",
+                    "year": int(y),
+                }
+            )
         _blank(m.start(), m.end())
 
     for m in list(_FY.finditer(work)):
@@ -428,15 +530,25 @@ def _context_pool(
     tickers: Set[str] = set()
     fiscals: Set[int] = set()
 
-    for m in _ISO_DATE.finditer(question or ""):
+    q = question or ""
+    for pattern, order in ((_NAT_DMY, "dmy"), (_NAT_MDY, "mdy")):
+        for m in pattern.finditer(q):
+            if order == "dmy":
+                iso = _parse_natural_date_match(m.group(1), m.group(2), m.group(3))
+            else:
+                iso = _parse_natural_date_match(m.group(2), m.group(1), m.group(3))
+            if iso:
+                dates.add(iso)
+                years.add(int(iso[:4]))
+    for m in _ISO_DATE.finditer(q):
         dates.add(f"{m.group(1)}-{m.group(2)}-{m.group(3)}")
         years.add(int(m.group(1)))
-    for m in _FY.finditer(question or ""):
+    for m in _FY.finditer(q):
         fiscals.add(int(m.group(1)))
         years.add(int(m.group(1)))
-    for m in _YEAR.finditer(question or ""):
+    for m in _YEAR.finditer(q):
         years.add(int(m.group(1)))
-    for m in _HK_CODE.finditer(question or ""):
+    for m in _HK_CODE.finditer(q):
         code = m.group(1)
         if not re.fullmatch(r"(?:19|20)\d{2}", code):
             tickers.add(code.zfill(5))
@@ -641,6 +753,10 @@ def validate_replanner_response(
 
     for tok in tokens:
         kind = tok["kind"]
+        if kind == "invalid_date":
+            reasons.append(f"invalid_date:{tok['raw']}")
+            classifications.append("ungrounded_answer_value")
+            continue
         if kind == "iso_date":
             if tok["value"] in ctx["dates"] or tok.get("year") in ctx["years"]:
                 classifications.append("context_date_ok")

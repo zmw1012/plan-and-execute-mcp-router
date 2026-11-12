@@ -1,4 +1,4 @@
-"""PE-Fin RePlan v1.3 — Planner → Execute-one-step → Replanner (contract fix).
+"""PE-Fin RePlan v1.4 — Planner → Execute-one-step → Replanner (contract fix).
 
 Post-hoc exploratory. Not the formal HK-155 primary result.
 Reuses PE-Fin Lite Planner + R5 + EEA; does not introduce LangGraph.
@@ -7,8 +7,8 @@ Reuses PE-Fin Lite Planner + R5 + EEA; does not introduce LangGraph.
 from __future__ import annotations
 
 PE_FIN_REPLAN_CONDITION = "pe_fin_replan"
-PE_FIN_REPLAN_METHOD_VERSION = "pe_fin_replan_v1_3"
-PE_FIN_REPLAN_PROTOCOL_VERSION = "planner_executor_replanner_contract_v3"
+PE_FIN_REPLAN_METHOD_VERSION = "pe_fin_replan_v1_4"
+PE_FIN_REPLAN_PROTOCOL_VERSION = "planner_executor_replanner_contract_v4"
 PE_FIN_REPLAN_ARCHITECTURE = "plan_execute_replan"
 
 REPLAN_FLAGS = {
@@ -27,8 +27,10 @@ REPLAN_FLAGS = {
     "round7_response_only": True,
     "decision_reason_optional": True,
     "replanner_transport_retry_once": True,
-    "step_canonicalizer_v1": True,
-    "grounding_v2": True,
+    "step_canonicalizer_v2": True,
+    "grounding_v3": True,
+    "ohlc_vocabulary_v2": True,
+    "failed_invocation_signature_v1": True,
 }
 
 __all__ = [

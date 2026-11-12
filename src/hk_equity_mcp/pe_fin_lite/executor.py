@@ -736,6 +736,7 @@ def execute_retrieve_step(
     max_tokens: int = 1024,
     use_mock_binder: bool = False,
     eea_enabled: bool = False,
+    invocation_guard: Any = None,
 ) -> Dict[str, Any]:
     funnel: Dict[str, Any] = {
         "step_id": step.get("id"),
@@ -748,7 +749,36 @@ def execute_retrieve_step(
         "fallback": None,
         "local_fallback": None,
         "invoked_operations": [],
+        "signature_blocks": [],
     }
+
+    def _guarded_invoke(oid: str, args: Dict[str, Any]) -> Dict[str, Any]:
+        if invocation_guard is not None:
+            blocked, reason = invocation_guard.is_blocked(oid, args)
+            if blocked:
+                invocation_guard.mark_blocked_attempt(
+                    operation_id=oid, arguments=args, reason=str(reason or "blocked")
+                )
+                funnel["signature_blocks"].append(
+                    {
+                        "operation_id": oid,
+                        "reason": reason,
+                        "step_id": step.get("id"),
+                    }
+                )
+                return invocation_guard.blocked_response(
+                    operation_id=oid, reason=str(reason or "blocked")
+                )
+        result = _invoke_with_budget(
+            resolver=resolver, budget=budget, operation_id=oid, arguments=args
+        )
+        if invocation_guard is not None:
+            invocation_guard.observe_invoke_result(
+                operation_id=oid,
+                arguments=args,
+                invoke_result=result if isinstance(result, dict) else {},
+            )
+        return result
 
     from hk_equity_mcp.pe_fin_lite.argument_grounding import (
         apply_grounding_to_step,
@@ -768,9 +798,7 @@ def execute_retrieve_step(
     # Disclosure composite workflow (fixed chain; still MCP-budgeted).
     if is_disclosure_composite_step(step):
         def _invoke(oid: str, args: Dict[str, Any]) -> Dict[str, Any]:
-            return _invoke_with_budget(
-                resolver=resolver, budget=budget, operation_id=oid, arguments=args
-            )
+            return _guarded_invoke(oid, args)
 
         def _describe(oid: str) -> Dict[str, Any]:
             return resolver.describe_operation(oid)
@@ -994,12 +1022,7 @@ def execute_retrieve_step(
     required_outputs = list(step.get("required_outputs") or [])
     budget.primary_selected += 1
     primary_args = dict(primary["arguments"] or {})
-    primary_invoke = _invoke_with_budget(
-        resolver=resolver,
-        budget=budget,
-        operation_id=primary["operation_id"],
-        arguments=primary_args,
-    )
+    primary_invoke = _guarded_invoke(primary["operation_id"], primary_args,)
     funnel["invoked_operations"].append(primary["operation_id"])
     result = _evaluate_invoke(
         invoke_result=primary_invoke,
@@ -1055,12 +1078,7 @@ def execute_retrieve_step(
 
         if should_transport_retry(failure_class):
             eea_obs["transport_retry_attempted"] = True
-            retry_invoke = _invoke_with_budget(
-                resolver=resolver,
-                budget=budget,
-                operation_id=primary["operation_id"],
-                arguments=primary_args,
-            )
+            retry_invoke = _guarded_invoke(primary["operation_id"], primary_args,)
             funnel["invoked_operations"].append(primary["operation_id"])
             result = _evaluate_invoke(
                 invoke_result=retry_invoke,
@@ -1099,12 +1117,7 @@ def execute_retrieve_step(
             eea_obs["local_repair_kind"] = repaired.get("local_repair_kind")
             if repaired.get("changed"):
                 primary_args = repaired["arguments"]
-                repair_invoke = _invoke_with_budget(
-                    resolver=resolver,
-                    budget=budget,
-                    operation_id=primary["operation_id"],
-                    arguments=primary_args,
-                )
+                repair_invoke = _guarded_invoke(primary["operation_id"], primary_args,)
                 funnel["invoked_operations"].append(primary["operation_id"])
                 result = _evaluate_invoke(
                     invoke_result=repair_invoke,
@@ -1155,12 +1168,7 @@ def execute_retrieve_step(
                 eea_obs["local_repair_kind"] = (
                     str(eea_obs.get("local_repair_kind") or "") + "+query_relax"
                 ).strip("+")
-                relax_invoke = _invoke_with_budget(
-                    resolver=resolver,
-                    budget=budget,
-                    operation_id=primary["operation_id"],
-                    arguments=args2,
-                )
+                relax_invoke = _guarded_invoke(primary["operation_id"], args2,)
                 funnel["invoked_operations"].append(primary["operation_id"])
                 result = _evaluate_invoke(
                     invoke_result=relax_invoke,
@@ -1205,12 +1213,7 @@ def execute_retrieve_step(
             budget.local_fallback_count += 1
             budget.fallback_used += 1
             eea_obs["fallback_attempted"] = True
-            fb_invoke = _invoke_with_budget(
-                resolver=resolver,
-                budget=budget,
-                operation_id=fallback["operation_id"],
-                arguments=fallback["arguments"],
-            )
+            fb_invoke = _guarded_invoke(fallback["operation_id"], fallback["arguments"],)
             funnel["invoked_operations"].append(fallback["operation_id"])
             fb_result = _evaluate_invoke(
                 invoke_result=fb_invoke,

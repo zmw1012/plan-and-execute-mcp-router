@@ -9,6 +9,10 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
 
 from hk_equity_mcp.pe_fin_lite.evidence_store import EvidenceStore
+from hk_equity_mcp.pe_fin_replan.failed_invocation import (
+    FailedInvocationGuard,
+    failed_signature,
+)
 from hk_equity_mcp.pe_fin_replan.identity import DEFAULT_BUDGETS
 
 
@@ -19,20 +23,6 @@ def plan_hash(plan: Optional[Dict[str, Any]]) -> Optional[str]:
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
 
-def failed_signature(operation_id: str, arguments: Optional[Dict[str, Any]]) -> str:
-    args = arguments or {}
-    # Normalize: sort keys, stringify values; drop empties.
-    norm = {str(k): args[k] for k in sorted(args) if args[k] not in (None,)}
-    blob = json.dumps(
-        {"operation_id": operation_id, "arguments": norm},
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-        default=str,
-    )
-    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
-
-
 @dataclass
 class PlanExecuteState:
     question: str
@@ -40,6 +30,9 @@ class PlanExecuteState:
     remaining_plan: List[Dict[str, Any]] = field(default_factory=list)
     past_steps: List[Dict[str, Any]] = field(default_factory=list)
     evidence_store: EvidenceStore = field(default_factory=EvidenceStore)
+    invocation_guard: FailedInvocationGuard = field(
+        default_factory=FailedInvocationGuard
+    )
     failed_signatures: Set[str] = field(default_factory=set)
     final_response: Optional[Dict[str, Any]] = None
 
@@ -119,7 +112,10 @@ class PlanExecuteState:
                     for r in store.compute_records
                 ],
             },
-            "failed_operation_signatures_n": len(self.failed_signatures),
+            "failed_operation_signatures_n": len(self.invocation_guard.signatures)
+            or len(self.failed_signatures),
+            "signature_blocked_count": self.invocation_guard.signature_blocked_count,
+            "blocked_invocation_keys_n": len(self.invocation_guard.blocked_keys),
             "answerability_latest": (
                 self.answerability_snapshots[-1]
                 if self.answerability_snapshots
@@ -159,7 +155,10 @@ class PlanExecuteState:
             "llm_calls": self.llm_calls,
             "mcp_calls": self.mcp_calls,
             "embedding_queries": self.embedding_queries,
-            "failed_signatures_n": len(self.failed_signatures),
+            "failed_signatures_n": len(self.invocation_guard.signatures)
+            or len(self.failed_signatures),
+            "signature_blocked_count": self.invocation_guard.signature_blocked_count,
+            "blocked_invocation_keys_n": len(self.invocation_guard.blocked_keys),
             "remaining_plan_history": list(self.remaining_plan_history),
             "replan_decisions": list(self.replan_decisions),
             "plan_diff_history": list(self.plan_diff_history),

@@ -13,14 +13,15 @@ from hk_equity_mcp.pe_fin_lite.schemas import (
     validate_against_schema,
 )
 from hk_equity_mcp.pe_fin_replan.step_canonicalizer import (
+    CanonicalizerConflictError,
     canonicalize_replanner_json_text,
     canonicalize_replanner_payload,
 )
 
-REPLAN_SCHEMA_VERSION = "pe_fin_replan_v1_3"
+REPLAN_SCHEMA_VERSION = "pe_fin_replan_v1_4"
 
 LOOP_POLICY = {
-    "version": "pe_fin_replan_loop_policy_v1_3",
+    "version": "pe_fin_replan_loop_policy_v1_4",
     "executor_one_step_per_round": True,
     "no_executor_to_executor_edge": True,
     "planner_exactly_once": True,
@@ -38,8 +39,28 @@ LOOP_POLICY = {
     "decision_reason_optional": True,
     "completion_enum": ["answered", "insufficient_evidence"],
     "one_transient_transport_retry": True,
-    "step_canonicalizer": "pe_fin_replan_step_canonicalizer_v1",
-    "grounding_contract": "pe_fin_replan_grounding_v2",
+    "step_canonicalizer": "pe_fin_replan_step_canonicalizer_v2",
+    "grounding_contract": "pe_fin_replan_grounding_v3",
+    "failed_invocation_policy": "pe_fin_replan_failed_invocation_v1",
+    "allowed_domains": [
+        "financial",
+        "market",
+        "disclosure",
+        "news",
+        "compute",
+        "general",
+    ],
+    "allowed_scope_keys": [
+        "entity",
+        "period",
+        "trade_date",
+        "from_date",
+        "to_date",
+        "metric_basis",
+        "adjustment",
+        "currency",
+        "title_keyword",
+    ],
 }
 
 _REPLAN_STEP = deepcopy(PLAN_STEP_SCHEMA)
@@ -122,12 +143,22 @@ RETRIEVE_STEP_TEMPLATE: Dict[str, Any] = {
     "type": "retrieve",
     "domain": "market",
     "objective": "retrieve the required market fields for the scoped entity/date",
-    "required_outputs": ["close", "trade_date", "currency"],
+    "required_outputs": ["open", "high", "low", "close", "trade_date", "currency"],
     "depends_on": [],
     "entity": None,
     "period": None,
     "date": None,
-    "scope_constraints": None,
+    "scope_constraints": {
+        "entity": {"name": None, "code": None},
+        "period": None,
+        "trade_date": None,
+        "from_date": None,
+        "to_date": None,
+        "metric_basis": None,
+        "adjustment": None,
+        "currency": None,
+        "title_keyword": None,
+    },
     "compute_spec": None,
     "workflow": None,
 }
@@ -305,6 +336,9 @@ def parse_replanner_output(
             obj, _canon_rules = canonicalize_replanner_payload(obj)
             validate_replanner_payload(obj, response_only=response_only)
             return normalize_decision_reason(obj), None, None
+        except CanonicalizerConflictError as exc:
+            last_err = f"canonicalizer_conflict:{exc}"
+            continue
         except SchemaValidationError as exc:
             last_err = str(exc)
             continue

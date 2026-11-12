@@ -91,12 +91,12 @@ def test_identity_v1_3_unchanged_architecture_budgets_r5():
     )
 
     assert PE_FIN_REPLAN_CONDITION == "pe_fin_replan"
-    assert PE_FIN_REPLAN_METHOD_VERSION == "pe_fin_replan_v1_3"
-    assert PE_FIN_REPLAN_PROTOCOL_VERSION == "planner_executor_replanner_contract_v3"
+    assert PE_FIN_REPLAN_METHOD_VERSION == "pe_fin_replan_v1_4"
+    assert PE_FIN_REPLAN_PROTOCOL_VERSION == "planner_executor_replanner_contract_v4"
     assert PE_FIN_REPLAN_ARCHITECTURE == "plan_execute_replan"
-    assert REPLAN_SCHEMA_VERSION == "pe_fin_replan_v1_3"
-    assert CANONICALIZER_VERSION == "pe_fin_replan_step_canonicalizer_v1"
-    assert GROUNDING_CONTRACT_VERSION == "pe_fin_replan_grounding_v2"
+    assert REPLAN_SCHEMA_VERSION == "pe_fin_replan_v1_4"
+    assert CANONICALIZER_VERSION == "pe_fin_replan_step_canonicalizer_v2"
+    assert GROUNDING_CONTRACT_VERSION == "pe_fin_replan_grounding_v3"
     assert DEFAULT_BUDGETS["max_total_llm_calls_per_task"] == 16
     assert DEFAULT_BUDGETS["max_execution_rounds"] == 7
     assert DEFAULT_BUDGETS["max_total_mcp_invocations"] == 8

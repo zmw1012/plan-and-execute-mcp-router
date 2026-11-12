@@ -1,4 +1,4 @@
-"""Identity hashes for PE-Fin RePlan v1.3 (separate from Lite Planner identity)."""
+"""Identity hashes for PE-Fin RePlan v1.4 (separate from Lite Planner identity)."""
 
 from __future__ import annotations
 
@@ -65,11 +65,19 @@ def budget_identity_hash(budgets: Dict[str, Any] | None = None) -> str:
 
 def replan_protocol_identity() -> Dict[str, Any]:
     from hk_equity_mcp.pe_fin_lite.eea_identity import eea_protocol_hash
+    from hk_equity_mcp.pe_fin_lite.output_vocabulary import (
+        CANONICAL_OUTPUT_VOCABULARY_VERSION,
+        canonical_output_vocabulary_hash,
+    )
     from hk_equity_mcp.pe_fin_lite.retrieval_formula import (
         RETRIEVAL_FORMULA_NAME,
         retrieval_formula_hash,
     )
     from hk_equity_mcp.pe_fin_lite.prompts import pe_fin_lite_prompt_hash
+    from hk_equity_mcp.pe_fin_replan.failed_invocation import (
+        FAILED_INVOCATION_POLICY_VERSION,
+        failed_invocation_policy_hash,
+    )
     from hk_equity_mcp.pe_fin_replan.grounding import (
         GROUNDING_CONTRACT_VERSION,
         grounding_contract_hash,
@@ -94,6 +102,10 @@ def replan_protocol_identity() -> Dict[str, Any]:
         "step_canonicalizer_hash": step_canonicalizer_hash(),
         "grounding_contract_version": GROUNDING_CONTRACT_VERSION,
         "grounding_contract_hash": grounding_contract_hash(),
+        "canonical_output_vocabulary_version": CANONICAL_OUTPUT_VOCABULARY_VERSION,
+        "canonical_output_vocabulary_hash": canonical_output_vocabulary_hash(),
+        "failed_invocation_policy_version": FAILED_INVOCATION_POLICY_VERSION,
+        "failed_invocation_policy_hash": failed_invocation_policy_hash(),
         "loop_policy_hash": loop_policy_hash(),
         "budget_identity_hash": budget_identity_hash(),
         "llm_budget_rationale": dict(LLM_BUDGET_RATIONALE),

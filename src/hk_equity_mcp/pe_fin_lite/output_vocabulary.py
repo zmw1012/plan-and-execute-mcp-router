@@ -10,7 +10,7 @@ import hashlib
 import json
 from typing import Any, Dict, List, Sequence, Tuple
 
-CANONICAL_OUTPUT_VOCABULARY_VERSION = "hk155_canonical_outputs_v1"
+CANONICAL_OUTPUT_VOCABULARY_VERSION = "hk155_canonical_outputs_v2"
 
 # Fields the HK runtime adapters / disclosure chain already expose.
 CANONICAL_OUTPUT_FIELDS: Tuple[str, ...] = (
@@ -22,6 +22,9 @@ CANONICAL_OUTPUT_FIELDS: Tuple[str, ...] = (
     "revenue",
     "attributable_profit",
     "basic_eps",
+    "open",
+    "high",
+    "low",
     "close",
     "volume",
     "trade_date",
