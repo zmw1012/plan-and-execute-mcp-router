@@ -1,0 +1,143 @@
+{
+  "n_failed": 35,
+  "by_error_type": {
+    "replanner_grounding_failure": 24,
+    "null": 10,
+    "resource_limit_failure": 1
+  },
+  "by_stopping_reason": {
+    "ungrounded_replanner_response": 24,
+    "max_total_llm_calls": 7,
+    "resource_limit_failure": 1,
+    "two_consecutive_no_progress_rounds": 3
+  },
+  "taxonomy": {
+    "replanner_grounding_failure": {
+      "count": 24,
+      "task_ids": [
+        "L1-q160",
+        "L1-q533",
+        "L1-q604",
+        "L2-q640",
+        "L3-q108",
+        "L3-q302",
+        "L3-q267",
+        "L3-q29",
+        "L3-q264",
+        "L3-q224",
+        "L3-q180",
+        "L3-q229",
+        "L3-q172",
+        "L4-q57",
+        "L4-q37",
+        "L4-q100",
+        "L4-q92",
+        "L4-q31",
+        "L4-q71",
+        "L4-q7",
+        "L4-q54",
+        "L5-q40",
+        "L5-q91",
+        "L5-q27"
+      ]
+    },
+    "resource_limit_failure": {
+      "count": 8,
+      "task_ids": [
+        "L3-q195",
+        "L4-q4",
+        "L4-q48",
+        "L4-q96",
+        "L4-q52",
+        "L4-q83",
+        "L4-q35",
+        "L4-q36"
+      ]
+    },
+    "l5_incorrect_refusal_candidate": {
+      "count": 6,
+      "task_ids": [
+        "L5-q40",
+        "L5-q91",
+        "L5-q27",
+        "L5-q58",
+        "L5-q20",
+        "L5-q33"
+      ]
+    },
+    "loop_no_progress": {
+      "count": 3,
+      "task_ids": [
+        "L5-q58",
+        "L5-q20",
+        "L5-q33"
+      ]
+    }
+  },
+  "grounding_subtypes": {
+    "question_or_runtime_constraint_identifier": {
+      "count": 4,
+      "task_ids": [
+        "L1-q160",
+        "L1-q533",
+        "L2-q640",
+        "L4-q37"
+      ]
+    },
+    "unsupported_answer_numeric": {
+      "count": 23,
+      "task_ids": [
+        "L1-q533",
+        "L1-q604",
+        "L2-q640",
+        "L3-q108",
+        "L3-q302",
+        "L3-q267",
+        "L3-q29",
+        "L3-q264",
+        "L3-q224",
+        "L3-q180",
+        "L3-q229",
+        "L3-q172",
+        "L4-q57",
+        "L4-q37",
+        "L4-q100",
+        "L4-q92",
+        "L4-q31",
+        "L4-q71",
+        "L4-q7",
+        "L4-q54",
+        "L5-q40",
+        "L5-q91",
+        "L5-q27"
+      ]
+    },
+    "formatting_enumeration": {
+      "count": 21,
+      "task_ids": [
+        "L1-q604",
+        "L3-q108",
+        "L3-q302",
+        "L3-q267",
+        "L3-q29",
+        "L3-q264",
+        "L3-q224",
+        "L3-q180",
+        "L3-q229",
+        "L3-q172",
+        "L4-q57",
+        "L4-q37",
+        "L4-q100",
+        "L4-q92",
+        "L4-q31",
+        "L4-q71",
+        "L4-q7",
+        "L4-q54",
+        "L5-q40",
+        "L5-q91",
+        "L5-q27"
+      ]
+    }
+  },
+  "note": "Taxonomy is observational; must not drive method patches in this audit."
+}

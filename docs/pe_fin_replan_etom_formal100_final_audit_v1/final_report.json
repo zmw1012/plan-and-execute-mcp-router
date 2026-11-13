@@ -1,0 +1,30 @@
+{
+  "audit_version": "pe_fin_replan_etom_formal100_final_audit_v1",
+  "generated_at": "2026-11-13T10:06:26.583298+00:00",
+  "run_commit_expected": "9e0fb8ee1874ee7ef84c006d1c361ff7f231293b",
+  "run_commit_recorded": "9e0fb8ee1874ee7ef84c006d1c361ff7f231293b",
+  "condition": "pe_fin_replan_etom",
+  "method_version": "pe_fin_replan_etom_v1",
+  "protocol_version": "planner_executor_replanner_etom_seven_round_v1",
+  "evaluation_scope": "routing_only",
+  "raw_dir": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-pe-fin-replan-etom",
+  "identity_pass": true,
+  "completeness_pass": true,
+  "raw_unchanged": true,
+  "headline": {
+    "all_task_route_exact_match": 0.45,
+    "failures_as_zero_exact_match": 0.35,
+    "completed_only_exact_match_diagnostic": 0.5384615384615384,
+    "completed_only_not_overall": true,
+    "cross_condition_comparability_not_established": true
+  },
+  "interpretation": [
+    "Routing-only ETOM evaluation; 491 MCP servers are not actually executed for business data.",
+    "Measured: tool/server selection, multi-step route graphs, dependency ordering, L5 empty-route recognition.",
+    "L1/L2 stronger than L3/L4; L4 is the primary weakness under failures-as-zero.",
+    "Grounding validator caused many complete-method failures despite some correct routes.",
+    "Do not describe routing confirmation as real tool execution success.",
+    "Formal-100 is equal-level stratified 100, not an ETOM natural-distribution estimate.",
+    "Method is post-hoc exploratory transfer; not a pre-registered unseen held-out claim."
+  ]
+}

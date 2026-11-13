@@ -44,6 +44,17 @@ results/
 .cache/
 .python-version
 
+# Formal-100 raw accidentally written to repository root (output-dir incident).
+# Keep untracked; audit via docs/.../FORMAL_RUN_RAW_POINTER.json.
+/predictions.jsonl
+/run_metadata.json
+/grouped_results.json
+/grouped_results_failures_as_zero.json
+/per_task_metrics.csv
+/error_summary.json
+/retrieval_analysis.json
+/run.pid.json
+
 # Large or local data dumps (keep mock/ and .gitkeep)
 data/raw/
 data/private/

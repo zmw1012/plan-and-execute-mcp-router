@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from hk_equity_mcp.experiment.unified_pe_fin_replan_etom_runner import (  # noqa: E402
     EtomPeFinReplanRunnerError,
     UnifiedPeFinReplanEtomRunner,
+    resolve_output_dir,
 )
 from hk_equity_mcp.pe_fin_replan_etom.operation_embedding_index import (  # noqa: E402
     LiveEmbeddingGatedError,
@@ -125,11 +126,15 @@ def main(argv: list[str] | None = None) -> int:
         mode = "live"
 
     default_smoke_out = ROOT / "outputs" / "pe_fin_replan_etom_smoke5_v4"
-    output_dir = Path(args.output_dir)
-    if args.engineering_smoke5 and str(output_dir) == str(
+    try:
+        output_dir = resolve_output_dir(ROOT, args.output_dir)
+    except EtomPeFinReplanRunnerError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
+    if args.engineering_smoke5 and output_dir == (
         ROOT / "outputs" / "pe_fin_replan_etom_formal100_v1"
-    ):
-        output_dir = default_smoke_out
+    ).resolve():
+        output_dir = resolve_output_dir(ROOT, default_smoke_out)
 
     runner = UnifiedPeFinReplanEtomRunner(
         ROOT,

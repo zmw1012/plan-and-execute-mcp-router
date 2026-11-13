@@ -1,0 +1,97 @@
+{
+  "audit_version": "pe_fin_replan_etom_formal100_final_audit_v1",
+  "raw_dir": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-pe-fin-replan-etom",
+  "artifacts": {
+    "predictions.jsonl": {
+      "name": "predictions.jsonl",
+      "absolute_path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-pe-fin-replan-etom/predictions.jsonl",
+      "exists": true,
+      "bytes": 1354606,
+      "sha256_before": "ad8e845a286971a55c6b401127270829b3fcdc250c48f83911cb26b41377e149",
+      "rows": 100,
+      "sha256_after": "ad8e845a286971a55c6b401127270829b3fcdc250c48f83911cb26b41377e149",
+      "unchanged": true
+    },
+    "run_metadata.json": {
+      "name": "run_metadata.json",
+      "absolute_path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-pe-fin-replan-etom/run_metadata.json",
+      "exists": true,
+      "bytes": 132635,
+      "sha256_before": "335ad2cef27f214430f196714f9c96c514b1373bd6b91c413044d9be66a3b19d",
+      "rows": null,
+      "sha256_after": "335ad2cef27f214430f196714f9c96c514b1373bd6b91c413044d9be66a3b19d",
+      "unchanged": true
+    },
+    "grouped_results.json": {
+      "name": "grouped_results.json",
+      "absolute_path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-pe-fin-replan-etom/grouped_results.json",
+      "exists": true,
+      "bytes": 2540,
+      "sha256_before": "51f847bbbbbd0097d1d89880958b1f6b62a203c835653026275f6f3a8eabd443",
+      "rows": null,
+      "sha256_after": "51f847bbbbbd0097d1d89880958b1f6b62a203c835653026275f6f3a8eabd443",
+      "unchanged": true
+    },
+    "grouped_results_failures_as_zero.json": {
+      "name": "grouped_results_failures_as_zero.json",
+      "absolute_path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-pe-fin-replan-etom/grouped_results_failures_as_zero.json",
+      "exists": true,
+      "bytes": 2362,
+      "sha256_before": "eec96e68a8c7ce75e3ade0c272af532b0829195f41ef9def532a115e5a784d32",
+      "rows": null,
+      "sha256_after": "eec96e68a8c7ce75e3ade0c272af532b0829195f41ef9def532a115e5a784d32",
+      "unchanged": true
+    },
+    "per_task_metrics.csv": {
+      "name": "per_task_metrics.csv",
+      "absolute_path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-pe-fin-replan-etom/per_task_metrics.csv",
+      "exists": true,
+      "bytes": 20571,
+      "sha256_before": "471e606a7b9ecb732f2bc81465523374dffc7604888bd74e853b1bb399e79ef7",
+      "rows": 100,
+      "sha256_after": "471e606a7b9ecb732f2bc81465523374dffc7604888bd74e853b1bb399e79ef7",
+      "unchanged": true
+    },
+    "error_summary.json": {
+      "name": "error_summary.json",
+      "absolute_path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-pe-fin-replan-etom/error_summary.json",
+      "exists": true,
+      "bytes": 2084,
+      "sha256_before": "6c304083d7b2f586be5a015e5749dd8874431e24cef12e6ca566c3ed11754466",
+      "rows": null,
+      "sha256_after": "6c304083d7b2f586be5a015e5749dd8874431e24cef12e6ca566c3ed11754466",
+      "unchanged": true
+    },
+    "retrieval_analysis.json": {
+      "name": "retrieval_analysis.json",
+      "absolute_path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-pe-fin-replan-etom/retrieval_analysis.json",
+      "exists": true,
+      "bytes": 303,
+      "sha256_before": "aca58c6bb1cb7fff2f8f566dc6e7c756d3fab34ac7094d2af9d852d3951bed55",
+      "rows": null,
+      "sha256_after": "aca58c6bb1cb7fff2f8f566dc6e7c756d3fab34ac7094d2af9d852d3951bed55",
+      "unchanged": true
+    },
+    "run.pid.json": {
+      "name": "run.pid.json",
+      "absolute_path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-pe-fin-replan-etom/run.pid.json",
+      "exists": true,
+      "bytes": 19,
+      "sha256_before": "03545083e48c3bab0cbc34d65bb29ebc63cf1a91bd46a9ea0b7f26e0b402101f",
+      "rows": null,
+      "sha256_after": "03545083e48c3bab0cbc34d65bb29ebc63cf1a91bd46a9ea0b7f26e0b402101f",
+      "unchanged": true
+    },
+    "run.log": {
+      "name": "run.log",
+      "absolute_path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-pe-fin-replan-etom/run.log",
+      "exists": false,
+      "bytes": null,
+      "sha256_before": null,
+      "rows": null,
+      "note": "absent",
+      "sha256_after": null,
+      "unchanged": true
+    }
+  }
+}

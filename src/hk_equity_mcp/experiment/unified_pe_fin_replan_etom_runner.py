@@ -147,6 +147,30 @@ class LiveGateError(EtomPeFinReplanRunnerError):
     pass
 
 
+def resolve_output_dir(root: Path, output_dir: Path | str) -> Path:
+    """Resolve experiment output dir; fail closed on empty / '.' / repo-root paths.
+
+    Historical Formal-100 incident: ``--output-dir ''`` or ``'.'`` was accepted and
+    resolved to the repository root via ``Path('') -> Path('.')``. Future runs must
+    refuse that. Existing root raw artifacts are left untouched by this guard.
+    """
+    root_res = Path(root).resolve()
+    raw = "" if output_dir is None else str(output_dir).strip()
+    if raw in {"", ".", "./"}:
+        raise EtomPeFinReplanRunnerError(
+            "refusing empty/'.' --output-dir (would resolve to the repository root; "
+            "pass an explicit subdirectory such as outputs/pe_fin_replan_etom_formal100_v1)"
+        )
+    out = Path(raw)
+    resolved = out.resolve() if out.is_absolute() else (root_res / out).resolve()
+    if resolved == root_res:
+        raise EtomPeFinReplanRunnerError(
+            f"refusing output_dir={raw!r} because it resolves to the repository root "
+            f"({root_res}); choose a dedicated subdirectory"
+        )
+    return resolved
+
+
 # ---------------------------------------------------------------------------
 # io helpers
 # ---------------------------------------------------------------------------
@@ -289,8 +313,7 @@ class UnifiedPeFinReplanEtomRunner:
         if (fixture_registry_payload or fixture_tasks) and mode != "mock":
             raise EtomPeFinReplanRunnerError("fixture catalogs/tasks are mock-only")
         self.root = Path(root).resolve()
-        out = Path(output_dir)
-        self.output_dir = out if out.is_absolute() else (self.root / out)
+        self.output_dir = resolve_output_dir(self.root, output_dir)
         self.mode = mode
         self.engineering_smoke5 = bool(engineering_smoke5)
         # Smoke-5 is never a formal100 primary/accuracy run.
