@@ -32,10 +32,11 @@ from hk_equity_mcp.experiment.unified_pe_fin_replan_etom_runner import (
 ROOT = Path(__file__).resolve().parents[1]
 SMOKE_V2 = ROOT / "outputs" / "pe_fin_replan_etom_smoke5_v2"
 
-# Frozen before this provider fix (must not drift when we change provider only).
-FROZEN_PROMPT_HASH = "ad55224d319003b9e0770ff7d54505109b29f64e0c83ce5b3be7ff642a7c7a22"
-FROZEN_SCHEMA_SET_HASH = "84d9fb0bcea9dada38c45ea57cb147f901ced75c69b563a43d3b2756c7bb38bb"
-FROZEN_REPLANNER_SCHEMA_HASH = "5e4461c283a578ac792f0f2afc5a2bdf940cc12a5363711d707b8ae00837d377"
+# Frozen after required_outputs maxLength 64→128 (plan/schema/prompt set v2).
+# R5 formula hash must not drift with this bound-only schema/prompt bump.
+FROZEN_PROMPT_HASH = "e16de9f5d6169562354baa5504560a03ce1d56a2ae8a80659711fa99de38fc45"
+FROZEN_SCHEMA_SET_HASH = "84227e688363fff6f7577d88f511f89fe76b04563062445c91b4b78cf1f26554"
+FROZEN_REPLANNER_SCHEMA_HASH = "4c9270b91ba519d462fe8e4b4c3c2dd34f4ac867b66e316697a1430bc73a1fe8"
 FROZEN_RETRIEVAL_FORMULA_HASH = "7414751814f6858a375d95da918921e3ee365dfc5b69cdaba0cee1bf9e1ecb3e"
 
 V2_RAW = {

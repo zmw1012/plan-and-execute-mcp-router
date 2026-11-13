@@ -241,6 +241,7 @@ def test_11_smoke_v3_raw_unchanged():
         "invalidated_engineering_smoke_due_to_etom_grounding_and_terminal_observability_defects"
         in text
     )
+    # Historical next-dir pointer at invalidation time (v3 → v4).
     assert "outputs/pe_fin_replan_etom_smoke5_v4" in text
 
 

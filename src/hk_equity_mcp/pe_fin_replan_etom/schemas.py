@@ -10,8 +10,10 @@ Design notes (see docs/pe_fin_replan_etom_v1/architecture.md):
   server categories (documentation-access, file-system, code-analysis,
   communication, database, search, ...) and from the verb distribution of
   public tool names; they do not encode task identities or gold tools.
-* ``required_outputs`` are FREE strings (short names of what a step must yield).
-  There is no HK canonical output enum.
+* ``required_outputs`` are FREE strings (short noun-phrase labels of what a step
+  must yield). There is no HK canonical output enum. Each item is bounded
+  (``REQUIRED_OUTPUT_ITEM_MAX_LENGTH``); overlength strings fail closed and
+  require full regeneration — never silent truncation.
 * Planner plans never contain ``operation_id``; tools are selected only through
   R5 retrieval + described-only Binder.
 * Binder returns ``primary`` plus an OPTIONAL ``fallback`` chosen only from
@@ -36,11 +38,11 @@ from hk_equity_mcp.pe_fin_lite.schemas import (
     validate_against_schema,
 )
 
-PLAN_SCHEMA_VERSION = "pe_fin_replan_etom_plan_v1"
+PLAN_SCHEMA_VERSION = "pe_fin_replan_etom_plan_v2"
 BINDER_SCHEMA_VERSION = "pe_fin_replan_etom_binder_v1"
 REASON_SCHEMA_VERSION = "pe_fin_replan_etom_reason_v1"
 REPLAN_SCHEMA_VERSION = "pe_fin_replan_etom_v1"
-SCHEMA_SET_VERSION = "pe_fin_replan_etom_schema_set_v1"
+SCHEMA_SET_VERSION = "pe_fin_replan_etom_schema_set_v2"
 
 STEP_TYPES = ("retrieve", "compute", "reason")
 ETOM_DOMAINS = (
@@ -61,7 +63,9 @@ COMPLETIONS = ("answered", "insufficient_evidence")
 MAX_PLAN_STEPS = 6
 MAX_REMAINING_STEPS = 7
 OBJECTIVE_MAX_LENGTH = 480
-REQUIRED_OUTPUT_ITEM_MAX_LENGTH = 64
+# Was 64; Smoke-v4 L5-q68 planner_invalid_after_repair with actual=70.
+# Cross-domain free-text semantic labels; 128 remains a strict short bound.
+REQUIRED_OUTPUT_ITEM_MAX_LENGTH = 128
 COMPUTE_EXPRESSION_MAX_LENGTH = 240
 PLANNER_MAX_TOKENS = 4096
 
@@ -664,7 +668,10 @@ def format_repair_user_message(
             [
                 "Every step MUST contain id, type, domain, objective, required_outputs, depends_on.",
                 f"type must be one of {list(STEP_TYPES)}; domain must be one of {list(ETOM_DOMAINS)}.",
-                "required_outputs are short free-text strings. Do NOT include operation_id.",
+                "required_outputs items MUST be short noun phrases "
+                f"(max {REQUIRED_OUTPUT_ITEM_MAX_LENGTH} characters each). "
+                "Do NOT write full explanations, reasoning, or tool names. "
+                "Do NOT include operation_id.",
                 "Compute steps need compute_spec{expression, operand_refs, output_name} and depends_on.",
             ]
         )
@@ -786,7 +793,9 @@ def format_replanner_repair_message(
         f"Allowed actions: {allowed}\n"
         f"schema_version must be {REPLAN_SCHEMA_VERSION}.\n"
         f"Each PlanStep requires id, type, domain (one of {list(ETOM_DOMAINS)}), "
-        "objective, required_outputs (free strings), depends_on. Never emit operation_id.\n"
+        "objective, required_outputs (short noun phrases, "
+        f"max {REQUIRED_OUTPUT_ITEM_MAX_LENGTH} chars each; no explanations/tool names), "
+        "depends_on. Never emit operation_id.\n"
         "decision_reason is OPTIONAL (string|null).\n"
         "Disallowed response fields: status, clarification_needed, refusal_reason, "
         "clarification_question, limitations.\n"

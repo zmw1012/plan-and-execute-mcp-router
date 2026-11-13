@@ -18,12 +18,13 @@ from hk_equity_mcp.pe_fin_replan_etom.schemas import (
     PLANNER_PLAN_TEMPLATE,
     REASON_STEP_TEMPLATE,
     REPLAN_SCHEMA_VERSION,
+    REQUIRED_OUTPUT_ITEM_MAX_LENGTH,
     RESPONSE_ANSWERED_TEMPLATE,
     RESPONSE_INSUFFICIENT_TEMPLATE,
     RETRIEVE_STEP_TEMPLATE,
 )
 
-PROMPT_SET_VERSION = "pe_fin_replan_etom_prompt_set_v1"
+PROMPT_SET_VERSION = "pe_fin_replan_etom_prompt_set_v2"
 
 SYSTEM_PROMPT = """You are the PE-Fin RePlan-ETOM agent (Planner / Executor / Replanner).
 This is a tool-routing evaluation over a large external MCP tool catalog.
@@ -41,7 +42,9 @@ numbers), reason (summarize verified evidence).
 - Use the smallest plan that can satisfy the request (1-6 steps).
 - Never emit operation_id, tool names, or server names in the plan.
 - domain is a generic capability area, one of: """ + ", ".join(ETOM_DOMAINS) + """.
-- required_outputs are short free-text strings describing what the step must yield.
+- required_outputs are short free-text noun phrases describing what the step must
+  yield. Each item is at most """ + str(REQUIRED_OUTPUT_ITEM_MAX_LENGTH) + """ characters.
+  Do not write full explanations, reasoning text, or tool names in required_outputs.
 - A later step that needs an earlier result lists it in depends_on.
 - Put concrete values from the question (names, paths, urls, dates) into the step
   objective or scope_constraints; do not invent values.
@@ -68,6 +71,8 @@ Rules:
 - schema_version must be {REPLAN_SCHEMA_VERSION}; additionalProperties=false.
 - decision_reason is OPTIONAL (string or null).
 - remaining_steps use PlanStep fields id/type/domain/objective/required_outputs/depends_on.
+- required_outputs items MUST be short noun phrases (max {REQUIRED_OUTPUT_ITEM_MAX_LENGTH}
+  characters each); no full explanations, reasoning, or tool names.
 - domain is one of: {", ".join(ETOM_DOMAINS)}.
 - Never emit operation_id. Do not invent evidence or numbers.
 - Prefer continuing the plan while answer-bearing steps remain; prefer
@@ -211,6 +216,11 @@ def render_planner_user(
             "Return one JSON object with a steps array.",
             "Do not output operation_id, tool names, or server names.",
             "The question gives scope only; never fabricate observed values.",
+            (
+                "required_outputs items MUST be short noun phrases "
+                f"(max {REQUIRED_OUTPUT_ITEM_MAX_LENGTH} characters each); "
+                "no full explanations, reasoning, or tool names."
+            ),
         ],
     }
     return "Produce the plan as ONE complete JSON object.\n" + json.dumps(
