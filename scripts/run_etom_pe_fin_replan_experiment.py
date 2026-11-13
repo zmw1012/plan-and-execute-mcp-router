@@ -19,6 +19,32 @@ from hk_equity_mcp.pe_fin_replan_etom.operation_embedding_index import (  # noqa
 )
 
 
+def _print_compact(summary: dict) -> None:
+    print("PE-FIN-REPLAN ETOM RUN COMPLETE", flush=True)
+    for key in (
+        "mode",
+        "run_role",
+        "run_status",
+        "rows",
+        "completed",
+        "failed",
+        "exact_match",
+        "llm_calls",
+        "embedding_calls",
+        "routing_records",
+        "real_tool_executions",
+        "execution_scope",
+        "live_pass_claimed",
+        "complete_index_present",
+        "predictions",
+        "run_metadata",
+        "note",
+        "ok",
+    ):
+        if key in summary and summary[key] is not None:
+            print(f"{key}={summary[key]}", flush=True)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="PE-Fin RePlan ETOM experiment runner")
     parser.add_argument("--dry-run", action="store_true")
@@ -58,6 +84,16 @@ def main(argv: list[str] | None = None) -> int:
             "Never used for offline mock/dry-run."
         ),
     )
+    parser.add_argument(
+        "--print-result-json",
+        action="store_true",
+        help="Also print the machine-readable result object (default: compact summary only).",
+    )
+    parser.add_argument(
+        "--no-progress",
+        action="store_true",
+        help="Disable per-task progress lines.",
+    )
     args = parser.parse_args(argv)
 
     if args.engineering_smoke5 and args.formal100:
@@ -84,18 +120,15 @@ def main(argv: list[str] | None = None) -> int:
     elif args.build_index_only and args.mock_embeddings:
         mode = "mock"
     elif args.engineering_smoke5 and not args.build_index_only:
-        # Smoke live path (still dual-gated inside the runner).
         mode = "live"
     elif not (args.index_status or args.build_index_only or args.dry_run or args.mock):
-        # bare --formal100 implies future live path (gated inside runner)
         mode = "live"
 
-    default_smoke_out = ROOT / "outputs" / "pe_fin_replan_etom_smoke5_v1"
+    default_smoke_out = ROOT / "outputs" / "pe_fin_replan_etom_smoke5_v4"
     output_dir = Path(args.output_dir)
     if args.engineering_smoke5 and str(output_dir) == str(
         ROOT / "outputs" / "pe_fin_replan_etom_formal100_v1"
     ):
-        # Refuse default formal100 output dir for smoke (identity isolation).
         output_dir = default_smoke_out
 
     runner = UnifiedPeFinReplanEtomRunner(
@@ -114,6 +147,7 @@ def main(argv: list[str] | None = None) -> int:
         mock_embeddings=args.mock_embeddings or args.mock,
         max_tasks=5 if args.engineering_smoke5 else args.max_tasks,
         allow_live=args.allow_live_formal100,
+        progress=not args.no_progress,
     )
     try:
         result = runner.execute()
@@ -121,10 +155,36 @@ def main(argv: list[str] | None = None) -> int:
         print("ABORTED: run_status=aborted; rows preserved; resume with --resume", file=sys.stderr)
         return 130
     except (LiveEmbeddingGatedError, EtomPeFinReplanRunnerError) as exc:
-        # Fail closed with a readable message (offline scaffolding gates live paths).
         print(f"GATED: {exc}", file=sys.stderr)
         return 3
-    print(json_dumps(result))
+
+    # Default: compact human summary. Never dump the frozen 100-task lock JSON.
+    summary = dict(runner.last_compact_summary or {})
+    if not summary and isinstance(result, dict):
+        summary = {
+            "mode": result.get("mode") or result.get("run_mode") or mode,
+            "run_role": getattr(runner, "run_role", None),
+            "run_status": getattr(runner, "run_status", None) or result.get("run_status"),
+            "rows": result.get("n_rows") or len(result.get("task_ids") or []),
+            "live_pass_claimed": result.get("live_pass_claimed", False),
+            "execution_scope": result.get("execution_scope") or "routing_only",
+            "complete_index_present": result.get("complete_index_present"),
+            "predictions": str(Path(runner.output_dir) / "predictions.jsonl"),
+            "run_metadata": str(Path(runner.output_dir) / "run_metadata.json"),
+            "note": result.get("note") or result.get("warning"),
+        }
+    _print_compact(summary)
+
+    if args.print_result_json:
+        # Explicit opt-in only. Still scrub oversized nested lock blobs if present.
+        safe = dict(result) if isinstance(result, dict) else {"result": result}
+        if isinstance(safe.get("dataset_identity"), dict):
+            di = dict(safe["dataset_identity"])
+            di.pop("ordered_task_ids", None)
+            safe["dataset_identity"] = di
+        safe.pop("ordered_task_ids", None)
+        print(json_dumps(safe))
+
     return 0 if result.get("ok", True) is not False and runner.run_status != "aborted" else 2
 
 

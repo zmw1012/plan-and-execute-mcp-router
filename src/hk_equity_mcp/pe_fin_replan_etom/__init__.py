@@ -47,7 +47,8 @@ ETOM_FLAGS = {
     "no_hk_provider_adapters": True,
     "hk_provider_paths_disabled": True,
     "generic_etom_envelope_v1": True,
-    "generic_etom_grounding_v1": True,
+    "generic_etom_grounding_v1": False,
+    "generic_etom_grounding_v2": True,
 }
 
 # Alias kept for identity/resume imports.

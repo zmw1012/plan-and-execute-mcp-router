@@ -22,6 +22,7 @@ import csv
 import json
 import os
 import signal
+import sys
 import threading
 import traceback
 from datetime import datetime, timezone
@@ -256,6 +257,7 @@ class UnifiedPeFinReplanEtomRunner:
         allow_live: bool = False,
         allow_dirty: bool = False,
         engineering_smoke5: bool = False,
+        progress: bool = True,
         llm_override: Any = None,
         fixture_registry_payload: Optional[Dict[str, Any]] = None,
         fixture_tasks: Optional[Sequence[Dict[str, Any]]] = None,
@@ -297,9 +299,11 @@ class UnifiedPeFinReplanEtomRunner:
         self.allow_live = allow_live
         self.allow_dirty = allow_dirty
         self.llm_override = llm_override
+        self.progress = bool(progress)
         self.run_role = self._resolve_run_role()
         self.fixture_registry_payload = fixture_registry_payload
         self.fixture_tasks = list(fixture_tasks) if fixture_tasks else None
+        self.last_compact_summary: Dict[str, Any] = {}
         self.config_path = Path(config_path) if config_path else (
             self.root / "configs" / "pe_fin_replan_etom_formal100_v1.yaml"
         )
@@ -573,6 +577,7 @@ class UnifiedPeFinReplanEtomRunner:
             "schema_set_hash": protocol.get("schema_set_hash"),
             "replanner_schema_hash": protocol.get("replanner_schema_hash"),
             "grounding_contract_hash": protocol.get("grounding_contract_hash"),
+            "cli_output_contract_version": "pe_fin_replan_etom_cli_compact_v1",
             "catalog_registry_sha256": registry_sha,
             "operation_documents_sha256": documents_hash(specs) if specs is not None else None,
             "embedding_cache_namespace": EMBEDDING_CACHE_NAMESPACE,
@@ -912,6 +917,7 @@ class UnifiedPeFinReplanEtomRunner:
         )
         rows: List[Dict[str, Any]] = list(existing)
         run_status = "completed"
+        total = len(selected)
         try:
             for position, task in enumerate(selected, start=1):
                 if self._stop:
@@ -919,7 +925,19 @@ class UnifiedPeFinReplanEtomRunner:
                     break
                 prior_row = latest.get(task.task_id)
                 if self.resume and prior_row and prior_row.get("status") == "completed":
+                    if self.progress:
+                        print(
+                            f"[{position:02d}/{total}] {task.task_id} (resume-skip)",
+                            file=sys.stderr,
+                            flush=True,
+                        )
                     continue
+                if self.progress:
+                    print(
+                        f"[{position:02d}/{total}] {task.task_id}",
+                        file=sys.stderr,
+                        flush=True,
+                    )
                 row = self._run_one(
                     agent,
                     resolver,
@@ -1010,6 +1028,8 @@ class UnifiedPeFinReplanEtomRunner:
             "llm_calls": int(result.get("llm_calls") or 0),
             "llm_calls_by_stage": result.get("llm_calls_by_stage"),
             "mcp_invocations": int(result.get("mcp_invocations") or 0),
+            "routing_record_count": int(result.get("mcp_invocations") or 0),
+            "execution_scope": "routing_only",
             "execution_round_count": result.get("execution_round_count"),
             "executed_step_count": result.get("executed_step_count"),
             "replan_calls": result.get("replan_calls"),
@@ -1038,6 +1058,11 @@ class UnifiedPeFinReplanEtomRunner:
             "evidence_store": result.get("evidence_store"),
             "executed_etom_mcp_tool": False,
         }
+        # Routing-only invariants (fail closed if a real ETOM tool executed).
+        if row["real_tool_executions"] != 0 or row["executed_etom_mcp_tool"] is not False:
+            raise RuntimeError("ETOM routing-only invariant violated: real tool execution")
+        if row["routing_record_count"] != row["mcp_invocations"]:
+            raise RuntimeError("routing_record_count must equal mcp_invocations")
         return row
 
     # --------------------------------------------------------------- reports
@@ -1111,6 +1136,39 @@ class UnifiedPeFinReplanEtomRunner:
                     ),
                 },
             )
+        failed_n = sum(1 for r in ordered if r.get("status") != "completed")
+        exact_n = sum(1 for r in ordered if r.get("exact_match") is True)
+        llm_sum = sum(int(r.get("llm_calls") or 0) for r in ordered)
+        emb_sum = sum(int(r.get("query_embedding_calls") or 0) for r in ordered)
+        routing_sum = sum(int(r.get("routing_record_count") or r.get("mcp_invocations") or 0) for r in ordered)
+        real_sum = sum(int(r.get("real_tool_executions") or 0) for r in ordered)
+        from hk_equity_mcp.pe_fin_replan_etom.grounding import (
+            GROUNDING_CONTRACT_VERSION,
+            grounding_contract_hash,
+        )
+
+        compact = {
+            "ok": run_status in {"completed", "partial"} and real_sum == 0,
+            "headline": "PE-FIN-REPLAN ETOM RUN COMPLETE",
+            "mode": self.mode,
+            "run_role": self.run_role,
+            "run_status": run_status,
+            "rows": len(ordered),
+            "completed": len(completed_ids),
+            "failed": failed_n,
+            "exact_match": exact_n,
+            "llm_calls": llm_sum,
+            "embedding_calls": emb_sum,
+            "routing_records": routing_sum,
+            "mcp_invocations": routing_sum,  # legacy alias; routing-only records
+            "real_tool_executions": real_sum,
+            "execution_scope": "routing_only",
+            "live_pass_claimed": False,
+            "predictions": str(self.output_dir / "predictions.jsonl"),
+            "run_metadata": str(self.output_dir / "run_metadata.json"),
+            "output_dir": str(self.output_dir),
+        }
+        self.last_compact_summary = compact
         final_meta = {
             **metadata,
             "run_status": run_status,
@@ -1119,13 +1177,20 @@ class UnifiedPeFinReplanEtomRunner:
             "n_rows": len(ordered),
             "live_pass_claimed": False,
             "real_tool_execution": False,
+            "execution_scope": "routing_only",
+            "routing_record_count_total": routing_sum,
+            "real_tool_executions_total": real_sum,
+            "grounding_contract_version": GROUNDING_CONTRACT_VERSION,
+            "grounding_contract_hash": grounding_contract_hash(),
+            "cli_output_contract_version": "pe_fin_replan_etom_cli_compact_v1",
+            "compact_summary": compact,
             "max_tasks_excluded_from_resume_identity": True,
             "finalized_at": datetime.now(timezone.utc).isoformat(),
             "output_dir": str(self.output_dir),
         }
         _write_json(self.output_dir / "run_metadata.json", final_meta)
         self._metadata = final_meta
-        return final_meta
+        return compact
 
     def _finalize_metadata(self, extra: Optional[Dict[str, Any]] = None) -> None:
         path = self.output_dir / "run_metadata.json"

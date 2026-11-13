@@ -46,8 +46,9 @@ PY="$ORIG/.venv-aktools-discovery/bin/python"
 ENV_GEN="$ORIG/.env.relay-v41"
 ENV_EMB="$ORIG/.env.embedding-relay"
 OUT="$ROOT/outputs/pe_fin_replan_etom_formal100_v1"
-SMOKE_OUT="$ROOT/outputs/pe_fin_replan_etom_smoke5_v3"
-# Smoke-v2 (aliyun/HTTP 403) is INVALIDATED — do not resume that directory.
+SMOKE_OUT="$ROOT/outputs/pe_fin_replan_etom_smoke5_v4"
+# Smoke-v2 (aliyun/HTTP 403) and Smoke-v3 (grounding/CLI defects) are INVALIDATED.
+# Do not resume those directories.
 CACHE="$ROOT/.cache/pe_fin_replan_etom_operation_embeddings_v1"
 cd "$ROOT"
 ```

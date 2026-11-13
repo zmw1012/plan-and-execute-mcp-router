@@ -290,6 +290,7 @@ RESUME_IDENTITY_KEYS = (
     "schema_set_hash",
     "replanner_schema_hash",
     "grounding_contract_hash",
+    "cli_output_contract_version",
     "catalog_registry_sha256",
     "operation_documents_sha256",
     "operation_index_identity",

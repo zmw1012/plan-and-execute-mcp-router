@@ -481,15 +481,23 @@ class PeFinReplanEtomAgent:
                         question=question,
                         evidence_values=dict(store.values),
                         provenance_class_by_key=dict(store.provenance_class_by_key),
+                        route_records=list(gateway.predicted_nodes or []),
                     )
                     decision["grounding_ok"] = bool(ground.get("ok"))
                     decision["grounding_classifications"] = ground.get("classifications")
+                    decision["grounding_contract_version"] = ground.get("contract_version")
                     if not ground.get("ok"):
                         state.stopping_reason = "ungrounded_replanner_response"
                         state.loop_prevention_trigger = "grounding_validator"
                         error = ";".join(ground.get("reasons") or [])
                         error_type = "replanner_grounding_failure"
                         decision["grounding_reasons"] = ground.get("reasons")
+                        # Keep the rejected response for offline audit (never gold).
+                        decision["rejected_response"] = {
+                            "completion": resp.get("completion"),
+                            "final_answer": resp.get("final_answer"),
+                            "reasoning_brief": resp.get("reasoning_brief"),
+                        }
                         state.replan_decisions.append(decision)
                         trace.append({"stage": "replanner", **decision})
                         break

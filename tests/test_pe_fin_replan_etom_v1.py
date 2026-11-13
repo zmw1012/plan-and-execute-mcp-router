@@ -365,6 +365,7 @@ def test_16_grounding():
         provenance_class_by_key={"x": "observed"},
     )
     assert ok.get("ok") is True
+    assert ok.get("contract_version") == "pe_fin_replan_etom_grounding_v2"
     bad = validate_replanner_response(
         response={
             "completion": "answered",
@@ -376,6 +377,7 @@ def test_16_grounding():
         provenance_class_by_key={"x": "observed"},
     )
     assert bad.get("ok") is False
+    assert any("ungrounded_answer_value" in r for r in bad.get("reasons") or [])
 
 
 def test_17_task_isolation():
