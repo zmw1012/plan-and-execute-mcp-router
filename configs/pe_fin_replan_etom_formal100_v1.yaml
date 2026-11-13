@@ -13,8 +13,12 @@ dataset_split: external_formal
 benchmark_role: external_validation
 
 llm:
-  provider: aliyun
+  # Proposed-method identity (NOT Operation-Visible baseline aliyun).
+  # See configs/operations/pe_fin_replan_etom_generation_provider_v1.yaml
+  provider: openai_compatible
+  host: api.zhizengzeng.com
   model: deepseek-v4.1-flash
+  env_profile_role: relay_v41
   temperature: 0.0
   max_tokens: 2048
   planner_max_tokens: 4096

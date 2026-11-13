@@ -576,9 +576,11 @@ class UnifiedPeFinReplanEtomRunner:
             "catalog_registry_sha256": registry_sha,
             "operation_documents_sha256": documents_hash(specs) if specs is not None else None,
             "embedding_cache_namespace": EMBEDDING_CACHE_NAMESPACE,
+            "generation_provider_profile_id": None,
+            "generation_provider_profile_hash": None,
             "generation_provider": "mock" if mock else gen_cfg.get("provider"),
             "generation_model": "mock-pe-fin-replan-etom-llm" if mock else gen_cfg.get("model"),
-            "generation_host": None,
+            "generation_host": None if mock else gen_cfg.get("host"),
             "embedding_model": MOCK_EMBEDDING_MODEL if mock else emb_cfg.get("model"),
             "embedding_host": None,
             "budgets": dict(self.limits),
@@ -600,6 +602,17 @@ class UnifiedPeFinReplanEtomRunner:
             "posthoc_exploratory": True,
             "formal_primary_result": False,
         }
+        if not mock:
+            from hk_equity_mcp.pe_fin_replan_etom.generation_provider import (
+                load_generation_provider_profile,
+            )
+
+            gp = load_generation_provider_profile(self.root)
+            metadata["generation_provider_profile_id"] = gp["profile_id"]
+            metadata["generation_provider_profile_hash"] = gp["profile_hash"]
+            metadata["generation_provider_profile_file_sha256"] = gp["profile_file_sha256"]
+            if not metadata.get("generation_host"):
+                metadata["generation_host"] = gp["provider_host"]
 
         if self.mode == "dry-run":
             idx_status = (
@@ -757,23 +770,44 @@ class UnifiedPeFinReplanEtomRunner:
             load_embedding_profile,
             load_generation_profile,
         )
-        from hk_equity_mcp.etom import (
-            EXPECTED_EMBEDDING_MODEL,
-            EXPECTED_LLM_MODEL,
-            EXPECTED_LLM_PROVIDER,
-        )
+        from hk_equity_mcp.etom import EXPECTED_EMBEDDING_MODEL
         from hk_equity_mcp.etom.embeddings import OpenAICompatibleEmbeddingClient
-        from hk_equity_mcp.etom.llm import FailClosedChatClient
+        from hk_equity_mcp.pe_fin_replan_etom.generation_client import (
+            PeFinReplanEtomChatClient,
+        )
+        from hk_equity_mcp.pe_fin_replan_etom.generation_provider import (
+            GenerationProviderIdentityError,
+            assert_live_generation_identity,
+            host_from_base_url,
+            load_generation_provider_profile,
+            public_generation_identity,
+        )
 
+        # Proposed-method provider identity (NOT etom.EXPECTED_LLM_PROVIDER=aliyun).
+        gen_profile = load_generation_provider_profile(self.root)
         generation = load_generation_profile(self.root, self.env_file)
         embedding = load_embedding_profile(self.root, self.embedding_env_file)
-        if (
-            os.environ.get("LLM_PROVIDER") != EXPECTED_LLM_PROVIDER
-            or os.environ.get("LLM_MODEL") != EXPECTED_LLM_MODEL
-            or os.environ.get("EMBEDDING_MODEL") != EXPECTED_EMBEDDING_MODEL
-        ):
-            raise ModelMismatchError("provider/model env does not match the frozen ETOM models")
-        gen_host = _host(generation.get("base_url") or os.environ.get("LLM_BASE_URL"))
+        gen_host = host_from_base_url(
+            generation.get("base_url") or os.environ.get("LLM_BASE_URL")
+        )
+        try:
+            assert_live_generation_identity(
+                provider=str(generation.get("provider") or os.environ.get("LLM_PROVIDER") or ""),
+                model=str(generation.get("model") or os.environ.get("LLM_MODEL") or ""),
+                host=gen_host,
+                profile=gen_profile,
+                env_file_name=str(
+                    generation.get("profile_file")
+                    or (Path(self.env_file).name if self.env_file else "")
+                    or ".env.relay-v41"
+                ),
+            )
+        except GenerationProviderIdentityError as exc:
+            raise LiveGateError(str(exc)) from exc
+        if os.environ.get("EMBEDDING_MODEL") != EXPECTED_EMBEDDING_MODEL:
+            raise ModelMismatchError(
+                f"EMBEDDING_MODEL mismatch: expected {EXPECTED_EMBEDDING_MODEL}"
+            )
         emb_host = _host(embedding.get("base_url") or os.environ.get("EMBEDDING_BASE_URL"))
         idx_identity = self._index_identity(
             specs, official, embedding_model=EXPECTED_EMBEDDING_MODEL, host=emb_host
@@ -786,9 +820,7 @@ class UnifiedPeFinReplanEtomRunner:
         )
         metadata.update(
             {
-                "generation_provider": generation.get("provider"),
-                "generation_model": generation.get("model"),
-                "generation_host": gen_host,
+                **public_generation_identity(gen_profile, host=str(gen_host)),
                 "embedding_model": EXPECTED_EMBEDDING_MODEL,
                 "embedding_host": emb_host,
                 "operation_index_identity": identity_digest(idx_identity),
@@ -796,7 +828,10 @@ class UnifiedPeFinReplanEtomRunner:
         )
         timeout = float((self.config.get("limits") or {}).get("request_timeout_sec", 120))
         llm = StageChatClient(
-            FailClosedChatClient(
+            PeFinReplanEtomChatClient(
+                provider=str(generation.get("provider")),
+                model=str(generation.get("model")),
+                base_url=str(generation.get("base_url")),
                 timeout_sec=timeout,
                 max_retries=int((self.config.get("limits") or {}).get("max_http_retries", 1)),
                 json_mode=bool((self.config.get("llm") or {}).get("json_mode", True)),

@@ -414,6 +414,8 @@ def test_18_resume_identity():
         "evaluator_identity": {"module": "hk_equity_mcp.etom.evaluator"},
         "run_mode": "mock",
         "run_role": "mock",
+        "generation_provider_profile_id": None,
+        "generation_provider_profile_hash": None,
         "git_commit": "abc",
         "git_dirty": False,
         "fixture_run": False,

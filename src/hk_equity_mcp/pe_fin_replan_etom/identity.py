@@ -294,6 +294,8 @@ RESUME_IDENTITY_KEYS = (
     "operation_documents_sha256",
     "operation_index_identity",
     "embedding_cache_namespace",
+    "generation_provider_profile_id",
+    "generation_provider_profile_hash",
     "generation_provider",
     "generation_model",
     "generation_host",

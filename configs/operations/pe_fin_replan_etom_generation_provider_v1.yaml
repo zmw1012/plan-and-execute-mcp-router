@@ -1,0 +1,17 @@
+# PE-Fin RePlan ETOM proposed-method generation provider identity.
+# Independent of historical Operation-Visible ETOM baseline (aliyun).
+# Do not point LLM_PROVIDER=aliyun at a zhizengzeng host to forge identity.
+
+profile_id: pe_fin_replan_etom_zhizengzeng_v1
+profile_version: pe_fin_replan_etom_generation_provider_v1
+provider: openai_compatible
+provider_host: api.zhizengzeng.com
+model: deepseek-v4.1-flash
+env_profile_role: relay_v41
+expected_env_file_name: .env.relay-v41
+condition_scope:
+  - pe_fin_replan_etom
+notes:
+  - Generation only. Embedding remains text-embedding-3-small via .env.embedding-relay.
+  - Must not reuse hk_equity_mcp.etom.EXPECTED_LLM_PROVIDER=aliyun for this condition.
+  - API keys must never appear in metadata or logs.

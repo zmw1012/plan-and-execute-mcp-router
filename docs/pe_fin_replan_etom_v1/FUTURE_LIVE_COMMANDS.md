@@ -41,10 +41,13 @@ ORIG="/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-
 # Prefer the MCP-capable sibling venv (has `mcp` + `httpx`; used by ETOM MCP discovery).
 # `.venv` imports the package but lacks `mcp` and is NOT preferred for live path.
 PY="$ORIG/.venv-aktools-discovery/bin/python"
+# Proposed-method generation identity: openai_compatible + api.zhizengzeng.com
+# + deepseek-v4.1-flash via .env.relay-v41 (NOT baseline .env.aliyun).
 ENV_GEN="$ORIG/.env.relay-v41"
 ENV_EMB="$ORIG/.env.embedding-relay"
 OUT="$ROOT/outputs/pe_fin_replan_etom_formal100_v1"
-SMOKE_OUT="$ROOT/outputs/pe_fin_replan_etom_smoke5_v1"
+SMOKE_OUT="$ROOT/outputs/pe_fin_replan_etom_smoke5_v3"
+# Smoke-v2 (aliyun/HTTP 403) is INVALIDATED — do not resume that directory.
 CACHE="$ROOT/.cache/pe_fin_replan_etom_operation_embeddings_v1"
 cd "$ROOT"
 ```
