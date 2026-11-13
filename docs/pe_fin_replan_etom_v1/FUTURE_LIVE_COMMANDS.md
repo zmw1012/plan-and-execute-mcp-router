@@ -47,9 +47,10 @@ ENV_GEN="$ORIG/.env.relay-v41"
 ENV_EMB="$ORIG/.env.embedding-relay"
 OUT="$ROOT/outputs/pe_fin_replan_etom_formal100_v1"
 SMOKE_OUT="$ROOT/outputs/pe_fin_replan_etom_smoke5_v6"
-# Smoke-v2 (aliyun/HTTP 403), Smoke-v3 (grounding/CLI), Smoke-v4
-# (required_outputs maxLength=64), Smoke-v5 (step type/domain confusion)
-# are INVALIDATED. Do not resume those directories.
+# Smoke-v6 is a valid engineering smoke under run_finalization_v2
+# (5/5 rows; controlled task failures allowed; explicitly_not_formal_accuracy).
+# Do NOT run Smoke-v7 to chase task success / exact match.
+# Smoke-v2..v5 are INVALIDATED. Do not resume any Smoke directory into formal100.
 CACHE="$ROOT/.cache/pe_fin_replan_etom_operation_embeddings_v1"
 cd "$ROOT"
 ```

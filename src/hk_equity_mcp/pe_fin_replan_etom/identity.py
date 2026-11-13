@@ -204,6 +204,10 @@ def protocol_identity() -> Dict[str, Any]:
         prompt_hashes,
         replanner_prompt_hash,
     )
+    from hk_equity_mcp.pe_fin_replan_etom.run_finalization import (
+        RUN_FINALIZATION_CONTRACT_VERSION,
+        run_finalization_contract_hash,
+    )
     from hk_equity_mcp.pe_fin_replan_etom.tool_binding import binder_protocol_hash
 
     return {
@@ -225,6 +229,8 @@ def protocol_identity() -> Dict[str, Any]:
         "loop_policy_hash": S.loop_policy_hash(),
         "semantic_plan_repair_policy_hash": S.semantic_plan_repair_policy_hash(),
         "step_canonicalizer_hash": S.step_canonicalizer_hash(),
+        "run_finalization_contract_version": RUN_FINALIZATION_CONTRACT_VERSION,
+        "run_finalization_contract_hash": run_finalization_contract_hash(),
         "grounding_contract_version": GROUNDING_CONTRACT_VERSION,
         "grounding_contract_hash": grounding_contract_hash(),
         "failed_invocation_policy_version": FAILED_INVOCATION_POLICY_VERSION,
@@ -290,6 +296,7 @@ RESUME_IDENTITY_KEYS = (
     "schema_set_hash",
     "replanner_schema_hash",
     "step_canonicalizer_hash",
+    "run_finalization_contract_hash",
     "grounding_contract_hash",
     "cli_output_contract_version",
     "catalog_registry_sha256",

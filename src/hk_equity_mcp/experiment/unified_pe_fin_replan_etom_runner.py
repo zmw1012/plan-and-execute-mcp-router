@@ -69,6 +69,14 @@ from hk_equity_mcp.pe_fin_replan_etom.identity import (
     protocol_identity,
     resume_identity_hash,
 )
+from hk_equity_mcp.pe_fin_replan_etom.run_finalization import (
+    RUN_FINALIZATION_CONTRACT_VERSION,
+    decide_run_status,
+    engineering_smoke_gate,
+    prediction_accounting,
+    run_finalization_contract_hash,
+    should_skip_on_resume,
+)
 from hk_equity_mcp.pe_fin_replan_etom.operation_documents import (
     documents_for_registry,
     documents_hash,
@@ -577,6 +585,12 @@ class UnifiedPeFinReplanEtomRunner:
             "schema_set_hash": protocol.get("schema_set_hash"),
             "replanner_schema_hash": protocol.get("replanner_schema_hash"),
             "step_canonicalizer_hash": protocol.get("step_canonicalizer_hash"),
+            "run_finalization_contract_version": protocol.get(
+                "run_finalization_contract_version"
+            )
+            or RUN_FINALIZATION_CONTRACT_VERSION,
+            "run_finalization_contract_hash": protocol.get("run_finalization_contract_hash")
+            or run_finalization_contract_hash(),
             "grounding_contract_hash": protocol.get("grounding_contract_hash"),
             "cli_output_contract_version": "pe_fin_replan_etom_cli_compact_v1",
             "catalog_registry_sha256": registry_sha,
@@ -917,15 +931,17 @@ class UnifiedPeFinReplanEtomRunner:
             planner_max_tokens=int((self.config.get("llm") or {}).get("planner_max_tokens", 4096)),
         )
         rows: List[Dict[str, Any]] = list(existing)
-        run_status = "completed"
+        aborted = False
         total = len(selected)
+        selected_ids = [t.task_id for t in selected]
         try:
             for position, task in enumerate(selected, start=1):
                 if self._stop:
-                    run_status = "aborted"
+                    # Soft stop mid-run: keep written rows; missing IDs => partial
+                    # unless a hard signal already marked aborted elsewhere.
                     break
                 prior_row = latest.get(task.task_id)
-                if self.resume and prior_row and prior_row.get("status") == "completed":
+                if self.resume and should_skip_on_resume(prior_row):
                     if self.progress:
                         print(
                             f"[{position:02d}/{total}] {task.task_id} (resume-skip)",
@@ -954,21 +970,41 @@ class UnifiedPeFinReplanEtomRunner:
                 if "ModelMismatchError" in str(row.get("error") or ""):
                     raise ModelMismatchError(str(row.get("error")))
         except (KeyboardInterrupt, SystemExit):
+            aborted = True
             self.run_status = "aborted"
-            self._write_reports(rows, selected, metadata, run_status="aborted")
+            self._write_reports(
+                rows, selected, metadata, run_status="aborted", aborted=True
+            )
             raise
         except Exception:
+            aborted = True
             self.run_status = "aborted"
-            self._write_reports(rows, selected, metadata, run_status="aborted")
+            self._write_reports(
+                rows, selected, metadata, run_status="aborted", aborted=True
+            )
             raise
 
-        done = [
-            t for t in selected if latest.get(t.task_id, {}).get("status") == "completed"
-        ]
-        if run_status != "aborted":
-            run_status = "completed" if len(done) == len(selected) else "partial"
-        self.run_status = run_status
-        return self._write_reports(rows, selected, metadata, run_status=run_status)
+        try:
+            run_status = decide_run_status(
+                selected_task_ids=selected_ids,
+                rows=rows,
+                aborted=aborted,
+                finalization_ok=True,
+            )
+            self.run_status = run_status
+            return self._write_reports(
+                rows, selected, metadata, run_status=run_status, aborted=aborted
+            )
+        except Exception:
+            self.run_status = "aborted"
+            # Best-effort metadata mark; then re-raise (artifact finalization failed).
+            self._finalize_metadata(
+                extra={
+                    "abort_reason": "artifact_finalization_failure",
+                    "run_status": "aborted",
+                }
+            )
+            raise
 
     # --------------------------------------------------------------- one row
     def _run_one(self, agent, resolver, embedder, task, *, selected_order: int, llm) -> Dict[str, Any]:
@@ -1092,8 +1128,15 @@ class UnifiedPeFinReplanEtomRunner:
         return out
 
     def _write_reports(
-        self, rows, selected, metadata, *, run_status: str
+        self,
+        rows,
+        selected,
+        metadata,
+        *,
+        run_status: str,
+        aborted: bool = False,
     ) -> Dict[str, Any]:
+        selected_ids = [t.task_id for t in selected]
         latest = _latest_by_task(rows)
         ordered = [latest[t.task_id] for t in selected if t.task_id in latest]
         path = self.output_dir / "per_task_metrics.csv"
@@ -1113,19 +1156,34 @@ class UnifiedPeFinReplanEtomRunner:
         )
         _write_json(self.output_dir / "error_summary.json", error_summary(ordered))
         _write_json(self.output_dir / "retrieval_analysis.json", retrieval_analysis(ordered))
-        completed_ids = [r["task_id"] for r in ordered if r.get("status") == "completed"]
+        acct = prediction_accounting(selected_task_ids=selected_ids, rows=rows)
+        # Prefer contract decision unless caller already forced aborted/running.
+        if run_status == "running":
+            effective_status = "running"
+        elif aborted or run_status == "aborted":
+            effective_status = "aborted"
+        else:
+            effective_status = decide_run_status(
+                selected_task_ids=selected_ids,
+                rows=rows,
+                aborted=False,
+                finalization_ok=True,
+            )
+        completed_ids = list(acct["completed_task_ids"])
+        failed_ids = list(acct["failed_task_ids"])
         if self.mode == "mock":
             _write_json(
                 self.output_dir / "mock_summary.json",
                 {
                     "mode": "mock",
-                    "run_status": run_status,
+                    "run_status": effective_status,
                     "live_pass_claimed": False,
                     "engineering_only": True,
                     "note": "Scripted LLM + hash embeddings; not a live or primary result.",
                     "n_rows": len(ordered),
+                    "processed_task_count": acct["processed_task_count"],
                     "completed": len(completed_ids),
-                    "failed": len(ordered) - len(completed_ids),
+                    "failed": len(failed_ids),
                     "max_llm_calls_observed": max(
                         [int(r.get("llm_calls") or 0) for r in ordered] or [0]
                     ),
@@ -1137,11 +1195,14 @@ class UnifiedPeFinReplanEtomRunner:
                     ),
                 },
             )
-        failed_n = sum(1 for r in ordered if r.get("status") != "completed")
         exact_n = sum(1 for r in ordered if r.get("exact_match") is True)
         llm_sum = sum(int(r.get("llm_calls") or 0) for r in ordered)
         emb_sum = sum(int(r.get("query_embedding_calls") or 0) for r in ordered)
-        routing_sum = sum(int(r.get("routing_record_count") or r.get("mcp_invocations") or 0) for r in ordered)
+        routing_sum = sum(
+            int(r.get("routing_record_count") or r.get("mcp_invocations") or 0)
+            for r in ordered
+        )
+        mcp_sum = sum(int(r.get("mcp_invocations") or 0) for r in ordered)
         real_sum = sum(int(r.get("real_tool_executions") or 0) for r in ordered)
         from hk_equity_mcp.pe_fin_replan_etom.grounding import (
             GROUNDING_CONTRACT_VERSION,
@@ -1149,19 +1210,20 @@ class UnifiedPeFinReplanEtomRunner:
         )
 
         compact = {
-            "ok": run_status in {"completed", "partial"} and real_sum == 0,
+            "ok": effective_status in {"completed", "partial"} and real_sum == 0,
             "headline": "PE-FIN-REPLAN ETOM RUN COMPLETE",
             "mode": self.mode,
             "run_role": self.run_role,
-            "run_status": run_status,
+            "run_status": effective_status,
             "rows": len(ordered),
+            "processed": acct["processed_task_count"],
             "completed": len(completed_ids),
-            "failed": failed_n,
+            "failed": len(failed_ids),
             "exact_match": exact_n,
             "llm_calls": llm_sum,
             "embedding_calls": emb_sum,
             "routing_records": routing_sum,
-            "mcp_invocations": routing_sum,  # legacy alias; routing-only records
+            "mcp_invocations": mcp_sum,
             "real_tool_executions": real_sum,
             "execution_scope": "routing_only",
             "live_pass_claimed": False,
@@ -1169,12 +1231,22 @@ class UnifiedPeFinReplanEtomRunner:
             "run_metadata": str(self.output_dir / "run_metadata.json"),
             "output_dir": str(self.output_dir),
         }
-        self.last_compact_summary = compact
         final_meta = {
             **metadata,
-            "run_status": run_status,
+            "run_status": effective_status,
             "resume": self.resume,
+            "expected_task_count": acct["expected_task_count"],
+            "processed_task_count": acct["processed_task_count"],
+            "processed_task_ids": acct["processed_task_ids"],
+            "completed_prediction_count": acct["completed_prediction_count"],
+            "failed_prediction_count": acct["failed_prediction_count"],
             "completed_task_ids": completed_ids,
+            "failed_task_ids": failed_ids,
+            "missing_task_ids": acct["missing_task_ids"],
+            "unique_prediction_count": acct["unique_prediction_count"],
+            "all_selected_tasks_processed": acct["all_selected_tasks_processed"],
+            "run_finalization_contract_version": RUN_FINALIZATION_CONTRACT_VERSION,
+            "run_finalization_contract_hash": run_finalization_contract_hash(),
             "n_rows": len(ordered),
             "live_pass_claimed": False,
             "real_tool_execution": False,
@@ -1190,7 +1262,35 @@ class UnifiedPeFinReplanEtomRunner:
             "output_dir": str(self.output_dir),
         }
         _write_json(self.output_dir / "run_metadata.json", final_meta)
+        artifacts_complete = all(
+            (self.output_dir / name).exists()
+            for name in (
+                "predictions.jsonl",
+                "run_metadata.json",
+                "grouped_results.json",
+                "per_task_metrics.csv",
+                "error_summary.json",
+            )
+        )
+        smoke_gate = None
+        if self.engineering_smoke5 and effective_status != "running":
+            smoke_gate = engineering_smoke_gate(
+                accounting=acct,
+                run_status=effective_status,
+                routing_record_count_total=routing_sum,
+                mcp_invocations_total=mcp_sum,
+                real_tool_executions_total=real_sum,
+                live_pass_claimed=False,
+                artifacts_complete=artifacts_complete,
+                runner_crashed=effective_status == "aborted",
+            )
+            compact["engineering_smoke_valid"] = smoke_gate["engineering_smoke_valid"]
+            final_meta["engineering_smoke_gate"] = smoke_gate
+            final_meta["compact_summary"] = compact
+            _write_json(self.output_dir / "run_metadata.json", final_meta)
+        self.last_compact_summary = compact
         self._metadata = final_meta
+        self.run_status = effective_status
         return compact
 
     def _finalize_metadata(self, extra: Optional[Dict[str, Any]] = None) -> None:
