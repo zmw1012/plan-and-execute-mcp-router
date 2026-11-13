@@ -24,7 +24,7 @@ from hk_equity_mcp.pe_fin_replan_etom.schemas import (
     RETRIEVE_STEP_TEMPLATE,
 )
 
-PROMPT_SET_VERSION = "pe_fin_replan_etom_prompt_set_v2"
+PROMPT_SET_VERSION = "pe_fin_replan_etom_prompt_set_v3"
 
 SYSTEM_PROMPT = """You are the PE-Fin RePlan-ETOM agent (Planner / Executor / Replanner).
 This is a tool-routing evaluation over a large external MCP tool catalog.
@@ -34,14 +34,33 @@ statuses, or numbers. Never reference gold answers, accepted tools, or task ids.
 Tools are selected only by retrieval + a described-only binder; do not name tools.
 Return JSON only. No markdown. No splice."""
 
+_TYPE_DOMAIN_RULES = """
+- `type` describes execution mechanism and MUST be exactly retrieve, compute, or reason.
+- Any external MCP action—including read, write, search, list, calendar creation,
+  communication, code operation, or data operation—uses `type="retrieve"`.
+- `domain` describes the capability area and may be """ + ", ".join(ETOM_DOMAINS) + """.
+- Example (generic; not task-specific):
+""" + json.dumps(
+    {
+        "id": "s1",
+        "type": "retrieve",
+        "domain": "calendar",
+        "objective": "Create the requested calendar event",
+        "required_outputs": ["event creation route"],
+        "depends_on": [],
+    },
+    ensure_ascii=False,
+    indent=2,
+)
+
 PLANNER_SYSTEM_PROMPT = SYSTEM_PROMPT + """
 
 You are the Planner. You run exactly once. Produce a short plan of semantic steps.
-Step types: retrieve (use an external tool), compute (safe arithmetic over verified
-numbers), reason (summarize verified evidence).
+Step types: retrieve (use an external tool / MCP route), compute (safe arithmetic
+over verified numbers), reason (summarize verified evidence).
 - Use the smallest plan that can satisfy the request (1-6 steps).
 - Never emit operation_id, tool names, or server names in the plan.
-- domain is a generic capability area, one of: """ + ", ".join(ETOM_DOMAINS) + """.
+""" + _TYPE_DOMAIN_RULES + """
 - required_outputs are short free-text noun phrases describing what the step must
   yield. Each item is at most """ + str(REQUIRED_OUTPUT_ITEM_MAX_LENGTH) + """ characters.
   Do not write full explanations, reasoning text, or tool names in required_outputs.
@@ -71,9 +90,12 @@ Rules:
 - schema_version must be {REPLAN_SCHEMA_VERSION}; additionalProperties=false.
 - decision_reason is OPTIONAL (string or null).
 - remaining_steps use PlanStep fields id/type/domain/objective/required_outputs/depends_on.
+- `type` describes execution mechanism and MUST be exactly retrieve, compute, or reason.
+- Any external MCP action—including read, write, search, list, calendar creation,
+  communication, code operation, or data operation—uses `type="retrieve"`.
+- `domain` describes the capability area and may be {", ".join(ETOM_DOMAINS)}.
 - required_outputs items MUST be short noun phrases (max {REQUIRED_OUTPUT_ITEM_MAX_LENGTH}
   characters each); no full explanations, reasoning, or tool names.
-- domain is one of: {", ".join(ETOM_DOMAINS)}.
 - Never emit operation_id. Do not invent evidence or numbers.
 - Prefer continuing the plan while answer-bearing steps remain; prefer
   action=response (answered) when the request has been routed/answered.
@@ -216,6 +238,11 @@ def render_planner_user(
             "Return one JSON object with a steps array.",
             "Do not output operation_id, tool names, or server names.",
             "The question gives scope only; never fabricate observed values.",
+            (
+                '`type` MUST be exactly retrieve, compute, or reason; any external '
+                'MCP action (read/write/search/list/calendar/communication/code/data) '
+                'uses type="retrieve" while domain carries the capability area.'
+            ),
             (
                 "required_outputs items MUST be short noun phrases "
                 f"(max {REQUIRED_OUTPUT_ITEM_MAX_LENGTH} characters each); "

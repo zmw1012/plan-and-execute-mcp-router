@@ -576,6 +576,7 @@ class UnifiedPeFinReplanEtomRunner:
             "prompt_hash": protocol.get("prompt_hash"),
             "schema_set_hash": protocol.get("schema_set_hash"),
             "replanner_schema_hash": protocol.get("replanner_schema_hash"),
+            "step_canonicalizer_hash": protocol.get("step_canonicalizer_hash"),
             "grounding_contract_hash": protocol.get("grounding_contract_hash"),
             "cli_output_contract_version": "pe_fin_replan_etom_cli_compact_v1",
             "catalog_registry_sha256": registry_sha,

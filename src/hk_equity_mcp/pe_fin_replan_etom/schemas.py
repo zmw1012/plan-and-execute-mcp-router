@@ -448,7 +448,32 @@ def extract_json_object(text: Optional[str]) -> Any:
         raise SchemaValidationError(f"invalid JSON: {exc}") from exc
 
 
-_TYPE_ALIASES = {"analysis": "reason", "reasoning": "reason", "calculation": "compute"}
+# Strict step-type allowlist only. Domain names used as type by mistake map to
+# retrieve. ``general`` is intentionally NOT mapped (fail closed under enum).
+# Unknown spellings are never guessed.
+STEP_TYPE_CANONICALIZER_VERSION = "pe_fin_replan_etom_step_type_canonicalizer_v1"
+_TYPE_ALIASES: Dict[str, str] = {
+    # Capability-area names → retrieve (external MCP action)
+    "search": "retrieve",
+    "read": "retrieve",
+    "write": "retrieve",
+    "list": "retrieve",
+    "calendar": "retrieve",
+    "code": "retrieve",
+    "docs": "retrieve",
+    "data": "retrieve",
+    "communication": "retrieve",
+    # Generic external-action synonyms → retrieve
+    "tool": "retrieve",
+    "invoke": "retrieve",
+    "action": "retrieve",
+    "external_tool": "retrieve",
+    # Reason / compute synonyms
+    "analysis": "reason",
+    "reasoning": "reason",
+    "calculation": "compute",
+    "arithmetic": "compute",
+}
 _DOMAIN_ALIASES = {
     "filesystem": "read",
     "file": "read",
@@ -465,18 +490,42 @@ _DOMAIN_ALIASES = {
 }
 
 
-def canonicalize_step(step: Any) -> Any:
-    """Unambiguous structural fixes only. Never invents semantic content."""
+def canonicalize_step(step: Any) -> Tuple[Any, Optional[Dict[str, Any]]]:
+    """Unambiguous structural fixes only. Never invents semantic content.
+
+    Returns ``(step, type_record_or_None)``. Type records are emitted only when
+    an allowlisted type alias is applied. Domain / objective / required_outputs
+    / depends_on values are never rewritten by type mapping.
+    """
     if not isinstance(step, dict):
-        return step
+        return step, None
     out = dict(step)
     if "step_id" in out and "id" not in out:
         out["id"] = out.pop("step_id")
     if "step_type" in out and "type" not in out:
         out["type"] = out.pop("step_type")
+    type_record: Optional[Dict[str, Any]] = None
     stype = out.get("type")
-    if isinstance(stype, str) and stype in _TYPE_ALIASES:
-        out["type"] = _TYPE_ALIASES[stype]
+    if isinstance(stype, str):
+        key = stype.strip()
+        # Exact allowlist match only (case-sensitive as emitted; also accept
+        # lowercased key if the allowlist entry is lowercase).
+        alias = _TYPE_ALIASES.get(key)
+        if alias is None and key != key.lower():
+            alias = _TYPE_ALIASES.get(key.lower())
+            if alias is not None:
+                key = key.lower()
+        if alias is not None and alias != stype:
+            out["type"] = alias
+            type_record = {
+                "step_id": out.get("id"),
+                "original_step_type": stype,
+                "canonical_step_type": alias,
+                "canonicalization_rule": f"type_alias_{key}_to_{alias}",
+                "canonicalizer_version": STEP_TYPE_CANONICALIZER_VERSION,
+                "canonicalizer_hash": step_canonicalizer_hash(),
+            }
+    # Domain aliases are independent of type; never overwrite from type mapping.
     dom = out.get("domain")
     if isinstance(dom, str) and dom.lower() in _DOMAIN_ALIASES:
         out["domain"] = _DOMAIN_ALIASES[dom.lower()]
@@ -484,42 +533,66 @@ def canonicalize_step(step: Any) -> Any:
         out["domain"] = dom.lower()
     if "depends_on" not in out and not out.get("compute_spec"):
         out["depends_on"] = []
-    return out
+    return out, type_record
 
 
-def canonicalize_plan_payload(payload: Any) -> Any:
+def canonicalize_plan_payload(
+    payload: Any,
+) -> Tuple[Any, List[Dict[str, Any]]]:
     if not isinstance(payload, dict):
-        return payload
+        return payload, []
     out = dict(payload)
+    records: List[Dict[str, Any]] = []
     if isinstance(out.get("steps"), list):
-        out["steps"] = [canonicalize_step(s) for s in out["steps"]]
-    return out
+        steps: List[Any] = []
+        for s in out["steps"]:
+            fixed, rec = canonicalize_step(s)
+            steps.append(fixed)
+            if rec is not None:
+                records.append(rec)
+        out["steps"] = steps
+    return out, records
 
 
-def canonicalize_replanner_payload(payload: Any) -> Any:
+def canonicalize_replanner_payload(
+    payload: Any,
+) -> Tuple[Any, List[Dict[str, Any]]]:
     if not isinstance(payload, dict):
-        return payload
+        return payload, []
     out = dict(payload)
+    records: List[Dict[str, Any]] = []
     if isinstance(out.get("remaining_steps"), list):
-        out["remaining_steps"] = [canonicalize_step(s) for s in out["remaining_steps"]]
-    return out
+        steps: List[Any] = []
+        for s in out["remaining_steps"]:
+            fixed, rec = canonicalize_step(s)
+            steps.append(fixed)
+            if rec is not None:
+                records.append(rec)
+        out["remaining_steps"] = steps
+    return out, records
 
 
 def step_canonicalizer_hash() -> str:
     return _sha(
         {
-            "version": "pe_fin_replan_etom_step_canonicalizer_v1",
+            "version": STEP_TYPE_CANONICALIZER_VERSION,
             "type_aliases": _TYPE_ALIASES,
             "domain_aliases": _DOMAIN_ALIASES,
             "rules": [
                 "step_id_to_id",
                 "step_type_to_type",
+                "strict_type_alias_allowlist_only",
+                "capability_domain_as_type_maps_to_retrieve",
+                "general_type_not_mapped_fail_closed",
+                "unknown_type_not_guessed_fail_closed",
                 "missing_depends_on_to_empty_array_when_no_compute_spec",
                 "no_objective_rewrite",
                 "no_required_outputs_invention",
+                "no_domain_rewrite_from_type_mapping",
                 "no_operation_id",
                 "no_task_or_gold_branching",
                 "no_json_splice",
+                "canonicalize_before_strict_schema_validation",
             ],
         }
     )
@@ -619,14 +692,29 @@ def validate_plan_semantics(payload: Dict[str, Any]) -> None:
 def _validate_payload(payload: Any, schema_name: str) -> Dict[str, Any]:
     if not isinstance(payload, dict):
         raise SchemaValidationError("payload must be a JSON object")
-    semantic = {k: v for k, v in payload.items() if k not in ("schema_version", "method_version", "protocol_version")}
+    semantic = {
+        k: v
+        for k, v in payload.items()
+        if k
+        not in (
+            "schema_version",
+            "method_version",
+            "protocol_version",
+            "step_type_canonicalizations",
+        )
+    }
+    type_records: List[Dict[str, Any]] = []
     if schema_name == "plan":
-        semantic = canonicalize_plan_payload(semantic)
+        # Canonicalize BEFORE strict schema + semantic validation.
+        semantic, type_records = canonicalize_plan_payload(semantic)
     validate_against_schema(semantic, SCHEMA_BY_NAME[schema_name])
     if schema_name == "plan":
         validate_plan_semantics(semantic)
     out = dict(semantic)
     out["schema_version"] = SCHEMA_VERSIONS[schema_name]
+    # Observability only; not part of the plan schema (stripped on re-entry).
+    if type_records:
+        out["step_type_canonicalizations"] = type_records
     return out
 
 
@@ -667,7 +755,10 @@ def format_repair_user_message(
         lines.extend(
             [
                 "Every step MUST contain id, type, domain, objective, required_outputs, depends_on.",
-                f"type must be one of {list(STEP_TYPES)}; domain must be one of {list(ETOM_DOMAINS)}.",
+                f"`type` MUST be exactly one of {list(STEP_TYPES)} (execution mechanism).",
+                "Any external MCP action (read/write/search/list/calendar/communication/"
+                "code/data) uses type=\"retrieve\"; put the capability area in `domain`.",
+                f"`domain` must be one of {list(ETOM_DOMAINS)}.",
                 "required_outputs items MUST be short noun phrases "
                 f"(max {REQUIRED_OUTPUT_ITEM_MAX_LENGTH} characters each). "
                 "Do NOT write full explanations, reasoning, or tool names. "
@@ -748,7 +839,7 @@ def parse_replanner_output(
             last_err = f"json_extract:{exc}"
             continue
         try:
-            obj = canonicalize_replanner_payload(obj)
+            obj, type_records = canonicalize_replanner_payload(obj)
             validate_replanner_payload(obj, response_only=response_only)
             if obj.get("action") == "plan":
                 validate_steps_semantics(
@@ -756,6 +847,9 @@ def parse_replanner_output(
                     allow_empty=True,
                     allow_external_deps=True,
                 )
+            # type_records already applied onto remaining_steps; keep payload
+            # schema-clean (additionalProperties=false).
+            _ = type_records
             return normalize_decision_reason(obj), None, None
         except (SchemaValidationError, PlanValidationError) as exc:
             last_err = str(exc)

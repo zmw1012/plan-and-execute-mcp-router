@@ -67,7 +67,7 @@ def test_01_required_output_max_length_is_128():
     assert REQUIRED_OUTPUT_ITEM_MAX_LENGTH == 128
     assert PLAN_SCHEMA_VERSION == "pe_fin_replan_etom_plan_v2"
     assert SCHEMA_SET_VERSION == "pe_fin_replan_etom_schema_set_v2"
-    assert PROMPT_SET_VERSION == "pe_fin_replan_etom_prompt_set_v2"
+    assert PROMPT_SET_VERSION == "pe_fin_replan_etom_prompt_set_v3"
 
 
 @pytest.mark.parametrize("n", [64, 65, 128])

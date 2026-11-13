@@ -72,8 +72,14 @@ def run_planner(
     usage = dict(completion.get("usage") or {})
     content = completion.get("content")
     payload, _rc, error = parse_and_validate(str(content) if content is not None else "", "plan")
+    type_recs = list((payload or {}).get("step_type_canonicalizations") or [])
     calls: List[Dict[str, Any]] = [
-        {"stage": "planner", "parse_result": "ok" if payload else "failed", "schema_error": error}
+        {
+            "stage": "planner",
+            "parse_result": "ok" if payload else "failed",
+            "schema_error": error,
+            "step_type_canonicalizations": type_recs,
+        }
     ]
     repair_count = 0
     if payload is None:
@@ -95,25 +101,30 @@ def run_planner(
         repair_count = 1
         usage = _merge_usage(usage, repair.get("usage") or {})
         payload, _rc, error = parse_and_validate(str(repair.get("content") or ""), "plan")
+        type_recs = list((payload or {}).get("step_type_canonicalizations") or [])
         calls.append(
             {
                 "stage": "planner_repair",
                 "parse_result": "ok" if payload else "failed",
                 "schema_error": error,
+                "step_type_canonicalizations": type_recs,
             }
         )
     if payload is None:
         return _failure(
             error=error or "planner_failed", repair_count=repair_count, usage=usage, calls=calls
         )
+    # Observability stays in call_observability; keep executable plan schema-clean.
+    plan = {k: v for k, v in payload.items() if k != "step_type_canonicalizations"}
     return {
         "ok": True,
-        "plan": payload,
+        "plan": plan,
         "error": None,
         "error_type": None,
         "stopping_reason": None,
         "repair_count": repair_count,
         "usage": usage,
         "call_observability": calls,
+        "step_type_canonicalizations": type_recs,
         "planner_max_tokens": int(max_tokens),
     }

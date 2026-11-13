@@ -289,6 +289,7 @@ RESUME_IDENTITY_KEYS = (
     "prompt_hash",
     "schema_set_hash",
     "replanner_schema_hash",
+    "step_canonicalizer_hash",
     "grounding_contract_hash",
     "cli_output_contract_version",
     "catalog_registry_sha256",

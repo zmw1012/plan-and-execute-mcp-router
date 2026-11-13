@@ -46,10 +46,10 @@ PY="$ORIG/.venv-aktools-discovery/bin/python"
 ENV_GEN="$ORIG/.env.relay-v41"
 ENV_EMB="$ORIG/.env.embedding-relay"
 OUT="$ROOT/outputs/pe_fin_replan_etom_formal100_v1"
-SMOKE_OUT="$ROOT/outputs/pe_fin_replan_etom_smoke5_v5"
+SMOKE_OUT="$ROOT/outputs/pe_fin_replan_etom_smoke5_v6"
 # Smoke-v2 (aliyun/HTTP 403), Smoke-v3 (grounding/CLI), Smoke-v4
-# (required_outputs maxLength=64 boundary) are INVALIDATED.
-# Do not resume those directories.
+# (required_outputs maxLength=64), Smoke-v5 (step type/domain confusion)
+# are INVALIDATED. Do not resume those directories.
 CACHE="$ROOT/.cache/pe_fin_replan_etom_operation_embeddings_v1"
 cd "$ROOT"
 ```
