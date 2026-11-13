@@ -235,6 +235,49 @@ def protocol_identity() -> Dict[str, Any]:
     }
 
 
+RUN_ROLE_FORMAL100 = "formal100"
+RUN_ROLE_ENGINEERING_SMOKE5 = "engineering_live_path_smoke_only"
+RUN_ROLE_MOCK = "mock"
+RUN_ROLE_DRY_RUN = "dry-run"
+RUN_ROLE_INDEX = "index"
+
+# Frozen-order first task per level (L1–L5). Derived ONLY from lock task_id
+# prefixes + ordered_task_ids; never from gold / accepted tools / correctness.
+ENGINEERING_SMOKE5_EXPECTED_IDS = (
+    "L1-q556",
+    "L2-q766",
+    "L3-q108",
+    "L4-q57",
+    "L5-q68",
+)
+
+
+def engineering_smoke5_task_ids(ordered_task_ids: List[str]) -> List[str]:
+    """Select the first frozen-order task of each level L1–L5.
+
+    Uses only ``task_id`` strings (level prefix). Does not read questions,
+    gold, accepted tools, or baseline scores.
+    """
+    chosen: Dict[str, str] = {}
+    for tid in ordered_task_ids:
+        level = str(tid).split("-", 1)[0]
+        if level in {f"L{n}" for n in range(1, 6)} and level not in chosen:
+            chosen[level] = str(tid)
+        if len(chosen) == 5:
+            break
+    ids = [chosen[f"L{n}"] for n in range(1, 6) if f"L{n}" in chosen]
+    if len(ids) != 5:
+        raise FrozenIdentityError(
+            f"engineering Smoke-5 requires one task per L1–L5; got {ids!r}"
+        )
+    if tuple(ids) != ENGINEERING_SMOKE5_EXPECTED_IDS:
+        raise FrozenIdentityError(
+            "engineering Smoke-5 ids drifted from the frozen first-per-level pin: "
+            f"got {ids!r} want {list(ENGINEERING_SMOKE5_EXPECTED_IDS)!r}"
+        )
+    return ids
+
+
 RESUME_IDENTITY_KEYS = (
     "condition",
     "method_version",
@@ -259,6 +302,7 @@ RESUME_IDENTITY_KEYS = (
     "budgets",
     "evaluator_identity",
     "run_mode",
+    "run_role",
     "git_commit",
     "git_dirty",
     "fixture_run",
@@ -268,7 +312,9 @@ RESUME_IDENTITY_KEYS = (
 def resume_identity_hash(metadata: Dict[str, Any]) -> str:
     """Hash of every field a resumed run must keep identical.
 
-    ``max_tasks`` is intentionally excluded (a prefix run may be extended).
+    ``max_tasks`` is intentionally excluded for formal100 prefix extension.
+    ``run_role`` IS included so Smoke-5 can never resume into formal100 (or
+    vice versa), even if an operator reuses an output directory by mistake.
     """
     payload = {key: metadata.get(key) for key in RESUME_IDENTITY_KEYS}
     return _sha(payload)

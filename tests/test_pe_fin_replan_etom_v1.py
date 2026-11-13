@@ -34,8 +34,10 @@ from hk_equity_mcp.pe_fin_replan_etom.gateway import EtomGateway
 from hk_equity_mcp.pe_fin_replan_etom.grounding import validate_replanner_response
 from hk_equity_mcp.pe_fin_replan_etom.identity import (
     DEFAULT_BUDGETS,
+    ENGINEERING_SMOKE5_EXPECTED_IDS,
     FROZEN_ORDERED_TASK_IDS_SHA256,
     FROZEN_SAMPLE_SHA256,
+    engineering_smoke5_task_ids,
     resume_identity_hash,
 )
 from hk_equity_mcp.pe_fin_replan_etom.schemas import (
@@ -411,8 +413,10 @@ def test_18_resume_identity():
         "budgets": DEFAULT_BUDGETS,
         "evaluator_identity": {"module": "hk_equity_mcp.etom.evaluator"},
         "run_mode": "mock",
+        "run_role": "mock",
         "git_commit": "abc",
         "git_dirty": False,
+        "fixture_run": False,
     }
     h1 = resume_identity_hash(meta)
     meta2 = dict(meta)
@@ -421,6 +425,9 @@ def test_18_resume_identity():
     meta3 = dict(meta)
     meta3["method_version"] = "other"
     assert resume_identity_hash(meta3) != h1
+    meta4 = dict(meta)
+    meta4["run_role"] = "engineering_live_path_smoke_only"
+    assert resume_identity_hash(meta4) != h1
 
 
 def test_19_20_mock_dry_aborted(tmp_path):
@@ -465,3 +472,48 @@ def test_step_query_helper():
         }
     )
     assert "echo" in q
+
+
+def test_engineering_smoke5_ids_first_per_level_no_gold():
+    identity = assert_frozen_etom100_identity(ROOT)
+    ids = engineering_smoke5_task_ids(identity["ordered_task_ids"])
+    assert ids == list(ENGINEERING_SMOKE5_EXPECTED_IDS)
+    assert [tid.split("-")[0] for tid in ids] == ["L1", "L2", "L3", "L4", "L5"]
+    # Prefix max_tasks=5 is L1-only and must NOT be treated as Smoke-5.
+    assert identity["ordered_task_ids"][:5] != ids
+
+
+def test_engineering_smoke5_runner_isolation(tmp_path):
+    with pytest.raises(Exception):
+        UnifiedPeFinReplanEtomRunner(
+            ROOT, tmp_path / "bad", mode="mock", formal100=True, engineering_smoke5=True
+        )
+    with pytest.raises(Exception):
+        UnifiedPeFinReplanEtomRunner(
+            ROOT,
+            tmp_path / "bad2",
+            mode="mock",
+            build_index_only=True,
+            require_complete_index=True,
+            mock_embeddings=True,
+        )
+    out = tmp_path / "smoke"
+    runner = UnifiedPeFinReplanEtomRunner(
+        ROOT, out, mode="mock", engineering_smoke5=True, formal100=False
+    )
+    assert runner.run_role == "engineering_live_path_smoke_only"
+    assert runner.formal100 is False
+    assert runner.max_tasks == 5
+    result = runner.execute()
+    assert result.get("live_pass_claimed") is False
+    meta = json.loads((out / "run_metadata.json").read_text(encoding="utf-8"))
+    assert meta["run_role"] == "engineering_live_path_smoke_only"
+    assert meta["explicitly_not_formal_accuracy"] is True
+    assert meta["formal100"] is False
+    assert meta["task_ids"] == list(ENGINEERING_SMOKE5_EXPECTED_IDS)
+    preds = [
+        json.loads(line)
+        for line in (out / "predictions.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert [p["task_id"] for p in preds] == list(ENGINEERING_SMOKE5_EXPECTED_IDS)

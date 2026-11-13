@@ -57,7 +57,13 @@ from hk_equity_mcp.pe_fin_replan_etom.identity import (
     DEFAULT_BUDGETS,
     FROZEN_CATALOG_TOTAL_TOOLS,
     FROZEN_REGISTRY_SHA256,
+    RUN_ROLE_DRY_RUN,
+    RUN_ROLE_ENGINEERING_SMOKE5,
+    RUN_ROLE_FORMAL100,
+    RUN_ROLE_INDEX,
+    RUN_ROLE_MOCK,
     assert_budgets,
+    engineering_smoke5_task_ids,
     evaluator_identity,
     protocol_identity,
     resume_identity_hash,
@@ -249,6 +255,7 @@ class UnifiedPeFinReplanEtomRunner:
         config_path: Optional[Path] = None,
         allow_live: bool = False,
         allow_dirty: bool = False,
+        engineering_smoke5: bool = False,
         llm_override: Any = None,
         fixture_registry_payload: Optional[Dict[str, Any]] = None,
         fixture_tasks: Optional[Sequence[Dict[str, Any]]] = None,
@@ -259,13 +266,25 @@ class UnifiedPeFinReplanEtomRunner:
             raise EtomPeFinReplanRunnerError("max_tasks must be in 1..100")
         if build_index_only and index_status_only:
             raise EtomPeFinReplanRunnerError("choose one of --build-index-only / --index-status")
+        if build_index_only and require_complete_index:
+            raise EtomPeFinReplanRunnerError(
+                "--build-index-only builds the index; do not pass --require-complete-index. "
+                "After the build, run --index-status --require-complete-index separately."
+            )
+        if engineering_smoke5 and formal100:
+            raise EtomPeFinReplanRunnerError(
+                "--engineering-smoke5 is not formal100; refuse combined flags "
+                "(Smoke-5 cannot be labeled or resumed as formal100)."
+            )
         if (fixture_registry_payload or fixture_tasks) and mode != "mock":
             raise EtomPeFinReplanRunnerError("fixture catalogs/tasks are mock-only")
         self.root = Path(root).resolve()
         out = Path(output_dir)
         self.output_dir = out if out.is_absolute() else (self.root / out)
         self.mode = mode
-        self.formal100 = formal100
+        self.engineering_smoke5 = bool(engineering_smoke5)
+        # Smoke-5 is never a formal100 primary/accuracy run.
+        self.formal100 = False if self.engineering_smoke5 else bool(formal100)
         self.resume = resume
         self.env_file = env_file
         self.embedding_env_file = embedding_env_file
@@ -274,10 +293,11 @@ class UnifiedPeFinReplanEtomRunner:
         self.index_status_only = index_status_only
         self.build_index_only = build_index_only
         self.mock_embeddings = bool(mock_embeddings or mode == "mock")
-        self.max_tasks = int(max_tasks)
+        self.max_tasks = 5 if self.engineering_smoke5 else int(max_tasks)
         self.allow_live = allow_live
         self.allow_dirty = allow_dirty
         self.llm_override = llm_override
+        self.run_role = self._resolve_run_role()
         self.fixture_registry_payload = fixture_registry_payload
         self.fixture_tasks = list(fixture_tasks) if fixture_tasks else None
         self.config_path = Path(config_path) if config_path else (
@@ -292,6 +312,19 @@ class UnifiedPeFinReplanEtomRunner:
         self._stop = False
         self.run_status = "running"
         self._metadata: Dict[str, Any] = {}
+
+    def _resolve_run_role(self) -> str:
+        if self.index_status_only or self.build_index_only:
+            return RUN_ROLE_INDEX
+        if self.engineering_smoke5:
+            return RUN_ROLE_ENGINEERING_SMOKE5
+        if self.mode == "mock":
+            return RUN_ROLE_MOCK
+        if self.mode == "dry-run":
+            return RUN_ROLE_DRY_RUN
+        if self.formal100:
+            return RUN_ROLE_FORMAL100
+        return self.mode
 
     # ----------------------------------------------------------------- cache
     def _cache_dir(self) -> Path:
@@ -377,6 +410,12 @@ class UnifiedPeFinReplanEtomRunner:
 
         official_tasks = load_official_tasks(self.root, verify=True)
         lock = assert_formal_100_lock_matches(self.root, official_tasks)
+        if self.engineering_smoke5:
+            smoke_ids = engineering_smoke5_task_ids(list(lock.get("ordered_task_ids") or []))
+            by_id = {t.task_id: t for t in official_tasks}
+            selected = [by_id[tid] for tid in smoke_ids]
+            order = {tid: i for i, tid in enumerate(smoke_ids, start=1)}
+            return selected, order
         selected = select_formal_locked_tasks(official_tasks, lock, max_tasks=self.max_tasks)
         order = {
             row["task_id"]: int(row.get("selected_order") or i)
@@ -459,9 +498,14 @@ class UnifiedPeFinReplanEtomRunner:
                 index_payload = self._index_status_payload(specs, official)
             except Exception as exc:  # noqa: BLE001 - inventory only
                 catalog_error = scrub_secret(f"{type(exc).__name__}: {exc}")
+            complete = bool((index_payload or {}).get("complete"))
+            ok = catalog_error is None
+            if self.require_complete_index and catalog_error is None and not complete:
+                ok = False
             payload = {
                 "mode": "index-status",
                 "run_mode": self.mode,
+                "run_role": self.run_role,
                 "dataset_identity": {
                     k: v for k, v in lock_identity.items() if k != "ordered_task_ids"
                 },
@@ -471,12 +515,22 @@ class UnifiedPeFinReplanEtomRunner:
                 "catalog_error": catalog_error,
                 "namespace_inventory": inventory,
                 "registry_sha256": registry_sha,
+                "require_complete_index": self.require_complete_index,
+                "complete_index_present": complete,
                 "network_calls": 0,
                 "live_pass_claimed": False,
-                "ok": catalog_error is None,
+                "ok": ok,
             }
             _write_json(self.output_dir / "index_status.json", payload)
-            self.run_status = "completed"
+            self.run_status = "completed" if ok else "fail_closed"
+            if self.require_complete_index and catalog_error is None and not complete:
+                raise EtomPeFinReplanRunnerError(
+                    "require-complete-index: PE-Fin RePlan-ETOM embedding index is incomplete "
+                    f"(cache_dir={self._cache_dir()}). Run build-index-only first; do not pass "
+                    "--require-complete-index together with --build-index-only."
+                )
+            if catalog_error is not None:
+                raise EtomPeFinReplanRunnerError(f"index-status catalog error: {catalog_error}")
             return payload
 
         if self.build_index_only:
@@ -503,7 +557,10 @@ class UnifiedPeFinReplanEtomRunner:
             "architecture": protocol["architecture"],
             "mode": self.mode,
             "run_mode": self.mode,
+            "run_role": self.run_role,
             "formal100": self.formal100,
+            "engineering_smoke5": self.engineering_smoke5,
+            "explicitly_not_formal_accuracy": bool(self.engineering_smoke5),
             "fixture_run": fixture or self.fixture_tasks is not None,
             "dataset_identity": {
                 k: v for k, v in lock_identity.items() if k != "ordered_task_ids"
@@ -568,8 +625,18 @@ class UnifiedPeFinReplanEtomRunner:
                 "complete_index_present": bool(idx_status.get("complete")),
                 "namespace_inventory": inventory,
                 "resume_identity_sha256": metadata["resume_identity_sha256"],
-                "task_ids": list(lock_identity.get("ordered_task_ids") or [])[: self.max_tasks],
-                "note": "dry-run only; no LLM/MCP/embedding API calls",
+                "task_ids": (
+                    engineering_smoke5_task_ids(
+                        list(lock_identity.get("ordered_task_ids") or [])
+                    )
+                    if self.engineering_smoke5
+                    else list(lock_identity.get("ordered_task_ids") or [])[: self.max_tasks]
+                ),
+                "note": (
+                    "dry-run engineering Smoke-5 only; not formal accuracy"
+                    if self.engineering_smoke5
+                    else "dry-run only; no LLM/MCP/embedding API calls"
+                ),
             }
             if self.require_complete_index and not preflight["complete_index_present"]:
                 preflight["warning"] = "complete live index not present; live run would fail closed"
@@ -610,9 +677,11 @@ class UnifiedPeFinReplanEtomRunner:
         if not self.mock_embeddings:
             if not (self.allow_live and os.environ.get(LIVE_ENV_GATE) == "1"):
                 raise LiveEmbeddingGatedError(
-                    "Live embedding index build is future-only and fails closed offline. "
-                    "Use --mock-embeddings for a deterministic hash index, or follow "
-                    "docs/pe_fin_replan_etom_v1/FUTURE_LIVE_COMMANDS.md."
+                    "Live embedding index build is gated. It needs allow_live=True "
+                    "(CLI --allow-live-formal100) AND env PE_FIN_REPLAN_ETOM_ALLOW_LIVE=1. "
+                    "This authorizes the embedding API only (not a formal100 accuracy claim). "
+                    "Offline: use --build-index-only --mock-embeddings. "
+                    "See docs/pe_fin_replan_etom_v1/FUTURE_LIVE_COMMANDS.md."
                 )
             return self._live_build_index(specs, official, registry_sha)
         embedder = HashEmbeddingClient(model_name=MOCK_EMBEDDING_MODEL)
@@ -676,8 +745,9 @@ class UnifiedPeFinReplanEtomRunner:
     # ----------------------------------------------------------------- live
     def _live_run(self, specs, official, registry_sha, metadata, lock_identity):  # pragma: no cover
         if not (self.allow_live and os.environ.get(LIVE_ENV_GATE) == "1"):
+            role = "Smoke-5" if self.engineering_smoke5 else "formal100"
             raise LiveGateError(
-                "Live ETOM formal100 is gated. It needs allow_live=True (CLI "
+                f"Live ETOM {role} is gated. It needs allow_live=True (CLI "
                 "--allow-live-formal100) AND env PE_FIN_REPLAN_ETOM_ALLOW_LIVE=1, "
                 "and is intended only after HK-155 freeze. Use --mock or --dry-run offline."
             )
