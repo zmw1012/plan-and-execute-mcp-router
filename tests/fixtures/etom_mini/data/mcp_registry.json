@@ -1,0 +1,142 @@
+{
+  "servers": [
+    {
+      "server_name": "Alpha Search MCP",
+      "server_description": "Search documents and web pages",
+      "server_summary": "search server",
+      "categories": [
+        "search"
+      ],
+      "tools": [
+        {
+          "tool_name": "search",
+          "tool_description": "keyword search",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "q": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "tool_name": "fetch",
+          "tool_description": "fetch a URL",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "server_name": "Beta Notes MCP Server",
+      "server_description": "Local notes and markdown",
+      "server_summary": "",
+      "categories": [
+        "notes"
+      ],
+      "tools": [
+        {
+          "tool_name": "list_notes",
+          "tool_description": "list notes",
+          "input_schema": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        {
+          "tool_name": "read_note",
+          "tool_description": "read a note by id",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "tool_name": "search",
+          "tool_description": "search notes",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "q": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "server_name": "Gamma Calc",
+      "server_description": "Calculator utilities",
+      "server_summary": "math",
+      "categories": [
+        "calc"
+      ],
+      "tools": [
+        {
+          "tool_name": "add",
+          "tool_description": "add two numbers",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "a": {
+                "type": "number"
+              },
+              "b": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        {
+          "tool_name": "mul",
+          "tool_description": "multiply two numbers",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "a": {
+                "type": "number"
+              },
+              "b": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "server_name": "Delta Weather MCP",
+      "server_description": "Weather forecasts",
+      "server_summary": "weather",
+      "categories": [
+        "weather"
+      ],
+      "tools": [
+        {
+          "tool_name": "forecast",
+          "tool_description": "get forecast",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "city": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1060 @@
+{
+  "exclusive_primary": true,
+  "labels": [
+    "exact_route_success",
+    "server_retrieval_miss",
+    "tool_retrieval_miss",
+    "gold_retrieved_but_not_selected",
+    "incomplete_tool_chain",
+    "dependency_order_error",
+    "unnecessary_tool_or_l5_incorrect_rejection",
+    "protocol_parse_failure",
+    "max_turn_resource_limit"
+  ],
+  "primary_counts": {
+    "dependency_order_error": 0,
+    "exact_route_success": 49,
+    "gold_retrieved_but_not_selected": 4,
+    "incomplete_tool_chain": 14,
+    "max_turn_resource_limit": 16,
+    "protocol_parse_failure": 0,
+    "server_retrieval_miss": 12,
+    "tool_retrieval_miss": 1,
+    "unnecessary_tool_or_l5_incorrect_rejection": 4
+  },
+  "primary_counts_observed": {
+    "exact_route_success": 49,
+    "gold_retrieved_but_not_selected": 4,
+    "incomplete_tool_chain": 14,
+    "max_turn_resource_limit": 16,
+    "server_retrieval_miss": 12,
+    "tool_retrieval_miss": 1,
+    "unnecessary_tool_or_l5_incorrect_rejection": 4
+  },
+  "sum_primary": 100,
+  "tasks": [
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 1,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L1-q556"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 1,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L1-q160"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 1,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L1-q267"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 1,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L1-q533"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 1,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L1-q33"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 1,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L1-q98"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 1,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L1-q719"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 1,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L1-q107"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": false,
+      "gold_server_retrieved": false,
+      "level": 1,
+      "primary": "server_retrieval_miss",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L1-q12"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 1,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L1-q183"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 1,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L1-q297"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 1,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L1-q200"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 1,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L1-q325"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 1,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L1-q2"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 1,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L1-q727"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 1,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L1-q10"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 1,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L1-q604"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 1,
+      "primary": "gold_retrieved_but_not_selected",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L1-q591"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 1,
+      "primary": "gold_retrieved_but_not_selected",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L1-q105"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 1,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L1-q506"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 2,
+      "primary": "incomplete_tool_chain",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L2-q766"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": false,
+      "gold_server_retrieved": true,
+      "level": 2,
+      "primary": "tool_retrieval_miss",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L2-q702"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": false,
+      "gold_server_retrieved": false,
+      "level": 2,
+      "primary": "server_retrieval_miss",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L2-q492"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 2,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L2-q520"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 2,
+      "primary": "incomplete_tool_chain",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L2-q633"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 2,
+      "primary": "incomplete_tool_chain",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L2-q751"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": false,
+      "gold_server_retrieved": false,
+      "level": 2,
+      "primary": "server_retrieval_miss",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L2-q720"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 2,
+      "primary": "incomplete_tool_chain",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L2-q640"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 2,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L2-q518"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 2,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L2-q64"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 2,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L2-q22"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": false,
+      "gold_server_retrieved": false,
+      "level": 2,
+      "primary": "server_retrieval_miss",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L2-q668"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 2,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L2-q166"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": false,
+      "gold_server_retrieved": false,
+      "level": 2,
+      "primary": "server_retrieval_miss",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L2-q315"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 2,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L2-q233"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 2,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L2-q399"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 2,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L2-q432"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 2,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L2-q445"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 2,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L2-q341"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": false,
+      "gold_server_retrieved": false,
+      "level": 2,
+      "primary": "server_retrieval_miss",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L2-q14"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 3,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L3-q108"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 3,
+      "primary": "incomplete_tool_chain",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L3-q302"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 3,
+      "primary": "incomplete_tool_chain",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L3-q267"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 3,
+      "primary": "gold_retrieved_but_not_selected",
+      "secondary": [
+        "dependency_order_error"
+      ],
+      "status": "completed",
+      "task_id": "L3-q29"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": false,
+      "level": 3,
+      "primary": "server_retrieval_miss",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L3-q142"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 3,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L3-q264"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 3,
+      "primary": "incomplete_tool_chain",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L3-q120"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 3,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L3-q17"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 3,
+      "primary": "gold_retrieved_but_not_selected",
+      "secondary": [
+        "dependency_order_error"
+      ],
+      "status": "completed",
+      "task_id": "L3-q230"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 3,
+      "primary": "max_turn_resource_limit",
+      "secondary": [],
+      "status": "failed",
+      "task_id": "L3-q195"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 3,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L3-q116"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": false,
+      "gold_server_retrieved": false,
+      "level": 3,
+      "primary": "server_retrieval_miss",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L3-q208"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 3,
+      "primary": "incomplete_tool_chain",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L3-q106"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 3,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L3-q117"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 3,
+      "primary": "incomplete_tool_chain",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L3-q224"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": false,
+      "level": 3,
+      "primary": "max_turn_resource_limit",
+      "secondary": [
+        "server_retrieval_miss"
+      ],
+      "status": "failed",
+      "task_id": "L3-q180"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 3,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L3-q229"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 3,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L3-q55"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 3,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L3-q172"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 3,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L3-q188"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 4,
+      "primary": "incomplete_tool_chain",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L4-q57"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": false,
+      "level": 4,
+      "primary": "server_retrieval_miss",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L4-q4"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": false,
+      "level": 4,
+      "primary": "max_turn_resource_limit",
+      "secondary": [
+        "server_retrieval_miss"
+      ],
+      "status": "failed",
+      "task_id": "L4-q37"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 4,
+      "primary": "incomplete_tool_chain",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L4-q100"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 4,
+      "primary": "incomplete_tool_chain",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L4-q92"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 4,
+      "primary": "incomplete_tool_chain",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L4-q48"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": false,
+      "gold_server_retrieved": false,
+      "level": 4,
+      "primary": "server_retrieval_miss",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L4-q96"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": false,
+      "level": 4,
+      "primary": "server_retrieval_miss",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L4-q52"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": false,
+      "gold_server_retrieved": false,
+      "level": 4,
+      "primary": "max_turn_resource_limit",
+      "secondary": [
+        "tool_retrieval_miss"
+      ],
+      "status": "failed",
+      "task_id": "L4-q62"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": false,
+      "level": 4,
+      "primary": "max_turn_resource_limit",
+      "secondary": [
+        "server_retrieval_miss"
+      ],
+      "status": "failed",
+      "task_id": "L4-q75"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": false,
+      "level": 4,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L4-q31"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 4,
+      "primary": "max_turn_resource_limit",
+      "secondary": [
+        "incomplete_tool_chain"
+      ],
+      "status": "failed",
+      "task_id": "L4-q71"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": false,
+      "gold_server_retrieved": false,
+      "level": 4,
+      "primary": "server_retrieval_miss",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L4-q5"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": false,
+      "level": 4,
+      "primary": "max_turn_resource_limit",
+      "secondary": [
+        "server_retrieval_miss"
+      ],
+      "status": "failed",
+      "task_id": "L4-q7"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 4,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L4-q83"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 4,
+      "primary": "max_turn_resource_limit",
+      "secondary": [
+        "incomplete_tool_chain"
+      ],
+      "status": "failed",
+      "task_id": "L4-q95"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 4,
+      "primary": "max_turn_resource_limit",
+      "secondary": [
+        "incomplete_tool_chain"
+      ],
+      "status": "failed",
+      "task_id": "L4-q101"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 4,
+      "primary": "max_turn_resource_limit",
+      "secondary": [],
+      "status": "failed",
+      "task_id": "L4-q54"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 4,
+      "primary": "incomplete_tool_chain",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L4-q35"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": true,
+      "gold_server_retrieved": true,
+      "level": 4,
+      "primary": "max_turn_resource_limit",
+      "secondary": [
+        "gold_retrieved_but_not_selected"
+      ],
+      "status": "failed",
+      "task_id": "L4-q36"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": null,
+      "gold_server_retrieved": null,
+      "level": 5,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L5-q68"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": null,
+      "gold_server_retrieved": null,
+      "level": 5,
+      "primary": "max_turn_resource_limit",
+      "secondary": [],
+      "status": "failed",
+      "task_id": "L5-q4"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": null,
+      "gold_server_retrieved": null,
+      "level": 5,
+      "primary": "max_turn_resource_limit",
+      "secondary": [],
+      "status": "failed",
+      "task_id": "L5-q39"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": null,
+      "gold_server_retrieved": null,
+      "level": 5,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L5-q11"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": null,
+      "gold_server_retrieved": null,
+      "level": 5,
+      "primary": "unnecessary_tool_or_l5_incorrect_rejection",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L5-q40"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": null,
+      "gold_server_retrieved": null,
+      "level": 5,
+      "primary": "unnecessary_tool_or_l5_incorrect_rejection",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L5-q49"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": null,
+      "gold_server_retrieved": null,
+      "level": 5,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L5-q91"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": null,
+      "gold_server_retrieved": null,
+      "level": 5,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L5-q69"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": null,
+      "gold_server_retrieved": null,
+      "level": 5,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L5-q5"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": null,
+      "gold_server_retrieved": null,
+      "level": 5,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L5-q46"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": null,
+      "gold_server_retrieved": null,
+      "level": 5,
+      "primary": "unnecessary_tool_or_l5_incorrect_rejection",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L5-q42"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": null,
+      "gold_server_retrieved": null,
+      "level": 5,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L5-q71"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": null,
+      "gold_server_retrieved": null,
+      "level": 5,
+      "primary": "max_turn_resource_limit",
+      "secondary": [],
+      "status": "failed",
+      "task_id": "L5-q27"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": null,
+      "gold_server_retrieved": null,
+      "level": 5,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L5-q24"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": null,
+      "gold_server_retrieved": null,
+      "level": 5,
+      "primary": "max_turn_resource_limit",
+      "secondary": [],
+      "status": "failed",
+      "task_id": "L5-q58"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": null,
+      "gold_server_retrieved": null,
+      "level": 5,
+      "primary": "max_turn_resource_limit",
+      "secondary": [],
+      "status": "failed",
+      "task_id": "L5-q73"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": null,
+      "gold_server_retrieved": null,
+      "level": 5,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L5-q56"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": null,
+      "gold_server_retrieved": null,
+      "level": 5,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L5-q44"
+    },
+    {
+      "exact_match": true,
+      "gold_in_candidates": null,
+      "gold_server_retrieved": null,
+      "level": 5,
+      "primary": "exact_route_success",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L5-q20"
+    },
+    {
+      "exact_match": false,
+      "gold_in_candidates": null,
+      "gold_server_retrieved": null,
+      "level": 5,
+      "primary": "unnecessary_tool_or_l5_incorrect_rejection",
+      "secondary": [],
+      "status": "completed",
+      "task_id": "L5-q33"
+    }
+  ],
+  "version": "mcp_zero_etom_formal100_taxonomy_v1"
+}

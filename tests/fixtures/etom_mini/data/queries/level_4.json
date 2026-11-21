@@ -1,0 +1,20 @@
+[
+  {
+    "query_id": 1,
+    "query": "Search web then compute",
+    "ground_truth_tools": [
+      {
+        "server_name": "Alpha Search MCP",
+        "tool_name": "search",
+        "dependencies": []
+      },
+      {
+        "server_name": "Gamma Calc",
+        "tool_name": "add",
+        "dependencies": [
+          0
+        ]
+      }
+    ]
+  }
+]

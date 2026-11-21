@@ -1,0 +1,19 @@
+{
+  "corrected_label": "completed_only_exact_route_rate_84",
+  "label": "completed_only_diagnostic",
+  "macro_across_levels": {
+    "note": "Unweighted mean of completed-only per-level EM rates.",
+    "rate": 0.553030303030303
+  },
+  "must_not_replace_strict": true,
+  "official_headline": "strict_exact_route_49_100",
+  "overall": {
+    "denominator": 84,
+    "label": "completed_only_exact_route_/84",
+    "rate": 0.5833333333333334,
+    "successes": 49,
+    "warning": "Raw grouped_results.json pooled_100.exact_match_rate uses this completed-only denominator. Official headline is strict 49/100."
+  },
+  "raw_grouped_results_pooled_exact_match_rate": 0.5833333333333334,
+  "raw_grouped_results_pooled_is_completed_only": true
+}

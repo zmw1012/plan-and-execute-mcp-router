@@ -59,6 +59,10 @@ results/
 data/raw/
 data/private/
 
-# ETOM pinned raw checkout (local fetch / symlink; do not commit)
+# ETOM pinned raw checkout / derived / cache (local fetch; do not commit)
 data/etom/raw/
 data/etom/raw
+data/etom/derived/
+data/etom/cache/
+.cache/etom_embeddings/
+.cache/mcp_zero_etom_v1/

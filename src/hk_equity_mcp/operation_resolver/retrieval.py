@@ -92,6 +92,8 @@ class EmbeddingBackend(ABC):
 
 
 _RETRYABLE_HTTP = frozenset({429, 500, 502, 503, 504})
+
+# Transient transport disconnects (index-build retries only). Not a blanket RuntimeError policy.
 _RETRYABLE_DISCONNECT = (
     http.client.RemoteDisconnected,
     http.client.IncompleteRead,
@@ -117,6 +119,7 @@ _RETRYABLE_TYPE_NAMES = (
 
 
 def _is_ssl_connection_interrupt(exc: BaseException) -> bool:
+    """True only for SSL failures that look like mid-connection EOF/reset."""
     if not isinstance(exc, ssl.SSLError):
         return False
     text = str(exc).lower()
@@ -127,7 +130,9 @@ class OpenAICompatibleEmbeddingBackend(EmbeddingBackend):
     """Relay/OpenAI-compatible embeddings with optional transport retries.
 
     Retries only TimeoutError / URLError / disconnect / 429 / 5xx / SSL EOF.
-    Non-429 HTTP 4xx fail closed. Never lexical/mock fallback. Never logs keys/vectors.
+    Optional retries are intended for index builds; defaults keep single-shot
+    behaviour (max_retries=0). Non-429 HTTP 4xx fail closed. Never lexical/mock
+    fallback. Never logs keys, response bodies, or vectors.
     """
 
     def __init__(

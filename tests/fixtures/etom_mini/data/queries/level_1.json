@@ -1,0 +1,12 @@
+[
+  {
+    "query_id": 1,
+    "query": "Search the web for MCP Zero",
+    "ground_truth_tools": [
+      {
+        "server_name": "Alpha Search MCP",
+        "tool_name": "search"
+      }
+    ]
+  }
+]
