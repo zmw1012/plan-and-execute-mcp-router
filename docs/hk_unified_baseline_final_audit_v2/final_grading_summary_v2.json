@@ -1,0 +1,16 @@
+{
+  "n": 155,
+  "final_answer_correct_count": 95,
+  "final_answer_accuracy": 0.6129032258064516,
+  "final_answer_unresolved_count": 0,
+  "exact_tool_set_success_count": 64,
+  "exact_tool_set_success_rate": 0.4129032258064516,
+  "strict_task_success_count": 45,
+  "strict_task_success_rate": 0.2903225806451613,
+  "metric_definitions": {
+    "A_final_answer_accuracy": "Share of tasks with correct final answer (auto v1.2 or human decision). Independent of tool-set.",
+    "B_exact_tool_set_success": "Share of tasks where predicted invoke set exactly equals gold set.",
+    "C_strict_overall_task_success": "answer correct AND exact tool set AND all invocations successful AND dependency OK when applicable AND refusal OK when applicable AND evidence correct or N/A."
+  },
+  "note": "A, B, and C are separate metrics and must not be substituted for each other."
+}

@@ -6,11 +6,11 @@
   "evaluator_version": "hk_unified_evaluator_v1.2",
   "grader_version": "deterministic_v1.2",
   "grading_version": "hk_unified_grading_v1.2",
-  "taxonomy_version": "error_taxonomy_v1",
+  "taxonomy_version": "error_taxonomy_v1.1",
   "evaluator_source_sha256": "e10f510aa86e1bab2ee899b8a68715af602ae3a8296cdb18ed17fb8e5ef14c71",
   "grader_source_sha256": "2e1ae2d451435f85d4108f895f0e828743e826d9312819dc3c3e3a9d218c16ad",
-  "taxonomy_source_sha256": "0994ee8b18529a6a2e80b5f59f280ea1c6691b2acd0877184ea371521795e092",
-  "audit_source_sha256": "97d744ff32a5f683c92dd40790292f86f3dee8441cbf41642c801ff8a4617e77",
+  "taxonomy_source_sha256": "ba11a48de529ae4f29c383eaa5015c8ef1446666bfe2c7edc3706a12466fcd69",
+  "audit_source_sha256": "62aeea467117c554042c51bebb73e286cccc23bbc64b6d0b4e5e0eff0ba6625a",
   "raw_sha256": {
     "predictions.jsonl": "e273d25a41470ca1fcdaa979469a2c18de1c0bf5eade46e969e33c42526cb50c",
     "run_metadata.json": "c164c3af206b072ba42d76b808aa076ec4b3868ebe33099a8576209b6cfaf4b8",
@@ -59,6 +59,10 @@
     ],
     "match": true
   },
+  "manual_decisions_path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-hk-unified/docs/hk_unified_baseline_final_audit_v2/manual_review_decisions_v1.csv",
+  "manual_decisions_sha256": "4291e86b8ea3a3077a56e28ad1898d27c89e007abe3676bb0cbd6712ea63dafc",
+  "manual_decisions_applied_n": 8,
+  "manual_review_queue_n": 8,
   "offline_guarantees": {
     "llm_calls": 0,
     "embedding_calls": 0,
@@ -67,7 +71,9 @@
     "predictions_modified": false,
     "gold_modified": false,
     "prompt_modified": false,
-    "catalog_modified": false
+    "catalog_modified": false,
+    "raw_manual_grading_modified": false,
+    "manual_decisions_file_overwritten": false
   },
   "evaluator": {
     "evaluator_version": "hk_unified_evaluator_v1.2",
@@ -78,5 +84,21 @@
     "grader_version": "deterministic_v1.2",
     "grading_version": "hk_unified_grading_v1.2"
   },
-  "output_dir": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-hk-unified/outputs/hk_unified_exploratory155_operation_visible_v1/final_audit_v2"
+  "output_dir": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-hk-unified/outputs/hk_unified_exploratory155_operation_visible_v1/final_audit_v2",
+  "final_metrics": {
+    "n": 155,
+    "final_answer_correct_count": 95,
+    "final_answer_accuracy": 0.6129032258064516,
+    "final_answer_unresolved_count": 0,
+    "exact_tool_set_success_count": 64,
+    "exact_tool_set_success_rate": 0.4129032258064516,
+    "strict_task_success_count": 45,
+    "strict_task_success_rate": 0.2903225806451613,
+    "metric_definitions": {
+      "A_final_answer_accuracy": "Share of tasks with correct final answer (auto v1.2 or human decision). Independent of tool-set.",
+      "B_exact_tool_set_success": "Share of tasks where predicted invoke set exactly equals gold set.",
+      "C_strict_overall_task_success": "answer correct AND exact tool set AND all invocations successful AND dependency OK when applicable AND refusal OK when applicable AND evidence correct or N/A."
+    },
+    "note": "A, B, and C are separate metrics and must not be substituted for each other."
+  }
 }

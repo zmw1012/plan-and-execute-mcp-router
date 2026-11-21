@@ -72,9 +72,9 @@
 - mean_total_tokens=64256.49677419355, mean_latency_ms=37629.65738064515, mean_llm_calls=5.380645161290323, mean_real_mcp_execution_count=2.554838709677419
 
 ## Failure taxonomy
-- Taxonomy version: `error_taxonomy_v1`
-- Primary counts: `{"agent_selection": 8, "answer_synthesis_calculation": 6, "dependency_order": 0, "description_argument_grounding": 0, "evaluation_failure": 1, "feasibility_refusal": 22, "resource_limit": 23, "retrieval": 1, "success": 94, "tool_execution": 0}`
-- Primary rates: `{"agent_selection": 0.05161290322580645, "answer_synthesis_calculation": 0.03870967741935484, "dependency_order": 0.0, "description_argument_grounding": 0.0, "evaluation_failure": 0.0064516129032258064, "feasibility_refusal": 0.14193548387096774, "resource_limit": 0.14838709677419354, "retrieval": 0.0064516129032258064, "success": 0.6064516129032258, "tool_execution": 0.0}`
+- Taxonomy version: `error_taxonomy_v1.1`
+- Primary counts: `{"agent_selection": 8, "answer_success": 50, "answer_synthesis_calculation": 6, "dependency_order": 0, "description_argument_grounding": 0, "evaluation_failure": 0, "feasibility_refusal": 22, "resource_limit": 23, "retrieval": 1, "strict_task_success": 45, "tool_execution": 0}`
+- Primary rates: `{"agent_selection": 0.05161290322580645, "answer_success": 0.3225806451612903, "answer_synthesis_calculation": 0.03870967741935484, "dependency_order": 0.0, "description_argument_grounding": 0.0, "evaluation_failure": 0.0, "feasibility_refusal": 0.14193548387096774, "resource_limit": 0.14838709677419354, "retrieval": 0.0064516129032258064, "strict_task_success": 0.2903225806451613, "tool_execution": 0.0}`
 
 ## Representative success cases
 - `fin_ht_022` (financial/D1): exact_tool=False

@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 from hk_equity_mcp.experiment.unified_evaluator import REFUSAL_CLASSES, REFUSAL_STATUSES
 
-TAXONOMY_VERSION = "error_taxonomy_v1"
+TAXONOMY_VERSION = "error_taxonomy_v1.1"
 
 PRIMARY_CATEGORIES = (
     "retrieval",
@@ -31,7 +31,8 @@ PRIMARY_CATEGORIES = (
     "feasibility_refusal",
     "resource_limit",
     "evaluation_failure",
-    "success",
+    "answer_success",
+    "strict_task_success",
 )
 
 RESOURCE_ERRORS = frozenset(
@@ -167,48 +168,79 @@ def classify_task_error(
     v11_answer_correct: Optional[bool] = None,
     v11_auto_status: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Assign primary + secondary error categories for one enriched prediction."""
+    """Assign primary + secondary error categories for one enriched prediction.
+
+    Distinguishes:
+      - ``strict_task_success``: full rubric pass
+      - ``answer_success``: final answer correct but strict rubric failed
+      - ``evaluation_failure``: only while answer is still unresolved (no human decision)
+    Extra non-gold tool calls → secondary ``agent_selection``.
+    """
     secondary: List[str] = []
     gold = _as_set(row.get("gold_operations"))
     pred = _predicted_ops(row)
-    answer_correct = row.get("answer_correct")
+    # Prefer final (post-human) answer flag when present.
+    answer_correct = row.get("final_answer_correct")
+    if answer_correct is None:
+        answer_correct = row.get("answer_correct")
     auto_status = row.get("auto_grade_status")
     status = str(row.get("status") or "")
     err = str(row.get("error") or row.get("error_type") or "").strip()
     predicted_status = str(row.get("predicted_status") or "").lower()
     tool_ok = bool(row.get("all_tool_invocations_successful", row.get("tool_execution_success", True)))
     exact = bool(row.get("exact_tool_set"))
-    refusal_ok = row.get("refusal_correctness")
+    human_resolved = bool(row.get("human_decision_applied"))
+    strict = row.get("strict_task_success")
 
-    # Evaluation failure: grader disagreed across versions or still manual.
-    if auto_status == "manual_required":
-        # Not a model failure; needs human grading.
-        if answer_correct is None and (
+    # Evaluation failure only while still unresolved — never after human confirm.
+    if (
+        not human_resolved
+        and auto_status == "manual_required"
+        and answer_correct is None
+        and (
             status == "full"
             or predicted_status in {"answered", "unavailable", "clarification_needed"}
-        ):
-            # If tools/answer otherwise look fine, mark evaluation/manual gap.
-            primary = "evaluation_failure"
-            reason = "manual_required_structured_gold_insufficient"
-            return _pack(primary, secondary, reason, row)
+        )
+    ):
+        primary = "evaluation_failure"
+        reason = "manual_required_structured_gold_insufficient"
+        return _pack(primary, secondary, reason, row)
 
     should_refuse = _should_refuse(row)
 
-    # Success path: answer_correct is authoritative for primary=success.
-    # Resource-limit may still be recorded as secondary when the agent answered
-    # correctly despite hitting a budget cap.
-    if answer_correct is True:
+    def _answer_secondaries() -> None:
         if err in RESOURCE_ERRORS:
             secondary.append("resource_limit")
         if gold and not _gold_in_retrieval(row, retrieval_row):
             secondary.append("retrieval")
-        if gold and not exact:
+        # Extra or missing ops (incl. over-selection) → agent_selection.
+        if gold and (not exact):
+            secondary.append("agent_selection")
+        elif pred - gold:
             secondary.append("agent_selection")
         if not tool_ok:
             secondary.append("tool_execution")
         if should_refuse and predicted_status not in REFUSAL_STATUSES:
             secondary.append("feasibility_refusal")
-        return _pack("success", secondary, "answer_correct", row)
+        if _dependency_issue(row):
+            secondary.append("dependency_order")
+
+    # Strict / answer success paths (do not label answer-correct as strict success).
+    if answer_correct is True:
+        _answer_secondaries()
+        if strict is True:
+            return _pack(
+                "strict_task_success",
+                secondary,
+                "strict_task_success",
+                row,
+            )
+        return _pack(
+            "answer_success",
+            secondary,
+            "answer_correct_but_not_strict_success",
+            row,
+        )
 
     # Resource limits when the run hard-stopped without a correct answer.
     if err in RESOURCE_ERRORS or (
@@ -304,7 +336,15 @@ def classify_task_error(
             row,
         )
 
-    return _pack("success", secondary, "default_success", row)
+    # Should be unreachable when answer_correct is bool; keep fail-safe.
+    if answer_correct is True:
+        return _pack("answer_success", secondary, "default_answer_success", row)
+    return _pack(
+        "answer_synthesis_calculation",
+        secondary,
+        "default_answer_incorrect",
+        row,
+    )
 
 
 def _pack(

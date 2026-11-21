@@ -37,6 +37,15 @@ from hk_equity_mcp.experiment.unified_grading import (
     grading_identity,
     summarize_grading,
 )
+from hk_equity_mcp.experiment.unified_manual_decisions import (
+    ManualDecisionError,
+    build_final_grouped_aggregates,
+    compute_strict_task_success,
+    load_manual_decisions,
+    merge_final_answer_correct,
+    require_full_queue_coverage,
+    summarize_final_metrics,
+)
 from hk_equity_mcp.experiment.unified_runner import atomic_write_json, fsync_file
 
 AUDIT_VERSION = "final_audit_v2"
@@ -386,7 +395,10 @@ def _representative_cases(
 ) -> List[Dict[str, Any]]:
     out = []
     for row in enriched:
-        ok = row.get("answer_correct") is True
+        flag = row.get("final_answer_correct")
+        if flag is None:
+            flag = row.get("answer_correct")
+        ok = flag is True
         if ok != success:
             continue
         out.append(
@@ -593,15 +605,154 @@ def render_baseline_report(ctx: Dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def render_final_baseline_report(ctx: Dict[str, Any]) -> str:
+    """Final report after human decisions — keeps A/B/C metrics separate."""
+    ident = ctx["evaluation_metadata_v2"]
+    final = ctx["final_grading_summary"]
+    grouped = ctx["final_grouped_aggregates"]
+    tax = ctx["error_taxonomy_summary"]
+    ret = ctx["retrieval_stage_summary"]
+    s = ctx["prediction_summary"]
+    lines: List[str] = []
+    lines.append("# HK Unified Operation-Visible Baseline — Final Audit v2 (Human-Merged)")
+    lines.append("")
+    lines.append("## Experimental identity")
+    lines.append(f"- Baseline git commit: `{ident['baseline_git_commit']}`")
+    lines.append(f"- Manual decisions: `{ident.get('manual_decisions_path')}`")
+    lines.append(f"- Manual decisions SHA256: `{ident.get('manual_decisions_sha256')}`")
+    lines.append(f"- Evaluator/grader: `{ident['evaluator_version']}` / `{ident['grader_version']}`")
+    lines.append(f"- Model: `{ident['generation_model']}`")
+    lines.append(f"- Provider segment: {PROVIDER_SEGMENT_NOTE}")
+    lines.append("")
+    lines.append("## Separated headline metrics (do not conflate)")
+    lines.append(
+        f"- **A. Final answer accuracy**: "
+        f"{final.get('final_answer_correct_count')}/{final.get('n')} = "
+        f"**{final.get('final_answer_accuracy')}**"
+    )
+    lines.append(
+        f"- **B. Exact tool-set success**: "
+        f"{final.get('exact_tool_set_success_count')}/{final.get('n')} = "
+        f"**{final.get('exact_tool_set_success_rate')}**"
+    )
+    lines.append(
+        f"- **C. Strict overall task success**: "
+        f"{final.get('strict_task_success_count')}/{final.get('n')} = "
+        f"**{final.get('strict_task_success_rate')}**"
+    )
+    lines.append("")
+    lines.append("### Metric definitions")
+    for key, text in (final.get("metric_definitions") or {}).items():
+        lines.append(f"- `{key}`: {text}")
+    lines.append("")
+    lines.append("## Metrics by domain (final answer / exact tool / strict)")
+    for dom, row in sorted((grouped.get("domain") or {}).items()):
+        lines.append(
+            f"- **{dom}**: n={row['task_count']}, "
+            f"answer_acc={row.get('final_answer_accuracy')}, "
+            f"exact_tool={row.get('exact_tool_set_success_rate')}, "
+            f"strict={row.get('strict_task_success_rate')}"
+        )
+    lines.append("")
+    lines.append("## Metrics by D1–D5")
+    for diff, row in sorted((grouped.get("project_difficulty") or {}).items()):
+        lines.append(
+            f"- **{diff}**: n={row['task_count']}, "
+            f"answer_acc={row.get('final_answer_accuracy')}, "
+            f"exact_tool={row.get('exact_tool_set_success_rate')}, "
+            f"strict={row.get('strict_task_success_rate')}"
+        )
+    lines.append("")
+    lines.append("## Metrics by answerability class")
+    for ac, row in sorted((grouped.get("answerability_class") or {}).items()):
+        lines.append(
+            f"- **{ac}**: n={row['task_count']}, "
+            f"answer_acc={row.get('final_answer_accuracy')}, "
+            f"strict={row.get('strict_task_success_rate')}"
+        )
+    lines.append("")
+    lines.append("## Retrieval / tools / refusal (process)")
+    lines.append(f"- Recall@K: `{json.dumps(ret.get('recall_at_k') or {}, sort_keys=True)}`")
+    lines.append(
+        f"- Mean operation P/R/F1: {s.get('mean_operation_precision')} / "
+        f"{s.get('mean_operation_recall')} / {s.get('mean_operation_f1')}"
+    )
+    lines.append(
+        f"- Tool execution success rate: {s.get('all_tool_invocations_successful_rate')}"
+    )
+    lines.append(f"- Refusal accuracy (auto subset): {grouped['overall'].get('refusal_accuracy')}")
+    lines.append("")
+    lines.append("## Failure taxonomy (answer_success ≠ strict_task_success)")
+    lines.append(f"- Taxonomy version: `{tax.get('taxonomy_version')}`")
+    lines.append(f"- Primary counts: `{json.dumps(tax.get('primary_counts') or {}, sort_keys=True)}`")
+    lines.append(f"- Primary rates: `{json.dumps(tax.get('primary_rates') or {}, sort_keys=True)}`")
+    lines.append("")
+    lines.append("## Manual review merge")
+    lines.append(
+        f"- Queue size: {ident.get('manual_review_queue_n')}; "
+        f"decisions applied: {ident.get('manual_decisions_applied_n')}"
+    )
+    lines.append(
+        "- Human decisions are authoritative for queued tasks; "
+        "`suggested_*` fields are never used as substitutes."
+    )
+    lines.append(
+        "- `evaluation_failure` is not treated as an Agent error after human confirmation."
+    )
+    lines.append("")
+    lines.append("## Representative answer_success (not strict)")
+    for c in ctx.get("representative_answer_success_not_strict") or []:
+        lines.append(
+            f"- `{c['task_id']}` ({c['domain']}/{c['project_difficulty']}): "
+            f"failed={c.get('strict_failed_checks')}"
+        )
+    lines.append("")
+    lines.append("## Representative strict_task_success")
+    for c in ctx.get("representative_strict_success") or []:
+        lines.append(
+            f"- `{c['task_id']}` ({c['domain']}/{c['project_difficulty']})"
+        )
+    lines.append("")
+    lines.append("## Proposed Method requirements (taxonomy-supported)")
+    for req in ctx.get("proposed_method_requirements") or []:
+        lines.append(
+            f"- **{req['requirement']}** (`{req['supported_by_primary_category']}` "
+            f"rate={req['primary_rate']}): {req['rationale']}"
+        )
+    lines.append("")
+    lines.append("## Limitations")
+    lines.append("- Exploratory dataset / development lock — not an unseen final test set.")
+    lines.append("- Provider transition after task 65; do not attribute segment gaps to provider effect.")
+    lines.append("- Automatic grading limitations remain for evidence on non-queued tasks (treated N/A in strict rubric unless human-set).")
+    lines.append("- ETOM external evaluation not yet run.")
+    lines.append("")
+    lines.append("## Provenance / offline guarantees")
+    lines.append("- No LLM / Embedding / MCP / paid API calls during this audit.")
+    lines.append("- Raw predictions.jsonl, gold, prompt, catalog, and raw manual_grading.csv were not modified.")
+    lines.append("- Manual decision file is read-only input and is never overwritten by the audit runner.")
+    lines.append(f"- Raw SHA256: `{json.dumps(ident.get('raw_sha256') or {}, sort_keys=True)}`")
+    lines.append("")
+    return "\n".join(lines) + "\n"
+
+
 def run_final_audit(
     run_dir: Path,
     *,
     baseline_git_commit: str,
     audit_outdir: Optional[Path] = None,
+    manual_decisions_path: Optional[Path] = None,
 ) -> Dict[str, Any]:
     run_dir = Path(run_dir)
     out_dir = Path(audit_outdir) if audit_outdir else run_dir / "final_audit_v2"
     out_dir.mkdir(parents=True, exist_ok=True)
+    decisions_path_resolved = (
+        Path(manual_decisions_path).resolve() if manual_decisions_path else None
+    )
+    decisions_sha_before = (
+        sha256_file(decisions_path_resolved)
+        if decisions_path_resolved and decisions_path_resolved.exists()
+        else None
+    )
 
     # --- Protect / fingerprint raw inputs (read-only) ---
     raw_sha = {}
@@ -691,6 +842,9 @@ def run_final_audit(
         merged["task_order_index"] = idx
 
         v11 = v11_grades.get(tid) or {}
+        merged["v11_auto_grade_status"] = v11.get("auto_grade_status")
+        merged["v11_answer_correct"] = v11.get("answer_correct")
+        # Provisional taxonomy; recomputed after manual merge when decisions exist.
         tax = classify_task_error(
             merged,
             retrieval_row=retrieval_by_id.get(tid),
@@ -700,9 +854,68 @@ def run_final_audit(
         merged.update(tax)
         enriched.append(merged)
 
+    # --- Manual decisions merge (optional but required for final_* artifacts) ---
+    review_queue_ids = list(v11_manual_note["actual"])
+    decisions: Dict[str, Dict[str, Any]] = {}
+    if decisions_path_resolved is not None:
+        decisions = load_manual_decisions(
+            decisions_path_resolved, allowed_task_ids=review_queue_ids
+        )
+        require_full_queue_coverage(decisions, review_queue_ids)
+
+    for merged in enriched:
+        tid = str(merged.get("task_id") or merged.get("id"))
+        decision = decisions.get(tid)
+        auto_ans = merged.get("answer_correct")
+        final_ans = merge_final_answer_correct(
+            auto_ans if isinstance(auto_ans, bool) else None,
+            merged.get("auto_grade_status"),
+            decision,
+        )
+        if decision is not None:
+            evidence = decision.get("evidence_correct")
+            evidence_na = bool(decision.get("evidence_na"))
+            human_overall = decision.get("overall_task_success")
+            merged["human_decision_applied"] = True
+            merged["human_notes"] = decision.get("notes") or ""
+            merged["human_overall_task_success"] = human_overall
+            merged["evidence_correct"] = evidence
+            merged["evidence_na"] = evidence_na
+        else:
+            merged["human_decision_applied"] = False
+            merged["human_notes"] = ""
+            merged["human_overall_task_success"] = None
+            # Non-queued: evidence remains auto None → N/A for strict rubric.
+            evidence = merged.get("evidence_correct")
+            evidence_na = evidence is None
+            merged["evidence_na"] = evidence_na
+
+        if decisions_path_resolved is not None and tid in set(review_queue_ids) and decision is None:
+            raise ManualDecisionError(f"missing human decision for queue task {tid}")
+
+        merged["final_answer_correct"] = final_ans
+        strict_info = compute_strict_task_success(
+            merged,
+            answer_correct=final_ans,
+            evidence_correct=merged.get("evidence_correct"),
+            evidence_na=bool(merged.get("evidence_na")),
+        )
+        merged.update(strict_info)
+
+        tax = classify_task_error(
+            merged,
+            retrieval_row=retrieval_by_id.get(tid),
+            v11_answer_correct=merged.get("v11_answer_correct"),
+            v11_auto_status=merged.get("v11_auto_grade_status"),
+        )
+        merged.update(tax)
+
+    audit_rows = []
+    for merged in enriched:
+        grade = grades_by_id[str(merged.get("task_id"))]
         audit_rows.append(
             {
-                "task_id": tid,
+                "task_id": merged.get("task_id"),
                 "domain": merged.get("domain"),
                 "domain_combination": merged.get("domain_combination"),
                 "project_difficulty": merged.get("project_difficulty"),
@@ -710,24 +923,32 @@ def run_final_audit(
                 "answerability_class": merged.get("answerability_class"),
                 "source_split": merged.get("source_split"),
                 "provider_segment": merged.get("provider_segment"),
-                "task_order_index": idx,
+                "task_order_index": merged.get("task_order_index"),
                 "gold_status": merged.get("gold_status"),
                 "predicted_status": merged.get("predicted_status"),
                 "status": merged.get("status"),
                 "error": merged.get("error") or "",
                 "error_type": merged.get("error_type") or "",
                 "auto_grade_status": grade.get("auto_grade_status"),
-                "answer_correct": grade.get("answer_correct"),
-                "evidence_correct": grade.get("evidence_correct"),
-                "tool_selection_correct": grade.get("tool_selection_correct"),
-                "overall_task_success": grade.get("overall_task_success"),
+                "auto_answer_correct": grade.get("answer_correct"),
+                "final_answer_correct": merged.get("final_answer_correct"),
+                "evidence_correct": merged.get("evidence_correct"),
+                "evidence_na": merged.get("evidence_na"),
+                "tool_selection_correct": merged.get("exact_tool_set"),
+                "exact_tool_set": merged.get("exact_tool_set"),
+                "strict_task_success": merged.get("strict_task_success"),
+                "strict_failed_checks": json.dumps(
+                    merged.get("strict_failed_checks") or [], ensure_ascii=False
+                ),
+                "human_decision_applied": merged.get("human_decision_applied"),
+                "human_overall_task_success": merged.get("human_overall_task_success"),
+                "human_notes": merged.get("human_notes") or "",
                 "auto_grade_reason": grade.get("reason"),
-                "v11_auto_grade_status": v11.get("auto_grade_status"),
-                "v11_answer_correct": v11.get("answer_correct"),
+                "v11_auto_grade_status": merged.get("v11_auto_grade_status"),
+                "v11_answer_correct": merged.get("v11_answer_correct"),
                 "operation_precision": merged.get("operation_precision"),
                 "operation_recall": merged.get("operation_recall"),
                 "operation_f1": merged.get("operation_f1"),
-                "exact_tool_set": merged.get("exact_tool_set"),
                 "graph_dependency_accuracy": merged.get("graph_dependency_accuracy"),
                 "tool_execution_success": merged.get("tool_execution_success"),
                 "all_tool_invocations_successful": merged.get(
@@ -746,11 +967,11 @@ def run_final_audit(
                 "predicted_operations": json.dumps(
                     merged.get("predicted_operations") or [], ensure_ascii=False
                 ),
-                "primary_error_category": tax.get("primary_error_category"),
+                "primary_error_category": merged.get("primary_error_category"),
                 "secondary_error_categories": json.dumps(
-                    tax.get("secondary_error_categories") or [], ensure_ascii=False
+                    merged.get("secondary_error_categories") or [], ensure_ascii=False
                 ),
-                "error_reason": tax.get("error_reason"),
+                "error_reason": merged.get("error_reason"),
             }
         )
 
@@ -763,6 +984,8 @@ def run_final_audit(
         retrieval_per_task,
         top_k=int(run_meta.get("retrieval_top_k") or retrieval_blob.get("top_k") or 20),
     )
+    final_metrics = summarize_final_metrics(enriched)
+    final_grouped = build_final_grouped_aggregates(enriched)
 
     # v1.1 vs v1.2 comparison
     v11_auto = [g for g in v11_grades.values() if g.get("auto_grade_status") == "graded"]
@@ -893,6 +1116,12 @@ def run_final_audit(
             "interpretation_constraint": PROVIDER_SEGMENT_NOTE,
         },
         "v11_manual_required_check": v11_manual_note,
+        "manual_decisions_path": (
+            str(decisions_path_resolved) if decisions_path_resolved else None
+        ),
+        "manual_decisions_sha256": decisions_sha_before,
+        "manual_decisions_applied_n": len(decisions),
+        "manual_review_queue_n": len(review_queue_ids),
         "offline_guarantees": {
             "llm_calls": 0,
             "embedding_calls": 0,
@@ -902,13 +1131,16 @@ def run_final_audit(
             "gold_modified": False,
             "prompt_modified": False,
             "catalog_modified": False,
+            "raw_manual_grading_modified": False,
+            "manual_decisions_file_overwritten": False,
         },
         "evaluator": evaluator_identity(),
         "grading": grading_identity(),
         "output_dir": str(out_dir),
+        "final_metrics": final_metrics,
     }
 
-    # Report-ready tables
+    # Report-ready tables (auto / legacy)
     report_rows = []
     for slice_name, payload in (
         [("overall", {"overall": grouped["overall"]})]
@@ -947,6 +1179,46 @@ def run_final_audit(
                 }
             )
 
+    final_report_rows = []
+    for slice_name, payload in (
+        [("overall", {"overall": final_grouped["overall"]})]
+        + [
+            ("domain:" + k, {k: v})
+            for k, v in sorted((final_grouped.get("domain") or {}).items())
+        ]
+        + [
+            ("difficulty:" + k, {k: v})
+            for k, v in sorted((final_grouped.get("project_difficulty") or {}).items())
+        ]
+        + [
+            ("answerability:" + k, {k: v})
+            for k, v in sorted((final_grouped.get("answerability_class") or {}).items())
+        ]
+    ):
+        for key, row in payload.items():
+            final_report_rows.append(
+                {
+                    "slice_type": slice_name.split(":")[0],
+                    "slice_value": key if slice_name != "overall" else "overall",
+                    "task_count": row.get("task_count"),
+                    "final_answer_correct_count": row.get("final_answer_correct_count"),
+                    "final_answer_accuracy": row.get("final_answer_accuracy"),
+                    "exact_tool_set_success_count": row.get(
+                        "exact_tool_set_success_count"
+                    ),
+                    "exact_tool_set_success_rate": row.get(
+                        "exact_tool_set_success_rate"
+                    ),
+                    "strict_task_success_count": row.get("strict_task_success_count"),
+                    "strict_task_success_rate": row.get("strict_task_success_rate"),
+                    "mean_operation_f1": row.get("mean_operation_f1"),
+                    "all_tool_invocations_successful_rate": row.get(
+                        "all_tool_invocations_successful_rate"
+                    ),
+                    "refusal_accuracy": row.get("refusal_accuracy"),
+                }
+            )
+
     taxonomy_rows = [
         {
             "task_id": r.get("task_id"),
@@ -959,7 +1231,8 @@ def run_final_audit(
                 r.get("secondary_error_categories") or [], ensure_ascii=False
             ),
             "error_reason": r.get("error_reason"),
-            "answer_correct": r.get("answer_correct"),
+            "final_answer_correct": r.get("final_answer_correct"),
+            "strict_task_success": r.get("strict_task_success"),
             "exact_tool_set": r.get("exact_tool_set"),
             "status": r.get("status"),
             "error": r.get("error") or "",
@@ -967,11 +1240,33 @@ def run_final_audit(
         for r in enriched
     ]
 
+    answer_success_not_strict = [
+        {
+            "task_id": r.get("task_id"),
+            "domain": r.get("domain"),
+            "project_difficulty": r.get("project_difficulty"),
+            "strict_failed_checks": r.get("strict_failed_checks"),
+        }
+        for r in enriched
+        if r.get("final_answer_correct") is True and not r.get("strict_task_success")
+    ][:10]
+    strict_success_cases = [
+        {
+            "task_id": r.get("task_id"),
+            "domain": r.get("domain"),
+            "project_difficulty": r.get("project_difficulty"),
+        }
+        for r in enriched
+        if r.get("strict_task_success")
+    ][:10]
+
     ctx = {
         "evaluation_metadata_v2": evaluation_metadata,
         "grading_summary_v2": grading_summary,
+        "final_grading_summary": final_metrics,
         "prediction_summary": prediction_summary,
         "grouped_aggregates_v2": grouped,
+        "final_grouped_aggregates": final_grouped,
         "error_taxonomy_summary": taxonomy_summary,
         "retrieval_stage_summary": retrieval_summary,
         "v11_vs_v12": v11_vs_v12,
@@ -979,9 +1274,12 @@ def run_final_audit(
         "answerability_counts": dict(sorted(answerability_counts.items())),
         "representative_success": _representative_cases(enriched, success=True),
         "representative_failure": _representative_cases(enriched, success=False),
+        "representative_answer_success_not_strict": answer_success_not_strict,
+        "representative_strict_success": strict_success_cases,
         "proposed_method_requirements": proposed_reqs,
     }
     report_md = render_baseline_report(ctx)
+    final_report_md = render_final_baseline_report(ctx)
 
     # --- Write artifacts (audit dir only) ---
     atomic_write_json(out_dir / "evaluation_metadata_v2.json", evaluation_metadata)
@@ -1044,7 +1342,8 @@ def run_final_audit(
             "primary_error_category",
             "secondary_error_categories",
             "error_reason",
-            "answer_correct",
+            "final_answer_correct",
+            "strict_task_success",
             "exact_tool_set",
             "status",
             "error",
@@ -1077,15 +1376,55 @@ def run_final_audit(
     report_path.write_text(report_md, encoding="utf-8")
     fsync_file(report_path)
 
+    # Final human-merged artifacts (only when decisions were supplied & validated).
+    if decisions_path_resolved is not None:
+        atomic_write_json(out_dir / "final_grading_summary_v2.json", final_metrics)
+        atomic_write_json(out_dir / "final_grouped_aggregates_v2.json", final_grouped)
+        _write_csv(
+            out_dir / "final_per_task_audit_v2.csv",
+            audit_rows,
+            fieldnames=list(audit_rows[0].keys()) if audit_rows else ["task_id"],
+        )
+        _write_csv(
+            out_dir / "final_report_ready_baseline_tables_v2.csv",
+            final_report_rows,
+            fieldnames=[
+                "slice_type",
+                "slice_value",
+                "task_count",
+                "final_answer_correct_count",
+                "final_answer_accuracy",
+                "exact_tool_set_success_count",
+                "exact_tool_set_success_rate",
+                "strict_task_success_count",
+                "strict_task_success_rate",
+                "mean_operation_f1",
+                "all_tool_invocations_successful_rate",
+                "refusal_accuracy",
+            ],
+        )
+        final_report_path = out_dir / "final_baseline_error_analysis_v2.md"
+        final_report_path.write_text(final_report_md, encoding="utf-8")
+        fsync_file(final_report_path)
+
     # Post-write raw SHA verification (must be unchanged).
     raw_sha_after = {name: sha256_file(run_dir / name) for name in RAW_FILES}
     if raw_sha_after != raw_sha:
         raise RuntimeError("Raw artifact SHA256 changed during audit — aborting")
 
+    # Manual decisions file must never be overwritten by this runner.
+    if decisions_path_resolved is not None:
+        decisions_sha_after = sha256_file(decisions_path_resolved)
+        if decisions_sha_before != decisions_sha_after:
+            raise RuntimeError(
+                "manual decisions file SHA256 changed during audit — aborting"
+            )
+
     result = {
         "out_dir": str(out_dir),
         "n_tasks": len(enriched),
         "grading_summary_v2": grading_summary,
+        "final_grading_summary_v2": final_metrics if decisions_path_resolved else None,
         "v11_vs_v12": {
             k: v11_vs_v12[k]
             for k in v11_vs_v12
@@ -1097,11 +1436,14 @@ def run_final_audit(
             }
         },
         "manual_review_queue_n": len(manual_queue),
+        "manual_decisions_applied_n": len(decisions),
+        "manual_decisions_sha256": decisions_sha_before,
         "raw_sha256": raw_sha,
         "raw_sha256_unchanged": True,
         "content_fingerprint": _content_fingerprint(
             {
                 "grading_summary_v2": grading_summary,
+                "final_grading_summary_v2": final_metrics,
                 "taxonomy_primary_counts": taxonomy_summary.get("primary_counts"),
                 "retrieval_recall": retrieval_summary.get("recall_at_k"),
             }
