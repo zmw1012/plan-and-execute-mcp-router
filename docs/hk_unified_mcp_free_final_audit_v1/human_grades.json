@@ -1,0 +1,11 @@
+{
+  "audit_version": "mcp_free_final_audit_v1",
+  "note": "Human confirmation only; does not modify raw predictions.jsonl. fin_ht_030 remains incorrect/evaluation_failure and is not re-run.",
+  "by_task_id": {
+    "fin_cf_022": {
+      "human_confirmed_answer_correct": 1,
+      "human_confirmed_overall_task_success": 1,
+      "human_notes": "Correct; the answer exactly identifies 1 April 2025 through 31 March 2026 and correctly explains that Alibaba FY2026 is a fiscal year ending 31 March, not calendar year 2026."
+    }
+  }
+}
