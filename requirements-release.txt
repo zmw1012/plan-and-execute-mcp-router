@@ -1,4 +1,5 @@
-# Pinned release dependencies for Plan-and-Execute MCP Router.
+# Pinned release dependencies for distribution plan-and-execute-mcp-router
+# (import package remains hk_equity_mcp).
 # Derived from the verified offline environment (CPython 3.9.x) and package
 # imports — NOT a blind global `pip freeze`.
 #

@@ -70,9 +70,22 @@ Full tables, metric definitions, ablations, and provenance: **[RESULTS.md](RESUL
 
 **Negative result (do not hide):** R5 improves candidate retrieval, but the rigid Planner–Executor–Replanner implementation does **not** outperform ReAct-style Operation-Visible or MCP-Zero on either benchmark under conservative scoring.
 
+Token columns in [RESULTS.md](RESULTS.md) are **totals over the full sealed benchmark run**, not per-task averages.
+
 ## Key conclusion
 
 These experiments reject the **current rigid PlanRoute implementation**, not Plan-and-Execute as a general design idea. Recommended future work: **Plan-guided ReAct**.
+
+## Package and CLI names
+
+| Layer | Name |
+|-------|------|
+| GitHub / distribution | `plan-and-execute-mcp-router` |
+| Public CLI | `mcp-router-demo`, `mcp-router-eval` |
+| Legacy Python import | `hk_equity_mcp` |
+| Legacy CLI aliases | `hk-equity-demo`, `hk-equity-eval` |
+
+Install: `pip install -e ".[dev]"`. Import remains `import hk_equity_mcp`. See [CODE_MAP.md](CODE_MAP.md).
 
 ## Repository navigation
 
@@ -110,7 +123,7 @@ See **[REPRODUCIBILITY.md](REPRODUCIBILITY.md)** for exact CLI flags, smoke vs f
 
 ## Citation and related work
 
-Use the titles and URLs already documented in-repo (do not invent bibliographic fields):
+Related work and source repositories used in this project are listed below.
 
 | Work | Title / location |
 |------|------------------|

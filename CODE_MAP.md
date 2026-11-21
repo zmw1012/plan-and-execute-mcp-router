@@ -2,6 +2,15 @@
 
 Canonical **public** method names vs **legacy** import paths. Legacy packages are **not** renamed in this release (import compatibility, historical commits, audit identities).
 
+## Distribution / CLI
+
+| Layer | Name |
+|-------|------|
+| Setuptools / distribution | `plan-and-execute-mcp-router` |
+| Canonical console scripts | `mcp-router-demo`, `mcp-router-eval` |
+| Legacy console scripts | `hk-equity-demo`, `hk-equity-eval` |
+| Python import package | `hk_equity_mcp` (under `src/hk_equity_mcp/`; not physically renamed) |
+
 ---
 
 ## Baselines
