@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+from artifact_gates import etom_artifact_root, require_etom_artifact, require_etom_source
+
 from hk_equity_mcp.pe_fin_replan_etom.grounding import (
     GROUNDING_CONTRACT_VERSION,
     grounding_contract_hash,
@@ -19,7 +21,8 @@ from hk_equity_mcp.experiment.unified_pe_fin_replan_etom_runner import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-SMOKE_V3 = ROOT / "outputs" / "pe_fin_replan_etom_smoke5_v3"
+ARTIFACT_ROOT = etom_artifact_root()
+SMOKE_V3 = ARTIFACT_ROOT / "outputs" / "pe_fin_replan_etom_smoke5_v3"
 
 V3_RAW = {
     "predictions.jsonl": ("c031aa1199df9c329f4d188be8e33dd319e7d4ea28de94a0ea1c0aa611ea67c0", 69042, 5),
@@ -179,6 +182,7 @@ def test_07_grounding_fix_does_not_invent_exact_match():
 
 
 def test_08_09_routing_invariants_on_mock_rows(tmp_path):
+    require_etom_source()
     runner = UnifiedPeFinReplanEtomRunner(
         ROOT, tmp_path / "mock", mode="mock", engineering_smoke5=True, formal100=False, progress=False
     )
@@ -199,6 +203,7 @@ def test_08_09_routing_invariants_on_mock_rows(tmp_path):
 
 
 def test_10_cli_compact_not_dataset_lock(tmp_path):
+    require_etom_source()
     import subprocess
     import sys
 
@@ -229,6 +234,7 @@ def test_10_cli_compact_not_dataset_lock(tmp_path):
 
 
 def test_11_smoke_v3_raw_unchanged():
+    require_etom_artifact("outputs/pe_fin_replan_etom_smoke5_v3/predictions.jsonl")
     for name, (want, nbytes, rows) in V3_RAW.items():
         path = SMOKE_V3 / name
         data = path.read_bytes()

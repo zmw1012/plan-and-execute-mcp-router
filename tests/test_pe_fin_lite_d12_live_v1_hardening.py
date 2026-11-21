@@ -9,6 +9,8 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+
+from artifact_gates import hk_artifact_root, require_hk_artifact
 import yaml
 
 from hk_equity_mcp.experiment.pe_fin_lite_checkpoint_audit.disclosure_taxonomy import (
@@ -53,7 +55,8 @@ from hk_equity_mcp.pe_fin_lite.temporal_policy import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-LIVE_V1 = ROOT / "outputs" / "pe_fin_lite_diagnostic12_checkpoint_live_v1"
+ARTIFACT_ROOT = hk_artifact_root()
+LIVE_V1 = ARTIFACT_ROOT / "outputs" / "pe_fin_lite_diagnostic12_checkpoint_live_v1"
 RAW_SHA = {
     "predictions.jsonl": "a84762f8d5123db68eaf0445794adfb1c8bced90cbc4b61e2bdddd3b39683131",
     "run_metadata.json": "14a2f5531a1a04e211c3e4fa4b2ef127eae2d1ec5a967c7b39cd5407e2238e61",
@@ -361,6 +364,7 @@ def test_disclosure_failure_taxonomy_offline():
 
 
 def test_live_v1_raw_hash_immutability():
+    require_hk_artifact("outputs/pe_fin_lite_diagnostic12_checkpoint_live_v1")
     assert LIVE_V1.exists()
     hashes = collect_raw_hashes(LIVE_V1)
     assert hashes["predictions.jsonl"]["sha256"] == RAW_SHA["predictions.jsonl"]
@@ -373,6 +377,7 @@ def test_live_v1_raw_hash_immutability():
 
 
 def test_offline_checkpoint_audit_replay_does_not_mutate_raw(tmp_path: Path):
+    require_hk_artifact("outputs/pe_fin_lite_diagnostic12_checkpoint_live_v1")
     before = collect_raw_hashes(LIVE_V1)
     out = tmp_path / "final_checkpoint_audit_v1_replay"
     result = run_checkpoint_audit(run_dir=LIVE_V1, output_dir=out, expected_n=12)

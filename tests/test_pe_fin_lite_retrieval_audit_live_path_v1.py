@@ -78,6 +78,20 @@ def test_live_without_env_fails(tmp_path: Path):
 
 
 def test_live_wrong_provider_model_host(tmp_path: Path, monkeypatch):
+    # load_env_file uses setdefault (shell wins); clear so this file is authoritative.
+    for key in (
+        "LLM_PROVIDER",
+        "LLM_BASE_URL",
+        "LLM_API_KEY",
+        "LLM_MODEL",
+        "EMBEDDING_BASE_URL",
+        "EMBEDDING_API_KEY",
+        "EMBEDDING_MODEL",
+        "ENV_FILE",
+        "EMBEDDING_ENV_FILE",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
     gen = tmp_path / "bad_gen.env"
     gen.write_text(
         "\n".join(

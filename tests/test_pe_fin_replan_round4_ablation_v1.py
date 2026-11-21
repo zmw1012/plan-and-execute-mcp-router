@@ -9,6 +9,8 @@ from typing import Any, Dict, List, Optional
 
 import pytest
 
+from artifact_gates import hk_artifact_root, require_hk_artifact
+
 from hk_equity_mcp.pe_fin_replan import (
     PE_FIN_REPLAN_CONDITION,
     PE_FIN_REPLAN_METHOD_VERSION,
@@ -40,8 +42,9 @@ from hk_equity_mcp.experiment.unified_pe_fin_lite_runner import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT_ROOT = hk_artifact_root()
 RUN3_PRED = (
-    ROOT
+    ARTIFACT_ROOT
     / "outputs"
     / "pe_fin_replan_diagnostic20_live_v1_4_1_run3"
     / "predictions.jsonl"
@@ -636,5 +639,6 @@ def test_mock_trajectory_retrieve_retrieve_compute_response(monkeypatch):
 
 
 def test_frozen_run3_raw_sha_unchanged():
+    require_hk_artifact("outputs/pe_fin_replan_diagnostic20_live_v1_4_1_run3/predictions.jsonl")
     assert RUN3_PRED.exists()
     assert _sha(RUN3_PRED) == RUN3_PRED_SHA

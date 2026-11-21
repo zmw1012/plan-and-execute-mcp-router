@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+from artifact_gates import hk_artifact_root, require_hk_artifact
+
 from hk_equity_mcp.experiment.pe_fin_lite_checkpoint_audit import (
     AUDIT_VERSION,
     CHECKPOINT_IDS,
@@ -42,6 +44,7 @@ from hk_equity_mcp.pe_fin_lite.checkpoint_observability import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT_ROOT = hk_artifact_root()
 
 
 def _build_fixture():
@@ -61,7 +64,7 @@ def _build_fixture():
     return mod.build()
 MANIFEST = ROOT / "benchmarks" / "manifests" / "hk_pe_fin_lite_diagnostic12_v1.json"
 V3_CACHE = (
-    ROOT
+    ARTIFACT_ROOT
     / "outputs"
     / "pe_fin_lite_planner_protocol_diagnostic10_v3"
     / "planner_cache"
@@ -103,6 +106,7 @@ def _row(**kwargs):
 
 
 def test_v3_planner_outputs_sha_frozen():
+    require_hk_artifact("outputs/pe_fin_lite_planner_protocol_diagnostic10_v3/planner_cache/planner_outputs.jsonl")
     assert V3_CACHE.exists()
     assert hashlib.sha256(V3_CACHE.read_bytes()).hexdigest() == V3_SHA
 

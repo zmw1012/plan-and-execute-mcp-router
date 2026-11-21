@@ -10,6 +10,8 @@ from unittest.mock import patch
 
 import pytest
 
+from artifact_gates import etom_artifact_root, require_etom_artifact
+
 from hk_equity_mcp.pe_fin_replan_etom.run_finalization import (
     RUN_FINALIZATION_CONTRACT_VERSION,
     decide_run_status,
@@ -20,7 +22,8 @@ from hk_equity_mcp.pe_fin_replan_etom.run_finalization import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-SMOKE_V6 = ROOT / "outputs" / "pe_fin_replan_etom_smoke5_v6"
+ARTIFACT_ROOT = etom_artifact_root()
+SMOKE_V6 = ARTIFACT_ROOT / "outputs" / "pe_fin_replan_etom_smoke5_v6"
 AUDIT = SMOKE_V6 / "OFFLINE_ENGINEERING_AUDIT_v1"
 
 V6_RAW = {
@@ -159,6 +162,7 @@ def test_07_formal100_fixture_100_rows_with_failures_completed():
 
 
 def test_08_smoke_v6_raw_unchanged_and_offline_audit():
+    require_etom_artifact("outputs/pe_fin_replan_etom_smoke5_v6/predictions.jsonl")
     for name, (want, nbytes, rows) in V6_RAW.items():
         path = SMOKE_V6 / name
         data = path.read_bytes()

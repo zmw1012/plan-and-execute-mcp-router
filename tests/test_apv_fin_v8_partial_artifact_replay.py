@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from artifact_gates import hk_artifact_root, require_hk_artifact
+
 import hashlib
 import json
 from pathlib import Path
@@ -13,7 +15,8 @@ from hk_equity_mcp.apv_fin.runtime_safety import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-V8 = ROOT / "outputs" / "apv_fin_real_smoke4_v8"
+ARTIFACT_ROOT = hk_artifact_root()
+V8 = ARTIFACT_ROOT / "outputs" / "apv_fin_real_smoke4_v8"
 V8_PRED = V8 / "predictions.jsonl"
 V8_META = V8 / "run_metadata.json"
 V8_INVALIDATED = V8 / "INVALIDATED.md"
@@ -22,6 +25,7 @@ EXPECTED_IDS = ["fin_cf_003", "fin_cf_023", "xd_dev_002", "mkt_dev_014"]
 
 
 def test_v8_invalidated_marker_and_raw_hashes():
+    require_hk_artifact("outputs/apv_fin_real_smoke4_v8/predictions.jsonl")
     assert V8_INVALIDATED.exists()
     text = V8_INVALIDATED.read_text(encoding="utf-8")
     assert "invalidated_incomplete_run_due_to_uncaught_llm_budget_exception" in text
@@ -40,6 +44,7 @@ def test_v8_invalidated_marker_and_raw_hashes():
 
 
 def test_replay_task4_budget_failure_becomes_fourth_prediction():
+    require_hk_artifact("outputs/apv_fin_real_smoke4_v8/predictions.jsonl")
     """Simulate v8 crash: 3 written + binding repair at used=10 → 4th failed row."""
     rows = [
         json.loads(l)
@@ -70,6 +75,7 @@ def test_replay_task4_budget_failure_becomes_fourth_prediction():
 
 
 def test_v8_fin_cf_003_had_zero_dependency_expansion():
+    require_hk_artifact("outputs/apv_fin_real_smoke4_v8/predictions.jsonl")
     """Document the live-path defect that v1.4.1 disclosure prefix fixes."""
     row = json.loads(V8_PRED.read_text(encoding="utf-8").splitlines()[0])
     assert row["task_id"] == "fin_cf_003"
@@ -79,6 +85,7 @@ def test_v8_fin_cf_003_had_zero_dependency_expansion():
 
 
 def test_v8_exception_replan_exceeded_recorded():
+    require_hk_artifact("outputs/apv_fin_real_smoke4_v8/predictions.jsonl")
     row = json.loads(V8_PRED.read_text(encoding="utf-8").splitlines()[0])
     # Pre-fix artifact may show used>limit; v1.4.1 forbids that going forward.
     assert int(row.get("exception_replan_calls") or 0) == 3

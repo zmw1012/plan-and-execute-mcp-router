@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from artifact_gates import require_etom_source
+
 from hk_equity_mcp.etom.adapter import EtomRoutingResolver
 from hk_equity_mcp.etom.embeddings import HashEmbeddingClient
 from hk_equity_mcp.operation_resolver.schemas import OperationSpec, ParameterSpec
@@ -435,6 +437,7 @@ def test_18_resume_identity():
 
 
 def test_19_20_mock_dry_aborted(tmp_path):
+    require_etom_source()
     out = tmp_path / "out"
     runner = UnifiedPeFinReplanEtomRunner(ROOT, out, mode="dry-run", formal100=True)
     result = runner.execute()
@@ -488,6 +491,7 @@ def test_engineering_smoke5_ids_first_per_level_no_gold():
 
 
 def test_engineering_smoke5_runner_isolation(tmp_path):
+    require_etom_source()
     with pytest.raises(Exception):
         UnifiedPeFinReplanEtomRunner(
             ROOT, tmp_path / "bad", mode="mock", formal100=True, engineering_smoke5=True

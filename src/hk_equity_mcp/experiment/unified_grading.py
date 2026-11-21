@@ -1,19 +1,12 @@
-"""Deterministic answer grading for unified HK runs (evaluator grading v1.2).
+"""Deterministic answer grading for unified HK runs.
 
 Never uses LLM-as-judge. Uncertain / evidence-only items → manual_required.
 
-v1.2 fixes (generic; no task_id special cases):
-- Prefer structured gold_values / expected_status / tolerance / unit / metric.
-- Do not score by comparing every number in reference_answer.
-- Unicode minus, thousands separators, scientific notation, % vs decimal.
-- Semantic units (decimal_return, percent, …) are not literal text requirements.
-- Currency aliases (RMB↔CNY) and million/billion scale variants.
-- Labeled multi-value gold (OHLC, unadjusted/qfq/hfq, MA+return, …).
-- Extra intermediate numbers do not force a mismatch when the target matches.
-- Refusal grading uses expected_status / answerability / refusal_spec; fabricated
-  substitutes remain incorrect; capability-gap refusals without target values OK.
-- answer_correct / evidence_correct / tool_selection_correct /
-  overall_task_success are separate fields (never synthesized into one score).
+Current shared identity is ``hk_unified_grading_v1.2.1`` / ``deterministic_v1.2.1``.
+Historical MCP-Free HK-155 audits remain pinned to ``hk_unified_grading_v1.2``;
+call ``grade_task(..., grading_version=HISTORICAL_GRADING_VERSIONS["mcp_free_hk155"])``
+to reproduce sealed refusal metrics. Default ``grade_task`` uses the current
+v1.2.1 semantics (no silent rewrite of frozen audit metadata).
 """
 
 from __future__ import annotations
@@ -27,6 +20,35 @@ from hk_equity_mcp.experiment.unified_evaluator import REFUSAL_CLASSES, REFUSAL_
 
 GRADER_VERSION = "deterministic_v1.2.1"
 GRADING_VERSION = "hk_unified_grading_v1.2.1"
+
+# Historical sealed-audit identities (do not change these strings).
+GRADING_VERSION_V1_2 = "hk_unified_grading_v1.2"
+GRADER_VERSION_V1_2 = "deterministic_v1.2"
+
+# Condition → grading_version used by the frozen offline audit metadata.
+HISTORICAL_GRADING_VERSIONS = {
+    "mcp_free_hk155": GRADING_VERSION_V1_2,
+    "operation_visible_hk155": GRADING_VERSION_V1_2,
+    "flat_all_tools_hk155": GRADING_VERSION_V1_2,
+    "mcp_zero_hk155": GRADING_VERSION_V1_2,
+}
+
+SUPPORTED_GRADING_VERSIONS = frozenset(
+    {GRADING_VERSION, GRADING_VERSION_V1_2, "hk_unified_grading_v1.2.1"}
+)
+
+
+def resolve_grading_identity(grading_version: str | None = None) -> Dict[str, str]:
+    """Map a grading_version string to grader/grading identity constants."""
+    version = grading_version or GRADING_VERSION
+    if version in (GRADING_VERSION, "hk_unified_grading_v1.2.1"):
+        return {"grader_version": GRADER_VERSION, "grading_version": GRADING_VERSION}
+    if version == GRADING_VERSION_V1_2:
+        return {
+            "grader_version": GRADER_VERSION_V1_2,
+            "grading_version": GRADING_VERSION_V1_2,
+        }
+    raise ValueError(f"Unsupported grading_version={version!r}")
 
 # ASCII + common Unicode minus/dash signs normalized before numeric parse.
 _MINUS_CHARS = str.maketrans(
@@ -880,10 +902,45 @@ def _has_capability_gap_language(text: str) -> bool:
     return any(c in hay for c in cues)
 
 
-def grade_refusal(row: Dict[str, Any], item: Dict[str, Any]) -> Dict[str, Any]:
+def _looks_like_fabricated_numeric_v1_2(text: str) -> bool:
+    """Heuristic: concrete money/share/price figures in a refusal answer."""
+    if not extract_numbers(text):
+        return False
+    hay = _haystack(text)
+    cues = (
+        "cny",
+        "rmb",
+        "hkd",
+        "usd",
+        "million",
+        "revenue",
+        "eps",
+        "close",
+        "shares",
+        "price",
+        "hk$",
+        "¥",
+    )
+    return any(c in hay for c in cues)
+
+def _fabricated_numeric_for_version(
+    text: str, *, question: str, grading_version: str
+) -> bool:
+    if grading_version == GRADING_VERSION_V1_2:
+        return _looks_like_fabricated_numeric_v1_2(text)
+    return _looks_like_fabricated_numeric(text, question=question)
+
+
+def grade_refusal(
+    row: Dict[str, Any],
+    item: Dict[str, Any],
+    *,
+    grading_version: Optional[str] = None,
+) -> Dict[str, Any]:
     status = _predicted_status(row)
     text = _answer_text(row.get("final_answer"))
     question = str(row.get("question") or item.get("question") or "")
+    version = grading_version or GRADING_VERSION
     expected = (
         item.get("expected_behavior")
         or item.get("expected_status")
@@ -895,7 +952,9 @@ def grade_refusal(row: Dict[str, Any], item: Dict[str, Any]) -> Dict[str, Any]:
     # Answering when a refusal/clarify was required.
     if status not in REFUSAL_STATUSES:
         # Soft language alone ("cannot") is insufficient if a substitute value is given.
-        if _looks_like_fabricated_numeric(text, question=question):
+        if _fabricated_numeric_for_version(
+            text, question=question, grading_version=version
+        ):
             return {
                 "auto_grade_status": "graded",
                 "answer_correct": False,
@@ -907,7 +966,9 @@ def grade_refusal(row: Dict[str, Any], item: Dict[str, Any]) -> Dict[str, Any]:
             "reason": f"expected_refusal_got_status={status or 'missing'}",
         }
 
-    if _looks_like_fabricated_numeric(text, question=question):
+    if _fabricated_numeric_for_version(
+        text, question=question, grading_version=version
+    ):
         return {
             "auto_grade_status": "graded",
             "answer_correct": False,
@@ -949,8 +1010,20 @@ def _empty_component_fields() -> Dict[str, Any]:
     }
 
 
-def grade_task(item: Dict[str, Any], row: Dict[str, Any]) -> Dict[str, Any]:
-    """Return deterministic grading record for one task."""
+def grade_task(
+    item: Dict[str, Any],
+    row: Dict[str, Any],
+    *,
+    grading_version: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Return deterministic grading record for one task.
+
+    Default uses the current shared grader (v1.2.1). Pass
+    ``grading_version=GRADING_VERSION_V1_2`` to reproduce historical MCP-Free /
+    early HK-155 sealed refusal metrics.
+    """
+    identity = resolve_grading_identity(grading_version)
+    version = identity["grading_version"]
     gold_values = item.get("gold_values")
     if gold_values is None:
         gold_values = row.get("gold_values")
@@ -960,12 +1033,14 @@ def grade_task(item: Dict[str, Any], row: Dict[str, Any]) -> Dict[str, Any]:
 
     base = {
         "task_id": task_id,
-        "grader": GRADER_VERSION,
+        "grader": identity["grader_version"],
+        "grading_version": version,
         **_empty_component_fields(),
     }
 
-    # Hard fail: incomplete agent trajectories must not auto-grade correct.
-    if str(row.get("status") or "").lower() == "failed":
+    # Hard fail (v1.2.1+): incomplete agent trajectories must not auto-grade correct.
+    # Historical v1.2 audits did not apply this gate.
+    if version != GRADING_VERSION_V1_2 and str(row.get("status") or "").lower() == "failed":
         if "exact_tool_set" in row:
             base["tool_selection_correct"] = bool(row.get("exact_tool_set"))
         return {
@@ -993,13 +1068,13 @@ def grade_task(item: Dict[str, Any], row: Dict[str, Any]) -> Dict[str, Any]:
             isinstance(g, dict) and _gold_item_kind(g) == "refusal_spec"
             for g in gold_values
         ):
-            return {**base, **grade_refusal(row, gold_values[0])}
+            return {**base, **grade_refusal(row, gold_values[0], grading_version=version)}
         if gold_values in (None, []) or classify_gold_values(gold_values) in {
             "empty",
             "missing",
             "refusal_spec",
         }:
-            return {**base, **grade_refusal(row, {})}
+            return {**base, **grade_refusal(row, {}, grading_version=version)}
 
     kind = classify_gold_values(gold_values)
     if kind in {"opaque", "missing", "empty"}:

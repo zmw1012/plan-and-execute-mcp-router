@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+from artifact_gates import hk_artifact_root, require_hk_artifact
+
 from hk_equity_mcp.pe_fin_lite.answerability_eea import (
     classify_answerability,
     final_status_from_answerability,
@@ -30,7 +32,8 @@ from hk_equity_mcp.pe_fin_lite.retrieval_formula import (
 from hk_equity_mcp.pe_fin_lite.budget import BudgetTracker
 
 ROOT = Path(__file__).resolve().parents[1]
-FORMAL = ROOT / "outputs" / "pe_fin_lite_r5_hk155_live_v1"
+ARTIFACT_ROOT = hk_artifact_root()
+FORMAL = ARTIFACT_ROOT / "outputs" / "pe_fin_lite_r5_hk155_live_v1"
 FORMAL_SHA = {
     "predictions.jsonl": "4c5c4df3ababca99f9a91203605154ad8fc4a05cdfbc2ba2acb7cc11bc2a7d04",
     "run_metadata.json": "2a3dff284afa86db8ec93433965f2b451e7aef05c65a78edd53fce3f84b8d602",
@@ -42,6 +45,7 @@ def _sha(path: Path) -> str:
 
 
 def test_formal_v12_raw_hashes_byte_identical():
+    require_hk_artifact("outputs/pe_fin_lite_r5_hk155_live_v1/predictions.jsonl")
     assert FORMAL.exists()
     for name, expected in FORMAL_SHA.items():
         assert _sha(FORMAL / name) == expected

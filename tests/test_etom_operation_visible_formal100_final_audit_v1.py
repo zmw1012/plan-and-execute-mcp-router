@@ -9,11 +9,13 @@ from pathlib import Path
 
 import pytest
 
+from artifact_gates import ENV_ETOM_ARTIFACT_ROOT, etom_artifact_root, require_paths
+
 from hk_equity_mcp.etom.source import repo_root_from_here
 
 ROOT = repo_root_from_here()
 SCRIPT = ROOT / "scripts" / "audit_etom_operation_visible_formal100_final_v1.py"
-ORIGINAL = ROOT / "outputs" / "etom_external_formal100_operation_visible_v1"
+ORIGINAL = etom_artifact_root() / "outputs" / "etom_external_formal100_operation_visible_v1"
 AUDIT = ORIGINAL / "final_audit_v1"
 DOCS = ROOT / "docs" / "etom_operation_visible_formal100_final_audit_v1"
 
@@ -65,6 +67,12 @@ def test_auditor_source_does_not_call_live_clients():
 
 
 def test_final_audit_preserves_raw_predictions_and_terminal_counts(audit):
+    require_paths(
+        "outputs/etom_external_formal100_operation_visible_v1/predictions.jsonl",
+        "outputs/etom_external_formal100_operation_visible_v1/run_metadata.json",
+        root=etom_artifact_root(),
+        env_var=ENV_ETOM_ARTIFACT_ROOT,
+    )
     predictions = ORIGINAL / "predictions.jsonl"
     before = audit.sha256_file(predictions)
     metadata_before = audit.sha256_file(ORIGINAL / "run_metadata.json")

@@ -97,7 +97,11 @@ def test_unique_operation_ids_and_required_metadata():
 def test_decision_counts_and_statuses():
     cat = _load_catalog()
     decisions = Counter(op["decision"] for op in cat["operations"])
-    assert decisions == Counter(cat["counts"]["by_decision"])
+    # Catalog schema may include zero-count decision keys; Counter omits zeros.
+    expected = Counter(
+        {k: v for k, v in cat["counts"]["by_decision"].items() if int(v) != 0}
+    )
+    assert decisions == expected
     assert decisions["primary"] >= 2
     assert decisions["distractor"] >= 3
     assert decisions["blocked"] >= 1

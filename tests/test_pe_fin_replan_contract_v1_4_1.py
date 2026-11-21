@@ -9,6 +9,8 @@ from typing import Any, Dict, List
 
 import pytest
 
+from artifact_gates import hk_artifact_root, require_hk_artifact
+
 from hk_equity_mcp.pe_fin_lite.budget import BudgetTracker, BudgetedLLMClient
 from hk_equity_mcp.pe_fin_lite.schemas import PlanValidationError
 from hk_equity_mcp.pe_fin_replan import (
@@ -41,8 +43,9 @@ from hk_equity_mcp.pe_fin_replan.schemas import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-SMOKE5_V4 = ROOT / "outputs" / "pe_fin_replan_smoke5_live_v4"
-FORMAL = ROOT / "outputs" / "pe_fin_lite_r5_hk155_live_v1"
+ARTIFACT_ROOT = hk_artifact_root()
+SMOKE5_V4 = ARTIFACT_ROOT / "outputs" / "pe_fin_replan_smoke5_live_v4"
+FORMAL = ARTIFACT_ROOT / "outputs" / "pe_fin_lite_r5_hk155_live_v1"
 
 SMOKE5_V4_SHA = {
     "predictions.jsonl": (
@@ -123,6 +126,7 @@ XD004_EVIDENCE = {
 
 
 def test_smoke5_v4_frozen_invalidated():
+    require_hk_artifact("outputs/pe_fin_replan_smoke5_live_v4/predictions.jsonl")
     for name, expected in SMOKE5_V4_SHA.items():
         assert _sha(SMOKE5_V4 / name) == expected
     marker = (SMOKE5_V4 / "INVALIDATED.md").read_text(encoding="utf-8")
@@ -135,6 +139,7 @@ def test_smoke5_v4_frozen_invalidated():
 
 
 def test_identity_v1_4_1_and_r5_unchanged():
+    require_hk_artifact("outputs/pe_fin_lite_r5_hk155_live_v1/predictions.jsonl")
     assert PE_FIN_REPLAN_CONDITION == "pe_fin_replan"
     assert PE_FIN_REPLAN_ARCHITECTURE == "plan_execute_replan"
     assert PE_FIN_REPLAN_METHOD_VERSION == "pe_fin_replan_v1_4_1"

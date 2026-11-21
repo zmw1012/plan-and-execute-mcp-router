@@ -9,6 +9,8 @@ from typing import Any, Dict
 
 import pytest
 
+from artifact_gates import hk_artifact_root, require_hk_artifact
+
 from hk_equity_mcp.pe_fin_lite.schemas import SchemaValidationError
 from hk_equity_mcp.pe_fin_replan import (
     PE_FIN_REPLAN_ARCHITECTURE,
@@ -45,8 +47,9 @@ from hk_equity_mcp.pe_fin_replan.step_canonicalizer import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-SMOKE5_V2 = ROOT / "outputs" / "pe_fin_replan_smoke5_live_v2"
-FORMAL = ROOT / "outputs" / "pe_fin_lite_r5_hk155_live_v1"
+ARTIFACT_ROOT = hk_artifact_root()
+SMOKE5_V2 = ARTIFACT_ROOT / "outputs" / "pe_fin_replan_smoke5_live_v2"
+FORMAL = ARTIFACT_ROOT / "outputs" / "pe_fin_lite_r5_hk155_live_v1"
 DIAG20 = ROOT / "benchmarks" / "manifests" / "hk_pe_fin_lite_eea_diagnostic20_v1.json"
 
 SMOKE5_V2_SHA = {
@@ -65,6 +68,7 @@ def _sha(path: Path) -> str:
 
 
 def test_smoke5_v2_frozen_and_invalidated():
+    require_hk_artifact("outputs/pe_fin_replan_smoke5_live_v2/predictions.jsonl")
     for name, expected in SMOKE5_V2_SHA.items():
         assert _sha(SMOKE5_V2 / name) == expected
     marker = (SMOKE5_V2 / "INVALIDATED.md").read_text(encoding="utf-8")
@@ -77,6 +81,7 @@ def test_smoke5_v2_frozen_and_invalidated():
 
 
 def test_formal_and_diagnostic20_unchanged():
+    require_hk_artifact("outputs/pe_fin_lite_r5_hk155_live_v1/predictions.jsonl")
     for name, expected in FORMAL_SHA.items():
         assert _sha(FORMAL / name) == expected
     assert _sha(DIAG20) == DIAG20_SHA

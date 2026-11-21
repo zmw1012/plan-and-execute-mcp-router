@@ -277,11 +277,21 @@ class _CyclingScriptedLLM(ScriptedLLMClient):
         """Restart the offline trajectory at each task boundary."""
         self._queue = list(self._script)
 
-    def complete(self, messages, *, temperature: float = 0.0, max_tokens: int = 1024):
+    def complete(
+        self,
+        messages,
+        *,
+        temperature: float = 0.0,
+        max_tokens: int = 1024,
+        stage=None,
+    ):
         if not self._queue:
             self._queue = list(self._script)
         return super().complete(
-            messages, temperature=temperature, max_tokens=max_tokens
+            messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stage=stage,
         )
 
 

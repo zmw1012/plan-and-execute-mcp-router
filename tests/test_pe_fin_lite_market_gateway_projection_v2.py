@@ -10,6 +10,8 @@ from typing import Any, Dict
 
 import pytest
 
+from artifact_gates import hk_artifact_root, require_hk_artifact
+
 from hk_equity_mcp.pe_fin_lite.envelope_projection import (
     MARKET_GATEWAY_PROJECTION_VERSION,
     market_gateway_projection_hash,
@@ -30,16 +32,17 @@ from hk_equity_mcp.pe_fin_replan.tool_readiness import (
 from hk_equity_mcp.real_mcp.unified_catalog import build_unified_catalog
 
 ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT_ROOT = hk_artifact_root()
 FIXTURE = (
     ROOT
     / "tests/fixtures/pe_fin_replan/market_sina_probe_v2_raw_stock_hk_daily_09988.json"
 )
 V2_RAW = (
-    ROOT
+    ARTIFACT_ROOT
     / "outputs/pe_fin_replan_tool_readiness_v1/market_sina_probe_v2/raw_stock_hk_daily_09988.json"
 )
 V2_READINESS = (
-    ROOT
+    ARTIFACT_ROOT
     / "outputs/pe_fin_replan_tool_readiness_v1/market_sina_probe_v2/readiness.json"
 )
 V2_RAW_SHA = "38f6cba44cd4c0af6992a9f98f7aab4440667216b8496156a63fa623d112033c"
@@ -97,6 +100,7 @@ def _invoke_from_raw(raw: dict, *, shape: str) -> dict:
 
 
 def test_frozen_v2_raw_hashes_unchanged():
+    require_hk_artifact("outputs/pe_fin_replan_tool_readiness_v1/market_sina_probe_v2/raw_stock_hk_daily_09988.json")
     assert hashlib.sha256(V2_RAW.read_bytes()).hexdigest() == V2_RAW_SHA
     assert hashlib.sha256(V2_READINESS.read_bytes()).hexdigest() == V2_READINESS_SHA
     assert hashlib.sha256(FIXTURE.read_bytes()).hexdigest() == V2_RAW_SHA
@@ -276,6 +280,7 @@ def test_gateway_success_malformed_shape_projection_failure():
 
 
 def test_v2_readiness_rejected_for_live():
+    require_hk_artifact("outputs/pe_fin_replan_tool_readiness_v1/market_sina_probe_v2/readiness.json")
     profile = load_provider_availability_profile(PROFILE, condition="pe_fin_replan")
     with pytest.raises(ProviderAvailabilityError, match="invalidated|projection"):
         assert_tool_readiness_for_live(

@@ -20,7 +20,14 @@ from hk_equity_mcp.experiment.unified_exploratory import (
     load_exploratory_run_order,
     load_exploratory_tasks_in_locked_order,
 )
-from hk_equity_mcp.experiment.unified_grading import GRADING_VERSION, GRADER_VERSION
+from hk_equity_mcp.experiment.unified_grading import (
+    GRADING_VERSION,
+    GRADING_VERSION_V1_2,
+    GRADER_VERSION,
+    GRADER_VERSION_V1_2,
+    HISTORICAL_GRADING_VERSIONS,
+    resolve_grading_identity,
+)
 from hk_equity_mcp.experiment.unified_mcp_free_metrics import (
     TOOL_NA,
     apply_mcp_free_tool_na,
@@ -218,9 +225,16 @@ def test_no_tool_metrics_not_counted_as_failure():
 
 
 def test_evaluator_v1_2_reusable():
+    """Evaluator stays at v1.2; shared grader advanced to v1.2.1 with historical pin."""
     assert EVALUATOR_VERSION == "hk_unified_evaluator_v1.2"
-    assert GRADING_VERSION == "hk_unified_grading_v1.2"
-    assert GRADER_VERSION == "deterministic_v1.2"
+    # Current integrated identity (do not silently alias back to v1.2).
+    assert GRADING_VERSION == "hk_unified_grading_v1.2.1"
+    assert GRADER_VERSION == "deterministic_v1.2.1"
+    # Frozen MCP-Free HK-155 audits remain reproducible under the historical pin.
+    assert HISTORICAL_GRADING_VERSIONS["mcp_free_hk155"] == GRADING_VERSION_V1_2
+    hist = resolve_grading_identity(GRADING_VERSION_V1_2)
+    assert hist["grading_version"] == GRADING_VERSION_V1_2
+    assert hist["grader_version"] == GRADER_VERSION_V1_2
     ident = evaluator_identity()
     assert ident["evaluator_version"] == EVALUATOR_VERSION
 

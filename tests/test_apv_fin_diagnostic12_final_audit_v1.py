@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from artifact_gates import hk_artifact_root, require_hk_artifact
+
 import json
 from pathlib import Path
 
@@ -16,10 +18,12 @@ from hk_equity_mcp.experiment.apv_fin_diagnostic12_final_audit_v1 import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-RUN = ROOT / "outputs" / "apv_fin_diagnostic12_live_v1_4_1"
+ARTIFACT_ROOT = hk_artifact_root()
+RUN = ARTIFACT_ROOT / "outputs" / "apv_fin_diagnostic12_live_v1_4_1"
 
 
 def test_raw_artifacts_present_and_hashable():
+    require_hk_artifact("outputs/apv_fin_diagnostic12_live_v1_4_1/predictions.jsonl")
     assert RUN.exists()
     for name in RAW_ARTIFACTS:
         st = file_stats(RUN / name)
@@ -54,6 +58,7 @@ def test_strict_vs_descriptive_rules():
 
 
 def test_run_final_audit_offline(tmp_path: Path):
+    require_hk_artifact("outputs/apv_fin_diagnostic12_live_v1_4_1/predictions.jsonl")
     out = tmp_path / "final_audit_v1"
     docs = tmp_path / "docs_mirror"
     before = {n: file_stats(RUN / n)["sha256"] for n in RAW_ARTIFACTS}

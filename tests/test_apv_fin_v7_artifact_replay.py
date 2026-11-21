@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from artifact_gates import hk_artifact_root, require_hk_artifact
+
 import json
 from pathlib import Path
 
@@ -18,9 +20,10 @@ from hk_equity_mcp.apv_fin.progressor import needs_exceptional_replan
 from hk_equity_mcp.apv_fin.result_envelope import normalize_gateway_envelope
 
 ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT_ROOT = hk_artifact_root()
 FIX = ROOT / "tests" / "fixtures" / "apv_fin_v7_envelopes"
-V7_INVALIDATED = ROOT / "outputs" / "apv_fin_real_smoke4_v7" / "INVALIDATED.md"
-V7_PRED = ROOT / "outputs" / "apv_fin_real_smoke4_v7" / "predictions.jsonl"
+V7_INVALIDATED = ARTIFACT_ROOT / "outputs" / "apv_fin_real_smoke4_v7" / "INVALIDATED.md"
+V7_PRED = ARTIFACT_ROOT / "outputs" / "apv_fin_real_smoke4_v7" / "predictions.jsonl"
 
 
 def _load(name: str):
@@ -28,6 +31,7 @@ def _load(name: str):
 
 
 def test_v7_invalidated_marker():
+    require_hk_artifact("outputs/apv_fin_real_smoke4_v7/INVALIDATED.md")
     text = V7_INVALIDATED.read_text(encoding="utf-8")
     assert (
         "invalidated_engineering_smoke_due_to_gateway_result_adapter_and_workflow_progression_defects"

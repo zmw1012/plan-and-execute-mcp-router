@@ -10,6 +10,8 @@ from typing import Any, Dict, List, Optional
 
 import pytest
 
+from artifact_gates import hk_artifact_root, require_hk_artifact
+
 from hk_equity_mcp.pe_fin_lite.retrieval_formula import (
     DESCRIBE_N,
     RETRIEVAL_FORMULA_NAME,
@@ -45,8 +47,9 @@ from hk_equity_mcp.pe_fin_replan.transport_retry import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-FORMAL = ROOT / "outputs" / "pe_fin_lite_r5_hk155_live_v1"
-REPLAN_LIVE_V1 = ROOT / "outputs" / "pe_fin_replan_diagnostic20_live_v1"
+ARTIFACT_ROOT = hk_artifact_root()
+FORMAL = ARTIFACT_ROOT / "outputs" / "pe_fin_lite_r5_hk155_live_v1"
+REPLAN_LIVE_V1 = ARTIFACT_ROOT / "outputs" / "pe_fin_replan_diagnostic20_live_v1"
 DIAG20 = ROOT / "benchmarks" / "manifests" / "hk_pe_fin_lite_eea_diagnostic20_v1.json"
 
 FORMAL_SHA = {
@@ -82,11 +85,13 @@ def _step(sid: str = "r1") -> Dict[str, Any]:
 
 
 def test_formal_v12_raw_hashes_unchanged():
+    require_hk_artifact("outputs/pe_fin_lite_r5_hk155_live_v1/predictions.jsonl")
     for name, expected in FORMAL_SHA.items():
         assert _sha(FORMAL / name) == expected
 
 
 def test_replan_live_v1_raw_hashes_unchanged_and_invalidated_marker():
+    require_hk_artifact("outputs/pe_fin_replan_diagnostic20_live_v1/predictions.jsonl")
     for name, expected in REPLAN_V1_SHA.items():
         assert _sha(REPLAN_LIVE_V1 / name) == expected
     marker = (REPLAN_LIVE_V1 / "INVALIDATED.md").read_text(encoding="utf-8")

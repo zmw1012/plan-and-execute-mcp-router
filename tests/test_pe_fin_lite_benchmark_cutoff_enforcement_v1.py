@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+from artifact_gates import hk_artifact_root, require_hk_artifact
+
 from hk_equity_mcp.pe_fin_lite.benchmark_cutoff_enforcement import (
     BENCHMARK_CUTOFF_ENFORCEMENT_VERSION,
     benchmark_cutoff_enforcement_hash,
@@ -25,8 +27,9 @@ from hk_equity_mcp.pe_fin_lite.disclosure_workflow import (
 from hk_equity_mcp.pe_fin_lite.temporal_policy import DEFAULT_DATASET_CUTOFF
 
 ROOT = Path(__file__).resolve().parents[1]
-RUN2 = ROOT / "outputs" / "pe_fin_replan_diagnostic20_live_v1_4_1_run2"
-AUD = ROOT / "outputs" / "pe_fin_replan_diagnostic20_live_v1_4_1_run2_audit"
+ARTIFACT_ROOT = hk_artifact_root()
+RUN2 = ARTIFACT_ROOT / "outputs" / "pe_fin_replan_diagnostic20_live_v1_4_1_run2"
+AUD = ARTIFACT_ROOT / "outputs" / "pe_fin_replan_diagnostic20_live_v1_4_1_run2_audit"
 
 CUTOFF = "2026-08-12"
 
@@ -36,6 +39,7 @@ def _sha(path: Path) -> str:
 
 
 def test_frozen_run2_raw_hashes_unchanged():
+    require_hk_artifact("outputs/pe_fin_replan_diagnostic20_live_v1_4_1_run2_audit/raw_artifact_sha256.json")
     frozen = json.loads((AUD / "raw_artifact_sha256.json").read_text(encoding="utf-8"))
     for name, expected in frozen.items():
         assert _sha(RUN2 / name) == expected

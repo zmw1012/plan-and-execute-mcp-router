@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from artifact_gates import hk_artifact_root, require_hk_artifact
+
 from hk_equity_mcp.agent.llm_client import (
     ScriptedLLMClient,
     build_response_observability,
@@ -56,7 +58,8 @@ from hk_equity_mcp.pe_fin_lite.executor import execute_reason_step
 from hk_equity_mcp.pe_fin_lite.tool_binding import run_tool_binder
 
 ROOT = Path(__file__).resolve().parents[1]
-V2_OUT = ROOT / "outputs" / "pe_fin_lite_planner_protocol_diagnostic10_v2" / "planner_cache"
+ARTIFACT_ROOT = hk_artifact_root()
+V2_OUT = ARTIFACT_ROOT / "outputs" / "pe_fin_lite_planner_protocol_diagnostic10_v2" / "planner_cache"
 V2_OUTPUTS_SHA = "34115f2aba3aec91e639e35dc6b5be9c80c593bc35c97238b69d9e227b2795e0"
 
 
@@ -317,6 +320,7 @@ def test_no_task_id_gold_leakage_in_prompt_and_identity():
 
 
 def test_v2_raw_hashes_unchanged():
+    require_hk_artifact("outputs/pe_fin_lite_planner_protocol_diagnostic10_v2/planner_cache/planner_outputs.jsonl")
     path = V2_OUT / "planner_outputs.jsonl"
     assert path.exists()
     import hashlib

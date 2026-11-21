@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+from artifact_gates import ENV_ETOM_ARTIFACT_ROOT, etom_artifact_root, require_paths
+
 from hk_equity_mcp.experiment.unified_pe_fin_replan_etom_runner import (
     EtomPeFinReplanRunnerError,
     resolve_output_dir,
@@ -22,8 +24,8 @@ from hk_equity_mcp.pe_fin_replan_etom.formal100_final_audit_v1 import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-RAW_DIR = ROOT  # Formal-100 raw lives at repository root (incident)
-AUDIT_DIR = ROOT / "outputs" / "pe_fin_replan_etom_formal100_v1" / "final_audit_v1"
+RAW_DIR = etom_artifact_root()  # Formal-100 raw historically at worktree root (incident)
+AUDIT_DIR = etom_artifact_root() / "outputs" / "pe_fin_replan_etom_formal100_v1" / "final_audit_v1"
 
 PRED_SHA = "ad8e845a286971a55c6b401127270829b3fcdc250c48f83911cb26b41377e149"
 META_SHA = "335ad2cef27f214430f196714f9c96c514b1373bd6b91c413044d9be66a3b19d"
@@ -35,6 +37,7 @@ def _sha(path: Path) -> str:
 
 @pytest.fixture(scope="module")
 def audit_result():
+    require_paths("predictions.jsonl", "run_metadata.json", root=etom_artifact_root(), env_var=ENV_ETOM_ARTIFACT_ROOT)
     docs = ROOT / "docs" / "pe_fin_replan_etom_formal100_final_audit_v1"
     return run_audit(
         raw_dir=RAW_DIR,
@@ -45,6 +48,7 @@ def audit_result():
 
 
 def test_01_raw_present_and_hashes_stable():
+    require_paths("predictions.jsonl", "run_metadata.json", root=etom_artifact_root(), env_var=ENV_ETOM_ARTIFACT_ROOT)
     assert (RAW_DIR / "predictions.jsonl").exists()
     assert (RAW_DIR / "run_metadata.json").exists()
     assert _sha(RAW_DIR / "predictions.jsonl") == PRED_SHA
@@ -56,6 +60,7 @@ def test_01_raw_present_and_hashes_stable():
 
 
 def test_02_three_lenses_separators():
+    require_paths("predictions.jsonl", "run_metadata.json", root=etom_artifact_root(), env_var=ENV_ETOM_ARTIFACT_ROOT)
     rows = load_predictions(RAW_DIR / "predictions.jsonl")
     assert len(rows) == 100
     lenses = compute_three_lenses(rows)
@@ -78,6 +83,7 @@ def test_02_three_lenses_separators():
 
 
 def test_03_per_level_failures_as_zero_denominators():
+    require_paths("predictions.jsonl", "run_metadata.json", root=etom_artifact_root(), env_var=ENV_ETOM_ARTIFACT_ROOT)
     rows = load_predictions(RAW_DIR / "predictions.jsonl")
     b = compute_three_lenses(rows)["end_to_end_conservative_failures_as_zero"]
     for level in range(1, 6):
@@ -91,6 +97,7 @@ def test_03_per_level_failures_as_zero_denominators():
 
 
 def test_04_routing_invariants_and_real_tools():
+    require_paths("predictions.jsonl", "run_metadata.json", root=etom_artifact_root(), env_var=ENV_ETOM_ARTIFACT_ROOT)
     rows = load_predictions(RAW_DIR / "predictions.jsonl")
     assert all(int(r.get("real_tool_executions") or 0) == 0 for r in rows)
     assert all(
@@ -106,7 +113,7 @@ def test_05_audit_run_and_pointer(audit_result):
     assert (AUDIT_DIR / "final_report.json").exists()
     assert json.loads((AUDIT_DIR / "final_report.json").read_text())["audit_version"] == AUDIT_VERSION
     pointer = json.loads(
-        (ROOT / "outputs" / "pe_fin_replan_etom_formal100_v1" / "FORMAL_RUN_RAW_POINTER.json").read_text()
+        (etom_artifact_root() / "outputs" / "pe_fin_replan_etom_formal100_v1" / "FORMAL_RUN_RAW_POINTER.json").read_text()
     )
     assert pointer["no_raw_mutation"] is True
     assert pointer["raw_artifacts"]["predictions.jsonl"]["sha256"] == PRED_SHA
@@ -135,6 +142,7 @@ def test_06_completeness_and_order_fail_closed(audit_result):
 
 
 def test_07_empty_output_dir_refused_future_fix(tmp_path):
+    require_paths("predictions.jsonl", "run_metadata.json", root=etom_artifact_root(), env_var=ENV_ETOM_ARTIFACT_ROOT)
     with pytest.raises(EtomPeFinReplanRunnerError):
         resolve_output_dir(ROOT, "")
     with pytest.raises(EtomPeFinReplanRunnerError):

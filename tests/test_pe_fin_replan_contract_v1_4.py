@@ -9,6 +9,8 @@ from typing import Any, Dict
 
 import pytest
 
+from artifact_gates import hk_artifact_root, require_hk_artifact
+
 from hk_equity_mcp.pe_fin_lite.envelope_projection import REQUIRED_OUTPUT_SYNONYMS
 from hk_equity_mcp.pe_fin_lite.evidence_acceptance_eea import ANSWER_BEARING_FIELDS as EEA_AB
 from hk_equity_mcp.pe_fin_lite.evidence_provenance import ANSWER_BEARING_FIELDS as PROV_AB
@@ -48,8 +50,9 @@ from hk_equity_mcp.pe_fin_replan.schemas import (
 from hk_equity_mcp.pe_fin_replan.step_canonicalizer import CANONICALIZER_VERSION
 
 ROOT = Path(__file__).resolve().parents[1]
-SMOKE5_V3 = ROOT / "outputs" / "pe_fin_replan_smoke5_live_v3"
-FORMAL = ROOT / "outputs" / "pe_fin_lite_r5_hk155_live_v1"
+ARTIFACT_ROOT = hk_artifact_root()
+SMOKE5_V3 = ARTIFACT_ROOT / "outputs" / "pe_fin_replan_smoke5_live_v3"
+FORMAL = ARTIFACT_ROOT / "outputs" / "pe_fin_lite_r5_hk155_live_v1"
 DIAG20 = ROOT / "benchmarks" / "manifests" / "hk_pe_fin_lite_eea_diagnostic20_v1.json"
 
 SMOKE5_V3_SHA = {
@@ -77,6 +80,7 @@ def _plan(step: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def test_smoke5_v3_frozen_invalidated():
+    require_hk_artifact("outputs/pe_fin_replan_smoke5_live_v3/predictions.jsonl")
     for name, expected in SMOKE5_V3_SHA.items():
         assert _sha(SMOKE5_V3 / name) == expected
     marker = (SMOKE5_V3 / "INVALIDATED.md").read_text(encoding="utf-8")
@@ -88,6 +92,7 @@ def test_smoke5_v3_frozen_invalidated():
 
 
 def test_formal_diag20_r5_unchanged():
+    require_hk_artifact("outputs/pe_fin_lite_r5_hk155_live_v1/predictions.jsonl")
     for name, expected in FORMAL_SHA.items():
         assert _sha(FORMAL / name) == expected
     assert _sha(DIAG20) == DIAG20_SHA

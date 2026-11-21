@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+from artifact_gates import etom_artifact_root, require_etom_artifact
+
 from hk_equity_mcp.pe_fin_lite.schemas import SchemaValidationError
 from hk_equity_mcp.pe_fin_replan_etom.identity import resume_identity_hash
 from hk_equity_mcp.pe_fin_replan_etom.prompts import (
@@ -27,7 +29,8 @@ from hk_equity_mcp.pe_fin_replan_etom.schemas import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-SMOKE_V4 = ROOT / "outputs" / "pe_fin_replan_etom_smoke5_v4"
+ARTIFACT_ROOT = etom_artifact_root()
+SMOKE_V4 = ARTIFACT_ROOT / "outputs" / "pe_fin_replan_etom_smoke5_v4"
 
 # Frozen before this engineering fix; must remain unchanged.
 V4_RAW = {
@@ -200,6 +203,7 @@ def test_09_v4_v5_resume_identity_fail_closed():
 
 
 def test_10_smoke_v4_raw_frozen_and_invalidated():
+    require_etom_artifact("outputs/pe_fin_replan_etom_smoke5_v4/predictions.jsonl")
     for name, (want, nbytes, rows) in V4_RAW.items():
         path = SMOKE_V4 / name
         data = path.read_bytes()

@@ -9,6 +9,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from artifact_gates import hk_artifact_root, require_hk_artifact
+
 from hk_equity_mcp.pe_fin_replan.provider_availability import (
     ProviderAvailabilityError,
     assert_tool_readiness_for_live,
@@ -25,8 +27,9 @@ from hk_equity_mcp.real_mcp.market_gateway import MarketRealMcpGateway
 from hk_equity_mcp.real_mcp.types import RealMcpResult
 
 ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT_ROOT = hk_artifact_root()
 PROFILE = ROOT / "configs/operations/hk_runtime_provider_availability_sina_market_v1.yaml"
-V1_PROBE = ROOT / "outputs/pe_fin_replan_tool_readiness_v1/market_sina_probe"
+V1_PROBE = ARTIFACT_ROOT / "outputs/pe_fin_replan_tool_readiness_v1/market_sina_probe"
 V1_READINESS_SHA = "7a81d9536ea60898f771a17569beda9617545b4a8cd424c2a0b4bce5b14877fb"
 V1_RAW_SHA = "e8e0cd5c9d7237082b54f59a4d6a5f59c4a062303d4f99a0d0a03438b8f17720"
 DOCS_SHA = "021b46626e99da6efa65602b559571f75dfcad17e05702c4eabbd7c8e46315ad"
@@ -135,6 +138,7 @@ def test_normalizer_only_stock_hk_daily():
 
 
 def test_v1_failed_readiness_not_accepted():
+    require_hk_artifact("outputs/pe_fin_replan_tool_readiness_v1/market_sina_probe/readiness.json")
     profile = load_provider_availability_profile(PROFILE, condition="pe_fin_replan")
     art = V1_PROBE / "readiness.json"
     assert art.is_file()
@@ -148,6 +152,7 @@ def test_v1_failed_readiness_not_accepted():
 
 
 def test_v1_probe_artifacts_unchanged():
+    require_hk_artifact("outputs/pe_fin_replan_tool_readiness_v1/market_sina_probe/readiness.json")
     readiness = V1_PROBE / "readiness.json"
     raw = V1_PROBE / "raw_stock_hk_daily_09988.json"
     assert hashlib.sha256(readiness.read_bytes()).hexdigest() == V1_READINESS_SHA

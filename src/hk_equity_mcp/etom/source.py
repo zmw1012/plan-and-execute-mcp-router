@@ -4,9 +4,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 from pathlib import Path
 from typing import Any, Dict
+
+# Optional override for clean clones that keep the pinned checkout elsewhere.
+# Pin/lock JSON still load from the repository ``root``; only the raw checkout moves.
+ETOM_DATA_ROOT_ENV = "MCP_ROUTER_ETOM_DATA_ROOT"
 
 
 class EtomSourceError(RuntimeError):
@@ -30,6 +35,9 @@ def formal_100_lock_path(root: Path) -> Path:
 
 
 def raw_root(root: Path) -> Path:
+    override = (os.environ.get(ETOM_DATA_ROOT_ENV) or "").strip()
+    if override:
+        return Path(override).expanduser().resolve()
     return root / "data" / "etom" / "raw"
 
 

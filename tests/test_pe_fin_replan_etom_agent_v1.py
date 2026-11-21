@@ -21,6 +21,8 @@ from typing import Any, Callable, Dict, List, Optional
 
 import pytest
 
+from artifact_gates import require_etom_source
+
 from hk_equity_mcp.etom.adapter import EtomRoutingResolver
 from hk_equity_mcp.etom.embeddings import CatalogIndex, EmbeddingUsage, HashEmbeddingClient
 from hk_equity_mcp.pe_fin_replan_etom.agent import PeFinReplanEtomAgent
@@ -393,6 +395,7 @@ def test_19_20_mock_runner_runs_agent_cannot_forge_live_and_aborted_finalizes(tm
 
 
 def test_live_mode_is_gated(tmp_path):
+    require_etom_source()
     from hk_equity_mcp.experiment.unified_pe_fin_replan_etom_runner import (
         EtomPeFinReplanRunnerError,
         UnifiedPeFinReplanEtomRunner,

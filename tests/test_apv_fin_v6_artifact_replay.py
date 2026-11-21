@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from artifact_gates import hk_artifact_root, require_hk_artifact
+
 from hk_equity_mcp.apv_fin.capability_contract import load_and_validate_capability_contracts
 from hk_equity_mcp.apv_fin.capability_filter import filter_by_capability_contract
 from hk_equity_mcp.apv_fin.capability_requirement_compiler import (
@@ -24,9 +26,10 @@ from hk_equity_mcp.experiment.unified_apv_fin_metrics import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT_ROOT = hk_artifact_root()
 FIXTURE = ROOT / "tests" / "fixtures" / "apv_fin_v6_planner_payloads.json"
-V6_PRED = ROOT / "outputs" / "apv_fin_real_smoke4_v6" / "predictions.jsonl"
-V6_INVALIDATED = ROOT / "outputs" / "apv_fin_real_smoke4_v6" / "INVALIDATED.md"
+V6_PRED = ARTIFACT_ROOT / "outputs" / "apv_fin_real_smoke4_v6" / "predictions.jsonl"
+V6_INVALIDATED = ARTIFACT_ROOT / "outputs" / "apv_fin_real_smoke4_v6" / "INVALIDATED.md"
 
 
 def _payloads():
@@ -41,6 +44,7 @@ def _by_category(cat: str):
 
 
 def test_v6_invalidated_marker_present():
+    require_hk_artifact("outputs/apv_fin_real_smoke4_v6/INVALIDATED.md")
     text = V6_INVALIDATED.read_text(encoding="utf-8")
     assert (
         "invalidated_engineering_smoke_due_to_capability_vocabulary_and_contract_compilation_mismatch"

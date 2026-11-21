@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+from artifact_gates import etom_artifact_root, require_etom_artifact, require_etom_source, require_embedding_index
+
 from hk_equity_mcp.etom import EXPECTED_LLM_PROVIDER, EXPECTED_LLM_MODEL
 from hk_equity_mcp.pe_fin_replan_etom.generation_provider import (
     EXPECTED_HOST,
@@ -30,7 +32,8 @@ from hk_equity_mcp.experiment.unified_pe_fin_replan_etom_runner import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-SMOKE_V2 = ROOT / "outputs" / "pe_fin_replan_etom_smoke5_v2"
+ARTIFACT_ROOT = etom_artifact_root()
+SMOKE_V2 = ARTIFACT_ROOT / "outputs" / "pe_fin_replan_etom_smoke5_v2"
 
 # Frozen after step-type canonicalizer v1 + prompt_set_v3 (type≠domain rules).
 # Schema set / R5 formula must not drift with this allowlist+prompt bump.
@@ -125,6 +128,7 @@ def test_07_no_api_key_in_profile_or_public_identity():
 
 
 def test_08_v2_raw_hashes_unchanged():
+    require_etom_artifact("outputs/pe_fin_replan_etom_smoke5_v2")
     assert SMOKE_V2.is_dir()
     for name, want in V2_RAW.items():
         assert _sha(SMOKE_V2 / name) == want
@@ -137,6 +141,7 @@ def test_08_v2_raw_hashes_unchanged():
 
 
 def test_09_v2_cannot_resume_into_relay_identity(tmp_path):
+    require_etom_artifact("outputs/pe_fin_replan_etom_smoke5_v2/run_metadata.json")
     v2_meta = json.loads((SMOKE_V2 / "run_metadata.json").read_text(encoding="utf-8"))
     profile = load_generation_provider_profile(ROOT)
     relay_meta = {
@@ -198,9 +203,7 @@ def test_09_v2_cannot_resume_into_relay_identity(tmp_path):
 
 
 def test_10_embedding_index_identity_unchanged():
-    cache = ROOT / ".cache" / "pe_fin_replan_etom_operation_embeddings_v1"
-    finals = list(cache.glob("pe_fin_replan_etom_ops_*.json"))
-    assert finals, "expected complete index artifact present"
+    finals = list(require_embedding_index())
     # digest in filename must remain (generation provider is not part of index identity)
     assert any(
         "d1da417107a292e19c68bda841e516054299a72401b4ed691288ac3e1ac11ff3" in p.name
@@ -232,6 +235,7 @@ def test_12_method_prompt_schema_r5_unchanged():
 
 
 def test_13_mock_dry_run_still_pass(tmp_path):
+    require_etom_source()
     dry = UnifiedPeFinReplanEtomRunner(
         ROOT, tmp_path / "dry", mode="dry-run", formal100=True
     )

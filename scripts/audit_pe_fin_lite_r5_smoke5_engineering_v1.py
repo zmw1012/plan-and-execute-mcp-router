@@ -484,26 +484,11 @@ def run_audit(*, run_dir: Path, root: Path = ROOT) -> Dict[str, Any]:
         "embedding_query_calls_total": sum(r["embedding_query_calls"] for r in per_task),
     }
 
-    # commands (only meaningful if valid)
-    py = str(
-        Path(
-            "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/"
-            "hk-equity-mcp-agent/.venv-aktools-discovery/bin/python"
-        )
-    )
+    # commands (only meaningful if valid); repo-relative paths, no machine-local roots
+    py = sys.executable
     repo = str(root)
-    gen_env = str(
-        Path(
-            "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/"
-            "hk-equity-mcp-agent/.env.relay-v41"
-        )
-    )
-    emb_env = str(
-        Path(
-            "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/"
-            "hk-equity-mcp-agent/.env.embedding-relay"
-        )
-    )
+    gen_env = str(root / ".env.relay-v41")
+    emb_env = str(root / ".env.embedding-relay")
     cache = str(root / ".cache" / "pe_fin_lite_operation_embeddings_v1")
     hk155_out = str(root / "outputs" / "pe_fin_lite_r5_hk155_live_v1")
     script = str(root / "scripts" / "run_hk_unified_pe_fin_lite_experiment.py")
