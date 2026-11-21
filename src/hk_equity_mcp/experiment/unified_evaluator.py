@@ -72,22 +72,47 @@ def tool_prf(predicted: Set[str], gold: Set[str]) -> Tuple[float, float, float]:
     return precision, recall, f1
 
 
+def _operation_id_from_tool_result(event: Dict[str, Any]) -> Optional[str]:
+    """Resolve operation_id from Operation-Visible or Flat All Tools tool_result."""
+    if event.get("invalid_selection"):
+        # Invalid Flat selections are tracked separately; exclude from predicted set
+        # unless a concrete operation_id was resolved (schema-invalid known ops).
+        oid = event.get("operation_id")
+        return str(oid) if oid else None
+    # Flat All Tools: top-level operation_id on the event.
+    if event.get("operation_id"):
+        return str(event["operation_id"])
+    name = event.get("name")
+    args = event.get("arguments") or {}
+    # Operation-Visible: invoke_api(operation_id=..., arguments=...)
+    if name == "invoke_api":
+        oid = args.get("operation_id")
+        return str(oid) if oid else None
+    # Flat dual-shape: invoke_api_arguments mirror.
+    mirror = event.get("invoke_api_arguments") or {}
+    if isinstance(mirror, dict) and mirror.get("operation_id"):
+        return str(mirror["operation_id"])
+    return None
+
+
 def extract_predicted_operations(trace: Sequence[Dict[str, Any]]) -> List[str]:
-    """Collect invoke_api operation_ids in call order (unique preserve)."""
+    """Collect selected/invoked operation_ids in call order (unique preserve).
+
+    Compatible with Operation-Visible ``invoke_api`` traces and Flat All Tools
+    direct-operation traces. Evaluator identity remains original operation_id
+    (never action_name abbreviations).
+    """
     seen: Set[str] = set()
     ordered: List[str] = []
     for event in trace or []:
         if event.get("type") != "tool_result":
             continue
-        if event.get("name") != "invoke_api":
-            continue
-        args = event.get("arguments") or {}
-        oid = args.get("operation_id")
+        oid = _operation_id_from_tool_result(event)
         if not oid:
             continue
         if oid not in seen:
-            seen.add(str(oid))
-            ordered.append(str(oid))
+            seen.add(oid)
+            ordered.append(oid)
     return ordered
 
 
@@ -127,13 +152,19 @@ def extract_describe_calls(trace: Sequence[Dict[str, Any]]) -> List[str]:
 
 
 def extract_invoke_records(trace: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Collect invoke records for Operation-Visible and Flat All Tools.
+
+    Invalid Flat selections that never reached the gateway are excluded
+    (they are not executions). Schema-invalid / blocked attempts that fail
+    before dispatch are excluded from execution metrics.
+    """
     out: List[Dict[str, Any]] = []
     for event in trace or []:
         if event.get("type") != "tool_result":
             continue
-        if event.get("name") != "invoke_api":
+        if event.get("invalid_selection"):
             continue
-        args = event.get("arguments") or {}
+        name = event.get("name")
         result = event.get("result") or {}
         nested = result.get("result") if isinstance(result.get("result"), dict) else {}
         nested = nested or {}
@@ -144,10 +175,36 @@ def extract_invoke_records(trace: Sequence[Dict[str, Any]]) -> List[Dict[str, An
         execution_success = nested.get("execution_success")
         if execution_success is None:
             execution_success = result.get("execution_success")
+
+        if name == "invoke_api":
+            args = event.get("arguments") or {}
+            out.append(
+                {
+                    "operation_id": args.get("operation_id"),
+                    "arguments": args.get("arguments") or {},
+                    "success": success,
+                    "protocol_success": protocol_success,
+                    "execution_success": execution_success,
+                    "error": result.get("error") or nested.get("error"),
+                    "error_type": result.get("error_type") or nested.get("error_type"),
+                    "parallel": bool(event.get("parallel")),
+                }
+            )
+            continue
+
+        # Flat All Tools direct dispatch (has top-level operation_id + gateway result).
+        oid = event.get("operation_id") or (result.get("operation_id") if isinstance(result, dict) else None)
+        if not oid:
+            continue
+        # Only count gateway-dispatched calls (nested RealMcp payload or explicit args).
+        call_args = event.get("arguments") if isinstance(event.get("arguments"), dict) else {}
+        # Flat events store call args at top-level; OV nests under arguments.arguments.
+        if name == "find_operations" or name == "describe_operation":
+            continue
         out.append(
             {
-                "operation_id": args.get("operation_id"),
-                "arguments": args.get("arguments") or {},
+                "operation_id": oid,
+                "arguments": call_args,
                 "success": success,
                 "protocol_success": protocol_success,
                 "execution_success": execution_success,

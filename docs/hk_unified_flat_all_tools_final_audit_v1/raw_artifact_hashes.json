@@ -1,0 +1,147 @@
+{
+  "before": {
+    "predictions.jsonl": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-flat-all-tools/outputs/hk_unified_flat_all_tools_155_v1/predictions.jsonl",
+      "sha256": "41bdc25238a3016ffa086bfc567bdae53c71abad7d70372087435107286f4e51",
+      "bytes": 9749144,
+      "mtime_utc": "2026-11-06T11:36:55.367616+00:00",
+      "row_count": 155,
+      "unique_task_ids": 155,
+      "known_expected_sha256": "41bdc25238a3016ffa086bfc567bdae53c71abad7d70372087435107286f4e51",
+      "matches_known_precheck": true
+    },
+    "run_metadata.json": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-flat-all-tools/outputs/hk_unified_flat_all_tools_155_v1/run_metadata.json",
+      "sha256": "4e08b6858cec8f46d8df330f17e3aabbd99f367280231a8d7715c3516ecbd336",
+      "bytes": 52920,
+      "mtime_utc": "2026-11-06T11:36:55.388288+00:00",
+      "known_expected_sha256": "4e08b6858cec8f46d8df330f17e3aabbd99f367280231a8d7715c3516ecbd336",
+      "matches_known_precheck": true
+    },
+    "per_task_metrics.csv": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-flat-all-tools/outputs/hk_unified_flat_all_tools_155_v1/per_task_metrics.csv",
+      "sha256": "c8964c6d4bf8d03e41113f82489c39e51c1d890b2b3dd7bf4b59e76038295a30",
+      "bytes": 25793,
+      "mtime_utc": "2026-11-06T11:36:55.371361+00:00",
+      "row_count": 155,
+      "unique_task_ids": 155
+    },
+    "manual_grading.csv": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-flat-all-tools/outputs/hk_unified_flat_all_tools_155_v1/manual_grading.csv",
+      "sha256": "ec1cd06c8cb2c727331f89798e2aa021b0e9fc82e63c69ed9afa67946b0489b1",
+      "bytes": 201800,
+      "mtime_utc": "2026-11-06T11:36:55.378197+00:00",
+      "row_count": 155,
+      "unique_task_ids": 155
+    },
+    "cost_summary.json": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-flat-all-tools/outputs/hk_unified_flat_all_tools_155_v1/cost_summary.json",
+      "sha256": "6d11eb41a92712fc9c9845af6e25989acb21d1fd0d7777267666ded1a2cfd45b",
+      "bytes": 527,
+      "mtime_utc": "2026-11-06T11:36:55.379914+00:00",
+      "known_expected_sha256": "6d11eb41a92712fc9c9845af6e25989acb21d1fd0d7777267666ded1a2cfd45b",
+      "matches_known_precheck": true
+    },
+    "error_summary.json": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-flat-all-tools/outputs/hk_unified_flat_all_tools_155_v1/error_summary.json",
+      "sha256": "c3b0d0b4eede32c435cd0621e5c93cfcecf05f34ac81ca45c20f77a757b3363d",
+      "bytes": 42661,
+      "mtime_utc": "2026-11-06T11:36:55.385973+00:00",
+      "known_expected_sha256": "c3b0d0b4eede32c435cd0621e5c93cfcecf05f34ac81ca45c20f77a757b3363d",
+      "matches_known_precheck": true
+    },
+    "grouped_aggregates.json": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-flat-all-tools/outputs/hk_unified_flat_all_tools_155_v1/grouped_aggregates.json",
+      "sha256": "31aaaf095c6ecb221e63eb35ea43efe48d57d4f8ad1c5f28506b3703a812d4bb",
+      "bytes": 37491,
+      "mtime_utc": "2026-11-06T11:36:55.386662+00:00",
+      "known_expected_sha256": "31aaaf095c6ecb221e63eb35ea43efe48d57d4f8ad1c5f28506b3703a812d4bb",
+      "matches_known_precheck": true
+    },
+    "retrieval_analysis.json": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-flat-all-tools/outputs/hk_unified_flat_all_tools_155_v1/retrieval_analysis.json",
+      "sha256": "738744c7446f5be27716fea6fef2afd83ffdf2d65db91d9ed181f2c95b02c74e",
+      "bytes": 115398,
+      "mtime_utc": "2026-11-06T11:36:55.381671+00:00",
+      "known_expected_sha256": "738744c7446f5be27716fea6fef2afd83ffdf2d65db91d9ed181f2c95b02c74e",
+      "matches_known_precheck": true
+    }
+  },
+  "after": {
+    "predictions.jsonl": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-flat-all-tools/outputs/hk_unified_flat_all_tools_155_v1/predictions.jsonl",
+      "sha256": "41bdc25238a3016ffa086bfc567bdae53c71abad7d70372087435107286f4e51",
+      "bytes": 9749144,
+      "mtime_utc": "2026-11-06T11:36:55.367616+00:00",
+      "row_count": 155,
+      "unique_task_ids": 155,
+      "known_expected_sha256": "41bdc25238a3016ffa086bfc567bdae53c71abad7d70372087435107286f4e51",
+      "matches_known_precheck": true
+    },
+    "run_metadata.json": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-flat-all-tools/outputs/hk_unified_flat_all_tools_155_v1/run_metadata.json",
+      "sha256": "4e08b6858cec8f46d8df330f17e3aabbd99f367280231a8d7715c3516ecbd336",
+      "bytes": 52920,
+      "mtime_utc": "2026-11-06T11:36:55.388288+00:00",
+      "known_expected_sha256": "4e08b6858cec8f46d8df330f17e3aabbd99f367280231a8d7715c3516ecbd336",
+      "matches_known_precheck": true
+    },
+    "per_task_metrics.csv": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-flat-all-tools/outputs/hk_unified_flat_all_tools_155_v1/per_task_metrics.csv",
+      "sha256": "c8964c6d4bf8d03e41113f82489c39e51c1d890b2b3dd7bf4b59e76038295a30",
+      "bytes": 25793,
+      "mtime_utc": "2026-11-06T11:36:55.371361+00:00",
+      "row_count": 155,
+      "unique_task_ids": 155
+    },
+    "manual_grading.csv": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-flat-all-tools/outputs/hk_unified_flat_all_tools_155_v1/manual_grading.csv",
+      "sha256": "ec1cd06c8cb2c727331f89798e2aa021b0e9fc82e63c69ed9afa67946b0489b1",
+      "bytes": 201800,
+      "mtime_utc": "2026-11-06T11:36:55.378197+00:00",
+      "row_count": 155,
+      "unique_task_ids": 155
+    },
+    "cost_summary.json": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-flat-all-tools/outputs/hk_unified_flat_all_tools_155_v1/cost_summary.json",
+      "sha256": "6d11eb41a92712fc9c9845af6e25989acb21d1fd0d7777267666ded1a2cfd45b",
+      "bytes": 527,
+      "mtime_utc": "2026-11-06T11:36:55.379914+00:00",
+      "known_expected_sha256": "6d11eb41a92712fc9c9845af6e25989acb21d1fd0d7777267666ded1a2cfd45b",
+      "matches_known_precheck": true
+    },
+    "error_summary.json": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-flat-all-tools/outputs/hk_unified_flat_all_tools_155_v1/error_summary.json",
+      "sha256": "c3b0d0b4eede32c435cd0621e5c93cfcecf05f34ac81ca45c20f77a757b3363d",
+      "bytes": 42661,
+      "mtime_utc": "2026-11-06T11:36:55.385973+00:00",
+      "known_expected_sha256": "c3b0d0b4eede32c435cd0621e5c93cfcecf05f34ac81ca45c20f77a757b3363d",
+      "matches_known_precheck": true
+    },
+    "grouped_aggregates.json": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-flat-all-tools/outputs/hk_unified_flat_all_tools_155_v1/grouped_aggregates.json",
+      "sha256": "31aaaf095c6ecb221e63eb35ea43efe48d57d4f8ad1c5f28506b3703a812d4bb",
+      "bytes": 37491,
+      "mtime_utc": "2026-11-06T11:36:55.386662+00:00",
+      "known_expected_sha256": "31aaaf095c6ecb221e63eb35ea43efe48d57d4f8ad1c5f28506b3703a812d4bb",
+      "matches_known_precheck": true
+    },
+    "retrieval_analysis.json": {
+      "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-flat-all-tools/outputs/hk_unified_flat_all_tools_155_v1/retrieval_analysis.json",
+      "sha256": "738744c7446f5be27716fea6fef2afd83ffdf2d65db91d9ed181f2c95b02c74e",
+      "bytes": 115398,
+      "mtime_utc": "2026-11-06T11:36:55.381671+00:00",
+      "known_expected_sha256": "738744c7446f5be27716fea6fef2afd83ffdf2d65db91d9ed181f2c95b02c74e",
+      "matches_known_precheck": true
+    }
+  },
+  "unchanged": true,
+  "known_precheck": {
+    "predictions.jsonl": "41bdc25238a3016ffa086bfc567bdae53c71abad7d70372087435107286f4e51",
+    "run_metadata.json": "4e08b6858cec8f46d8df330f17e3aabbd99f367280231a8d7715c3516ecbd336",
+    "error_summary.json": "c3b0d0b4eede32c435cd0621e5c93cfcecf05f34ac81ca45c20f77a757b3363d",
+    "cost_summary.json": "6d11eb41a92712fc9c9845af6e25989acb21d1fd0d7777267666ded1a2cfd45b",
+    "grouped_aggregates.json": "31aaaf095c6ecb221e63eb35ea43efe48d57d4f8ad1c5f28506b3703a812d4bb",
+    "retrieval_analysis.json": "738744c7446f5be27716fea6fef2afd83ffdf2d65db91d9ed181f2c95b02c74e"
+  }
+}
