@@ -1,0 +1,97 @@
+{
+  "pre": {
+    "predictions.jsonl": {
+      "sha256": "f35f30aa712df505025f39d3b4d5043da2786439531ace9a7f5e6df92d353d1a",
+      "bytes": 6409170,
+      "lines_or_rows": 155
+    },
+    "run_metadata.json": {
+      "sha256": "be398592cfa295feaa94acda89e08e499ce19f09fdc22782f6762b938b5d5705",
+      "bytes": 17001,
+      "lines_or_rows": 417
+    },
+    "per_task_metrics.csv": {
+      "sha256": "9a1ecce074e868dd85743fb24dfe298c5766e2885fe6a048735057f24aed443e",
+      "bytes": 25253,
+      "lines_or_rows": 156
+    },
+    "manual_grading.csv": {
+      "sha256": "762253da705007357bcab92fd0934a050454b594d02730132b3538f21a8958eb",
+      "bytes": 194129,
+      "lines_or_rows": 198
+    },
+    "cost_summary.json": {
+      "sha256": "59c9057f3fd83102c07183d60bdecfdc8dc50bb784933d412a8051473ead3389",
+      "bytes": 845,
+      "lines_or_rows": 21
+    },
+    "error_summary.json": {
+      "sha256": "3f9ec4d805a7b62e33b2ee67d1ff057e4b0e001a0841837443a3938cae183ea1",
+      "bytes": 40219,
+      "lines_or_rows": 922
+    },
+    "retrieval_analysis.json": {
+      "sha256": "aa9082cbd6f6696566ffbf6f72e4e17e2879172feb946fe65574d072feacffc1",
+      "bytes": 1497320,
+      "lines_or_rows": 34800
+    },
+    "grouped_aggregates.json": {
+      "sha256": "6c65a45929e44f04d02461ba46eb98138b205fb37b540c40d0a57050f278ec50",
+      "bytes": 35306,
+      "lines_or_rows": 848
+    },
+    "grading_summary.json": {
+      "sha256": "c3dd494f9179280d9b4d6d0df6550e74194084fe9b5b191f9d65a06495bed77f",
+      "bytes": 360,
+      "lines_or_rows": 11
+    }
+  },
+  "post": {
+    "predictions.jsonl": {
+      "sha256": "f35f30aa712df505025f39d3b4d5043da2786439531ace9a7f5e6df92d353d1a",
+      "bytes": 6409170,
+      "lines_or_rows": 155
+    },
+    "run_metadata.json": {
+      "sha256": "be398592cfa295feaa94acda89e08e499ce19f09fdc22782f6762b938b5d5705",
+      "bytes": 17001,
+      "lines_or_rows": 417
+    },
+    "per_task_metrics.csv": {
+      "sha256": "9a1ecce074e868dd85743fb24dfe298c5766e2885fe6a048735057f24aed443e",
+      "bytes": 25253,
+      "lines_or_rows": 156
+    },
+    "manual_grading.csv": {
+      "sha256": "762253da705007357bcab92fd0934a050454b594d02730132b3538f21a8958eb",
+      "bytes": 194129,
+      "lines_or_rows": 198
+    },
+    "cost_summary.json": {
+      "sha256": "59c9057f3fd83102c07183d60bdecfdc8dc50bb784933d412a8051473ead3389",
+      "bytes": 845,
+      "lines_or_rows": 21
+    },
+    "error_summary.json": {
+      "sha256": "3f9ec4d805a7b62e33b2ee67d1ff057e4b0e001a0841837443a3938cae183ea1",
+      "bytes": 40219,
+      "lines_or_rows": 922
+    },
+    "retrieval_analysis.json": {
+      "sha256": "aa9082cbd6f6696566ffbf6f72e4e17e2879172feb946fe65574d072feacffc1",
+      "bytes": 1497320,
+      "lines_or_rows": 34800
+    },
+    "grouped_aggregates.json": {
+      "sha256": "6c65a45929e44f04d02461ba46eb98138b205fb37b540c40d0a57050f278ec50",
+      "bytes": 35306,
+      "lines_or_rows": 848
+    },
+    "grading_summary.json": {
+      "sha256": "c3dd494f9179280d9b4d6d0df6550e74194084fe9b5b191f9d65a06495bed77f",
+      "bytes": 360,
+      "lines_or_rows": 11
+    }
+  },
+  "unchanged": true
+}

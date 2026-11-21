@@ -1,0 +1,17 @@
+{
+  "n_tasks": 155,
+  "total_input_tokens": 3817113,
+  "total_output_tokens": 233400,
+  "total_tokens": 4050513,
+  "total_llm_calls": 761,
+  "total_embedding_calls_query_time": 412,
+  "total_embedding_tokens_query_time": 9275,
+  "embedding_index_build_calls": 0,
+  "embedding_index_cache_reused": true,
+  "total_real_mcp_executions": 332,
+  "mean_latency_ms": 47350.03088387097,
+  "median_latency_ms": 39619.269,
+  "p95_latency_ms": 90990.29,
+  "estimated_usd": null,
+  "estimated_usd_note": "No frozen provider price table in-repo; estimated_usd left null."
+}

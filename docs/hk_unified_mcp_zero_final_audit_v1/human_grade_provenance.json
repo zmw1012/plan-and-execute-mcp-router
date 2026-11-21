@@ -1,0 +1,10 @@
+{
+  "source_path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero/docs/hk_unified_mcp_zero_final_audit_v1/human_grades.json",
+  "tasks_applied": [
+    "fin_cf_022"
+  ],
+  "sealed": true,
+  "condition": "mcp_zero",
+  "independent_review": true,
+  "copied_from_other_condition": false
+}

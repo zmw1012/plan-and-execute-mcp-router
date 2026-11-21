@@ -214,6 +214,7 @@ class OpenAICompatibleChatClient(LLMClient):
         choices = body.get("choices") or []
         if not choices:
             raise RuntimeError("LLM response missing choices.")
+        # RePlan-ETOM null-safe extraction (supersedes MCP-Zero's simpler null guard).
         choice0 = choices[0] if isinstance(choices[0], dict) else {}
         message = choice0.get("message")
         finish_reason = choice0.get("finish_reason") or choice0.get("stop_reason")

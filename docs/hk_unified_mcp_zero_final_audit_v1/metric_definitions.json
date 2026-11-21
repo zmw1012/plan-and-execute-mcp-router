@@ -1,0 +1,35 @@
+{
+  "final_answer_accuracy": {
+    "formula": "count(answer_correct IS True) / 155 after human grades for manual_required; failed forced incorrect; auto-only rate remains auto_graded_accuracy",
+    "numerator_field": "final_answer_correct",
+    "denominator": 155
+  },
+  "strict_answer_accuracy": {
+    "formula": "answer_correct IS True over all 155 tasks; failed forced False; human grades applied for manual_required",
+    "numerator_field": "strict_answer_correct",
+    "denominator": 155
+  },
+  "strict_overall_task_success": {
+    "formula": "status == 'full' AND answer_correct IS True AND tool_selection_correct IS True AND all_tool_invocations_successful IS True; denominator = 155; failed/partial forced incorrect; does NOT require evidence_correct or terminal_contract_valid; human overall_task_success does NOT override this conjunction",
+    "numerator_field": "strict_overall_task_success_n",
+    "denominator": 155,
+    "requires": [
+      "status=full",
+      "answer_correct",
+      "tool_selection_correct",
+      "all_tool_invocations_successful"
+    ],
+    "does_not_require": [
+      "evidence_correct",
+      "terminal_contract_valid",
+      "human_confirmed_overall_task_success"
+    ],
+    "comparability_label": "condition-specific"
+  },
+  "common_strict_answer_success": {
+    "formula": "status == 'full' AND answer_correct IS True; failed/partial forced incorrect; denominator = 155; cross-baseline comparable answer+completion metric",
+    "numerator_field": "common_strict_answer_success_n",
+    "denominator": 155,
+    "comparability_label": "cross-baseline-comparable"
+  }
+}
