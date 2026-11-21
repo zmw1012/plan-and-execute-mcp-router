@@ -1,6 +1,6 @@
 # Reproducibility
 
-Executable guide for another machine. Use shell variables—**never** hard-code `/Users/…` paths.
+Executable guide for another machine. Use shell variables—**never** hard-code personal home-directory absolute paths.
 
 ```bash
 export PROJECT_ROOT="$(pwd)"          # clone / release worktree root
@@ -24,6 +24,10 @@ export PYTHONPATH="$PROJECT_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
 | Tested Python | **3.9+** (`requires-python >=3.9`; offline suite verified on CPython 3.9.6 / macOS) |
 | OS notes | macOS and Linux expected; Windows untested. Live HK helpers may use `caffeinate` on macOS only. |
 | Install | `pip install -e ".[dev]"` for offline tests; add `.[real_mcp]` for live MCP stdio clients |
+| Distribution name | `plan-and-execute-mcp-router` (PyPI/setuptools metadata) |
+| Import package | `hk_equity_mcp` (legacy path retained) |
+| Public CLI | `mcp-router-demo`, `mcp-router-eval` |
+| Legacy CLI | `hk-equity-demo`, `hk-equity-eval` (compat aliases) |
 | Lock | See [requirements-release.txt](requirements-release.txt) (pinned from the verified env). Full cross-platform lock resolution may need network; this pin is the documented fallback. |
 
 ```bash
@@ -32,6 +36,9 @@ export PYTHONPATH="$PROJECT_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
 # Optional live MCP:
 # "$PYTHON" -m pip install -e ".[real_mcp]"
 # Or: "$PYTHON" -m pip install -r requirements-release.txt
+"$PYTHON" -c "import hk_equity_mcp; print('import ok')"
+# Console scripts (after editable install): mcp-router-demo / mcp-router-eval
+# Legacy aliases: hk-equity-demo / hk-equity-eval
 ```
 
 ---
@@ -53,6 +60,8 @@ export PYTHONPATH="$PROJECT_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
 "$PYTHON" -m pytest -q
 
 # Mock / dry-run smoke (no paid APIs)
+# Prefer a throwaway directory (e.g. under /tmp) so local predictions.jsonl
+# under outputs/ cannot trip heldout-contamination validators.
 "$PYTHON" scripts/run_hk_unified_mcp_free_experiment.py --smoke --mock \
   --output-dir "$PROJECT_ROOT/outputs/_offline_mcp_free_smoke"
 "$PYTHON" scripts/run_hk_unified_flat_all_tools_experiment.py --smoke --mock \
@@ -295,11 +304,14 @@ ENV_FILE="$GEN_ENV" EMBEDDING_ENV_FILE="$EMBEDDING_ENV" \
 "$PYTHON" scripts/run_etom_pe_fin_replan_experiment.py --mock --engineering-smoke5 \
   --output-dir "$PROJECT_ROOT/outputs/etom_planroute_replan_smoke_mock"
 
-# LIVE formal100 — dual gate: --allow-live-formal100 + env PE_FIN_REPLAN_ETOM_ALLOW_LIVE=1
+# LIVE formal100 — dual gate only (this runner has no --live flag):
+#   env PE_FIN_REPLAN_ETOM_ALLOW_LIVE=1  AND  --allow-live-formal100
 # (generation + embedding; routing-only — no business MCP execution)
 PE_FIN_REPLAN_ETOM_ALLOW_LIVE=1 \
-"$PYTHON" scripts/run_etom_pe_fin_replan_experiment.py --formal100 --live \
-  --allow-live-formal100 --require-complete-index \
+"$PYTHON" scripts/run_etom_pe_fin_replan_experiment.py \
+  --formal100 \
+  --allow-live-formal100 \
+  --require-complete-index \
   --env-file "$GEN_ENV" --embedding-env-file "$EMBEDDING_ENV" \
   --output-dir "$PROJECT_ROOT/outputs/etom_external_formal100_pe_fin_replan_v1" \
   --resume
