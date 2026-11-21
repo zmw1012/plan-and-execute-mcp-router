@@ -1,0 +1,55 @@
+{
+  "tasks": 100,
+  "tasks_with_search": 91,
+  "l1_l4_tasks": 80,
+  "l1_l4_searched": 77,
+  "l1_l4_never_searched": 3,
+  "l1_l4_never_searched_ids": [
+    "L1-q591",
+    "L2-q518",
+    "L4-q71"
+  ],
+  "l1_l4_gold_hit_count": 77,
+  "l1_l4_gold_hit_given_search": 77,
+  "l1_l4_gold_step_coverage": 0.943127962085308,
+  "l1_l4_gold_step_coverage_given_search": 0.9802955665024631,
+  "primary_retrieval_miss": 0,
+  "interpretation": "Gold hit means at least one gold operation id appeared in a stored find_operations candidate list. L5 has an empty gold route, so it is outside the hit rate. The 3 L1–L4 tasks with no gold hit never called find_operations (L1-q591, L2-q518, L4-q71). Conditional on a search, every L1–L4 task retrieved at least one gold operation.",
+  "by_level": {
+    "L1": {
+      "tasks": 20,
+      "gold_hit_count": 19,
+      "tasks_with_search": 19,
+      "mean_search_calls": 1.2
+    },
+    "L2": {
+      "tasks": 20,
+      "gold_hit_count": 19,
+      "tasks_with_search": 19,
+      "mean_search_calls": 1.7
+    },
+    "L3": {
+      "tasks": 20,
+      "gold_hit_count": 20,
+      "tasks_with_search": 20,
+      "mean_search_calls": 2.15
+    },
+    "L4": {
+      "tasks": 20,
+      "gold_hit_count": 19,
+      "tasks_with_search": 19,
+      "mean_search_calls": 5.8
+    }
+  },
+  "query_embedding_calls": 188,
+  "query_embedding_tokens": 1304,
+  "frozen_retrieval_analysis": {
+    "tasks": 100,
+    "query_embedding_calls": 188,
+    "query_embedding_tokens": 1304,
+    "mean_query_embedding_calls": 1.88,
+    "note": "Catalog index is one-time and shared. These counts are query-time embeddings only. Routing-only evaluation; no real MCP execution.",
+    "real_mcp_tool_executed": false
+  },
+  "note": "Hit rate uses stored find_operations candidates. No embedding was recomputed."
+}

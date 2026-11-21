@@ -1,0 +1,54 @@
+{
+  "task_llm_calls": 434,
+  "probe_llm_calls": 1,
+  "cost_summary_llm_calls": 435,
+  "mean_llm_calls": 4.34,
+  "median_llm_calls": 4.0,
+  "llm_calls_by_level": {
+    "L1": 90,
+    "L2": 104,
+    "L3": 92,
+    "L4": 99,
+    "L5": 49
+  },
+  "task_input_tokens": 1746891,
+  "task_output_tokens": 265658,
+  "task_total_tokens": 2012549,
+  "probe_input_tokens": 38,
+  "probe_output_tokens": 32,
+  "embedding_calls": 263,
+  "embedding_tokens": 370102,
+  "query_embedding_calls": 188,
+  "query_embedding_tokens": 1304,
+  "catalog_embedding_calls": 75,
+  "catalog_embedding_tokens": 368798,
+  "cache_reused": true,
+  "catalog_paid_on_this_run": false,
+  "latency_ms": {
+    "mean": 30222.04735,
+    "median": 28587.482,
+    "p95": 60429.34639999997
+  },
+  "frozen_latency_ms": {
+    "mean": 30222.04735,
+    "median": 28587.482,
+    "p95": 60429.34639999997
+  },
+  "frozen_this_run_estimated_usd": 0.842936,
+  "frozen_variable_total_usd": 0.842886,
+  "price_config_present": true,
+  "price_config": {
+    "llm_input_usd_per_million": 0.3,
+    "llm_output_usd_per_million": 1.2,
+    "embedding_usd_per_million": 0.02,
+    "source": "DeepSeek official peak cache-miss list price for deepseek-flash / DeepSeek-V4.1-Flash (https://api-docs.deepseek.com/quick_start/pricing/, input $0.30 and output $1.20 per 1M tokens) and OpenAI text-embedding-3-small at $0.02 per 1M tokens. The Aliyun generation relay and the embedding relay may invoice differently. Cache-hit discounts are not applied."
+  },
+  "failed_llm_calls": 44,
+  "failed_input_tokens": 253478,
+  "failed_output_tokens": 54621,
+  "failed_total_tokens": 308099,
+  "real_tool_executions": 0,
+  "accounting_note": "Terminal total LLM calls=434 matches the sum of per-task llm_calls. cost_summary.llm_calls=435 equals that sum plus verification_probe.llm_calls=1. Both numbers are reported. Neither number is rewritten.",
+  "grouped_results_file": "grouped_results.json",
+  "frozen_grouped_exact_match_rate_completed_only": 0.717391304347826
+}

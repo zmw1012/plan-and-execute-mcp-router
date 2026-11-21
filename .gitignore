@@ -60,9 +60,14 @@ data/raw/
 data/private/
 
 # ETOM pinned raw checkout / derived / cache (local fetch; do not commit)
+# Pin, lock, and conversion code stay tracked. Do not commit API keys.
 data/etom/raw/
 data/etom/raw
 data/etom/derived/
 data/etom/cache/
 .cache/etom_embeddings/
 .cache/mcp_zero_etom_v1/
+*.partial.jsonl
+*.partial.meta.json
+*.partial.jsonl.tmp
+*.partial.meta.json.tmp
