@@ -5,20 +5,28 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "hk-equity-mcp-agent"
 version = "0.1.0"
-description = "Mock MCP multi-server agent framework for HK equity QA experiments"
+description = "Plan-and-Execute MCP Router — HK-155 and ETOM-100 routing experiments (legacy package name retained for import compatibility)"
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [{ name = "MSBD5018 Group" }]
+# Runtime: stdlib HTTP (urllib) + YAML configs. No local file:// dependency URLs.
 dependencies = [
-  "pyyaml>=6.0",
+  "pyyaml>=6.0,<7",
 ]
 
 [project.optional-dependencies]
+# Offline unit/integration tests
 dev = [
-  "pytest>=7.4",
+  "pytest>=7.4,<9",
 ]
+# Live HK real-MCP stdio clients (optional; not required for offline suite)
 real_mcp = [
   # AKTools MCP server currently expects mcp>=2.3; client adapters support 1.x/2.x.
+  "mcp>=1.7.0,<3",
+]
+# Convenience extra: tests + optional MCP (runtime deps still from [project])
+release = [
+  "pytest>=7.4,<9",
   "mcp>=1.7.0,<3",
 ]
 
