@@ -19,6 +19,7 @@ venv/
 env/
 .venv-*/
 .venv-*-discovery/
+.release-site/
 
 # Local MCP / AKTools runtime logs (keep files locally; do not commit)
 aktools_log.log*
