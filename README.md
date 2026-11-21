@@ -1,121 +1,127 @@
-# HK Equity MCP Agent
+# Plan-and-Execute MCP Router
 
-Course project framework for comparing **flat**, **routed**, and **routed_structured** agent settings on Hong Kong equity questions, using multiple MCP-style tool servers.
+This project studies whether **explicit Plan-and-Execute control** can improve multi-tool **MCP (Model Context Protocol) routing** relative to direct answering, flat schema exposure, hierarchical retrieval (MCP-Zero), and ReAct-style Operation-Visible control. Evaluation uses two complementary benchmarks: **ETOM-100** (external, routing-only) and **HK-155** (Hong Kong equity **application** scenario with real MCP execution). HK-155 is an application benchmark, not the project title.
 
-This repository currently provides a **mock-only** runnable baseline: no paid APIs, no real LLM calls, and no online deployment.
+## Research question
 
-## Project goals
+Can explicit planning improve multi-tool MCP routing while reducing repeated LLM control calls and full-schema exposure?
 
-- Build three mock MCP servers: Financial / Market / News
-- Provide a unified agent/router interface with three experiment modes
-- Provide a minimal evaluation pipeline (JSONL → CSV + metrics stubs)
-- Support three-person collaboration with a clear directory layout
+## Methods
 
-## Suggested team split
+| Method | Control structure | HK-155 | ETOM-100 |
+|--------|-------------------|--------|----------|
+| MCP-Free | Direct LLM answer, no MCP | Yes | N/A |
+| Flat-All-Tools | All schemas exposed | Yes | Not run |
+| MCP-Zero | Hierarchical Server → Tool retrieval | Yes | Yes |
+| Operation-Visible | Find → Describe → Invoke with ReAct | Yes | Yes |
+| MCP-PlanRoute Lite | One-shot plan, no global replan | Yes | Not run |
+| MCP-PlanRoute RePlan | Planner → Execute one step → Replanner | Yes | Yes |
 
-| Person | Focus |
-|--------|--------|
-| Member A | Financial server + related benchmarks |
-| Member B | Market server + agent/router modes |
-| Member C | News server + evaluation metrics / docs |
+### Proposed methods
 
-Adjust ownership as needed; keep PRs small and reviewable.
+**MCP-PlanRoute Lite** builds a single plan, then executes step-level retrieval and MCP calls without a global replanner.
 
-## Repository layout
+**MCP-PlanRoute RePlan** interleaves Planner → execute one step → Replanner until finish, abort, or budget/step caps.
+
+Both share **R5 retrieval**:
 
 ```text
-src/hk_equity_mcp/
-  agent/                 # router + experiment modes
-  common/                # schema + mock data
-  mcp_servers/
-    financial/           # multi-period annual/interim snapshots
-    market/
-    news/
-  evaluation/            # JSONL runner + metrics interfaces
-configs/                 # agent.yaml, evaluation.yaml
-data/mock/               # inspectable mock JSON snapshots
-benchmarks/questions/    # JSONL test questions
-tests/
-docs/
+score = cosine_similarity + 0.12 × lexical_score
 ```
 
-Financial domain details (periods, sources, verification): see [docs/financial_domain.md](docs/financial_domain.md).
+- no hard domain filter  
+- Top-K = 5  
+- Describe-N = 3  
 
-## Local setup
+## Benchmarks
 
-Python 3.9+ recommended.
+### HK-155 (application / real execution)
+
+- **155** tasks: Financial 60, Market 35, News 35, Cross-domain 25  
+- Real MCP tool execution against Hong Kong equity data providers  
+- Graded answer accuracy + tool-set metrics  
+
+### ETOM-100 (routing-only)
+
+- **100** tasks (20 per official L1–L5)  
+- Source registry: **491** servers, **2,375** tools  
+- Route Exact Match / F1 only — **no** real business-tool execution  
+
+## Main results
+
+Full tables, metric definitions, ablations, and provenance: **[RESULTS.md](RESULTS.md)**.
+
+### HK-155 (headline)
+
+| Method | Answer Accuracy | Common Strict | Notes |
+|--------|-----------------|---------------|-------|
+| Operation-Visible | **61.29%** | 29.03% | Best answer accuracy |
+| MCP-Zero | 58.06% | **58.06%** | Best common strict |
+| MCP-PlanRoute Lite | 22.58% lower / 23.23% upper | 5.81% | One manual-pending bound |
+| MCP-PlanRoute RePlan | **25.16%** conservative | 11.61% | Engineering-valid; not formal-accuracy-valid alone |
+
+### ETOM-100 (headline)
+
+| Method | Route EM | Notes |
+|--------|----------|-------|
+| Operation-Visible | **66%** | Best routing EM |
+| MCP-Zero | 49% | |
+| MCP-PlanRoute RePlan | **35%** conservative / 45% raw | Failures-as-zero conservative |
+
+**Negative result (do not hide):** R5 improves candidate retrieval, but the rigid Planner–Executor–Replanner implementation does **not** outperform ReAct-style Operation-Visible or MCP-Zero on either benchmark under conservative scoring.
+
+## Key conclusion
+
+These experiments reject the **current rigid PlanRoute implementation**, not Plan-and-Execute as a general design idea. Recommended future work: **Plan-guided ReAct**.
+
+## Repository navigation
+
+| Doc | Purpose |
+|-----|---------|
+| [RESULTS.md](RESULTS.md) | Authoritative metrics, ablations, error analysis, provenance |
+| [REPRODUCIBILITY.md](REPRODUCIBILITY.md) | Offline and live reproduction commands |
+| [CODE_MAP.md](CODE_MAP.md) | Canonical names ↔ package paths ↔ entry points |
+| [DATA.md](DATA.md) | Committed vs external data; archive checklist |
+| [docs/](docs/README.md) | Release vs audit vs historical documentation |
+| [benchmarks/](benchmarks/) | HK-155 / ETOM manifests and schemas |
+| [scripts/](scripts/README.md) | Runner and audit script index |
+| [tests/](tests/) | Offline contract and integration tests |
+
+## Quick start (offline only)
 
 ```bash
-cd "hk-equity-mcp-agent"
-python3 -m pip install -e ".[dev]"
-cp .env.example .env   # optional for later; mock demo does not need real keys
+export PROJECT_ROOT="$(pwd)"   # clone root
+export PYTHON="${PYTHON:-python3}"
+cd "$PROJECT_ROOT"
+"$PYTHON" -m pip install -e ".[dev]"
+"$PYTHON" -c "import hk_equity_mcp; print('ok')"
+"$PYTHON" -m pytest tests/test_mcp_zero_protocol_v2.py tests/test_pe_fin_replan_contract_v1_4_1.py tests/test_operation_visible_agent.py -q
+# Full offline suite (skips when external artifacts absent):
+"$PYTHON" -m pytest -q
 ```
 
-## Run mock demo
+No generation LLM, embedding API, or live MCP is required for the offline path.
 
-```bash
-python3 -m hk_equity_mcp.agent.router
-# or, after install:
-hk-equity-demo
-```
+### Live runs (credentials / network / cost)
 
-## Run evaluation (gold-path execution smoke)
+Live HK-155 and ETOM-100 runners call generation LLMs, may call embedding APIs, and (for HK-155) invoke real MCP tools and market/disclosure downloads. They can incur **API cost**.
 
-```bash
-python3 -m hk_equity_mcp.evaluation.runner
-# writes outputs/eval_results.csv and .summary.json
-```
+See **[REPRODUCIBILITY.md](REPRODUCIBILITY.md)** for exact CLI flags, smoke vs full runs, resume, and audit steps. Copy [.env.example](.env.example) to a local env file and fill placeholders—never commit secrets.
 
-Note: the current runner injects `gold_tools` / `gold_arguments`. A 1.0
-`strict_task_success_rate` is a **gold-path execution smoke test**, not proof of
-agent tool-selection accuracy. See `docs/financial_domain.md`.
+## Citation and related work
 
-## Run tests
+Use the titles and URLs already documented in-repo (do not invent bibliographic fields):
 
-```bash
-pytest
-```
+| Work | Title / location |
+|------|------------------|
+| **ETOM** | Source: [snooow1029/ETOM](https://github.com/snooow1029/ETOM); paper also cited in-repo via [ACL Anthology 2026.findings-eacl.75](https://aclanthology.org/2026.findings-eacl.75/) |
+| **MCP-Zero** | Fei et al., *MCP-Zero: Active Tool Discovery for Autonomous LLM Agents* — [arXiv:2506.01056](https://arxiv.org/abs/2506.01056) |
+| **Operation-Visible** | Ghoshal et al. (2026), *Scaling Enterprise Cloud Agents to Thousands of APIs…* (EMNLP 2026 Industry Track); see [docs/operation_visible_baseline.md](docs/operation_visible_baseline.md) |
+| **ReAct** | Yao et al., *ReAct: Synergizing Reasoning and Acting in Language Models* — [arXiv:2210.03629](https://arxiv.org/abs/2210.03629) |
+| **Plan-and-Execute / Plan-and-Solve** | Wang et al., *Plan-and-Solve Prompting: Improving Zero-Shot Chain-of-Thought Reasoning by Large Language Models* — [arXiv:2305.04091](https://arxiv.org/abs/2305.04091) |
 
-## Add a new MCP tool
+Internal package paths (`pe_fin_lite`, `pe_fin_replan`, …) are **legacy import identities**; public names above are canonical. See [CODE_MAP.md](CODE_MAP.md).
 
-1. Implement the method on the relevant server under `src/hk_equity_mcp/mcp_servers/<domain>/server.py`
-2. Return the unified schema fields: `success`, `source`, `ticker`, `as_of_date`, `data`, `evidence`, `error`
-3. Register the tool in the server `call()` map and in `TOOL_DOMAIN` inside `agent/router.py`
-4. Add unit tests under `tests/`
-5. Optionally add benchmark questions that use the new tool
+## License / course note
 
-## Add a benchmark question
-
-Append one JSON object per line to `benchmarks/questions/sample_questions.jsonl` (or a new JSONL file) with:
-
-- `id`
-- `question`
-- `required_domain`
-- `gold_tools`
-- `gold_arguments`
-- `reference_answer`
-- `supporting_evidence`
-
-Then point `configs/evaluation.yaml` at the file and rerun the evaluation runner.
-
-## API key safety rules
-
-- Never commit real API keys, passwords, or tokens
-- Keep secrets in local `.env` only (gitignored)
-- `.env.example` may contain **variable names and fake placeholders only**
-- Do not put real financial data dumps or large files in git
-- Do not enable paid GitHub Actions / Codespaces / third-party paid services unless the team explicitly agrees
-
-## Experiment modes
-
-Configured in `configs/agent.yaml`:
-
-- `flat`
-- `routed`
-- `routed_structured`
-
-Current implementations are interface/placeholder level with mock tool execution.
-
-## License
-
-No open-source license is attached yet (pending course policy confirmation).
+Course research code for MSBD5018 NLP. Do not redistribute private API keys, local absolute paths, or unreleased market data.
