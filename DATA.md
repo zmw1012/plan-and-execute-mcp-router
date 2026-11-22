@@ -30,80 +30,73 @@ What is committed in-repo vs what must be supplied externally for full reproduct
 
 ## Data availability
 
-> **Release checklist (before course submission):**  
-> **Add the final HKUST OneDrive or approved cloud archive URL before submission.**
+Frozen experiment artifacts for course submission are published outside Git (HKUST OneDrive). Download the ZIP from the shared folder below, verify the SHA256, then point the `MCP_ROUTER_*` environment variables at the extracted trees.
 
-Do **not** invent a cloud URL in this repository until the archive is published.
-
-### Final archive URL (fill before submission)
-
-Paste the approved cloud link here after the archive is uploaded:
+### Final archive (published)
 
 ```text
-ARCHIVE_URL: <REPLACE_WITH_HKUST_ONEDRIVE_OR_APPROVED_CLOUD_URL>
+ARCHIVE_URL: https://hkustconnect-my.sharepoint.com/:f:/r/personal/zwanas_connect_ust_hk/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Fzwanas%5Fconnect%5Fust%5Fhk%2FDocuments%2Fnlp%5Fgroup%5Fproject%5Fmcp%5Frouter&share=cgq4kpr%5FeXFMQJtANKIfdI9QEgUBWU4Ayqt3ZHyIG9UwNN%2DB%2Dw
+ARCHIVE_FILE: mcp-router-release-artifacts-v1.zip
+ARCHIVE_SHA256: 8c883917580e372dc814169b4b81b24aa315e580bf54b6f815808f21ba7c069b
 ```
 
-Until `ARCHIVE_URL` is a real HTTPS link (not the placeholder above), the release is **not** submission-complete.
+Verify the downloaded ZIP before extract:
 
-### Recommended archive contents / layout
+```bash
+echo "8c883917580e372dc814169b4b81b24aa315e580bf54b6f815808f21ba7c069b  mcp-router-release-artifacts-v1.zip" | shasum -a 256 -c -
+```
 
-Upload these **outside Git** (do not `git add outputs/`):
+### Archive contents / layout
 
-1. **HK-155 frozen run trees** referenced by sealed audits (predictions, run metadata, human grades pointers as applicable).  
-2. **ETOM-100 frozen run trees** for MCP-Zero, Operation-Visible, and PlanRoute RePlan formal-100.  
-3. **Optional embedding caches** needed for offline index-status / audit parity.  
-4. **Optional pinned ETOM source checkout** at commit `790f28727f567b88918420d163c524d46644a694`.  
-5. Top-level `README.txt` (archive version, matching git tip of `release/code-submission-v1`, contact).  
-6. `SHA256SUMS` for key files / directories.
+The published ZIP expands to `mcp-router-release-artifacts-v1/` with sealed raw runs and final audits for all nine formal conditions (no INVALIDATED / smoke / mock / dry-run trees; no credentials):
 
 ```text
-mcp-router-release-artifacts/
+mcp-router-release-artifacts-v1/
   README.txt
-  hk155/
-    <method_run_dirs>/
-  etom100/
-    <method_run_dirs>/
-  caches/
-    mcp_zero_hk_v1/
-    mcp_zero_etom_v1/
-    pe_fin_lite_*/
-  etom_source/
-    raw/
+  ARTIFACT_INVENTORY.tsv
+  ARTIFACT_INVENTORY.json
+  ARCHIVE_MANIFEST.json
   SHA256SUMS
+  hk155/
+    mcp-free/{raw,audit}/
+    flat-all-tools/{raw,audit}/
+    mcp-zero/{raw,audit}/
+    operation-visible/{raw,audit}/
+    planroute-lite/{raw,audit}/
+    planroute-replan/{raw,audit}/
+  etom100/
+    mcp-zero/{raw,audit}/
+    operation-visible/{raw,audit}/
+    planroute-replan/{raw,audit}/
 ```
+
+ETOM upstream source is **not** bundled. Clone and pin separately (see Data integrity).
 
 ### Environment variables after extract
 
 ```bash
-export MCP_ROUTER_HK_ARTIFACT_ROOT="/path/to/mcp-router-release-artifacts/hk155"
-export MCP_ROUTER_ETOM_ARTIFACT_ROOT="/path/to/mcp-router-release-artifacts/etom100"
-export MCP_ROUTER_ETOM_DATA_ROOT="/path/to/mcp-router-release-artifacts/etom_source/raw"
+export MCP_ROUTER_HK_ARTIFACT_ROOT="/path/to/mcp-router-release-artifacts-v1/hk155"
+export MCP_ROUTER_ETOM_ARTIFACT_ROOT="/path/to/mcp-router-release-artifacts-v1/etom100"
+# Optional ETOM source checkout (not in the ZIP):
+# export MCP_ROUTER_ETOM_DATA_ROOT="/path/to/ETOM"   # commit 790f28727f567b88918420d163c524d46644a694
 ```
 
-### SHA256SUMS generate and verify
+Method raw trees live under each method folder’s `raw/` directory. For audits that expect a flat run directory, point tools at the relevant `.../<method>/raw` path (or symlink as needed).
+
+### SHA256SUMS verify (inside extracted archive)
 
 ```bash
-# From inside the archive root (example: hash key files / top-level dirs)
-cd /path/to/mcp-router-release-artifacts
-find hk155 etom100 caches etom_source -type f | sort | xargs shasum -a 256 > SHA256SUMS
-# Verify later:
+cd /path/to/mcp-router-release-artifacts-v1
 shasum -a 256 -c SHA256SUMS
 ```
 
-### Forbidden in the archive
+### Forbidden in the archive (policy)
 
 - `.env`, `.env.*`, API keys, tokens, private relay credentials  
 - Personal absolute home paths as the only documentation (prefer relative layout + env vars)  
-- Unrelated personal files
+- Unrelated personal files  
 
-### User operation checklist
-
-1. Assemble the directory layout above from the sealed experiment machines.  
-2. Generate `SHA256SUMS` and spot-check a few hashes.  
-3. Upload to HKUST OneDrive or another approved cloud store.  
-4. Replace `ARCHIVE_URL` in this file with the real HTTPS link.  
-5. Re-run offline tests with the three `MCP_ROUTER_*` roots set.  
-6. Do **not** commit raw `outputs/` into Git.
+Do **not** commit raw `outputs/` into Git; use the published archive instead.
 
 ---
 
