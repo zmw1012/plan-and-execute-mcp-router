@@ -1,0 +1,30 @@
+{
+  "n_tasks": 5,
+  "unique_predictions": 5,
+  "full": 2,
+  "partial": 1,
+  "failed": 2,
+  "answer_correct": 0,
+  "llm_calls_total": 19,
+  "tokens_total": 41465,
+  "mcp_invocations_total": 11,
+  "gateway_invoke_count": 11,
+  "embedding_query_calls_total": 4,
+  "latency_ms_mean": 37837.25170837715,
+  "full_task_ids": [
+    "xd_dev_002",
+    "mkt_dev_014"
+  ],
+  "partial_task_ids": [
+    "fin_cf_023"
+  ],
+  "failed_task_ids": [
+    "fin_cf_003",
+    "news_ht_004"
+  ],
+  "completed_task_ids": [
+    "xd_dev_002",
+    "mkt_dev_014",
+    "fin_cf_023"
+  ]
+}

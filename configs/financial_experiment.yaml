@@ -1,0 +1,14 @@
+# Shared decoding settings for fair MCP-Free / Flat / Operation-Visible comparison.
+# Generation: ENV_FILE=.env.aliyun (pin LLM_MODEL=deepseek-v4.1-flash)
+# Embedding (operation_visible only): EMBEDDING_ENV_FILE=.env.embedding-relay
+
+temperature: 0.0
+max_tokens: 1024
+
+limits:
+  max_llm_turns: 8
+  max_search_reformulations: 3
+  max_invocations: 6
+  timeout_sec: 120
+
+default_questions: benchmarks/questions/financial_mcp_free_30_v1.jsonl

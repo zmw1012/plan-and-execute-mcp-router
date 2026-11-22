@@ -1,0 +1,139 @@
+{
+  "before": {
+    "predictions.jsonl": {
+      "exists": true,
+      "bytes": 8184198,
+      "sha256": "4c5c4df3ababca99f9a91203605154ad8fc4a05cdfbc2ba2acb7cc11bc2a7d04",
+      "rows": 155
+    },
+    "run_metadata.json": {
+      "exists": true,
+      "bytes": 16737,
+      "sha256": "2a3dff284afa86db8ec93433965f2b451e7aef05c65a78edd53fce3f84b8d602",
+      "rows": null
+    },
+    "cost_summary.json": {
+      "exists": true,
+      "bytes": 396,
+      "sha256": "8ff9ed10a1e23acdecb6ad1380213e299eac5a3548d7be1bb1edb38e8766cc80",
+      "rows": null
+    },
+    "error_summary.json": {
+      "exists": true,
+      "bytes": 39334,
+      "sha256": "a495364da4cfb8ca5e6a3aa14c706dd6d83c2a2208b9d2e40197727b4b76040c",
+      "rows": null
+    },
+    "grading_summary.json": {
+      "exists": true,
+      "bytes": 366,
+      "sha256": "aecff18626512fbee6aa6fe15c8a09e7906404d3f06d945320122260f244815c",
+      "rows": null
+    },
+    "grouped_aggregates.json": {
+      "exists": true,
+      "bytes": 34046,
+      "sha256": "39223483638b7ed5d34abad2460442a6bcaa2fa6b6ed2d90ba1df78a033fbb9a",
+      "rows": null
+    },
+    "manual_grading.csv": {
+      "exists": true,
+      "bytes": 1460245,
+      "sha256": "c9166c8e5d1792634188f457fd7508c5b2301a658c23a928c9fc7b3734258bf0",
+      "rows": null
+    },
+    "pe_fin_lite_metrics.json": {
+      "exists": true,
+      "bytes": 1753,
+      "sha256": "365a6852a49fe50b3d14b48172d4621013b41b4cfebf94e414e8808071d61bfa",
+      "rows": null
+    },
+    "per_task_metrics.csv": {
+      "exists": true,
+      "bytes": 24623,
+      "sha256": "f8586967ea2879bb43ef620e12c247db53a9d2d29317dc154a2e13298e827853",
+      "rows": null
+    },
+    "retrieval_analysis.json": {
+      "exists": true,
+      "bytes": 352,
+      "sha256": "52a7c305fae56d1750c941ff9945dda33cf82617268c76c63ff8fa98d60d5b93",
+      "rows": null
+    },
+    "step_funnel_summary.json": {
+      "exists": true,
+      "bytes": 305,
+      "sha256": "cbb841f17a37c9b459ba59d91e2bde33a246d9b8761767b84678489a2bdbf13e",
+      "rows": null
+    }
+  },
+  "after": {
+    "predictions.jsonl": {
+      "exists": true,
+      "bytes": 8184198,
+      "sha256": "4c5c4df3ababca99f9a91203605154ad8fc4a05cdfbc2ba2acb7cc11bc2a7d04",
+      "rows": 155
+    },
+    "run_metadata.json": {
+      "exists": true,
+      "bytes": 16737,
+      "sha256": "2a3dff284afa86db8ec93433965f2b451e7aef05c65a78edd53fce3f84b8d602",
+      "rows": null
+    },
+    "cost_summary.json": {
+      "exists": true,
+      "bytes": 396,
+      "sha256": "8ff9ed10a1e23acdecb6ad1380213e299eac5a3548d7be1bb1edb38e8766cc80",
+      "rows": null
+    },
+    "error_summary.json": {
+      "exists": true,
+      "bytes": 39334,
+      "sha256": "a495364da4cfb8ca5e6a3aa14c706dd6d83c2a2208b9d2e40197727b4b76040c",
+      "rows": null
+    },
+    "grading_summary.json": {
+      "exists": true,
+      "bytes": 366,
+      "sha256": "aecff18626512fbee6aa6fe15c8a09e7906404d3f06d945320122260f244815c",
+      "rows": null
+    },
+    "grouped_aggregates.json": {
+      "exists": true,
+      "bytes": 34046,
+      "sha256": "39223483638b7ed5d34abad2460442a6bcaa2fa6b6ed2d90ba1df78a033fbb9a",
+      "rows": null
+    },
+    "manual_grading.csv": {
+      "exists": true,
+      "bytes": 1460245,
+      "sha256": "c9166c8e5d1792634188f457fd7508c5b2301a658c23a928c9fc7b3734258bf0",
+      "rows": null
+    },
+    "pe_fin_lite_metrics.json": {
+      "exists": true,
+      "bytes": 1753,
+      "sha256": "365a6852a49fe50b3d14b48172d4621013b41b4cfebf94e414e8808071d61bfa",
+      "rows": null
+    },
+    "per_task_metrics.csv": {
+      "exists": true,
+      "bytes": 24623,
+      "sha256": "f8586967ea2879bb43ef620e12c247db53a9d2d29317dc154a2e13298e827853",
+      "rows": null
+    },
+    "retrieval_analysis.json": {
+      "exists": true,
+      "bytes": 352,
+      "sha256": "52a7c305fae56d1750c941ff9945dda33cf82617268c76c63ff8fa98d60d5b93",
+      "rows": null
+    },
+    "step_funnel_summary.json": {
+      "exists": true,
+      "bytes": 305,
+      "sha256": "cbb841f17a37c9b459ba59d91e2bde33a246d9b8761767b84678489a2bdbf13e",
+      "rows": null
+    }
+  },
+  "unchanged": true
+}

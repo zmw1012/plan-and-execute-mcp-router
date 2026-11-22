@@ -1,0 +1,88 @@
+{
+  "out_dir": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-hk-unified/outputs/hk_unified_exploratory155_operation_visible_v1/final_audit_v2",
+  "n_tasks": 155,
+  "grading_summary_v2": {
+    "n": 155,
+    "auto_gradable_count": 154,
+    "auto_graded_correct": 94,
+    "auto_graded_accuracy": 0.6103896103896104,
+    "manual_required_count": 1,
+    "overall_accuracy": null,
+    "overall_accuracy_note": "overall accuracy only after manual grading fields are completed",
+    "grader_version": "deterministic_v1.2",
+    "grading_version": "hk_unified_grading_v1.2"
+  },
+  "final_grading_summary_v2": {
+    "n": 155,
+    "final_answer_correct_count": 95,
+    "final_answer_accuracy": 0.6129032258064516,
+    "final_answer_unresolved_count": 0,
+    "exact_tool_set_success_count": 64,
+    "exact_tool_set_success_rate": 0.4129032258064516,
+    "strict_task_success_count": 45,
+    "strict_task_success_rate": 0.2903225806451613,
+    "metric_definitions": {
+      "A_final_answer_accuracy": "Share of tasks with correct final answer (auto v1.2 or human decision). Independent of tool-set.",
+      "B_exact_tool_set_success": "Share of tasks where predicted invoke set exactly equals gold set.",
+      "C_strict_overall_task_success": "answer correct AND exact tool set AND all invocations successful AND dependency OK when applicable AND refusal OK when applicable AND evidence correct or N/A."
+    },
+    "note": "A, B, and C are separate metrics and must not be substituted for each other."
+  },
+  "v11_vs_v12": {
+    "v1_1_auto_gradable_count": 147,
+    "v1_1_auto_graded_correct": 57,
+    "v1_1_auto_graded_accuracy": 0.3877551020408163,
+    "v1_1_manual_required_count": 8,
+    "v1_2_auto_gradable_count": 154,
+    "v1_2_auto_graded_correct": 94,
+    "v1_2_auto_graded_accuracy": 0.6103896103896104,
+    "v1_2_manual_required_count": 1,
+    "flips_false_to_true_count": 30,
+    "flips_true_to_false_count": 0,
+    "still_manual_required": [
+      "fin_cf_022"
+    ],
+    "change_explanations": [
+      {
+        "bucket": "semantic_and_currency_units",
+        "explanation": "v1.1 required literal unit tokens (e.g. 'percent', 'cny'+'million'); v1.2 accepts % / RMB↔CNY aliases and semantic units such as decimal_return."
+      },
+      {
+        "bucket": "unicode_minus_and_scale",
+        "explanation": "v1.2 normalizes Unicode minus and matches percent↔decimal and million↔raw/billion scale forms with scaled tolerances."
+      },
+      {
+        "bucket": "labeled_multi_value",
+        "explanation": "OHLC / unadjusted-qfq-hfq / MA+return dict gold_values are now auto-gradable via label binding instead of manual_required."
+      },
+      {
+        "bucket": "refusal_substitute",
+        "explanation": "Refusal items that answer with numeric substitutes remain incorrect; status-only refusals without fabricated targets remain correct."
+      }
+    ]
+  },
+  "manual_review_queue_n": 8,
+  "manual_decisions_applied_n": 8,
+  "manual_decisions_sha256": "4291e86b8ea3a3077a56e28ad1898d27c89e007abe3676bb0cbd6712ea63dafc",
+  "raw_sha256": {
+    "predictions.jsonl": "e273d25a41470ca1fcdaa979469a2c18de1c0bf5eade46e969e33c42526cb50c",
+    "run_metadata.json": "c164c3af206b072ba42d76b808aa076ec4b3868ebe33099a8576209b6cfaf4b8",
+    "per_task_metrics.csv": "783a9cd4c7ef567dbc658445a0fa9db3673a9d4a02c8ad546f96cf976b9c80e9",
+    "manual_grading.csv": "e46f04c708dc040e9b61bc5c0f99b706596ff445d99d64568bf4a40902894d25",
+    "retrieval_analysis.json": "aee1da3519d9056aacd96a2cc60fc54deab61d1ba5663a43e57177deed99e7f1"
+  },
+  "raw_sha256_unchanged": true,
+  "content_fingerprint": "0efea0760470c979373c619cce4d1a6a0650130b5e906dfa4aabd79616ea5f5b",
+  "offline_guarantees": {
+    "llm_calls": 0,
+    "embedding_calls": 0,
+    "mcp_calls": 0,
+    "paid_api_calls": 0,
+    "predictions_modified": false,
+    "gold_modified": false,
+    "prompt_modified": false,
+    "catalog_modified": false,
+    "raw_manual_grading_modified": false,
+    "manual_decisions_file_overwritten": false
+  }
+}

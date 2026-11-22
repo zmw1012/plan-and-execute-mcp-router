@@ -1,0 +1,144 @@
+{
+  "manifest_id": "hk_pe_fin_lite_planner_diagnostic10_v1",
+  "version": "1.0",
+  "role": "engineering_protocol_diagnostic_only",
+  "explicitly_not_formal_accuracy": true,
+  "not_for_method_accuracy": true,
+  "not_for_formula_selection": true,
+  "not_for_benchmark_claim": true,
+  "description": "Fixed 10-task engineering subset of v1 Planner protocol failures for PE-Fin Lite Planner protocol v2 verification before all-155 rerun. Not an accuracy sample.",
+  "parent_dataset": "hk_unified_exploratory_all_v1",
+  "parent_manifest": "benchmarks/manifests/hk_unified_exploratory_all_v1.json",
+  "source_planner_v1_cache_sha256": "002d60972d13b1e3728642ef7d63eeb1ada543c19bd25129b54ae67be3a312d5",
+  "planner_protocol_target": "pe_fin_lite_planner_only_v2",
+  "n_tasks": 10,
+  "ordered_task_ids": [
+    "news_dev_003",
+    "xd_ht_003",
+    "xd_dev_003",
+    "mkt_dev_007",
+    "mkt_ht_007",
+    "news_ht_011",
+    "xd_ht_006",
+    "xd_dev_002",
+    "fin_ht_024",
+    "fin_cf_029"
+  ],
+  "ordered_task_ids_hash": "764cbdb12cbdae1a8b925379f19959bff23d75939bf428c46374bcb2cb4bb4d3",
+  "tasks": [
+    {
+      "task_id": "news_dev_003",
+      "domain": "news",
+      "difficulty": "D1",
+      "source_split": "development",
+      "v1_engineering_error_category": "missing_depends_on_first_step",
+      "selection_rationale": "v1 systematic first-step missing depends_on; tests root depends_on=[] rule"
+    },
+    {
+      "task_id": "xd_ht_003",
+      "domain": "cross_domain",
+      "difficulty": "D3",
+      "source_split": "previously_reserved",
+      "v1_engineering_error_category": "other_missing_field",
+      "selection_rationale": "v1 later-step missing domain; must remain fail-closed (no invented domain)"
+    },
+    {
+      "task_id": "xd_dev_003",
+      "domain": "cross_domain",
+      "difficulty": "D3",
+      "source_split": "development",
+      "v1_engineering_error_category": "invalid_json",
+      "selection_rationale": "v1 invalid JSON delimiter failure; tests closed-JSON + repair messaging"
+    },
+    {
+      "task_id": "mkt_dev_007",
+      "domain": "market",
+      "difficulty": "D2",
+      "source_split": "development",
+      "v1_engineering_error_category": "invalid_json",
+      "selection_rationale": "v1 invalid JSON delimiter failure (second domain sample)"
+    },
+    {
+      "task_id": "mkt_ht_007",
+      "domain": "market",
+      "difficulty": "D2",
+      "source_split": "previously_reserved",
+      "v1_engineering_error_category": "empty_or_null_content",
+      "selection_rationale": "v1 empty provider content; tests one-repair then structured failure"
+    },
+    {
+      "task_id": "news_ht_011",
+      "domain": "news",
+      "difficulty": "D3",
+      "source_split": "previously_reserved",
+      "v1_engineering_error_category": "empty_or_null_content",
+      "selection_rationale": "v1 empty provider content (second domain sample)"
+    },
+    {
+      "task_id": "xd_ht_006",
+      "domain": "cross_domain",
+      "difficulty": "D3",
+      "source_split": "previously_reserved",
+      "v1_engineering_error_category": "truncated_or_non_json",
+      "selection_rationale": "v1 truncated/non-JSON content; forbid fragment splicing"
+    },
+    {
+      "task_id": "xd_dev_002",
+      "domain": "cross_domain",
+      "difficulty": "D3",
+      "source_split": "development",
+      "v1_engineering_error_category": "invalid_domain_enum",
+      "selection_rationale": "v1 invalid domain enum analysis; tests reason→general canonicalizer"
+    },
+    {
+      "task_id": "fin_ht_024",
+      "domain": "financial",
+      "difficulty": "D2",
+      "source_split": "previously_reserved",
+      "v1_engineering_error_category": "maxLength_violation",
+      "selection_rationale": "v1 scope_constraints.metric_basis maxLength overflow; no silent truncate"
+    },
+    {
+      "task_id": "fin_cf_029",
+      "domain": "financial",
+      "difficulty": "D2",
+      "source_split": "development",
+      "v1_engineering_error_category": "maxLength_violation",
+      "selection_rationale": "v1 scope_constraints.adjustment maxLength overflow; no silent truncate"
+    }
+  ],
+  "distribution": {
+    "domain": {
+      "news": 2,
+      "cross_domain": 4,
+      "market": 2,
+      "financial": 2
+    },
+    "difficulty": {
+      "D1": 1,
+      "D3": 5,
+      "D2": 4
+    },
+    "source_split": {
+      "development": 5,
+      "previously_reserved": 5
+    },
+    "v1_engineering_error_category": {
+      "missing_depends_on_first_step": 1,
+      "other_missing_field": 1,
+      "invalid_json": 2,
+      "empty_or_null_content": 2,
+      "truncated_or_non_json": 1,
+      "invalid_domain_enum": 1,
+      "maxLength_violation": 2
+    }
+  },
+  "selection_policy": {
+    "engineering_protocol_diagnostic_only": true,
+    "no_gold_in_manifest": true,
+    "no_task_id_branching_in_runtime": true,
+    "cannot_formal_lock": true,
+    "cannot_replace_all155_planner_cache": true
+  },
+  "manifest_sha256": "4d474fbfd170f2cfc8e53748dd6ee7fea77082d488ccb3ca70a5886721e8305e"
+}

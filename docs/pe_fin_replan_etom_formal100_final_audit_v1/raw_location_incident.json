@@ -1,0 +1,35 @@
+{
+  "incident": "formal100_raw_written_to_repository_root",
+  "confirmed_evidence": [
+    "CLI compact/metadata record output_dir=/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-pe-fin-replan-etom",
+    "predictions path under recorded dir: /Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-pe-fin-replan-etom/predictions.jsonl",
+    "Python Path('') and Path('.') are relative and resolve to repository root when joined with root",
+    "argparse accepts --output-dir '' and yields empty string (default is NOT used when flag is present)",
+    "runner sets self.output_dir = root / Path(output_dir) for non-absolute paths without rejecting empty/'.'",
+    "resume=True recorded in metadata"
+  ],
+  "likely_inference": [
+    "Operator likely passed an empty or unset shell variable as --output-dir (e.g. --output-dir \"$OUT\" with OUT unset), or explicitly passed '.' / ''",
+    "Because resume=true, a subsequent invocation continued writing into the already-created root location after the first empty-path write"
+  ],
+  "unknown": [
+    "Exact shell command line used for the live Formal-100 invocation is not stored in raw artifacts",
+    "Cannot prove whether empty path came from shell vs a wrapper script without external logs"
+  ],
+  "recorded_output_dir": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-pe-fin-replan-etom",
+  "expected_output_dir": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-pe-fin-replan-etom/outputs/pe_fin_replan_etom_formal100_v1",
+  "repository_root": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-pe-fin-replan-etom",
+  "raw_equals_repository_root": true,
+  "code_bug": {
+    "confirmed": true,
+    "summary": "Empty or '.' --output-dir is accepted and resolves to the repository root instead of fail-closing. This is a path-resolution defect for future runs.",
+    "fix_scope": "future_runs_only_no_raw_mutation"
+  },
+  "run_log": {
+    "expected_names": [
+      "run.log"
+    ],
+    "found_in_raw_dir": false,
+    "note": "No run.log present in raw dir or as Formal-100 named log at audit time"
+  }
+}

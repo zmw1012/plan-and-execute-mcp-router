@@ -1,0 +1,61 @@
+{
+  "filings_ymd_00700": {
+    "ok": true,
+    "ms": 4090,
+    "text": "{\n  \"market\": \"H\",\n  \"symbol\": \"00700\",\n  \"company_name\": \"TENCENT\",\n  \"title\": \"Publication of Pricing Supplements for the Issuance of US$1,300,000,000 6.10% Senior Notes Due 2036 and US$500,000,000 6.75% Senior Notes Due 2046 and CNY20,000,000,000 2.40% Senior Notes Due 2036 and CNY6,000,000,000 3.00% Senior Notes Due 2056 under the Global Medium Term Note Programme of Tencent Holdings Limited with Maximum Limit of US$30 Billion\",\n  \"publish_time\": \"2026-10-22\",\n  \"document_type\": \"Debt and Structured Products - [Offering Circular and Pricing Supplement - Debt Securities]\",\n  \"source\": \"HKEXnews\",\n  \"detail_url\": \"https://www1.hkexnews.hk/listedco/listconews/sehk/2026/1022/2026102200202.pdf\",\n  \"pdf_url\": \"https://www1.hkexnews.hk/listedco/listconews/sehk/2026/1022/2026102200202.pdf\",\n  \"raw_id\": \"2026102200202\",\n  \"category\": \"Debt and Structured Products - [Offering Circular and Pricing Supplement - Debt Securities]\",\n  \"file_size_label\": \"2MB\"\n}",
+    "args": {
+      "market": "HK",
+      "symbol": "00700",
+      "category": "公告",
+      "keyword": "",
+      "start_date": "20260701",
+      "end_date": "20260812",
+      "max_rows": 20,
+      "refresh": true
+    }
+  },
+  "filings_ymd_00005": {
+    "ok": true,
+    "ms": 1681,
+    "text": "{\n  \"market\": \"H\",\n  \"symbol\": \"00005\",\n  \"company_name\": \"HSBC HOLDINGS\",\n  \"title\": \"Transaction in own shares\",\n  \"publish_time\": \"2026-11-04\",\n  \"document_type\": \"Announcements and Notices - [Overseas Regulatory Announcement - Other]\",\n  \"source\": \"HKEXnews\",\n  \"detail_url\": \"https://www1.hkexnews.hk/listedco/listconews/sehk/2026/1104/2026110400009.pdf\",\n  \"pdf_url\": \"https://www1.hkexnews.hk/listedco/listconews/sehk/2026/1104/2026110400009.pdf\",\n  \"raw_id\": \"2026110400009\",\n  \"category\": \"Announcements and Notices - [Overseas Regulatory Announcement - Other]\",\n  \"file_size_label\": \"414KB\"\n}",
+    "args": {
+      "market": "HK",
+      "symbol": "00005",
+      "category": "公告",
+      "keyword": "",
+      "start_date": "20260701",
+      "end_date": "20260812",
+      "max_rows": 20,
+      "refresh": true
+    }
+  },
+  "filings_ymd_09988": {
+    "ok": true,
+    "ms": 2722,
+    "text": "{\n  \"market\": \"H\",\n  \"symbol\": \"09988\",\n  \"company_name\": \"BABA-W\",\n  \"title\": \"OVERSEAS REGULATORY ANNOUNCEMENT\",\n  \"publish_time\": \"2026-10-14\",\n  \"document_type\": \"Announcements and Notices - [Overseas Regulatory Announcement - Other]\",\n  \"source\": \"HKEXnews\",\n  \"detail_url\": \"https://www1.hkexnews.hk/listedco/listconews/sehk/2026/1014/2026101400017.pdf\",\n  \"pdf_url\": \"https://www1.hkexnews.hk/listedco/listconews/sehk/2026/1014/2026101400017.pdf\",\n  \"raw_id\": \"2026101400017\",\n  \"category\": \"Announcements and Notices - [Overseas Regulatory Announcement - Other]\",\n  \"file_size_label\": \"272KB\"\n}",
+    "args": {
+      "market": "HK",
+      "symbol": "09988",
+      "category": "公告",
+      "keyword": "",
+      "start_date": "20260701",
+      "end_date": "20260812",
+      "max_rows": 20,
+      "refresh": true
+    }
+  },
+  "filings_dash_00700": {
+    "ok": true,
+    "ms": 3676,
+    "text": "{\n  \"market\": \"H\",\n  \"symbol\": \"00700\",\n  \"company_name\": \"TENCENT\",\n  \"title\": \"Publication of Pricing Supplements for the Issuance of US$1,300,000,000 6.10% Senior Notes Due 2036 and US$500,000,000 6.75% Senior Notes Due 2046 and CNY20,000,000,000 2.40% Senior Notes Due 2036 and CNY6,000,000,000 3.00% Senior Notes Due 2056 under the Global Medium Term Note Programme of Tencent Holdings Limited with Maximum Limit of US$30 Billion\",\n  \"publish_time\": \"2026-10-22\",\n  \"document_type\": \"Debt and Structured Products - [Offering Circular and Pricing Supplement - Debt Securities]\",\n  \"source\": \"HKEXnews\",\n  \"detail_url\": \"https://www1.hkexnews.hk/listedco/listconews/sehk/2026/1022/2026102200202.pdf\",\n  \"pdf_url\": \"https://www1.hkexnews.hk/listedco/listconews/sehk/2026/1022/2026102200202.pdf\",\n  \"raw_id\": \"2026102200202\",\n  \"category\": \"Debt and Structured Products - [Offering Circular and Pricing Supplement - Debt Securities]\",\n  \"file_size_label\": \"2MB\"\n}",
+    "args": {
+      "market": "HK",
+      "symbol": "00700",
+      "category": "公告",
+      "start_date": "2026-07-01",
+      "end_date": "2026-08-12",
+      "max_rows": 20,
+      "refresh": true
+    }
+  }
+}

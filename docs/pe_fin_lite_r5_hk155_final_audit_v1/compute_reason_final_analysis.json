@@ -1,0 +1,19 @@
+{
+  "compute": {
+    "planned": 33,
+    "executed_status_rows": 40,
+    "completed": 1
+  },
+  "reason": {
+    "planned": 105,
+    "completed_status_rows": 17,
+    "repair_tasks": 12,
+    "parse_failed_flags": 2
+  },
+  "final": {
+    "unavailable": 132,
+    "answered": 22,
+    "semantically_correct_full": 9,
+    "clarification_needed": 1
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "pe_fin_lite_r5": {
+    "final_answer_accuracy_lower_bound": 0.22580645161290322,
+    "final_answer_accuracy_upper_bound": 0.23225806451612904,
+    "common_strict_answer_success": 0.05806451612903226,
+    "exact_tool_set": 0.14193548387096774,
+    "tokens_total": 1146716,
+    "condition_specific_strict": 0.09032258064516129,
+    "condition_specific_note": "not comparable across methods"
+  },
+  "baselines_frozen": {
+    "MCP-Free": {
+      "final_answer_accuracy": 0.129,
+      "common_strict_answer_success": null,
+      "exact_tool_set": null,
+      "tokens_total": 79133,
+      "note": "frozen baseline figures from protocol; not re-derived here"
+    },
+    "Flat All Tools": {
+      "final_answer_accuracy": 0.5677,
+      "common_strict_answer_success": 0.5484,
+      "exact_tool_set": 0.2323,
+      "tokens_total": 9464124
+    },
+    "Operation-Visible": {
+      "final_answer_accuracy": 0.6129,
+      "common_strict_answer_success": null,
+      "exact_tool_set": 0.4129,
+      "condition_specific_strict": 0.2903,
+      "tokens_total": null,
+      "note": "condition-specific strict not comparable across methods"
+    },
+    "MCP-Zero": {
+      "final_answer_accuracy": 0.5806,
+      "common_strict_answer_success": 0.5806,
+      "exact_tool_set": 0.439,
+      "condition_specific_strict": 0.3677,
+      "tokens_total": 4050513,
+      "note": "condition-specific strict not comparable across methods"
+    }
+  },
+  "descriptive_deltas_vs_baselines_final_answer_lower": {
+    "MCP-Free": 0.09680645161290322,
+    "Flat All Tools": -0.34189354838709674,
+    "Operation-Visible": -0.38709354838709675,
+    "MCP-Zero": -0.35479354838709676
+  },
+  "descriptive_deltas_vs_baselines_common_strict": {
+    "MCP-Free": null,
+    "Flat All Tools": -0.49033548387096776,
+    "Operation-Visible": null,
+    "MCP-Zero": -0.5225354838709677
+  },
+  "no_significance_claims": true
+}

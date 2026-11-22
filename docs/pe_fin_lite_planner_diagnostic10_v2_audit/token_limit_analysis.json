@@ -1,0 +1,43 @@
+{
+  "config_field": "planner_max_tokens",
+  "before": {
+    "planner_max_tokens": 2048,
+    "binder_max_tokens": 1024,
+    "reason_max_tokens": 1024,
+    "final_max_tokens": 2048,
+    "protocol": "pe_fin_lite_planner_only_v2"
+  },
+  "after": {
+    "planner_max_tokens": 4096,
+    "binder_max_tokens": 1024,
+    "reason_max_tokens": 1024,
+    "final_max_tokens": 2048,
+    "protocol": "pe_fin_lite_planner_only_v3"
+  },
+  "planner_max_tokens_v2": 2048,
+  "evidence": {
+    "n_tasks_with_empty_initial_content": 7,
+    "n_tasks_with_empty_repair_content": 2,
+    "n_tasks_truncated_or_non_json_final_error": 2,
+    "output_tokens_sum": 32981,
+    "output_tokens_mean": 3298.1,
+    "tasks_with_output_tokens_ge_3500": [
+      "mkt_dev_007",
+      "mkt_ht_007",
+      "news_ht_011",
+      "xd_ht_006",
+      "fin_ht_024",
+      "fin_cf_029"
+    ],
+    "notes": "v2 recorded output_tokens often at/near 2048-boundary effects (empty content or truncated JSON) despite max_tokens=2048 request; several repairs still empty/truncated."
+  },
+  "recommendation": {
+    "planner_max_tokens_v3": 4096,
+    "rationale": "Several v2 responses were empty or truncated near the 2048 output-token boundary. Raising planner/planner_repair max_tokens to 4096 may reduce empty/truncated finals and can reduce the need for a second repair call; total LLM calls/task remain <=8 with at most one planner repair. Binder/Reason/Final keep prior max_tokens.",
+    "cost_trade_off": "Higher per-call output ceiling on planner stages only. May increase tokens when models emit longer valid plans, but may decrease total calls by avoiding repair. Worst-case calls/task unchanged (planner <=2 including one repair; total LLM <=8).",
+    "binder_reason_final_unchanged": true,
+    "max_planner_repairs": 1,
+    "max_total_llm_calls_per_task": 8
+  },
+  "other_stages_not_silently_expanded": true
+}

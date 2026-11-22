@@ -1,0 +1,104 @@
+{
+  "taxonomy_version": "error_taxonomy_v1.1",
+  "n": 155,
+  "primary_counts": {
+    "retrieval": 1,
+    "agent_selection": 8,
+    "description_argument_grounding": 0,
+    "dependency_order": 0,
+    "tool_execution": 0,
+    "answer_synthesis_calculation": 6,
+    "feasibility_refusal": 22,
+    "resource_limit": 23,
+    "evaluation_failure": 0,
+    "answer_success": 50,
+    "strict_task_success": 45
+  },
+  "primary_rates": {
+    "retrieval": 0.0064516129032258064,
+    "agent_selection": 0.05161290322580645,
+    "description_argument_grounding": 0.0,
+    "dependency_order": 0.0,
+    "tool_execution": 0.0,
+    "answer_synthesis_calculation": 0.03870967741935484,
+    "feasibility_refusal": 0.14193548387096774,
+    "resource_limit": 0.14838709677419354,
+    "evaluation_failure": 0.0,
+    "answer_success": 0.3225806451612903,
+    "strict_task_success": 0.2903225806451613
+  },
+  "secondary_counts": {
+    "agent_selection": 50,
+    "answer_synthesis_calculation": 9,
+    "retrieval": 3,
+    "tool_execution": 20,
+    "resource_limit": 2
+  },
+  "by_domain": {
+    "financial": {
+      "answer_success": 23,
+      "answer_synthesis_calculation": 2,
+      "agent_selection": 5,
+      "resource_limit": 15,
+      "strict_task_success": 5,
+      "retrieval": 1,
+      "feasibility_refusal": 9
+    },
+    "market": {
+      "strict_task_success": 23,
+      "answer_success": 3,
+      "resource_limit": 3,
+      "feasibility_refusal": 6
+    },
+    "news": {
+      "strict_task_success": 12,
+      "answer_success": 13,
+      "answer_synthesis_calculation": 3,
+      "resource_limit": 2,
+      "feasibility_refusal": 5
+    },
+    "cross_domain": {
+      "resource_limit": 3,
+      "strict_task_success": 5,
+      "answer_success": 11,
+      "answer_synthesis_calculation": 1,
+      "agent_selection": 3,
+      "feasibility_refusal": 2
+    }
+  },
+  "by_project_difficulty": {
+    "D1": {
+      "answer_success": 11,
+      "strict_task_success": 16,
+      "answer_synthesis_calculation": 2,
+      "agent_selection": 2,
+      "resource_limit": 4
+    },
+    "D2": {
+      "resource_limit": 4,
+      "strict_task_success": 11,
+      "answer_success": 7,
+      "agent_selection": 2
+    },
+    "D3": {
+      "answer_success": 18,
+      "answer_synthesis_calculation": 4,
+      "strict_task_success": 11,
+      "resource_limit": 6,
+      "agent_selection": 2,
+      "retrieval": 1
+    },
+    "D4": {
+      "agent_selection": 2,
+      "strict_task_success": 5,
+      "answer_success": 9,
+      "resource_limit": 9,
+      "feasibility_refusal": 3
+    },
+    "D5": {
+      "feasibility_refusal": 19,
+      "answer_success": 5,
+      "strict_task_success": 2
+    }
+  }
+}

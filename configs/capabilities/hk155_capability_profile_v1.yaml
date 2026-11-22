@@ -1,0 +1,119 @@
+profile_id: hk155_capability_profile_v1
+version: "1.1"
+benchmark: hk_unified_exploratory_all_v1
+domain: hong_kong_equity
+company_generic: true
+description: >
+  Static capability profile for PE-Fin Lite on HK-155. Describes available
+  source types and limitations only. Does not list gold operations, company
+  whitelists, benchmark item identifiers, or answers. Does not select tools
+  for the planner.
+
+# Minimal versioned canonical output vocabulary (not a capability compiler).
+# Planner required_outputs MUST use these field IDs only.
+canonical_output_vocabulary:
+  version: hk155_canonical_outputs_v1
+  fields:
+    - issuer_code
+    - company_name
+    - report_date
+    - fiscal_period
+    - currency
+    - revenue
+    - attributable_profit
+    - basic_eps
+    - close
+    - volume
+    - trade_date
+    - adjustment
+    - news_id
+    - title
+    - release_date
+    - local_key
+    - snippet
+    - page_number
+    - source_url
+  notes: >
+    Put entity/period/trade_date/basis/adjustment into scope_constraints.
+    Do not emit free-text phrases as required_outputs.
+
+scope_constraints_contract:
+  version: pe_fin_lite_scope_constraints_v2
+  keys:
+    - entity
+    - period
+    - trade_date
+    - from_date
+    - to_date
+    - metric_basis
+    - adjustment
+    - currency
+    - title_keyword
+  # Scope string budgets (protocol v3). Fail closed — never silent truncate.
+  max_lengths:
+    metric_basis: 160
+    adjustment: 80
+    currency: 16
+
+capability_summary: >
+  The runtime can retrieve structured financial statement metrics, historical
+  market OHLCV and valuation indicators, official HKEX disclosure documents,
+  limited media/news items, and perform deterministic arithmetic. Coverage is
+  limited by catalog availability and a hard temporal cutoff.
+
+source_types:
+  financial:
+    summary: Statement metrics such as revenue, profit, EPS, and margins; official financial narrative when available via disclosure evidence.
+    examples:
+      - revenue_profit_eps_margins
+      - official_financial_narrative
+  market:
+    summary: Historical OHLCV series, date-specific close/volume, and valuation indicators for HK equities/indexes.
+    examples:
+      - historical_ohlcv
+      - date_specific_close_volume
+      - valuation_indicators
+  disclosure:
+    summary: HKEX official announcement discovery and text/evidence extraction via a fixed list→download→parse→keyword→pages chain.
+    examples:
+      - hkex_announcement_discovery
+      - announcement_text_evidence
+  news:
+    summary: Available media/news capability with historical-window limitations; prefer official disclosure for filings.
+    examples:
+      - media_news_headlines
+      - historical_window_limited
+  compute:
+    summary: Deterministic arithmetic for ratios, growth, margins, averages, and comparisons over verified evidence values.
+    examples:
+      - ratios_growth_comparison
+      - percent_change
+
+known_limitations:
+  - Temporal cutoff applies; requests for "latest/today" beyond cutoff should clarify or refuse.
+  - Calendar-year vs fiscal-period mismatches must not be silently substituted.
+  - Media/news historical windows may be incomplete versus official filings.
+  - Disclosure narrative requires the fixed composite workflow; intermediate keys (local_key/news_id) must be chained.
+  - Only runtime-exposed catalog operations are invocable; blocked/rejected tools are unavailable.
+  - Missing required outputs after invoke is failure, not an excuse to invent values.
+
+composite_workflows:
+  - workflow_id: retrieve_official_disclosure_evidence
+    domain: disclosure
+    description: Fixed HKEX disclosure evidence chain (list → download → parse → keyword → pages).
+    internal_steps:
+      - list
+      - download
+      - parse
+      - keyword
+      - pages
+    notes: Company-generic; no per-item or issuer whitelist branching.
+
+execution_limits_hint:
+  max_plan_steps: 6
+  no_global_replan: true
+  no_monitor: true
+
+replacement_note: >
+  This profile is swappable. Migrating to ETOM replaces this file (and
+  registry/evaluator adapters) without changing the PE-Fin Lite core method.

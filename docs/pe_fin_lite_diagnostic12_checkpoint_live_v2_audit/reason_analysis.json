@@ -1,0 +1,227 @@
+{
+  "checkpoint": "C12_reason",
+  "counts": {
+    "N/A_upstream_blocked": 5,
+    "fail": 2,
+    "N/A_not_planned": 3,
+    "pass": 2
+  },
+  "tasks": [
+    {
+      "task_id": "fin_cf_003",
+      "status": "N/A_upstream_blocked",
+      "detail": {
+        "classification": "N/A_upstream_blocked",
+        "steps": [
+          {
+            "id": "s3",
+            "type": "reason",
+            "status": "skipped_due_to_dependency",
+            "execution_ok": false,
+            "missing_outputs": [],
+            "failure_reason": "depends_on_failed:['s2']"
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_011",
+      "status": "N/A_upstream_blocked",
+      "detail": {
+        "classification": "N/A_upstream_blocked",
+        "steps": [
+          {
+            "id": "s3",
+            "type": "reason",
+            "status": "skipped_due_to_dependency",
+            "execution_ok": false,
+            "missing_outputs": [],
+            "failure_reason": "depends_on_failed:['s2']"
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_020",
+      "status": "N/A_upstream_blocked",
+      "detail": {
+        "classification": "N/A_upstream_blocked",
+        "steps": [
+          {
+            "id": "s3",
+            "type": "reason",
+            "status": "skipped_due_to_dependency",
+            "execution_ok": false,
+            "missing_outputs": [],
+            "failure_reason": "depends_on_failed:['s2']"
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_023",
+      "status": "fail",
+      "detail": {
+        "artifacts": [
+          {
+            "step_id": "s3",
+            "summary": "Attributable net margin = attributable profit ÷ revenue × 100% = 103,592,000,000 ÷ 1,023,670,000,000 × 100% = 10.12% for FY2026 (RMB).",
+            "claims": [
+              "Formula: attributable_net_margin_pct = attributable_profit / revenue × 100.",
+              "Attributable profit (FY2026): 103,592,000,000 RMB.",
+              "Revenue (FY2026): 1,023,670,000,000 RMB.",
+              "Computed attributable net margin: 10.12%."
+            ],
+            "gaps": [],
+            "reason_parse_failed": true,
+            "runtime_recovered": false,
+            "repair_count": 1
+          }
+        ],
+        "reason_parse_failed": true,
+        "runtime_recovered": false,
+        "note": "runtime_recovered_not_equal_reason_stage_pass"
+      },
+      "primary_blocking": true
+    },
+    {
+      "task_id": "fin_ht_016",
+      "status": "N/A_not_planned",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_dev_002",
+      "status": "pass",
+      "detail": {
+        "artifacts": [
+          {
+            "step_id": "s3",
+            "summary": "Verified evidence reports FY2025 basic EPS of 8.504848 美元 (report date 2025-12-31) and unadjusted trading volume of 13,123,569 on 2026-06-30 (adjustment=\"\"). These figures are reported separately; no causal link between EPS and that day's volume is asserted.",
+            "claims": [
+              "FY2025 basic EPS: 8.504848 美元",
+              "Currency: 美元",
+              "Trade date: 2026-06-30T00:00:00.000",
+              "Unadjusted volume: 13123569"
+            ],
+            "gaps": [],
+            "reason_parse_failed": false,
+            "runtime_recovered": false,
+            "repair_count": 0
+          }
+        ],
+        "reason_parse_failed": false,
+        "runtime_recovered": false,
+        "note": "runtime_recovered_not_equal_reason_stage_pass"
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_ht_007",
+      "status": "N/A_not_planned",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_ht_014",
+      "status": "N/A_upstream_blocked",
+      "detail": {
+        "classification": "N/A_upstream_blocked",
+        "steps": [
+          {
+            "id": "s4",
+            "type": "reason",
+            "status": "skipped_due_to_dependency",
+            "execution_ok": false,
+            "missing_outputs": [],
+            "failure_reason": "depends_on_failed:['s2', 's3']"
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "mkt_dev_014",
+      "status": "pass",
+      "detail": {
+        "artifacts": [
+          {
+            "step_id": "s1",
+            "summary": "No current or latest closing price for Tencent is present in the verified evidence, so it cannot be stated. An explicit historical trade date is required to retrieve a closing price.",
+            "claims": [],
+            "gaps": [
+              "latest/current closing price for Tencent",
+              "explicit historical trade date",
+              "dataset temporal cutoff metadata"
+            ],
+            "reason_parse_failed": false,
+            "runtime_recovered": false,
+            "repair_count": 0
+          }
+        ],
+        "reason_parse_failed": false,
+        "runtime_recovered": false,
+        "note": "runtime_recovered_not_equal_reason_stage_pass"
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_024",
+      "status": "N/A_upstream_blocked",
+      "detail": {
+        "classification": "N/A_upstream_blocked",
+        "steps": [
+          {
+            "id": "s2",
+            "type": "reason",
+            "status": "skipped_due_to_dependency",
+            "execution_ok": false,
+            "missing_outputs": [],
+            "failure_reason": "depends_on_failed:['s1']"
+          }
+        ]
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "mkt_dev_001",
+      "status": "N/A_not_planned",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "news_ht_004",
+      "status": "fail",
+      "detail": {
+        "artifacts": [
+          {
+            "step_id": "s2",
+            "summary": "Selected the Next Day Disclosure Return released on 2026-07-09 for Tencent (00700); verified news_id is 12239449.",
+            "claims": [
+              "news_id: 12239449",
+              "title: Next Day Disclosure Return",
+              "release_date: 2026-07-09"
+            ],
+            "gaps": [],
+            "reason_parse_failed": true,
+            "runtime_recovered": false,
+            "repair_count": 1
+          }
+        ],
+        "reason_parse_failed": true,
+        "runtime_recovered": false,
+        "note": "runtime_recovered_not_equal_reason_stage_pass"
+      },
+      "primary_blocking": true
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+# Unified HK MCP-Free closed-book baseline (Financial + Market + News + Cross-domain)
+condition: mcp_free
+execution_backend: none
+generation_provider: openai_compatible
+generation_model: deepseek-v4.1-flash
+temperature: 0.0
+max_tokens: 1024
+json_mode: true
+dataset_split: exploratory_all
+dataset_manifest: benchmarks/manifests/hk_unified_dataset_v1.json
+exploratory_manifest: benchmarks/manifests/hk_unified_exploratory_all_v1.json
+exploratory_run_order: benchmarks/manifests/hk_unified_exploratory_all_run_order_v1.json
+smoke_manifest: benchmarks/smoke/hk_unified_dev_smoke_8_v1.json
+formal_output_dir: outputs/hk_unified_exploratory155_mcp_free_v1
+
+limits:
+  bounded_retry: 1
+  timeout_sec: 120
+
+notes:
+  - No MCP tools, function calling, operation catalog, find/describe/invoke.
+  - No Embedding, RAG, Web, local financial mock data, HKEX/AKTools.
+  - Model-internal knowledge + user question only.
+  - Never fall back to tools on model failure.
+  - Same HK-155 exploratory identity / run order as Operation-Visible.
+  - exploratory_all requires --split exploratory_all --confirm-retire-heldout.

@@ -1,0 +1,182 @@
+{
+  "issuer": "Alibaba",
+  "stock_code": "09988",
+  "cutoff": "2026-08-12",
+  "window": [
+    "2026-07-01",
+    "2026-08-12"
+  ],
+  "steps": {
+    "list": {
+      "success": true,
+      "error": null,
+      "latency_ms": 3282,
+      "n": 13,
+      "raw_status": "success"
+    },
+    "download": {
+      "success": true,
+      "error": null,
+      "latency_ms": 4,
+      "args": {
+        "stock_code": "09988",
+        "news_id": "12277073",
+        "release_date": "2026-08-07",
+        "title_keyword": "DATE OF BOARD",
+        "local_key": "09988_13150_2026-08-07_df274199"
+      },
+      "local_key": "09988_13150_2026-08-07_df274199",
+      "normalized_keys": [
+        "status",
+        "data",
+        "hint"
+      ]
+    },
+    "parse": {
+      "success": true,
+      "error": null,
+      "latency_ms": 4,
+      "local_key": "09988_13150_2026-08-07_df274199"
+    },
+    "keyword_search": {
+      "success": true,
+      "error": null,
+      "latency_ms": 3,
+      "args": {
+        "local_key": "09988_13150_2026-08-07_df274199",
+        "keywords": [
+          "Board",
+          "Meeting",
+          "Director"
+        ],
+        "max_results": 5
+      },
+      "n_matches": 1,
+      "matches_sample": [
+        {
+          "page_number": 1,
+          "score": 0.041298,
+          "keyword_hits": 3,
+          "snippet": "...ents of this announcement. We have one class of shares, and each holder of our shares is entitled to one vote per share. As the Alibaba Partnership’s **director** nomination rights are categorized as a weighted voting rights structure (the “WVR structure”) under the Rules Governing the Listing of Securi..."
+        }
+      ],
+      "raw_status": "success"
+    },
+    "get_announcement_pages": {
+      "success": true,
+      "error": null,
+      "latency_ms": 3,
+      "args": {
+        "local_key": "09988_13150_2026-08-07_df274199",
+        "start_page": 1,
+        "page_count": 1
+      },
+      "normalized_slim": {
+        "status": "success",
+        "data": {
+          "document": "09988_13150_2026-08-07_df274199",
+          "total_pages": 1,
+          "page_range": "1-1",
+          "pages": [
+            {
+              "page_number": 1,
+              "content": "Hong Kong Exchanges and Clearing Limited and The Stock Exchange of Hong Kong Limited (the “Hong Kong\nStock Exchange”) take no responsibility for the contents of this announcement, make no representation as to its\naccuracy or completeness and expressly disclaim any liability whatsoever for any loss howsoever arising from or in\nreliance upon the whole or any part of the contents of this announcement.\nWe have one class of shares, and each holder of our shares is entitled to one vote per share. As the Alibaba\nPartnership’s director nomination rights are categorized as a weighted voting rights structure (the “WVR\nstructure”) under the Rules Governing the Listing of Securities on the Hong Kong Stock Exchange, we are deemed\nas a company with a WVR structure. Shareholders and prospective investors should be aware of the potential risks\nof investing in a company with a WVR structure. Our American depositary shares, each representing eight of our\nshares, are listed on the New York Stock Exchange in the United States under the symbol BABA.\nAlibaba Group Holding Limited\n阿里巴巴集團控股有限公司\n(Incorporated in the Cayman Islands with limited liability)\n(Stock Code: 9988 (HKD Counter) and 89988 (RMB Counter))\nDATE OF BOARD MEETING\nOur board of directors will hold a board meeting for the purposes of, among other matters,\ndiscussing our unaudited results for the three months ended June 30, 2026 (“Results”) and the\nResults announcement on August 19, 2026, and such Results and the Results announcement will\nfurther be approved by or on behalf of the Board and announced on August 20, 2026.\nBy order of the Board\nAlibaba Group Holding Limited\nKevin Jinwei ZHANG\nSecretary\nHong Kong, August 7, 2026\nAs at the date of this announcement, our board of directors comprises Mr. Joseph C. TSAI as\nthe chairman, Mr. Eddie Yongming WU, Mr. J. Michael EVANS and Ms. Maggie Wei WU as\ndirectors, and Mr. Jerry YANG, Ms. Wan Ling MARTELLO, Mr. Weijian SHAN,\nMs. Irene Yun-Lien LEE, Mr. Albert Kong Ping NG and Mr. Kabir MISRA as independent\ndirectors."
+            }
+          ]
+        },
+        "data_slim": {
+          "keys": [
+            "document",
+            "total_pages",
+            "page_range",
+            "pages"
+          ],
+          "pages": [
+            {
+              "page_number": 1,
+              "content": "Hong Kong Exchanges and Clearing Limited and The Stock Exchange of Hong Kong Limited (the “Hong Kong\nStock Exchange”) take no responsibility for the contents of this announcement, make no representation as to its\naccuracy or completeness and expressly disclaim any liability whatsoever for any loss howsoever arising from or in\nreliance upon the whole or any part of the contents of this announcement…"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "dependency_edges": [
+    {
+      "producer_operation": "hkexnews.list_hkexnews_announcements",
+      "producer_output_field": "local_key",
+      "consumer_operation": "hkexnews.download_hkexnews_announcement",
+      "consumer_input_field": "local_key",
+      "live_verified_dependency": true,
+      "example_value": "09988_13150_2026-08-07_df274199"
+    },
+    {
+      "producer_operation": "hkexnews.list_hkexnews_announcements",
+      "producer_output_field": "news_id",
+      "consumer_operation": "hkexnews.download_hkexnews_announcement",
+      "consumer_input_field": "news_id",
+      "live_verified_dependency": true,
+      "example_value": "12277073"
+    },
+    {
+      "producer_operation": "hkexnews.list_hkexnews_announcements",
+      "producer_output_field": "release_date",
+      "consumer_operation": "hkexnews.download_hkexnews_announcement",
+      "consumer_input_field": "release_date",
+      "live_verified_dependency": true,
+      "example_value": "2026-08-07"
+    },
+    {
+      "producer_operation": "hkexnews.list_hkexnews_announcements",
+      "producer_output_field": "title",
+      "consumer_operation": "hkexnews.download_hkexnews_announcement",
+      "consumer_input_field": "title_keyword",
+      "live_verified_dependency": true,
+      "example_value": "DATE OF BOARD",
+      "note": "list.title truncated into download.title_keyword"
+    },
+    {
+      "producer_operation": "hkexnews.download_hkexnews_announcement",
+      "producer_output_field": "local_key",
+      "consumer_operation": "hkexnews.parse_hkexnews_announcement",
+      "consumer_input_field": "local_key",
+      "live_verified_dependency": true,
+      "example_value": "09988_13150_2026-08-07_df274199"
+    },
+    {
+      "producer_operation": "hkexnews.parse_hkexnews_announcement",
+      "producer_output_field": "local_key",
+      "consumer_operation": "hkexnews.keyword_search",
+      "consumer_input_field": "local_key",
+      "live_verified_dependency": true,
+      "example_value": "09988_13150_2026-08-07_df274199",
+      "note": "keywords must be a list; singular keyword fails schema"
+    },
+    {
+      "producer_operation": "hkexnews.keyword_search",
+      "producer_output_field": "page_number",
+      "consumer_operation": "hkexnews.get_announcement_pages",
+      "consumer_input_field": "start_page",
+      "live_verified_dependency": true,
+      "example_value": 1
+    },
+    {
+      "producer_operation": "hkexnews.parse_hkexnews_announcement",
+      "producer_output_field": "local_key",
+      "consumer_operation": "hkexnews.get_announcement_pages",
+      "consumer_input_field": "local_key",
+      "live_verified_dependency": true,
+      "example_value": "09988_13150_2026-08-07_df274199"
+    }
+  ],
+  "success": true,
+  "chosen": {
+    "title": "DATE OF BOARD MEETING",
+    "release_date": "2026-08-07",
+    "release_datetime": "07/08/2026 17:13",
+    "news_id": "12277073",
+    "local_key": "09988_13150_2026-08-07_df274199",
+    "file_link": "/listedco/listconews/sehk/2026/0807/2026080700604.pdf",
+    "category_label": "Date of Board Meeting"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "success": true,
+  "error": null,
+  "normalized": {
+    "status": "success",
+    "data": {
+      "document": "00005_19860_2026-02-25_32fb365a",
+      "keywords": [
+        "basic",
+        "EPS",
+        "revenue"
+      ],
+      "match_mode": "ANY",
+      "total_matches": 5,
+      "matches": [
+        {
+          "page_number": 43,
+          "score": 0.108808,
+          "keyword_hits": 1,
+          "snippet": "40 Appendix 4Q25 results Progress on strategy execution **Revenue** — supplementary information 2025 reported **revenue** to **revenue** excluding notable items $m HK UK CIB IWPB Corporate Centre Total Reported **revenue**..."
+        },
+        {
+          "page_number": 15,
+          "score": 0.043818,
+          "keyword_hits": 1,
+          "snippet": "12 Appendix 4Q25 results Progress on strategy execution Four growing, high-returning businesses * See slide 40 for reconciliation of reported **revenue** to **revenue** excluding notable items † See 2025 Annual Report and Accounts pages 93 and 94 for reconciliation of RoTE to RoTE excluding notable ..."
+        },
+        {
+          "page_number": 31,
+          "score": 0.040936,
+          "keyword_hits": 1,
+          "snippet": "28 Appendix 4Q25 results Progress on strategy execution Hang Seng Bank privatisation related expectations Pre-tax by YE28, $bn **Revenue** and cost benefits* 0.9 — **Revenue** and cost synergies 0.5 — Potential further upside 0.4 Restructuring costs (material notable item) (0.6) Asset..."
+        },
+        {
+          "page_number": 37,
+          "score": 0.031718,
+          "keyword_hits": 1,
+          "snippet": "34 Appendix 4Q25 results Progress on strategy execution Insurance **revenue**, $m FY24 FY25 vs. FY24 CSM release 1,339 1,593 254 19% Other Insurance Service results (22) 232 254 >100% Other **revenue*** 596 774 178 30% Wealt..."
+        },
+        {
+          "page_number": 14,
+          "score": 0.029636,
+          "keyword_hits": 2,
+          "snippet": "11 Appendix 4Q25 results Progress on strategy execution Strong performance in 4Q25 Income statement, $bn 4Q24 4Q25 Δ, $ Δ, % **Revenue** excl. notable items 16.7 17.7 1.0 6% PBT excl. notable items 7.4 8.6 1.2 17% **Revenue** 11.8 16.4 4.6 39% ECL (1.4) (0.9) 0.5 36% Costs (8.7) (9...."
+        }
+      ]
+    }
+  }
+}

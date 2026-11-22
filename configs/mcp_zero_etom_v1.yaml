@@ -1,0 +1,47 @@
+# MCP-Zero × ETOM routing-only baseline (pilot-10 + formal-100)
+condition: mcp_zero
+routing_only: true
+real_tool_executions: 0
+generation_provider: openai_compatible
+generation_base_url_host: api.zhizengzeng.com
+generation_model: deepseek-v4.1-flash
+embedding_model: text-embedding-3-small
+temperature: 0.0
+max_tokens: 2048
+json_mode: false
+
+retrieval:
+  # Frozen HK MCP-Zero method card knobs (method-card hash unchanged).
+  server_top_k: 3
+  tool_top_k: 5
+  similarity_threshold: 0.0
+  score_mode: official_combined
+  use_summary: true
+
+limits:
+  max_llm_turns: 8
+  max_invocations: 8
+  max_extension_rounds: 3
+  timeout_sec: 180
+
+# Transport-only knobs for catalog index builds. NOT part of routing method-card.
+embedding_build:
+  batch_size: 32
+  request_timeout_sec: 120
+  max_retries: 3
+  retry_backoff_seconds: [1, 2, 4]
+
+pricing:
+  # Align with ETOM OV formal-100 pricing block for comparable cost summaries.
+  # DeepSeek-V4.1-Flash peak cache-miss list price + text-embedding-3-small.
+  currency: USD
+  assumption: conservative_peak_cache_miss
+  llm_input_usd_per_million: 0.30
+  llm_output_usd_per_million: 1.20
+  embedding_usd_per_million: 0.02
+
+notes:
+  - Routing-only baseline; never executes ETOM MCP tools.
+  - Route exact match is not final-answer accuracy.
+  - Do not retune knobs from ETOM formal-100 or Operation-Visible errors.
+  - HK method-card hash stays 77cc3b07…; ETOM prompt hash is separate.

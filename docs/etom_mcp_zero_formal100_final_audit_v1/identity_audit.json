@@ -1,0 +1,72 @@
+{
+  "checks": {
+    "embedding_index_complete": true,
+    "embedding_model": true,
+    "etom_method_identity": true,
+    "generation_model": true,
+    "hk_method_identity": true,
+    "level_quotas_20": true,
+    "ordered_task_ids_sha256": true,
+    "predictions_rows_100": true,
+    "prompt_hash": true,
+    "provider_host": true,
+    "real_tool_executions_zero": true,
+    "registry_counts": true,
+    "sample_sha256": true,
+    "server_top_k": true,
+    "source_commit": true,
+    "task_order_matches_lock": true,
+    "tool_top_k": true,
+    "unique_task_ids_100": true
+  },
+  "embedding_base_url_host": "api.zhizengzeng.com",
+  "embedding_index": {
+    "build_calls": 0,
+    "cache_reused": true,
+    "completed_units": 3357,
+    "expected_units": 3357,
+    "final_complete": true,
+    "identity_sha256": "019cbd1ca4e69a6cb5c063ae54a6f851c8cbcf1b158b5a811ad9e8fadbb8ef1b"
+  },
+  "embedding_model": "text-embedding-3-small",
+  "etom_method_identity_sha256": "0c14b7aec5b6bdf1156b9d1ab0e330c3e0bbf8264e2db0950d2efbdce09e05f6",
+  "generation_base_url_host": "api.zhizengzeng.com",
+  "generation_model": "deepseek-v4.1-flash",
+  "grouped_results_warning": "raw grouped_results.json pooled_100.exact_match_rate is completed-only (49/84); official headline must use strict 49/100.",
+  "hk_method_identity_sha256": "77cc3b07a4c2b9af00ad3f6bfb7cba59c82084d94b7592f2c820f46f1d3e8d3f",
+  "level_counts": {
+    "L1": 20,
+    "L2": 20,
+    "L3": 20,
+    "L4": 20,
+    "L5": 20
+  },
+  "lock_ordered_task_ids_sha256": "3be67c36e4eec58920864a401bbaa73db55136930b0f406e2da56c4988734479",
+  "lock_sample_sha256": "99cb671ea3528c1c69ab6fc2a3d622c4d6f6bb07058728071aae5eae8720cbb1",
+  "lock_source_commit": "790f28727f567b88918420d163c524d46644a694",
+  "ok": true,
+  "ordered_task_ids_head": [
+    "L1-q556",
+    "L1-q160",
+    "L1-q267"
+  ],
+  "ordered_task_ids_sha256": "3be67c36e4eec58920864a401bbaa73db55136930b0f406e2da56c4988734479",
+  "ordered_task_ids_tail": [
+    "L5-q44",
+    "L5-q20",
+    "L5-q33"
+  ],
+  "predictions_rows": 100,
+  "real_tool_executions": 0,
+  "registry_fingerprint": "c9aaa8e89c43fb8101df7b7d7042a635bdbbdae1571f5421b97384da46d8b212",
+  "registry_server_count": 491,
+  "registry_sha256": "3c362877ec5733cf0fa1d3451b2f353fb97674e66075da0d7a6f41c0f98cc608",
+  "registry_tool_count": 2375,
+  "routing_only": true,
+  "sample_sha256": "99cb671ea3528c1c69ab6fc2a3d622c4d6f6bb07058728071aae5eae8720cbb1",
+  "server_top_k": 3,
+  "source_commit": "790f28727f567b88918420d163c524d46644a694",
+  "system_prompt_sha256": "8ebac6ce045af0176c1fb9e580bad483b7ca4564e3521adc433c09476db285d7",
+  "tool_top_k": 5,
+  "unique_task_ids": 100
+}

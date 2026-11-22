@@ -1,0 +1,135 @@
+{
+  "checkpoint": "C11_compute",
+  "counts": {
+    "N/A": 9,
+    "pass": 2,
+    "fail": 1
+  },
+  "tasks": [
+    {
+      "task_id": "fin_cf_003",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_011",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_020",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_023",
+      "status": "pass",
+      "detail": {
+        "items": [
+          {
+            "id": "s2",
+            "type": "compute",
+            "status": "skipped_due_to_dependency",
+            "execution_ok": false,
+            "missing_outputs": [],
+            "failure_reason": "depends_on_failed:['s1']"
+          }
+        ],
+        "classification": "N/A_upstream_blocked"
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_ht_016",
+      "status": "pass",
+      "detail": {
+        "items": [
+          {
+            "id": "s3",
+            "type": "compute",
+            "status": "skipped_due_to_dependency",
+            "execution_ok": false,
+            "missing_outputs": [],
+            "failure_reason": "depends_on_failed:['s1', 's2']"
+          }
+        ],
+        "classification": "N/A_upstream_blocked"
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_dev_002",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_ht_007",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_ht_014",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "mkt_dev_014",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_024",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "mkt_dev_001",
+      "status": "fail",
+      "detail": {
+        "items": [
+          {
+            "id": "s2",
+            "type": "compute",
+            "status": "failed",
+            "execution_ok": false,
+            "failure_reason": "disallowed expression construct: Call"
+          }
+        ],
+        "classification": "direct_compute_failure"
+      },
+      "primary_blocking": true
+    },
+    {
+      "task_id": "news_ht_004",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    }
+  ]
+}

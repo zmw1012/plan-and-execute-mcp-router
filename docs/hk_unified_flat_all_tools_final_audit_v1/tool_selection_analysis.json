@@ -1,0 +1,69 @@
+{
+  "n_tasks": 155,
+  "exact_tool_set_rate": 0.23225806451612904,
+  "mean_operation_precision": 0.5116897225806452,
+  "mean_operation_recall": 0.729032264516129,
+  "mean_operation_f1": 0.5731674645161287,
+  "mean_wrong_tool_rate": 0.45605221290322584,
+  "all_tool_invocations_successful_rate": 0.5870967741935483,
+  "recovered_after_tool_error_rate": 0.16129032258064516,
+  "redundant_selection_count": 56,
+  "missing_gold_count": 43,
+  "wrong_and_incomplete_count": 38,
+  "invocation_failure_tasks": 64,
+  "vacuous_execution_success_note": "all_tool_invocations_successful is vacuous True when zero invokes; this is NOT exact tool-set success.",
+  "retrieval_metrics": "N/A",
+  "by_domain": {
+    "cross_domain": {
+      "n": 25,
+      "exact_tool_set_rate": 0.24,
+      "total_real_mcp_executions": 96,
+      "mean_wrong_tool_rate": 0.36295232
+    },
+    "financial": {
+      "n": 60,
+      "exact_tool_set_rate": 0.016666666666666666,
+      "total_real_mcp_executions": 334,
+      "mean_wrong_tool_rate": 0.6566269499999999
+    },
+    "market": {
+      "n": 35,
+      "exact_tool_set_rate": 0.5714285714285714,
+      "total_real_mcp_executions": 56,
+      "mean_wrong_tool_rate": 0.2761904857142857
+    },
+    "news": {
+      "n": 35,
+      "exact_tool_set_rate": 0.2571428571428571,
+      "total_real_mcp_executions": 86,
+      "mean_wrong_tool_rate": 0.3585714571428572
+    }
+  },
+  "by_difficulty": {
+    "D1": {
+      "n": 35,
+      "exact_tool_set_rate": 0.34285714285714286,
+      "total_real_mcp_executions": 127
+    },
+    "D2": {
+      "n": 24,
+      "exact_tool_set_rate": 0.16666666666666666,
+      "total_real_mcp_executions": 96
+    },
+    "D3": {
+      "n": 42,
+      "exact_tool_set_rate": 0.23809523809523808,
+      "total_real_mcp_executions": 165
+    },
+    "D4": {
+      "n": 28,
+      "exact_tool_set_rate": 0.25,
+      "total_real_mcp_executions": 101
+    },
+    "D5": {
+      "n": 26,
+      "exact_tool_set_rate": 0.11538461538461539,
+      "total_real_mcp_executions": 83
+    }
+  }
+}

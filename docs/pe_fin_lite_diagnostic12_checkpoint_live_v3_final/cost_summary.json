@@ -1,0 +1,15 @@
+{
+  "n_tasks": 12,
+  "successful_tasks": 5,
+  "failed_tasks": 2,
+  "llm_calls_total": 42,
+  "llm_calls_mean": 3.5,
+  "mcp_invocations_total": 33,
+  "mcp_invocations_mean": 2.75,
+  "embedding_query_calls_total": 10,
+  "tokens_in_total": 0,
+  "tokens_out_total": 0,
+  "tokens_total": 95419,
+  "latency_ms_mean": 35092.30516309617,
+  "estimated_cost_usd": null
+}

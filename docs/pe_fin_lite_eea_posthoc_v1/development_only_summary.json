@@ -1,0 +1,40 @@
+{
+  "n_development": 70,
+  "source_split": "development",
+  "primary_blocker_counts": {
+    "C07_mcp": 23,
+    "none": 9,
+    "C12_reason": 2,
+    "C09_evidence_acceptance": 35,
+    "C01_planner": 1
+  },
+  "c07_class_counts": {
+    "mcp_transport_or_protocol_failure": 10,
+    "scope_mismatch": 2,
+    "other": 4,
+    "disclosure_chain_stage_failure": 5,
+    "empty_result": 2
+  },
+  "c09_class_counts": {
+    "upstream_c07_failure": 20,
+    "primary_fallback_merge_failure": 16,
+    "required_output_truly_missing": 7
+  },
+  "compute_class_counts": {
+    "upstream_retrieve_blocked": 21,
+    "ok": 1
+  },
+  "answerability_label_counts": {
+    "upstream_execution_failure": 36,
+    "sufficiently_supported": 8,
+    "partially_supported_but_answerable": 19,
+    "truly_infeasible": 7
+  },
+  "disclosure_incomplete": 18,
+  "status_counts": {
+    "failed": 39,
+    "full": 8,
+    "partial": 23
+  },
+  "note": "reserved85 unused; no gold-driven patches"
+}

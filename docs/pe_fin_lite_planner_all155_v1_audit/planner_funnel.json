@@ -1,0 +1,110 @@
+{
+  "status_mark": "invalid_for_formal_step_level_retrieval_due_to_planner_protocol_failure_rate",
+  "rows": 155,
+  "unique_task_ids": 155,
+  "ok": 114,
+  "failed": 41,
+  "repair_count_eq_1": 119,
+  "retrieve_steps_total": 184,
+  "planner_cache_sha256": "002d60972d13b1e3728642ef7d63eeb1ada543c19bd25129b54ae67be3a312d5",
+  "identity": {
+    "kind": "planner_only_cache",
+    "manifest_sha256": "d382a02fb429d5c410afcdc40778dcb9ed4ef2d674b9ac59fde534a0a097b150",
+    "ordered_task_ids_hash": "2dcc96ea1eda2cb1b50442a3d083e6801de9bc99ef04bb1b3299a83294743cfe",
+    "question_identity_hash": "fcd64c4c44b0c7085b27138721f86a1c333543a3ed28f7bf4499655158e68619",
+    "planner_prompt_hash": "ed7785886b5441e20218e554757cdeb58a3f9d685176feb66afc6ccfb51716b0",
+    "planner_schema_hash": "9eb087e2b201784dafb0db7bf89935ba0d2774d8deeb3d145678cf7f27bfc842",
+    "capability_profile_hash": "502446f850f6b389f16cfd1ff97ac0c9f9837efeaef54fa9b2d00ac129e1a7ef",
+    "generation_provider": "openai_compatible",
+    "generation_host": "api.zhizengzeng.com",
+    "generation_model": "deepseek-v4.1-flash",
+    "temperature": 0.0,
+    "max_tokens": 2048,
+    "planner_only_protocol_version": "pe_fin_lite_planner_only_v1",
+    "no_binder": true,
+    "no_mcp": true,
+    "no_embedding_in_planner_stage": true,
+    "no_gold_in_planner": true,
+    "identity_sha256": "fde817587a0f8cedf8dd29039523f1299b830cde37ce1032dec1e596e72f927d"
+  },
+  "by_source_split": {
+    "development70": {
+      "n": 70,
+      "ok": 49,
+      "failed": 21,
+      "success_rate": 0.7
+    },
+    "previously_reserved85": {
+      "n": 85,
+      "ok": 65,
+      "failed": 20,
+      "success_rate": 0.7647058823529411
+    }
+  },
+  "by_domain": {
+    "cross_domain": {
+      "n": 25,
+      "ok": 18,
+      "failed": 7,
+      "success_rate": 0.72
+    },
+    "financial": {
+      "n": 60,
+      "ok": 46,
+      "failed": 14,
+      "success_rate": 0.7666666666666667
+    },
+    "market": {
+      "n": 35,
+      "ok": 23,
+      "failed": 12,
+      "success_rate": 0.6571428571428571
+    },
+    "news": {
+      "n": 35,
+      "ok": 27,
+      "failed": 8,
+      "success_rate": 0.7714285714285715
+    }
+  },
+  "by_difficulty": {
+    "D1": {
+      "n": 35,
+      "ok": 32,
+      "failed": 3,
+      "success_rate": 0.9142857142857143
+    },
+    "D2": {
+      "n": 24,
+      "ok": 17,
+      "failed": 7,
+      "success_rate": 0.7083333333333334
+    },
+    "D3": {
+      "n": 42,
+      "ok": 23,
+      "failed": 19,
+      "success_rate": 0.5476190476190477
+    },
+    "D4": {
+      "n": 28,
+      "ok": 19,
+      "failed": 9,
+      "success_rate": 0.6785714285714286
+    },
+    "D5": {
+      "n": 26,
+      "ok": 23,
+      "failed": 3,
+      "success_rate": 0.8846153846153846
+    }
+  },
+  "first_response_valid_under_v2_canonicalizer": 48,
+  "repair_response_valid_under_v2_canonicalizer": 92,
+  "repair_recovered_count_under_v2_replay": 80,
+  "r0_question_level_remains_valid": true,
+  "catalog_index_remains_valid": true,
+  "question_query_cache_remains_valid": true,
+  "failures_are_not_embedding_failures": true,
+  "formal_step_level_r1_r3_evaluation": "forbidden_until_planner_v2_complete"
+}

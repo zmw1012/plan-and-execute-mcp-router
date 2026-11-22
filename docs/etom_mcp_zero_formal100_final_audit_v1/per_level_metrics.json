@@ -1,0 +1,279 @@
+{
+  "L1": {
+    "exact_match": {
+      "completed_only": {
+        "denominator": 20,
+        "rate": 0.85,
+        "successes": 17
+      },
+      "strict": {
+        "completed": 20,
+        "failed_scored_zero": 0,
+        "strict_denominator": 20,
+        "strict_rate": 0.85,
+        "successes": 17
+      }
+    }
+  },
+  "L2": {
+    "any_equivalent_tool_coverage": {
+      "completed_only": {
+        "denominator": 20,
+        "rate": 0.65,
+        "successes": 13
+      },
+      "strict": {
+        "completed": 20,
+        "failed_scored_zero": 0,
+        "strict_denominator": 20,
+        "strict_rate": 0.65,
+        "successes": 13
+      }
+    },
+    "equal_function_set_exact_match": {
+      "completed_only": {
+        "denominator": 20,
+        "rate": 0.5,
+        "successes": 10
+      },
+      "strict": {
+        "completed": 20,
+        "failed_scored_zero": 0,
+        "strict_denominator": 20,
+        "strict_rate": 0.5,
+        "successes": 10
+      }
+    },
+    "multi_step": {
+      "any_equivalent_tool_coverage": {
+        "definition": "Every gold Equal-Function-Set group has >=1 predicted member.",
+        "denominator": 7,
+        "rate": 0.42857142857142855,
+        "successes": 3
+      },
+      "exact_match": {
+        "denominator": 7,
+        "rate": 0.0,
+        "successes": 0
+      },
+      "tasks": 7
+    },
+    "note": "L2 official primary metric is Equal Function Set exact match. any_equivalent_tool_coverage is diagnostic coverage, not a substitute.",
+    "single_step": {
+      "any_equivalent_tool_coverage": {
+        "definition": "Every gold Equal-Function-Set group has >=1 predicted member.",
+        "denominator": 13,
+        "rate": 0.7692307692307693,
+        "successes": 10
+      },
+      "exact_match": {
+        "denominator": 13,
+        "rate": 0.7692307692307693,
+        "successes": 10
+      },
+      "tasks": 13
+    }
+  },
+  "L3": {
+    "complete_route_success": {
+      "definition": "exact_match AND dependency_edge_accuracy==1 (failures score 0).",
+      "strict": {
+        "completed": 18,
+        "failed_scored_zero": 2,
+        "strict_denominator": 20,
+        "strict_rate": 0.25,
+        "successes": 5
+      }
+    },
+    "dependency_correctness": {
+      "strict": {
+        "completed": 18,
+        "failed_scored_zero": 2,
+        "strict_denominator": 20,
+        "strict_rate": 0.4,
+        "successes": 8
+      }
+    },
+    "exact_match_route": {
+      "completed_only": {
+        "denominator": 18,
+        "rate": 0.5,
+        "successes": 9
+      },
+      "strict": {
+        "completed": 18,
+        "failed_scored_zero": 2,
+        "strict_denominator": 20,
+        "strict_rate": 0.45,
+        "successes": 9
+      }
+    },
+    "node_set_exact_match": {
+      "strict": {
+        "completed": 18,
+        "failed_scored_zero": 2,
+        "strict_denominator": 20,
+        "strict_rate": 0.45,
+        "successes": 9
+      }
+    },
+    "ordered_dependency_correctness": {
+      "strict": {
+        "completed": 18,
+        "failed_scored_zero": 2,
+        "strict_denominator": 20,
+        "strict_rate": 0.4,
+        "successes": 8
+      }
+    },
+    "precision_recall_f1": {
+      "completed_only": {
+        "denominator": 18,
+        "mean_f1": 0.7556517556517557,
+        "mean_precision": 0.7546296296296297,
+        "mean_recall": 0.8267195767195767,
+        "note": "Completed-only means; not a substitute for strict."
+      },
+      "strict": {
+        "mean_f1": 0.6800865800865801,
+        "mean_precision": 0.6791666666666667,
+        "mean_recall": 0.7440476190476191,
+        "note": "Failures contribute 0 to means (strict /20).",
+        "strict_denominator": 20
+      }
+    }
+  },
+  "L4": {
+    "complete_route_success": {
+      "definition": "exact_match AND cross_server_dependency_correctness.",
+      "label": "complete_route_success",
+      "strict": {
+        "completed": 11,
+        "failed_scored_zero": 9,
+        "strict_denominator": 20,
+        "strict_rate": 0.1,
+        "successes": 2
+      }
+    },
+    "cross_server_dependency_correctness": {
+      "label": "cross_server_dependency_correctness",
+      "note": "NOT efs_covering_node_set. Do not conflate.",
+      "strict": {
+        "completed": 11,
+        "failed_scored_zero": 9,
+        "strict_denominator": 20,
+        "strict_rate": 0.1,
+        "successes": 2
+      }
+    },
+    "efs_covering_node_set": {
+      "label": "efs_covering_node_set",
+      "note": "NOT cross_server_dependency_correctness.",
+      "strict": {
+        "completed": 11,
+        "failed_scored_zero": 9,
+        "strict_denominator": 20,
+        "strict_rate": 0.15,
+        "successes": 3
+      }
+    },
+    "exact_match_route_alias": {
+      "note": "Stored exact_match for L4; primary comparable OV column uses complete_route_success.",
+      "strict": {
+        "completed": 11,
+        "failed_scored_zero": 9,
+        "strict_denominator": 20,
+        "strict_rate": 0.1,
+        "successes": 2
+      }
+    },
+    "label_guard": {
+      "efs_covering_is_not_cross_server_dependency": true,
+      "official_union_em_is_not_complete_route": true
+    },
+    "official_union_node_set_em": {
+      "label": "official_union_node_set_em",
+      "strict": {
+        "completed": 11,
+        "failed_scored_zero": 9,
+        "strict_denominator": 20,
+        "strict_rate": 0.05,
+        "successes": 1
+      }
+    },
+    "precision_recall_f1": {
+      "completed_only": {
+        "denominator": 11,
+        "mean_f1": 0.5146680710851834,
+        "mean_precision": 0.4909090909090909,
+        "mean_recall": 0.5545454545454546,
+        "note": "Completed-only means; not a substitute for strict."
+      },
+      "strict": {
+        "mean_f1": 0.28306743909685084,
+        "mean_precision": 0.27,
+        "mean_recall": 0.305,
+        "note": "Failures contribute 0 to means (strict /20).",
+        "strict_denominator": 20
+      }
+    }
+  },
+  "L5": {
+    "exact_rejection_match": {
+      "completed_only": {
+        "denominator": 15,
+        "rate": 0.7333333333333333,
+        "successes": 11
+      },
+      "strict": {
+        "completed": 15,
+        "failed_scored_zero": 5,
+        "strict_denominator": 20,
+        "strict_rate": 0.55,
+        "successes": 11
+      }
+    },
+    "false_positive_tool_selection": {
+      "completed_count": 4,
+      "failed_tasks_strict_zero": 5,
+      "note": "False-positive = completed L5 with non-empty tools / non-rejection and exact_match=false. Failed tasks remain in strict denom with score 0."
+    }
+  },
+  "per_level_strict_exact_route": {
+    "L1": {
+      "completed": 20,
+      "failed_scored_zero": 0,
+      "strict_denominator": 20,
+      "strict_rate": 0.85,
+      "successes": 17
+    },
+    "L2": {
+      "completed": 20,
+      "failed_scored_zero": 0,
+      "strict_denominator": 20,
+      "strict_rate": 0.5,
+      "successes": 10
+    },
+    "L3": {
+      "completed": 18,
+      "failed_scored_zero": 2,
+      "strict_denominator": 20,
+      "strict_rate": 0.45,
+      "successes": 9
+    },
+    "L4": {
+      "completed": 11,
+      "failed_scored_zero": 9,
+      "strict_denominator": 20,
+      "strict_rate": 0.1,
+      "successes": 2
+    },
+    "L5": {
+      "completed": 15,
+      "failed_scored_zero": 5,
+      "strict_denominator": 20,
+      "strict_rate": 0.55,
+      "successes": 11
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "official_mcp_zero": {
+    "repo": "https://github.com/xfey/MCP-Zero",
+    "commit": "fd666c44c9290a671949b974444c30f4ab161622",
+    "paper": "https://arxiv.org/abs/2506.01056",
+    "matcher_defaults": {
+      "top_servers": 5,
+      "top_tools": 3,
+      "embedding_model": "text-embedding-3-large"
+    }
+  },
+  "etom_mcp0_pin": {
+    "source_commit": "790f28727f567b88918420d163c524d46644a694",
+    "formal_sample_commit": "f4bfefec49eb28ed749bf600679819cb54d0e1a6",
+    "formal_sample_hash": "99cb671ea3528c1c69ab6fc2a3d622c4d6f6bb07058728071aae5eae8720cbb1",
+    "eval_defaults": {
+      "server_top_k": 3,
+      "tool_top_k": 5
+    },
+    "utils_create_mcp_zero_defaults": {
+      "server_top_k": 3,
+      "tool_top_k": 5,
+      "similarity_threshold": 0.3
+    }
+  },
+  "hk_baseline": {
+    "implementation_commit": "39bd31b",
+    "audit_commit": "1eb3315",
+    "worktree_base": "1eb3315"
+  }
+}

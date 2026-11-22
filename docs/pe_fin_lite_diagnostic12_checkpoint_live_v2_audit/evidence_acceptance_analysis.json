@@ -1,0 +1,331 @@
+{
+  "checkpoint": "C09_evidence_acceptance",
+  "counts": {
+    "fail": 7,
+    "pass": 4,
+    "N/A": 1
+  },
+  "tasks": [
+    {
+      "task_id": "fin_cf_003",
+      "status": "fail",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": true,
+            "missing_outputs": [],
+            "scope_match": true,
+            "required_outputs_satisfied": true,
+            "classification": null
+          },
+          {
+            "step_id": "s2",
+            "step_completed": false,
+            "missing_outputs": [
+              "local_key",
+              "snippet",
+              "page_number",
+              "source_url",
+              "report_date",
+              "currency",
+              "attributable_profit"
+            ],
+            "scope_match": true,
+            "required_outputs_satisfied": false,
+            "classification": "correctly_rejected_incomplete"
+          }
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_011",
+      "status": "fail",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": true,
+            "missing_outputs": [],
+            "scope_match": true,
+            "required_outputs_satisfied": true,
+            "classification": null
+          },
+          {
+            "step_id": "s2",
+            "step_completed": false,
+            "missing_outputs": [
+              "snippet",
+              "page_number",
+              "report_date",
+              "currency",
+              "fiscal_period"
+            ],
+            "scope_match": true,
+            "required_outputs_satisfied": false,
+            "classification": "correctly_rejected_incomplete"
+          }
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": false
+      },
+      "primary_blocking": true
+    },
+    {
+      "task_id": "fin_cf_020",
+      "status": "fail",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": true,
+            "missing_outputs": [],
+            "scope_match": true,
+            "required_outputs_satisfied": true,
+            "classification": null
+          },
+          {
+            "step_id": "s2",
+            "step_completed": false,
+            "missing_outputs": [
+              "company_name",
+              "report_date",
+              "fiscal_period",
+              "currency",
+              "snippet",
+              "page_number",
+              "source_url"
+            ],
+            "scope_match": true,
+            "required_outputs_satisfied": false,
+            "classification": "correctly_rejected_incomplete"
+          }
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_023",
+      "status": "pass",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": true,
+            "missing_outputs": [],
+            "scope_match": true,
+            "required_outputs_satisfied": true,
+            "classification": null
+          }
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": true
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_ht_016",
+      "status": "fail",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": false,
+            "missing_outputs": [
+              "report_date",
+              "fiscal_period",
+              "currency",
+              "revenue",
+              "page_number",
+              "snippet"
+            ],
+            "scope_match": true,
+            "required_outputs_satisfied": false,
+            "classification": "correctly_rejected_incomplete"
+          },
+          {
+            "step_id": "s2",
+            "step_completed": null,
+            "missing_outputs": [],
+            "scope_match": null,
+            "required_outputs_satisfied": null,
+            "classification": null
+          }
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_dev_002",
+      "status": "pass",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": true,
+            "missing_outputs": [],
+            "scope_match": true,
+            "required_outputs_satisfied": true,
+            "classification": null
+          },
+          {
+            "step_id": "s2",
+            "step_completed": true,
+            "missing_outputs": [],
+            "scope_match": true,
+            "required_outputs_satisfied": true,
+            "classification": null
+          }
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": true
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_ht_007",
+      "status": "fail",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": false,
+            "missing_outputs": [
+              "fiscal_period"
+            ],
+            "scope_match": true,
+            "required_outputs_satisfied": false,
+            "classification": "correctly_rejected_incomplete"
+          },
+          {
+            "step_id": "s2",
+            "step_completed": null,
+            "missing_outputs": [],
+            "scope_match": null,
+            "required_outputs_satisfied": null,
+            "classification": null
+          }
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": false
+      },
+      "primary_blocking": true
+    },
+    {
+      "task_id": "xd_ht_014",
+      "status": "fail",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": true,
+            "missing_outputs": [],
+            "scope_match": true,
+            "required_outputs_satisfied": true,
+            "classification": null
+          },
+          {
+            "step_id": "s2",
+            "step_completed": false,
+            "missing_outputs": [
+              "title",
+              "release_date",
+              "local_key",
+              "source_url"
+            ],
+            "scope_match": true,
+            "required_outputs_satisfied": false,
+            "classification": "correctly_rejected_incomplete"
+          },
+          {
+            "step_id": "s3",
+            "step_completed": null,
+            "missing_outputs": [],
+            "scope_match": null,
+            "required_outputs_satisfied": null,
+            "classification": null
+          }
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "mkt_dev_014",
+      "status": "N/A",
+      "detail": {},
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_024",
+      "status": "fail",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": false,
+            "missing_outputs": [
+              "revenue",
+              "currency",
+              "report_date",
+              "fiscal_period",
+              "company_name"
+            ],
+            "scope_match": true,
+            "required_outputs_satisfied": null,
+            "classification": "correctly_rejected_incomplete"
+          }
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "mkt_dev_001",
+      "status": "pass",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": true,
+            "missing_outputs": [],
+            "scope_match": true,
+            "required_outputs_satisfied": true,
+            "classification": null
+          }
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": true
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "news_ht_004",
+      "status": "pass",
+      "detail": {
+        "steps": [
+          {
+            "step_id": "s1",
+            "step_completed": true,
+            "missing_outputs": [],
+            "scope_match": true,
+            "required_outputs_satisfied": true,
+            "classification": null
+          }
+        ],
+        "acceptance_logic_pass": true,
+        "retrieve_outcome_complete": true
+      },
+      "primary_blocking": false
+    }
+  ]
+}

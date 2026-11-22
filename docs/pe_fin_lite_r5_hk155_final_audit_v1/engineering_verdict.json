@@ -1,0 +1,7 @@
+{
+  "engineering_valid": true,
+  "engineering_blockers": [],
+  "method_valid_failure_note": "High full/partial/failed counts and low answer accuracy are treated as method-valid outcomes under the frozen R5 PE-Fin Lite contract unless an identity/R5-wiring/budget-implementation inconsistency is proven.",
+  "evidence_r5_wired": true,
+  "evidence_domain_filter_off": true
+}

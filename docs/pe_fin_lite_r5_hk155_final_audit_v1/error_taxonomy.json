@@ -1,0 +1,30 @@
+{
+  "primary_blocking_checkpoint_counts": {
+    "C07_mcp": 63,
+    "C09_evidence_acceptance": 67,
+    "none_or_all_non_fail": 21,
+    "C12_reason": 2,
+    "C01_planner": 2
+  },
+  "error_type_counts": {
+    "semantic_or_structured_retrieve_failure": 130,
+    "null": 21,
+    "planner_schema_or_semantics": 2,
+    "temporal_latest_current_unsatisfied": 2
+  },
+  "auto_grade_reason_counts": {
+    "refused_answerable_item": 103,
+    "numeric_match": 5,
+    "string_match": 4,
+    "numeric_mismatch": 4,
+    "numeric_mismatch;string_match": 1,
+    "string_mismatch;string_mismatch;string_mismatch": 1,
+    "gold_values_missing": 1,
+    "string_match;numeric_match": 1,
+    "refusal_status_ok": 21,
+    "string_mismatch": 1,
+    "refusal_with_fabricated_numeric": 8,
+    "numeric_match;numeric_match": 4,
+    "expected_refusal_got_status=answered": 1
+  }
+}

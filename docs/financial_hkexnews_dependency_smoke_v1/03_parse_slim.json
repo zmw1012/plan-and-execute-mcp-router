@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "error": null,
+  "normalized": {
+    "status": "success",
+    "hint": "You can now use keyword_search or get_announcement_pages to explore this announcement.",
+    "data": {
+      "local_key": "00005_19860_2026-02-25_32fb365a",
+      "filename": "00005_19860_2026-02-25_32fb365a.json",
+      "total_pages": 53,
+      "file_size_kb": 64.0
+    }
+  }
+}

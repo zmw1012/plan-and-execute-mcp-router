@@ -1,0 +1,41 @@
+{
+  "checks": {
+    "n_rows_155": true,
+    "unique_ids_155": true,
+    "order_match_exploratory_all": true,
+    "domain_counts": true,
+    "run_completed": true,
+    "processed_155": true,
+    "method_pe_fin_lite": true,
+    "method_version": true,
+    "architecture": true,
+    "formula_name": true,
+    "formula_hash": true,
+    "candidate_lock": true,
+    "domain_hard_filter_false": true,
+    "topk_5": true,
+    "describe_3": true,
+    "monitor_off": true,
+    "replan_off": true,
+    "generation_ok": true,
+    "embedding_ok": true,
+    "git_dirty_false": true,
+    "no_mock": true,
+    "real_mcp": true,
+    "subset_full": true,
+    "not_smoke_resume": true
+  },
+  "all_required_pass": true,
+  "domain_counts": {
+    "financial": 60,
+    "market": 35,
+    "news": 35,
+    "cross_domain": 25
+  },
+  "missing_task_ids": [],
+  "duplicate_count": 0,
+  "run_order_hash": "14aa3c253eea155b038b70fe11b8a69ee51331b5599790bb2827e72d4e321254",
+  "meta_git_commit": "7500a948d9a0a47483d7fc826178b1b894e8745f",
+  "embedding_provider_null": true,
+  "formula_hash_recomputed": "7414751814f6858a375d95da918921e3ee365dfc5b69cdaba0cee1bf9e1ecb3e"
+}

@@ -1,0 +1,23 @@
+{
+  "observed": {
+    "rows": 155,
+    "unique_ids": 155,
+    "full": 14,
+    "partial": 47,
+    "failed": 94,
+    "answer_correct_true": 35,
+    "answer_correct_false": 119,
+    "answer_correct_null": 1
+  },
+  "expected_snapshot": {
+    "rows": 155,
+    "unique_ids": 155,
+    "full": 14,
+    "partial": 47,
+    "failed": 94,
+    "answer_correct_true": 35,
+    "answer_correct_false": 119,
+    "answer_correct_null": 1
+  },
+  "matches_expected_snapshot": true
+}

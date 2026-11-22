@@ -1,0 +1,354 @@
+{
+  "C13": {
+    "checkpoint": "C13_final",
+    "counts": {
+      "pass": 12
+    },
+    "tasks": [
+      {
+        "task_id": "fin_cf_003",
+        "status": "pass",
+        "detail": {
+          "answer_status": "answered",
+          "task_status": "partial",
+          "schema_valid": true,
+          "semantically_correct": false,
+          "evidence_ids": null,
+          "final_answer_present": true
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_011",
+        "status": "pass",
+        "detail": {
+          "answer_status": "unavailable",
+          "task_status": "failed",
+          "schema_valid": true,
+          "semantically_correct": false,
+          "evidence_ids": null,
+          "final_answer_present": true
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_020",
+        "status": "pass",
+        "detail": {
+          "answer_status": "unavailable",
+          "task_status": "partial",
+          "schema_valid": true,
+          "semantically_correct": false,
+          "evidence_ids": null,
+          "final_answer_present": true
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_023",
+        "status": "pass",
+        "detail": {
+          "answer_status": "unavailable",
+          "task_status": "failed",
+          "schema_valid": true,
+          "semantically_correct": false,
+          "evidence_ids": null,
+          "final_answer_present": true
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_ht_016",
+        "status": "pass",
+        "detail": {
+          "answer_status": "unavailable",
+          "task_status": "failed",
+          "schema_valid": true,
+          "semantically_correct": false,
+          "evidence_ids": null,
+          "final_answer_present": true
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_dev_002",
+        "status": "pass",
+        "detail": {
+          "answer_status": "answered",
+          "task_status": "full",
+          "schema_valid": true,
+          "semantically_correct": false,
+          "evidence_ids": null,
+          "final_answer_present": true
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_007",
+        "status": "pass",
+        "detail": {
+          "answer_status": "unavailable",
+          "task_status": "partial",
+          "schema_valid": true,
+          "semantically_correct": false,
+          "evidence_ids": null,
+          "final_answer_present": true
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_014",
+        "status": "pass",
+        "detail": {
+          "answer_status": "unavailable",
+          "task_status": "failed",
+          "schema_valid": true,
+          "semantically_correct": false,
+          "evidence_ids": null,
+          "final_answer_present": true
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_014",
+        "status": "pass",
+        "detail": {
+          "answer_status": "answered",
+          "task_status": "full",
+          "schema_valid": true,
+          "semantically_correct": false,
+          "evidence_ids": null,
+          "final_answer_present": true
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_024",
+        "status": "pass",
+        "detail": {
+          "answer_status": "unavailable",
+          "task_status": "partial",
+          "schema_valid": true,
+          "semantically_correct": false,
+          "evidence_ids": null,
+          "final_answer_present": true
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_001",
+        "status": "pass",
+        "detail": {
+          "answer_status": "answered",
+          "task_status": "full",
+          "schema_valid": true,
+          "semantically_correct": true,
+          "evidence_ids": null,
+          "final_answer_present": true
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "news_ht_004",
+        "status": "pass",
+        "detail": {
+          "answer_status": "answered",
+          "task_status": "full",
+          "schema_valid": true,
+          "semantically_correct": true,
+          "evidence_ids": null,
+          "final_answer_present": true
+        },
+        "primary_blocking": false
+      }
+    ]
+  },
+  "C14": {
+    "checkpoint": "C14_evaluator",
+    "counts": {
+      "pass": 12
+    },
+    "tasks": [
+      {
+        "task_id": "fin_cf_003",
+        "status": "pass",
+        "detail": {
+          "answer_correct": false,
+          "auto_grade_reason": "numeric_mismatch",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "evaluator_executed": true,
+          "agent_error_type": "semantic_or_structured_retrieve_failure",
+          "note": "evaluator_executed_separated_from_answer_correct"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_011",
+        "status": "pass",
+        "detail": {
+          "answer_correct": false,
+          "auto_grade_reason": "refused_answerable_item",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "evaluator_executed": true,
+          "agent_error_type": "semantic_or_structured_retrieve_failure",
+          "note": "evaluator_executed_separated_from_answer_correct"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_020",
+        "status": "pass",
+        "detail": {
+          "answer_correct": false,
+          "auto_grade_reason": "refused_answerable_item",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "evaluator_executed": true,
+          "agent_error_type": "semantic_or_structured_retrieve_failure",
+          "note": "evaluator_executed_separated_from_answer_correct"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_023",
+        "status": "pass",
+        "detail": {
+          "answer_correct": false,
+          "auto_grade_reason": "refused_answerable_item",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "evaluator_executed": true,
+          "agent_error_type": "semantic_or_structured_retrieve_failure",
+          "note": "evaluator_executed_separated_from_answer_correct"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_ht_016",
+        "status": "pass",
+        "detail": {
+          "answer_correct": false,
+          "auto_grade_reason": "refused_answerable_item",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "evaluator_executed": true,
+          "agent_error_type": "semantic_or_structured_retrieve_failure",
+          "note": "evaluator_executed_separated_from_answer_correct"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_dev_002",
+        "status": "pass",
+        "detail": {
+          "answer_correct": false,
+          "auto_grade_reason": "numeric_mismatch;numeric_match_labeled",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "evaluator_executed": true,
+          "agent_error_type": null,
+          "note": "evaluator_executed_separated_from_answer_correct"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_007",
+        "status": "pass",
+        "detail": {
+          "answer_correct": false,
+          "auto_grade_reason": "refused_answerable_item",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "evaluator_executed": true,
+          "agent_error_type": "semantic_or_structured_retrieve_failure",
+          "note": "evaluator_executed_separated_from_answer_correct"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_014",
+        "status": "pass",
+        "detail": {
+          "answer_correct": false,
+          "auto_grade_reason": "refused_answerable_item",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "evaluator_executed": true,
+          "agent_error_type": "semantic_or_structured_retrieve_failure",
+          "note": "evaluator_executed_separated_from_answer_correct"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_014",
+        "status": "pass",
+        "detail": {
+          "answer_correct": false,
+          "auto_grade_reason": "refusal_required_but_answered_with_numeric_substitute",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "evaluator_executed": true,
+          "agent_error_type": null,
+          "note": "evaluator_executed_separated_from_answer_correct"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_024",
+        "status": "pass",
+        "detail": {
+          "answer_correct": false,
+          "auto_grade_reason": "refusal_with_fabricated_numeric",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "evaluator_executed": true,
+          "agent_error_type": "semantic_or_structured_retrieve_failure",
+          "note": "evaluator_executed_separated_from_answer_correct"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_001",
+        "status": "pass",
+        "detail": {
+          "answer_correct": true,
+          "auto_grade_reason": "numeric_match",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "evaluator_executed": true,
+          "agent_error_type": null,
+          "note": "evaluator_executed_separated_from_answer_correct"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "news_ht_004",
+        "status": "pass",
+        "detail": {
+          "answer_correct": true,
+          "auto_grade_reason": "string_match",
+          "auto_grade_status": "graded",
+          "manual_required": true,
+          "human_fields_separate": true,
+          "evaluator_executed": true,
+          "agent_error_type": null,
+          "note": "evaluator_executed_separated_from_answer_correct"
+        },
+        "primary_blocking": false
+      }
+    ]
+  }
+}

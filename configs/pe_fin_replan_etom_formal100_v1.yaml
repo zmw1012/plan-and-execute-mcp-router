@@ -1,0 +1,53 @@
+experiment: pe_fin_replan_etom_formal100_v1
+condition: pe_fin_replan_etom
+method_version: pe_fin_replan_etom_v1
+protocol_version: planner_executor_replanner_etom_seven_round_v1
+architecture: plan_execute_replan
+base_method: pe_fin_replan_v1_4_1
+transfer_source: hk155_pe_fin_replan
+posthoc_exploratory: true
+formal_primary_result: false
+cross_benchmark_transfer_evaluation: true
+execution: routing_capable_pe_replan
+dataset_split: external_formal
+benchmark_role: external_validation
+
+llm:
+  # Proposed-method identity (NOT Operation-Visible baseline aliyun).
+  # See configs/operations/pe_fin_replan_etom_generation_provider_v1.yaml
+  provider: openai_compatible
+  host: api.zhizengzeng.com
+  model: deepseek-v4.1-flash
+  env_profile_role: relay_v41
+  temperature: 0.0
+  max_tokens: 2048
+  planner_max_tokens: 4096
+  json_mode: true
+
+embedding:
+  model: text-embedding-3-small
+  lexical_weight: 0.12
+  top_k: 5
+  describe_n: 3
+  cache_namespace: pe_fin_replan_etom_operation_embeddings_v1
+  default_cache_dir: .cache/pe_fin_replan_etom_operation_embeddings_v1
+
+limits:
+  max_tasks: 100
+  max_total_llm_calls_per_task: 16
+  max_total_mcp_invocations: 8
+  max_execution_rounds: 7
+  max_executed_steps: 7
+  max_replan_rounds: 7
+  max_new_steps_per_replan: 2
+  max_local_fallback_per_retrieve: 1
+  retrieval_top_k: 5
+  describe_top_n: 3
+  timeout_sec: 180
+
+sampler:
+  seed: 20261106
+  sampler_version: etom_stratified_external_100_v1
+  lock_file: benchmarks/etom/formal_100_v1.lock.json
+
+capability_profile: configs/capabilities/etom100_capability_profile_v1.yaml

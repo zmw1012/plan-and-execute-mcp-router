@@ -1,0 +1,193 @@
+{
+  "v1_1_auto_gradable_count": 147,
+  "v1_1_auto_graded_correct": 57,
+  "v1_1_auto_graded_accuracy": 0.3877551020408163,
+  "v1_1_manual_required_count": 8,
+  "v1_2_auto_gradable_count": 154,
+  "v1_2_auto_graded_correct": 94,
+  "v1_2_auto_graded_accuracy": 0.6103896103896104,
+  "v1_2_manual_required_count": 1,
+  "flips_false_to_true_count": 30,
+  "flips_true_to_false_count": 0,
+  "flips_false_to_true": [
+    {
+      "task_id": "fin_ht_021",
+      "reason_v1_2": "numeric_match"
+    },
+    {
+      "task_id": "xd_ht_004",
+      "reason_v1_2": "numeric_match;numeric_match"
+    },
+    {
+      "task_id": "fin_cf_018",
+      "reason_v1_2": "numeric_match"
+    },
+    {
+      "task_id": "xd_ht_008",
+      "reason_v1_2": "numeric_match;string_match;string_match"
+    },
+    {
+      "task_id": "fin_ht_001",
+      "reason_v1_2": "numeric_match"
+    },
+    {
+      "task_id": "fin_ht_002",
+      "reason_v1_2": "numeric_match"
+    },
+    {
+      "task_id": "xd_dev_001",
+      "reason_v1_2": "numeric_match;numeric_match"
+    },
+    {
+      "task_id": "fin_cf_026",
+      "reason_v1_2": "numeric_match"
+    },
+    {
+      "task_id": "xd_ht_001",
+      "reason_v1_2": "numeric_match;numeric_match"
+    },
+    {
+      "task_id": "fin_cf_001",
+      "reason_v1_2": "numeric_match"
+    },
+    {
+      "task_id": "xd_dev_004",
+      "reason_v1_2": "numeric_match;string_match"
+    },
+    {
+      "task_id": "fin_cf_002",
+      "reason_v1_2": "numeric_match"
+    },
+    {
+      "task_id": "fin_cf_004",
+      "reason_v1_2": "numeric_match"
+    },
+    {
+      "task_id": "xd_ht_005",
+      "reason_v1_2": "numeric_match;string_match"
+    },
+    {
+      "task_id": "mkt_ht_011",
+      "reason_v1_2": "numeric_match"
+    },
+    {
+      "task_id": "fin_ht_024",
+      "reason_v1_2": "numeric_match"
+    },
+    {
+      "task_id": "fin_ht_013",
+      "reason_v1_2": "numeric_match"
+    },
+    {
+      "task_id": "mkt_dev_008",
+      "reason_v1_2": "numeric_match"
+    },
+    {
+      "task_id": "fin_ht_014",
+      "reason_v1_2": "numeric_match"
+    },
+    {
+      "task_id": "mkt_ht_015",
+      "reason_v1_2": "numeric_match"
+    },
+    {
+      "task_id": "xd_dev_009",
+      "reason_v1_2": "numeric_match;string_match;numeric_match"
+    },
+    {
+      "task_id": "fin_ht_004",
+      "reason_v1_2": "numeric_match"
+    },
+    {
+      "task_id": "mkt_ht_014",
+      "reason_v1_2": "numeric_match"
+    },
+    {
+      "task_id": "mkt_dev_013",
+      "reason_v1_2": "numeric_match"
+    },
+    {
+      "task_id": "fin_ht_025",
+      "reason_v1_2": "numeric_match;numeric_match"
+    },
+    {
+      "task_id": "fin_ht_026",
+      "reason_v1_2": "numeric_match;numeric_match"
+    },
+    {
+      "task_id": "fin_cf_007",
+      "reason_v1_2": "numeric_match"
+    },
+    {
+      "task_id": "fin_ht_005",
+      "reason_v1_2": "numeric_match"
+    },
+    {
+      "task_id": "fin_ht_006",
+      "reason_v1_2": "numeric_match"
+    },
+    {
+      "task_id": "fin_ht_007",
+      "reason_v1_2": "numeric_match;numeric_match"
+    }
+  ],
+  "flips_true_to_false": [],
+  "newly_auto_gradable_from_manual": [
+    {
+      "task_id": "mkt_dev_003",
+      "answer_correct_v1_2": true,
+      "reason": "labeled_multi_match:open:match,high:match,low:match,close:match"
+    },
+    {
+      "task_id": "xd_ht_003",
+      "answer_correct_v1_2": true,
+      "reason": "structured_part_match;numeric_match"
+    },
+    {
+      "task_id": "mkt_ht_004",
+      "answer_correct_v1_2": true,
+      "reason": "labeled_multi_match:open:match,high:match,low:match,close:match"
+    },
+    {
+      "task_id": "mkt_dev_007",
+      "answer_correct_v1_2": true,
+      "reason": "labeled_multi_match:unadjusted:match,qfq:match"
+    },
+    {
+      "task_id": "mkt_ht_006",
+      "answer_correct_v1_2": true,
+      "reason": "labeled_multi_match:unadjusted:match,hfq:match"
+    },
+    {
+      "task_id": "mkt_ht_008",
+      "answer_correct_v1_2": true,
+      "reason": "identity_match"
+    },
+    {
+      "task_id": "mkt_ht_016",
+      "answer_correct_v1_2": true,
+      "reason": "labeled_multi_match:ma5:match,simple_return:match"
+    }
+  ],
+  "still_manual_required": [
+    "fin_cf_022"
+  ],
+  "change_explanations": [
+    {
+      "bucket": "semantic_and_currency_units",
+      "explanation": "v1.1 required literal unit tokens (e.g. 'percent', 'cny'+'million'); v1.2 accepts % / RMB↔CNY aliases and semantic units such as decimal_return."
+    },
+    {
+      "bucket": "unicode_minus_and_scale",
+      "explanation": "v1.2 normalizes Unicode minus and matches percent↔decimal and million↔raw/billion scale forms with scaled tolerances."
+    },
+    {
+      "bucket": "labeled_multi_value",
+      "explanation": "OHLC / unadjusted-qfq-hfq / MA+return dict gold_values are now auto-gradable via label binding instead of manual_required."
+    },
+    {
+      "bucket": "refusal_substitute",
+      "explanation": "Refusal items that answer with numeric substitutes remain incorrect; status-only refusals without fabricated targets remain correct."
+    }
+  ]
+}

@@ -1,0 +1,292 @@
+{
+  "counts": {
+    "disclosure_steps": 65,
+    "list": 65,
+    "chain_started_but_incomplete_proxy": 46,
+    "evidence_found_but_not_accepted_proxy": 46,
+    "stopped_after_list": 19,
+    "execution_ok": 19,
+    "list_success_not_body_evidence": 19,
+    "download": 24,
+    "parse": 24,
+    "keyword": 24,
+    "pages": 24
+  },
+  "n_details": 65,
+  "note": "list success ≠ body evidence complete; proxies labeled _proxy when flag absent",
+  "sample": [
+    {
+      "task_id": "fin_ht_022",
+      "step_id": "s1",
+      "invoked": [
+        "hkexnews.list_hkexnews_announcements"
+      ],
+      "execution_ok": false,
+      "missing_outputs": [
+        "report_date",
+        "fiscal_period"
+      ],
+      "stopped_after_list": false
+    },
+    {
+      "task_id": "news_ht_006",
+      "step_id": "s1",
+      "invoked": [
+        "hkexnews.list_hkexnews_announcements"
+      ],
+      "execution_ok": false,
+      "missing_outputs": [
+        "title",
+        "source_url"
+      ],
+      "stopped_after_list": false
+    },
+    {
+      "task_id": "news_dev_003",
+      "step_id": "s1",
+      "invoked": [
+        "hkexnews.list_hkexnews_announcements"
+      ],
+      "execution_ok": true,
+      "missing_outputs": [],
+      "stopped_after_list": true
+    },
+    {
+      "task_id": "news_ht_003",
+      "step_id": "s1",
+      "invoked": [
+        "hkexnews.list_hkexnews_announcements"
+      ],
+      "execution_ok": false,
+      "missing_outputs": [
+        "release_date",
+        "title",
+        "source_url"
+      ],
+      "stopped_after_list": false
+    },
+    {
+      "task_id": "fin_cf_019",
+      "step_id": "s2",
+      "invoked": [
+        "hkexnews.list_hkexnews_announcements",
+        "hkexnews.download_hkexnews_announcement",
+        "hkexnews.parse_hkexnews_announcement",
+        "hkexnews.keyword_search",
+        "hkexnews.get_announcement_pages"
+      ],
+      "execution_ok": false,
+      "missing_outputs": [
+        "attributable_profit",
+        "currency",
+        "report_date",
+        "fiscal_period",
+        "snippet",
+        "page_number"
+      ],
+      "stopped_after_list": false
+    },
+    {
+      "task_id": "news_dev_005",
+      "step_id": "s1",
+      "invoked": [
+        "hkexnews.list_hkexnews_announcements"
+      ],
+      "execution_ok": true,
+      "missing_outputs": [],
+      "stopped_after_list": true
+    },
+    {
+      "task_id": "xd_ht_008",
+      "step_id": "s1",
+      "invoked": [
+        "hkexnews.list_hkexnews_announcements"
+      ],
+      "execution_ok": false,
+      "missing_outputs": [
+        "title",
+        "source_url",
+        "local_key",
+        "report_date"
+      ],
+      "stopped_after_list": false
+    },
+    {
+      "task_id": "fin_cf_011",
+      "step_id": "s2",
+      "invoked": [
+        "hkexnews.list_hkexnews_announcements",
+        "hkexnews.download_hkexnews_announcement",
+        "hkexnews.parse_hkexnews_announcement",
+        "hkexnews.keyword_search",
+        "hkexnews.get_announcement_pages"
+      ],
+      "execution_ok": false,
+      "missing_outputs": [
+        "snippet",
+        "page_number",
+        "currency",
+        "report_date"
+      ],
+      "stopped_after_list": false
+    },
+    {
+      "task_id": "news_dev_002",
+      "step_id": "s1",
+      "invoked": [
+        "hkexnews.list_hkexnews_announcements"
+      ],
+      "execution_ok": true,
+      "missing_outputs": [],
+      "stopped_after_list": true
+    },
+    {
+      "task_id": "xd_dev_006",
+      "step_id": "s2",
+      "invoked": [
+        "hkexnews.list_hkexnews_announcements"
+      ],
+      "execution_ok": true,
+      "missing_outputs": [],
+      "stopped_after_list": true
+    },
+    {
+      "task_id": "news_ht_002",
+      "step_id": "s1",
+      "invoked": [
+        "hkexnews.list_hkexnews_announcements"
+      ],
+      "execution_ok": false,
+      "missing_outputs": [
+        "company_name",
+        "title",
+        "release_date",
+        "local_key",
+        "source_url"
+      ],
+      "stopped_after_list": false
+    },
+    {
+      "task_id": "xd_dev_008",
+      "step_id": "s1",
+      "invoked": [
+        "hkexnews.list_hkexnews_announcements"
+      ],
+      "execution_ok": true,
+      "missing_outputs": [],
+      "stopped_after_list": true
+    },
+    {
+      "task_id": "fin_cf_028",
+      "step_id": "s2",
+      "invoked": [
+        "hkexnews.list_hkexnews_announcements",
+        "hkexnews.download_hkexnews_announcement",
+        "hkexnews.parse_hkexnews_announcement",
+        "hkexnews.keyword_search",
+        "hkexnews.get_announcement_pages"
+      ],
+      "execution_ok": false,
+      "missing_outputs": [
+        "basic_eps",
+        "currency",
+        "fiscal_period",
+        "report_date",
+        "snippet",
+        "page_number"
+      ],
+      "stopped_after_list": false
+    },
+    {
+      "task_id": "news_ht_005",
+      "step_id": "s1",
+      "invoked": [
+        "hkexnews.list_hkexnews_announcements"
+      ],
+      "execution_ok": true,
+      "missing_outputs": [],
+      "stopped_after_list": true
+    },
+    {
+      "task_id": "fin_cf_010",
+      "step_id": "s2",
+      "invoked": [
+        "hkexnews.list_hkexnews_announcements",
+        "hkexnews.download_hkexnews_announcement",
+        "hkexnews.parse_hkexnews_announcement",
+        "hkexnews.keyword_search",
+        "hkexnews.get_announcement_pages"
+      ],
+      "execution_ok": false,
+      "missing_outputs": [
+        "page_number",
+        "snippet",
+        "currency",
+        "revenue"
+      ],
+      "stopped_after_list": false
+    },
+    {
+      "task_id": "news_ht_004",
+      "step_id": "s1",
+      "invoked": [
+        "hkexnews.list_hkexnews_announcements"
+      ],
+      "execution_ok": true,
+      "missing_outputs": [],
+      "stopped_after_list": true
+    },
+    {
+      "task_id": "news_dev_004",
+      "step_id": "s1",
+      "invoked": [
+        "hkexnews.list_hkexnews_announcements"
+      ],
+      "execution_ok": false,
+      "missing_outputs": [
+        "title",
+        "release_date",
+        "local_key",
+        "source_url"
+      ],
+      "stopped_after_list": false
+    },
+    {
+      "task_id": "news_dev_001",
+      "step_id": "s1",
+      "invoked": [
+        "hkexnews.list_hkexnews_announcements"
+      ],
+      "execution_ok": true,
+      "missing_outputs": [],
+      "stopped_after_list": true
+    },
+    {
+      "task_id": "news_ht_001",
+      "step_id": "s1",
+      "invoked": [
+        "hkexnews.list_hkexnews_announcements",
+        "hkexnews.download_hkexnews_announcement",
+        "hkexnews.parse_hkexnews_announcement",
+        "hkexnews.keyword_search",
+        "hkexnews.get_announcement_pages"
+      ],
+      "execution_ok": false,
+      "missing_outputs": [
+        "snippet",
+        "page_number"
+      ],
+      "stopped_after_list": false
+    },
+    {
+      "task_id": "xd_dev_005",
+      "step_id": "s2",
+      "invoked": [
+        "hkexnews.list_hkexnews_announcements"
+      ],
+      "execution_ok": true,
+      "missing_outputs": [],
+      "stopped_after_list": true
+    }
+  ]
+}

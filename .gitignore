@@ -17,6 +17,12 @@ dist/
 .venv/
 venv/
 env/
+.venv-*/
+.venv-*-discovery/
+.release-site/
+
+# Local MCP / AKTools runtime logs (keep files locally; do not commit)
+aktools_log.log*
 
 # Test / coverage
 .pytest_cache/
@@ -39,6 +45,30 @@ results/
 .cache/
 .python-version
 
+# Formal-100 raw accidentally written to repository root (output-dir incident).
+# Keep untracked; audit via docs/.../FORMAL_RUN_RAW_POINTER.json.
+/predictions.jsonl
+/run_metadata.json
+/grouped_results.json
+/grouped_results_failures_as_zero.json
+/per_task_metrics.csv
+/error_summary.json
+/retrieval_analysis.json
+/run.pid.json
+
 # Large or local data dumps (keep mock/ and .gitkeep)
 data/raw/
 data/private/
+
+# ETOM pinned raw checkout / derived / cache (local fetch; do not commit)
+# Pin, lock, and conversion code stay tracked. Do not commit API keys.
+data/etom/raw/
+data/etom/raw
+data/etom/derived/
+data/etom/cache/
+.cache/etom_embeddings/
+.cache/mcp_zero_etom_v1/
+*.partial.jsonl
+*.partial.meta.json
+*.partial.jsonl.tmp
+*.partial.meta.json.tmp

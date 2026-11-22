@@ -1,0 +1,345 @@
+[
+  {
+    "category": "narrative_non_ifrs",
+    "task_spec": {
+      "goal": "Obtain the requested HK equity evidence.",
+      "entities": [
+        "hk_listed_issuer",
+        "hk_listed_issuer"
+      ],
+      "periods": [
+        "FY2025"
+      ],
+      "metrics": [
+        "non_IFRS_profit_attributable_to_equity_holders"
+      ],
+      "constraints": [
+        "cutoff_2026-08-12"
+      ],
+      "ambiguities": [],
+      "answerability_hypothesis": "answerable",
+      "answerability_reason": "Evidence expected from supported sources.",
+      "metric_basis_hints": [
+        "non-IFRS"
+      ]
+    },
+    "retrieve_steps": [
+      {
+        "step_id": "s1_retrieve",
+        "step_type": "retrieve",
+        "objective": "Retrieve FY2025 non-IFRS profit attributable to equity holders with currency and unit.",
+        "depends_on": [],
+        "mandatory": true,
+        "success_criteria": "Metric, basis, currency, unit, period found",
+        "retrieval_query_hint": "Tencent FY2025 annual results non-IFRS profit attributable to equity holders",
+        "required_capability": "financial.reported_metric_bundle",
+        "required_outputs": [
+          "non_ifrs_profit_attributable_to_equity_holders",
+          "currency",
+          "unit",
+          "period"
+        ],
+        "argument_slots": {
+          "ticker": "00700",
+          "period": "FY2025",
+          "basis": "non-IFRS"
+        },
+        "source_preference": [
+          "official_disclosure"
+        ],
+        "fallback_capabilities": [
+          "financial.filing_search"
+        ],
+        "compute_spec": null,
+        "notes": null
+      }
+    ],
+    "incomplete_monitor_new_steps": [],
+    "stopping_reason": "monitor_fail"
+  },
+  {
+    "category": "financial_margin",
+    "task_spec": {
+      "goal": "Obtain the requested HK equity evidence.",
+      "entities": [
+        "hk_listed_issuer",
+        "hk_listed_issuer"
+      ],
+      "periods": [
+        "FY2026",
+        "year_ended_2026-03-31"
+      ],
+      "metrics": [
+        "revenue",
+        "net_income_attributable_to_ordinary_shareholders",
+        "attributable_net_margin"
+      ],
+      "constraints": [
+        "cutoff_2026-08-12"
+      ],
+      "ambiguities": [],
+      "answerability_hypothesis": "answerable",
+      "answerability_reason": "Evidence expected from supported sources.",
+      "metric_basis_hints": [
+        "reported",
+        "US GAAP",
+        "attributable to ordinary shareholders"
+      ]
+    },
+    "retrieve_steps": [
+      {
+        "step_id": "s1_retrieve",
+        "step_type": "retrieve",
+        "objective": "Retrieve hk_listed_issuer FY2026 reported revenue and net income attributable to ordinary shareholders.",
+        "depends_on": [],
+        "mandatory": true,
+        "success_criteria": "Both reported FY2026 figures obtained with period and currency basis.",
+        "retrieval_query_hint": "Alibaba FY2026 revenue net income attributable to ordinary shareholders",
+        "required_capability": "financial.reported_metric_bundle",
+        "required_outputs": [
+          "revenue",
+          "net_income_attributable_to_ordinary_shareholders"
+        ],
+        "argument_slots": {
+          "issuer": "Alibaba Group Holding Limited",
+          "ticker": "9988.HK",
+          "fiscal_year": "FY2026",
+          "period_end": "2026-03-31",
+          "statement": "consolidated_income_statement"
+        },
+        "source_preference": [
+          "official_disclosure",
+          "structured_vendor"
+        ],
+        "fallback_capabilities": [
+          "financial.annual_report_financials"
+        ],
+        "compute_spec": null,
+        "notes": null
+      }
+    ],
+    "incomplete_monitor_new_steps": [
+      {
+        "step_id": "s1a_revenue_retrieve",
+        "step_type": "retrieve",
+        "objective": "fallback retrieve",
+        "depends_on": [],
+        "mandatory": true,
+        "success_criteria": "rows"
+      },
+      {
+        "step_id": "s1a_retrieve_eps",
+        "step_type": "retrieve",
+        "objective": "fallback retrieve",
+        "depends_on": [],
+        "mandatory": true,
+        "success_criteria": "rows"
+      },
+      {
+        "step_id": "s1b_retrieve_fallback",
+        "step_type": "retrieve",
+        "objective": "fallback retrieve",
+        "depends_on": [],
+        "mandatory": true,
+        "success_criteria": "rows"
+      }
+    ],
+    "stopping_reason": "monitor_fail_closed"
+  },
+  {
+    "category": "cross_domain_eps_volume",
+    "task_spec": {
+      "goal": "Obtain the requested HK equity evidence.",
+      "entities": [
+        "hk_listed_issuer"
+      ],
+      "periods": [
+        "FY2025",
+        "2026-06-30"
+      ],
+      "metrics": [
+        "reported_basic_eps",
+        "unadjusted_trading_volume"
+      ],
+      "constraints": [
+        "cutoff_2026-08-12"
+      ],
+      "ambiguities": [],
+      "answerability_hypothesis": "answerable",
+      "answerability_reason": "Evidence expected from supported sources.",
+      "metric_basis_hints": [
+        "reported basic EPS",
+        "adjust=\"\""
+      ]
+    },
+    "retrieve_steps": [
+      {
+        "step_id": "s1_retrieve_eps",
+        "step_type": "retrieve",
+        "objective": "Retrieve hk_listed_issuer reported FY2025 basic EPS and its currency.",
+        "depends_on": [],
+        "mandatory": true,
+        "success_criteria": "Reported basic EPS, currency, period, and basis obtained",
+        "retrieval_query_hint": "HSBC FY2025 reported basic EPS",
+        "required_capability": "financial.reported_metric_bundle",
+        "required_outputs": [
+          "basic_eps",
+          "eps_currency",
+          "reporting_period",
+          "accounting_basis"
+        ],
+        "argument_slots": {
+          "ticker": "00005",
+          "period": "FY2025",
+          "metric": "basic_eps",
+          "basis": "reported"
+        },
+        "source_preference": [
+          "official_disclosure",
+          "structured_vendor"
+        ],
+        "fallback_capabilities": [],
+        "compute_spec": null,
+        "notes": null
+      },
+      {
+        "step_id": "s2_retrieve_volume",
+        "step_type": "retrieve",
+        "objective": "Retrieve hk_listed_issuer unadjusted trading volume for 2026-06-30.",
+        "depends_on": [],
+        "mandatory": true,
+        "success_criteria": "Trading volume, unit, date, and adjustment flag obtained",
+        "retrieval_query_hint": "HSBC 00005.HK trading volume 2026-06-30 adjust empty",
+        "required_capability": "market.daily_trading_volume",
+        "required_outputs": [
+          "trading_volume",
+          "volume_unit",
+          "trade_date",
+          "adjustment"
+        ],
+        "argument_slots": {
+          "ticker": "00005",
+          "date": "2026-06-30",
+          "adjust": ""
+        },
+        "source_preference": [
+          "structured_vendor",
+          "official_market_data"
+        ],
+        "fallback_capabilities": [],
+        "compute_spec": null,
+        "notes": null
+      }
+    ],
+    "incomplete_monitor_new_steps": [
+      {
+        "step_id": "s1a_revenue_retrieve",
+        "step_type": "retrieve",
+        "objective": "fallback retrieve",
+        "depends_on": [],
+        "mandatory": true,
+        "success_criteria": "rows"
+      },
+      {
+        "step_id": "s1a_retrieve_eps",
+        "step_type": "retrieve",
+        "objective": "fallback retrieve",
+        "depends_on": [],
+        "mandatory": true,
+        "success_criteria": "rows"
+      },
+      {
+        "step_id": "s1b_retrieve_fallback",
+        "step_type": "retrieve",
+        "objective": "fallback retrieve",
+        "depends_on": [],
+        "mandatory": true,
+        "success_criteria": "rows"
+      }
+    ],
+    "stopping_reason": "monitor_fail_closed"
+  },
+  {
+    "category": "market_latest_close",
+    "task_spec": {
+      "goal": "Obtain the requested HK equity evidence.",
+      "entities": [
+        "hk_listed_issuer",
+        "hk_listed_issuer"
+      ],
+      "periods": [
+        "latest_session_le_2026-08-12"
+      ],
+      "metrics": [
+        "closing_price"
+      ],
+      "constraints": [
+        "cutoff_2026-08-12"
+      ],
+      "ambiguities": [],
+      "answerability_hypothesis": "answerable",
+      "answerability_reason": "Evidence expected from supported sources.",
+      "metric_basis_hints": [
+        "official_unadjusted_close"
+      ]
+    },
+    "retrieve_steps": [
+      {
+        "step_id": "s1_retrieve",
+        "step_type": "retrieve",
+        "objective": "Retrieve hk_listed_issuer 00700.HK latest official closing price.",
+        "depends_on": [],
+        "mandatory": true,
+        "success_criteria": "Close price with trade date obtained",
+        "retrieval_query_hint": "00700.HK latest official close",
+        "required_capability": "market.equity_eod_price",
+        "required_outputs": [
+          "closing_price",
+          "trade_date",
+          "currency"
+        ],
+        "argument_slots": {
+          "ticker": "00700.HK",
+          "as_of": "2026-08-12",
+          "price_basis": "unadjusted_close"
+        },
+        "source_preference": [
+          "hkex_official",
+          "structured_vendor"
+        ],
+        "fallback_capabilities": [
+          "market.equity_quote_snapshot"
+        ],
+        "compute_spec": null,
+        "notes": null
+      }
+    ],
+    "incomplete_monitor_new_steps": [
+      {
+        "step_id": "s1a_revenue_retrieve",
+        "step_type": "retrieve",
+        "objective": "fallback retrieve",
+        "depends_on": [],
+        "mandatory": true,
+        "success_criteria": "rows"
+      },
+      {
+        "step_id": "s1a_retrieve_eps",
+        "step_type": "retrieve",
+        "objective": "fallback retrieve",
+        "depends_on": [],
+        "mandatory": true,
+        "success_criteria": "rows"
+      },
+      {
+        "step_id": "s1b_retrieve_fallback",
+        "step_type": "retrieve",
+        "objective": "fallback retrieve",
+        "depends_on": [],
+        "mandatory": true,
+        "success_criteria": "rows"
+      }
+    ],
+    "stopping_reason": "monitor_fail_closed"
+  }
+]

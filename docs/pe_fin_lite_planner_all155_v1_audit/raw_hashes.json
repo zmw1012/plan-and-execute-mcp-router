@@ -1,0 +1,184 @@
+{
+  "before": {
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/catalog_index/build_index_result.json": {
+      "sha256": "b07890c5b77af37841cb7fdc8217f52ae39027700fb81248681c602bbc028724",
+      "bytes": 3260
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/catalog_index/index_status.json": {
+      "sha256": "a416093a3fd5f89e477cd1422eba7d67c0ac9540509a3f452f2c12a434a3d9c3",
+      "bytes": 3365
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/catalog_index/run_metadata.json": {
+      "sha256": "857b9d3203dcb3c4099a45ebf75e32b9799be36fed0b8a2880b8febb38985242",
+      "bytes": 3453
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/planner_cache/error_summary.json": {
+      "sha256": "2044c71f4a6eedbb02fc63dd5427d591c08b51dca3ce9c46877da6d15be0b4d2",
+      "bytes": 4598
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/planner_cache/planner_cache_identity.json": {
+      "sha256": "2f36dc436d65b02e61cdeb03d034a5a5361171956fc1fdce79d0a9c5927330c3",
+      "bytes": 1042
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/planner_cache/planner_only_summary.json": {
+      "sha256": "49b05fd7c93b84fe55591adff8b8b56e4bc78655700c1cb82e26a784319b913f",
+      "bytes": 6057
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/planner_cache/planner_outputs.jsonl": {
+      "sha256": "002d60972d13b1e3728642ef7d63eeb1ada543c19bd25129b54ae67be3a312d5",
+      "bytes": 910852
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/planner_cache/run_metadata.json": {
+      "sha256": "4280f52c6dd6b426fc7b2243e9eeae1eae822021553e355f3a39ed86addfd008",
+      "bytes": 9700
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_level/cache_identity.json": {
+      "sha256": "90c3de072f4c05657da67b3683e4f1aebb83e7b4750c90add537c8a04b5793c8",
+      "bytes": 922
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_level/distractor_analysis.json": {
+      "sha256": "f85883cae542f6bee65d1d021697632eba3e7ca919ccd9ca5e076a4e6ff725cd",
+      "bytes": 405
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_level/error_summary.json": {
+      "sha256": "339acc3b09add3c3d0e689adf17878a1bd264d3a3f00fccce7db538630e20066",
+      "bytes": 19
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_level/filter_miss_analysis.json": {
+      "sha256": "d45d60a372d5e70caef958e81845ebf56c2839aaa8bb430c1e2b549636a361eb",
+      "bytes": 60
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_level/operation_coverage.json": {
+      "sha256": "6e60af4300b272f737889d749eb577597ce4aabc9d4dee5fbc6ebb3b411520e7",
+      "bytes": 2338
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_level/per_domain_metrics.json": {
+      "sha256": "dd7320b0449afe9afe5c21825124d38f80d4aefa99f5ba7b8496fa0b448a98d6",
+      "bytes": 1685
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_level/per_query_rankings.jsonl": {
+      "sha256": "5e5dbc7c73ba5e15f1dea9dc383e72462928c9541206c73e81ad37ff6aff23b9",
+      "bytes": 527424
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_level/retrieval_metrics.json": {
+      "sha256": "b4f7df91fef14cb678860dd1ee0a4a8946ed3468d809a5d79a196daf5f88cc16",
+      "bytes": 10692
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_level/route_coverage.json": {
+      "sha256": "6cdd9cbd57575f9f1ebcf74880ad2e5d1925c2aa8732b4258fc9fed78fc0140f",
+      "bytes": 138
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_level/run_metadata.json": {
+      "sha256": "0df069b885a167068a38fb1ec925f9cac1f79b9ef77a34d99788cae1fa7d59ba",
+      "bytes": 4175
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_query_cache/question_query_cache_identity.json": {
+      "sha256": "05ef2bdfa70f5cdee323793217eee3204ee10ba13e854e1b9a6813f9af2856cb",
+      "bytes": 597
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_query_cache/question_query_vectors.json": {
+      "sha256": "68d0de48e79529797c581406de08c689269b8ec0ab2878b30384b145db31b5a4",
+      "bytes": 6267947
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_query_cache/question_query_vectors.partial.jsonl": {
+      "sha256": "f4ac22e3b0f392fb5eb3f0a62c7e344be5e172634e49bbf1837ba81978a036ef",
+      "bytes": 4873236
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_query_cache/run_metadata.json": {
+      "sha256": "d63eecd4c6c6e06cd8c846262c296350ed232501f5dc81f25509f87b962d4ad3",
+      "bytes": 3914
+    }
+  },
+  "after": {
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/catalog_index/build_index_result.json": {
+      "sha256": "b07890c5b77af37841cb7fdc8217f52ae39027700fb81248681c602bbc028724",
+      "bytes": 3260
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/catalog_index/index_status.json": {
+      "sha256": "a416093a3fd5f89e477cd1422eba7d67c0ac9540509a3f452f2c12a434a3d9c3",
+      "bytes": 3365
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/catalog_index/run_metadata.json": {
+      "sha256": "857b9d3203dcb3c4099a45ebf75e32b9799be36fed0b8a2880b8febb38985242",
+      "bytes": 3453
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/planner_cache/error_summary.json": {
+      "sha256": "2044c71f4a6eedbb02fc63dd5427d591c08b51dca3ce9c46877da6d15be0b4d2",
+      "bytes": 4598
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/planner_cache/planner_cache_identity.json": {
+      "sha256": "2f36dc436d65b02e61cdeb03d034a5a5361171956fc1fdce79d0a9c5927330c3",
+      "bytes": 1042
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/planner_cache/planner_only_summary.json": {
+      "sha256": "49b05fd7c93b84fe55591adff8b8b56e4bc78655700c1cb82e26a784319b913f",
+      "bytes": 6057
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/planner_cache/planner_outputs.jsonl": {
+      "sha256": "002d60972d13b1e3728642ef7d63eeb1ada543c19bd25129b54ae67be3a312d5",
+      "bytes": 910852
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/planner_cache/run_metadata.json": {
+      "sha256": "4280f52c6dd6b426fc7b2243e9eeae1eae822021553e355f3a39ed86addfd008",
+      "bytes": 9700
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_level/cache_identity.json": {
+      "sha256": "90c3de072f4c05657da67b3683e4f1aebb83e7b4750c90add537c8a04b5793c8",
+      "bytes": 922
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_level/distractor_analysis.json": {
+      "sha256": "f85883cae542f6bee65d1d021697632eba3e7ca919ccd9ca5e076a4e6ff725cd",
+      "bytes": 405
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_level/error_summary.json": {
+      "sha256": "339acc3b09add3c3d0e689adf17878a1bd264d3a3f00fccce7db538630e20066",
+      "bytes": 19
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_level/filter_miss_analysis.json": {
+      "sha256": "d45d60a372d5e70caef958e81845ebf56c2839aaa8bb430c1e2b549636a361eb",
+      "bytes": 60
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_level/operation_coverage.json": {
+      "sha256": "6e60af4300b272f737889d749eb577597ce4aabc9d4dee5fbc6ebb3b411520e7",
+      "bytes": 2338
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_level/per_domain_metrics.json": {
+      "sha256": "dd7320b0449afe9afe5c21825124d38f80d4aefa99f5ba7b8496fa0b448a98d6",
+      "bytes": 1685
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_level/per_query_rankings.jsonl": {
+      "sha256": "5e5dbc7c73ba5e15f1dea9dc383e72462928c9541206c73e81ad37ff6aff23b9",
+      "bytes": 527424
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_level/retrieval_metrics.json": {
+      "sha256": "b4f7df91fef14cb678860dd1ee0a4a8946ed3468d809a5d79a196daf5f88cc16",
+      "bytes": 10692
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_level/route_coverage.json": {
+      "sha256": "6cdd9cbd57575f9f1ebcf74880ad2e5d1925c2aa8732b4258fc9fed78fc0140f",
+      "bytes": 138
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_level/run_metadata.json": {
+      "sha256": "0df069b885a167068a38fb1ec925f9cac1f79b9ef77a34d99788cae1fa7d59ba",
+      "bytes": 4175
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_query_cache/question_query_cache_identity.json": {
+      "sha256": "05ef2bdfa70f5cdee323793217eee3204ee10ba13e854e1b9a6813f9af2856cb",
+      "bytes": 597
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_query_cache/question_query_vectors.json": {
+      "sha256": "68d0de48e79529797c581406de08c689269b8ec0ab2878b30384b145db31b5a4",
+      "bytes": 6267947
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_query_cache/question_query_vectors.partial.jsonl": {
+      "sha256": "f4ac22e3b0f392fb5eb3f0a62c7e344be5e172634e49bbf1837ba81978a036ef",
+      "bytes": 4873236
+    },
+    "outputs/pe_fin_lite_retrieval_all155_live_v1/question_query_cache/run_metadata.json": {
+      "sha256": "d63eecd4c6c6e06cd8c846262c296350ed232501f5dc81f25509f87b962d4ad3",
+      "bytes": 3914
+    }
+  },
+  "unchanged": true,
+  "n_files": 22
+}

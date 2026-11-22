@@ -1,0 +1,70 @@
+{
+  "smoke_id": "hk_unified_dev_smoke_8_v1",
+  "dataset_split": "development",
+  "selection_policy": "deterministic_coverage_lock_v1",
+  "note": "Development-only smoke subset. Does not touch Held-out.",
+  "expected_count": 8,
+  "distribution": {
+    "financial": 2,
+    "market": 2,
+    "news": 2,
+    "cross_domain": 2
+  },
+  "coverage": [
+    "single_tool_query",
+    "multi_step_sequential_dependency",
+    "unanswerable_or_refuse",
+    "exact_l4_cross_domain",
+    "three_company_coverage"
+  ],
+  "tasks": [
+    {
+      "task_id": "fin_cf_001",
+      "domain": "financial",
+      "company": "Tencent",
+      "role": "single_tool_query"
+    },
+    {
+      "task_id": "fin_cf_010",
+      "domain": "financial",
+      "company": "HSBC",
+      "role": "multi_step_sequential_dependency"
+    },
+    {
+      "task_id": "mkt_dev_003",
+      "domain": "market",
+      "company": "Alibaba",
+      "role": "single_tool_query"
+    },
+    {
+      "task_id": "mkt_dev_014",
+      "domain": "market",
+      "company": "Tencent",
+      "role": "unanswerable_or_refuse"
+    },
+    {
+      "task_id": "news_dev_002",
+      "domain": "news",
+      "company": "HSBC",
+      "role": "single_tool_query"
+    },
+    {
+      "task_id": "news_dev_006",
+      "domain": "news",
+      "company": "Tencent",
+      "role": "multi_step_sequential_dependency"
+    },
+    {
+      "task_id": "xd_dev_007",
+      "domain": "cross_domain",
+      "company": "Tencent",
+      "role": "exact_l4_cross_domain"
+    },
+    {
+      "task_id": "xd_dev_003",
+      "domain": "cross_domain",
+      "company": "Alibaba",
+      "role": "cross_domain_parallel"
+    }
+  ]
+}

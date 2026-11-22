@@ -1,0 +1,68 @@
+[
+  {
+    "producer_operation": "hkexnews.list_hkexnews_announcements",
+    "producer_output_field": "local_key",
+    "consumer_operation": "hkexnews.download_hkexnews_announcement",
+    "consumer_input_field": "local_key",
+    "live_verified_dependency": true,
+    "example_value": "00700_GEN_2026-08-06_f90abb86"
+  },
+  {
+    "producer_operation": "hkexnews.list_hkexnews_announcements",
+    "producer_output_field": "news_id",
+    "consumer_operation": "hkexnews.download_hkexnews_announcement",
+    "consumer_input_field": "news_id",
+    "live_verified_dependency": true,
+    "example_value": "12275186"
+  },
+  {
+    "producer_operation": "hkexnews.list_hkexnews_announcements",
+    "producer_output_field": "release_date",
+    "consumer_operation": "hkexnews.download_hkexnews_announcement",
+    "consumer_input_field": "release_date",
+    "live_verified_dependency": true,
+    "example_value": "2026-08-06"
+  },
+  {
+    "producer_operation": "hkexnews.list_hkexnews_announcements",
+    "producer_output_field": "title",
+    "consumer_operation": "hkexnews.download_hkexnews_announcement",
+    "consumer_input_field": "title_keyword",
+    "live_verified_dependency": true,
+    "example_value": "Monthly Return",
+    "note": "list.title truncated into download.title_keyword"
+  },
+  {
+    "producer_operation": "hkexnews.download_hkexnews_announcement",
+    "producer_output_field": "local_key",
+    "consumer_operation": "hkexnews.parse_hkexnews_announcement",
+    "consumer_input_field": "local_key",
+    "live_verified_dependency": true,
+    "example_value": "00700_GEN_2026-08-06_f90abb86"
+  },
+  {
+    "producer_operation": "hkexnews.parse_hkexnews_announcement",
+    "producer_output_field": "local_key",
+    "consumer_operation": "hkexnews.keyword_search",
+    "consumer_input_field": "local_key",
+    "live_verified_dependency": true,
+    "example_value": "00700_GEN_2026-08-06_f90abb86",
+    "note": "keywords must be a list; singular keyword fails schema"
+  },
+  {
+    "producer_operation": "hkexnews.keyword_search",
+    "producer_output_field": "page_number",
+    "consumer_operation": "hkexnews.get_announcement_pages",
+    "consumer_input_field": "start_page",
+    "live_verified_dependency": true,
+    "example_value": 4
+  },
+  {
+    "producer_operation": "hkexnews.parse_hkexnews_announcement",
+    "producer_output_field": "local_key",
+    "consumer_operation": "hkexnews.get_announcement_pages",
+    "consumer_input_field": "local_key",
+    "live_verified_dependency": true,
+    "example_value": "00700_GEN_2026-08-06_f90abb86"
+  }
+]

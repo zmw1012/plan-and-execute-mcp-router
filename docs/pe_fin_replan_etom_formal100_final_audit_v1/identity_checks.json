@@ -1,0 +1,264 @@
+{
+  "pass": true,
+  "n_checks": 47,
+  "n_fail": 0,
+  "n_na": 0,
+  "checks": [
+    {
+      "check": "lock_file_sha256",
+      "ok": true,
+      "detail": "2bda1a2f16dd1b36b5a73b4057b7305b4901ed83eba0b537db2f187a56ed309b"
+    },
+    {
+      "check": "pin_file_sha256",
+      "ok": true,
+      "detail": "5f1ae09e7a8fbb7b554ed1302433feacaffb8645ccc560c7bb87ff64893f2692"
+    },
+    {
+      "check": "sample_sha256",
+      "ok": true,
+      "detail": "99cb671ea3528c1c69ab6fc2a3d622c4d6f6bb07058728071aae5eae8720cbb1"
+    },
+    {
+      "check": "ordered_task_ids_sha256",
+      "ok": true,
+      "detail": "3be67c36e4eec58920864a401bbaa73db55136930b0f406e2da56c4988734479"
+    },
+    {
+      "check": "registry_sha256",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "task_count_100",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "unique_task_ids_100",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "order_matches_frozen_lock",
+      "ok": true,
+      "detail": {
+        "first": [
+          "L1-q556",
+          "L1-q160",
+          "L1-q267"
+        ],
+        "lock_first": [
+          "L1-q556",
+          "L1-q160",
+          "L1-q267"
+        ]
+      }
+    },
+    {
+      "check": "no_missing_ids",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "no_duplicate_ids",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "per_level_20",
+      "ok": true,
+      "detail": {
+        "1": 20,
+        "2": 20,
+        "3": 20,
+        "4": 20,
+        "5": 20
+      }
+    },
+    {
+      "check": "source_commit_pin",
+      "ok": true,
+      "detail": "790f28727f567b88918420d163c524d46644a694"
+    },
+    {
+      "check": "pin_tools_2375",
+      "ok": true,
+      "detail": 2375
+    },
+    {
+      "check": "pin_servers_491",
+      "ok": true,
+      "detail": 491
+    },
+    {
+      "check": "catalog_tools_constant",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "servers_491",
+      "ok": true,
+      "detail": 491
+    },
+    {
+      "check": "condition",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "method_version",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "protocol_version",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "architecture",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "max_rounds_7",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "llm_budget_16",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "mcp_budget_8",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "top_k_5",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "describe_n_3",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "domain_hard_filter_false",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "retrieval_top_k_proto",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "mode_live",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "formal100_true",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "run_role_formal100",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "provider_openai_compatible",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "generation_host",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "generation_model",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "embedding_model",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "git_commit_run",
+      "ok": true,
+      "detail": "9e0fb8ee1874ee7ef84c006d1c361ff7f231293b"
+    },
+    {
+      "check": "git_dirty_false",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "finalization_v2",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "finalization_hash",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "live_pass_claimed_false",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "posthoc_exploratory",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "formal_primary_false",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "execution_scope",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "real_tool_executions_total_0",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "routing_equals_mcp_meta",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "row_real_tool_executions_0",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "row_routing_record_eq_mcp",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "row_executed_etom_mcp_tool_false",
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "failures": [],
+  "lock_task_count": 100,
+  "ordered_task_count": 100,
+  "source_commit": "790f28727f567b88918420d163c524d46644a694"
+}

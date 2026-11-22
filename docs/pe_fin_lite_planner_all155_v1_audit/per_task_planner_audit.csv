@@ -1,0 +1,156 @@
+task_id,ok,source_split,domain,difficulty,repair_count,n_retrieve_steps,error,error_taxonomy,first_response_valid_under_v2_canonicalizer,first_error_under_v2,repair_response_valid_under_v2_canonicalizer,repair_error_under_v2,offline_recoverable_by_structural_rules,structural_rules_applied,semantic_plan_changed_beyond_allowed_rules,llm_calls,tokens_in,tokens_out,tokens_total,latency_ms
+fin_ht_022,True,previously_reserved,financial,D1,1,1,,none,False,empty content,True,,,,False,2,3756,2507,6263,24841.185458935797
+mkt_ht_002,True,previously_reserved,market,D1,0,1,,none,True,,False,,,,False,1,1767,674,2441,8492.969791870564
+news_ht_006,True,previously_reserved,news,D1,0,1,,none,True,,False,,,,False,1,1777,775,2552,6872.005083132535
+xd_ht_007,True,previously_reserved,cross_domain,D2,0,2,,none,True,,False,,,,False,1,1808,1800,3608,16778.145832940936
+fin_ht_021,True,previously_reserved,financial,D1,0,2,,none,True,,False,,,,False,1,1778,1851,3629,15838.373666862026
+mkt_dev_003,True,development,market,D1,1,1,,none,False,empty content,True,,,,False,2,3782,2329,6111,22602.922708028927
+news_dev_003,False,development,news,D1,1,0,$.steps[0]: missing required property 'depends_on',missing_depends_on_first_step,False,no JSON object found (truncated or non-JSON content),True,,True,first_step_missing_depends_on_to_empty_array,False,2,3907,2442,6349,22064.981707837433
+xd_ht_004,True,previously_reserved,cross_domain,D2,1,2,,none,False,$.steps[1]: missing required property 'depends_on',True,,,,False,2,4006,816,4822,13312.179999891669
+fin_cf_018,True,development,financial,D1,1,2,,none,False,"invalid JSON: Expecting ',' delimiter: line 22 column 10 (char 698)",True,,,,False,2,3946,2719,6665,37626.41283380799
+mkt_dev_002,True,development,market,D1,0,1,,none,True,,False,,,,False,1,1778,1262,3040,10498.332417104393
+news_ht_003,True,previously_reserved,news,D1,1,1,,none,True,,True,,,,False,2,4030,863,4893,10572.188958059996
+xd_ht_003,False,previously_reserved,cross_domain,D3,1,0,$.steps[3]: missing required property 'domain',other_missing_field,False,empty content,False,$.steps[3]: missing required property 'domain',False,,False,2,3792,3106,6898,25785.4893328622
+fin_cf_019,True,development,financial,D1,1,2,,none,False,$.steps[1]: missing required property 'depends_on',True,,,,False,2,4115,2174,6289,22731.65758396499
+mkt_ht_001,True,previously_reserved,market,D1,0,1,,none,True,,False,,,,False,1,1775,1872,3647,13857.583625009283
+news_dev_005,True,development,news,D1,0,1,,none,True,,False,,,,False,1,1785,987,2772,8018.394292099401
+xd_ht_008,True,previously_reserved,cross_domain,D3,1,2,,none,False,empty content,True,,,,False,2,3796,3975,7771,33408.984958194196
+fin_cf_011,True,development,financial,D1,1,2,,none,False,empty content,True,,,,False,2,3724,2676,6400,25804.089082870632
+mkt_ht_003,True,previously_reserved,market,D1,0,1,,none,True,,False,,,,False,1,1772,911,2683,7957.461208105087
+news_dev_002,True,development,news,D1,1,2,,none,False,"invalid JSON: Expecting ',' delimiter: line 1 column 1067 (char 1066)",True,,,,False,2,4089,2744,6833,23410.20887508057
+xd_dev_006,True,development,cross_domain,D3,1,2,,none,False,empty content,True,,,,False,2,3808,2497,6305,21619.774457998574
+fin_ht_011,True,previously_reserved,financial,D1,1,2,,none,False,empty content,True,,,,False,2,3748,2660,6408,23681.033875094727
+mkt_dev_004,True,development,market,D1,0,1,,none,True,,False,,,,False,1,1801,1981,3782,14980.409499956295
+news_ht_002,True,previously_reserved,news,D1,0,1,,none,True,,False,,,,False,1,1779,1226,3005,9971.485290909186
+xd_dev_008,True,development,cross_domain,D3,0,2,,none,True,,False,,,,False,1,1820,1855,3675,13421.135707991198
+fin_cf_028,True,development,financial,D1,0,2,,none,True,,False,,,,False,1,1757,1306,3063,10869.860500097275
+mkt_ht_004,True,previously_reserved,market,D1,1,1,,none,False,empty content,True,,,,False,2,3762,2526,6288,21753.263249993324
+news_ht_005,True,previously_reserved,news,D1,0,1,,none,True,,False,,,,False,1,1779,690,2469,5913.468084065244
+xd_dev_003,False,development,cross_domain,D3,1,0,"invalid JSON: Expecting ',' delimiter: line 1 column 1013 (char 1012)",invalid_json,False,empty content,False,"invalid JSON: Expecting ',' delimiter: line 1 column 1013 (char 1012)",False,,False,2,3824,4096,7920,30793.829458998516
+fin_cf_010,True,development,financial,D1,1,2,,none,True,,True,,,,False,2,4252,1635,5887,16118.759249802679
+mkt_dev_001,True,development,market,D1,0,1,,none,True,,False,,,,False,1,1796,585,2381,6039.355124812573
+news_ht_004,True,previously_reserved,news,D1,1,1,,none,True,,True,,,,False,2,4022,965,4987,14845.30399995856
+xd_ht_002,False,previously_reserved,cross_domain,D3,1,0,empty content,empty_or_null_content,False,empty content,False,empty content,False,,False,2,3800,4096,7896,33511.14895893261
+fin_ht_012,True,previously_reserved,financial,D1,1,2,,none,False,empty content,True,,,,False,2,3754,2988,6742,25257.22466688603
+mkt_ht_007,False,previously_reserved,market,D2,1,0,empty content,empty_or_null_content,False,empty content,False,empty content,False,,False,2,3762,4096,7858,36203.84808303788
+news_dev_004,False,development,news,D1,1,0,$.steps[0]: missing required property 'depends_on',missing_depends_on_first_step,False,no JSON object found (truncated or non-JSON content),True,,True,first_step_missing_depends_on_to_empty_array,False,2,3941,2531,6472,21077.549333218485
+xd_dev_002,False,development,cross_domain,D3,1,0,$.steps[2].domain: value 'analysis' not in enum,invalid_domain_enum,False,$.steps[1]: missing required property 'depends_on',True,,True,reason_domain_analysis_to_general,False,2,4129,2238,6367,18288.01912511699
+fin_cf_013,True,development,financial,D1,0,2,,none,True,,False,,,,False,1,1760,844,2604,7278.887583874166
+mkt_dev_007,False,development,market,D2,1,0,"invalid JSON: Expecting ',' delimiter: line 1 column 559 (char 558)",invalid_json,False,empty content,False,"invalid JSON: Expecting ',' delimiter: line 1 column 559 (char 558)",False,,False,2,3786,4096,7882,32825.76741697267
+news_dev_001,True,development,news,D1,0,1,,none,True,,False,,,,False,1,1795,1654,3449,13115.015625022352
+xd_ht_006,False,previously_reserved,cross_domain,D3,1,0,no JSON object found (truncated or non-JSON content),truncated_or_non_json,False,empty content,False,no JSON object found (truncated or non-JSON content),False,,False,2,3812,4096,7908,36507.875999901444
+fin_ht_001,True,previously_reserved,financial,D1,0,2,,none,True,,False,,,,False,1,1770,925,2695,7244.384499965236
+mkt_dev_006,True,development,market,D2,1,1,,none,False,empty content,True,,,,False,2,3770,2974,6744,26408.54029194452
+news_ht_001,True,previously_reserved,news,D1,1,2,,none,False,"invalid JSON: Expecting ',' delimiter: line 14 column 10 (char 585)",True,,,,False,2,3968,2926,6894,23798.957125050947
+xd_dev_005,True,development,cross_domain,D3,1,2,,none,False,empty content,True,,,,False,2,3802,3011,6813,22473.828832851723
+fin_ht_002,False,previously_reserved,financial,D1,1,0,$.steps[0]: missing required property 'depends_on',missing_depends_on_first_step,False,empty content,False,$.steps[1]: missing required property 'depends_on',False,,False,2,3764,3779,7543,28696.242457954213
+mkt_ht_005,True,previously_reserved,market,D2,1,1,,none,True,,True,,,,False,2,4085,1641,5726,17704.69958288595
+news_dev_015,True,development,news,D2,1,1,,none,False,empty content,True,,,,False,2,3792,2326,6118,22593.605333007872
+xd_dev_001,False,development,cross_domain,D3,1,0,"invalid JSON: Expecting ',' delimiter: line 1 column 599 (char 598)",invalid_json,False,empty content,False,"invalid JSON: Expecting ',' delimiter: line 1 column 599 (char 598)",False,,False,2,3868,4096,7964,31595.100708073005
+fin_cf_026,True,development,financial,D1,1,2,,none,False,empty content,True,,,,False,2,3740,2430,6170,21300.47750007361
+mkt_ht_006,True,previously_reserved,market,D2,1,2,,none,False,"invalid JSON: Expecting ',' delimiter: line 1 column 905 (char 904)",True,,,,False,2,3994,2990,6984,24954.728125128895
+news_ht_019,True,previously_reserved,news,D2,0,1,,none,True,,False,,,,False,1,1774,1739,3513,14947.530415840447
+xd_ht_001,True,previously_reserved,cross_domain,D3,1,2,,none,False,"invalid JSON: Expecting ',' delimiter: line 48 column 6 (char 1381)",True,,,,False,2,4265,2437,6702,18951.727208914235
+fin_cf_001,True,development,financial,D1,1,2,,none,True,,True,,,,False,2,4321,1982,6303,15525.543458061293
+mkt_ht_008,True,previously_reserved,market,D2,1,2,,none,False,empty content,True,,,,False,2,3758,3540,7298,28293.176416074857
+news_ht_018,True,previously_reserved,news,D2,0,1,,none,True,,False,,,,False,1,1780,961,2741,8086.832209024578
+xd_dev_004,True,development,cross_domain,D3,1,2,,none,False,no JSON object found (truncated or non-JSON content),True,,,,False,2,3952,2481,6433,19374.625082826242
+fin_cf_002,True,development,financial,D1,1,2,,none,False,$.steps[2].domain: value 'reason' not in enum,True,,,,False,2,4332,1642,5974,16359.577417140827
+mkt_dev_005,False,development,market,D2,1,0,$.steps[0]: missing required property 'depends_on',missing_depends_on_first_step,False,no JSON object found (truncated or non-JSON content),True,,True,first_step_missing_depends_on_to_empty_array,False,2,3873,4015,7888,31073.16374988295
+news_dev_008,False,development,news,D3,1,0,$.steps[0]: missing required property 'depends_on',missing_depends_on_first_step,False,empty content,True,,True,first_step_missing_depends_on_to_empty_array,False,2,3796,3587,7383,30163.73633290641
+xd_ht_011,True,previously_reserved,cross_domain,D3,1,2,,none,False,no JSON object found (truncated or non-JSON content),True,,,,False,2,4003,2780,6783,26346.801250008866
+fin_cf_004,True,development,financial,D1,1,2,,none,False,$.steps[1]: missing required property 'depends_on',True,,,,False,2,4252,2412,6664,21161.5359170828
+mkt_ht_010,False,previously_reserved,market,D3,1,0,"invalid JSON: Expecting ',' delimiter: line 21 column 10 (char 683)",invalid_json,False,empty content,False,"invalid JSON: Expecting ',' delimiter: line 21 column 10 (char 683)",False,,False,2,3762,4096,7858,33151.47295896895
+news_ht_020,True,previously_reserved,news,D3,1,1,,none,False,"invalid JSON: Expecting ',' delimiter: line 25 column 6 (char 748)",True,,,,False,2,4057,2433,6490,21423.270375002176
+xd_ht_005,True,previously_reserved,cross_domain,D3,1,2,,none,False,$.steps[1]: missing required property 'depends_on',True,,,,False,2,4150,1334,5484,13001.226915977895
+fin_cf_022,True,development,financial,D2,1,2,,none,False,empty content,True,,,,False,2,3744,3144,6888,27681.5651669167
+mkt_dev_009,False,development,market,D3,1,0,empty content,empty_or_null_content,False,empty content,False,empty content,False,,False,2,3782,4096,7878,35115.62554212287
+news_ht_011,False,previously_reserved,news,D3,1,0,empty content,empty_or_null_content,False,empty content,False,empty content,False,,False,2,3756,4096,7852,33180.04683312029
+xd_ht_014,True,previously_reserved,cross_domain,D4,1,3,,none,False,empty content,True,,,,False,2,3852,2909,6761,27004.952542018145
+fin_cf_020,True,development,financial,D2,1,2,,none,False,empty content,True,,,,False,2,3762,3294,7056,27034.425999969244
+mkt_ht_009,True,previously_reserved,market,D3,1,1,,none,False,"invalid JSON: Expecting ',' delimiter: line 1 column 555 (char 554)",True,,,,False,2,3967,2468,6435,21700.354791944847
+news_dev_009,False,development,news,D3,1,0,$.steps[0]: missing required property 'depends_on',missing_depends_on_first_step,False,empty content,True,,True,first_step_missing_depends_on_to_empty_array,False,2,3806,3388,7194,29387.468083994463
+xd_ht_009,True,previously_reserved,cross_domain,D4,1,2,,none,True,,True,,,,False,2,4137,2375,6512,25805.32320891507
+fin_ht_023,True,previously_reserved,financial,D2,0,1,,none,True,,False,,,,False,1,1794,1342,3136,12182.249665958807
+mkt_ht_011,True,previously_reserved,market,D3,1,2,,none,False,empty content,True,,,,False,2,3774,3564,7338,28340.737958904356
+news_ht_009,True,previously_reserved,news,D3,1,2,,none,False,empty content,True,,,,False,2,3788,2885,6673,26528.509374940768
+xd_ht_012,True,previously_reserved,cross_domain,D4,1,0,,none,False,$.steps: fewer than minItems,True,,,,False,2,3800,1155,4955,11893.821417121217
+fin_ht_024,False,previously_reserved,financial,D2,1,0,"$.steps[0].scope_constraints.metric_basis: string length 115 exceeds maxLength 80 (allowed=80, actual=115)",maxLength_violation,False,empty content,False,"$.steps[0].scope_constraints.metric_basis: string length 115 exceeds maxLength 80 (allowed=80, actual=115)",False,,False,2,3798,2302,6100,24191.537792095914
+mkt_dev_010,True,development,market,D3,1,2,,none,False,"invalid JSON: Expecting ',' delimiter: line 1 column 429 (char 428)",True,,,,False,2,3923,2528,6451,23216.779959155247
+news_dev_007,True,development,news,D3,1,1,,none,True,,True,,,,False,2,4200,2103,6303,18137.19454081729
+xd_ht_010,True,previously_reserved,cross_domain,D4,1,2,,none,False,empty content,True,,,,False,2,3824,2702,6526,21901.490124873817
+fin_ht_013,True,previously_reserved,financial,D2,1,3,,none,False,empty content,True,,,,False,2,3776,3272,7048,30098.540290957317
+mkt_ht_012,False,previously_reserved,market,D3,1,0,"invalid JSON: Expecting ',' delimiter: line 46 column 6 (char 1413)",invalid_json,False,empty content,False,"invalid JSON: Expecting ',' delimiter: line 46 column 6 (char 1413)",False,,False,2,3764,4096,7860,33744.74100000225
+news_ht_008,False,previously_reserved,news,D3,1,0,$.steps[0]: missing required property 'depends_on',missing_depends_on_first_step,False,empty content,True,,True,first_step_missing_depends_on_to_empty_array,False,2,3782,3030,6812,24621.743083931506
+xd_dev_007,False,development,cross_domain,D4,1,0,$.steps[0]: missing required property 'depends_on',missing_depends_on_first_step,False,"invalid JSON: Expecting ',' delimiter: line 1 column 1117 (char 1116)",True,,True,first_step_missing_depends_on_to_empty_array,False,2,4234,2757,6991,22338.600124930963
+fin_cf_012,False,development,financial,D2,1,0,$.steps[0]: missing required property 'depends_on',missing_depends_on_first_step,False,empty content,False,"$.steps[0].scope_constraints.adjustment: string length 42 exceeds maxLength 40 (allowed=40, actual=42)",False,,False,2,3740,4051,7791,35415.48266611062
+mkt_dev_008,False,development,market,D3,1,0,$.steps[0]: missing required property 'depends_on',missing_depends_on_first_step,False,empty content,False,$.steps[1]: missing required property 'depends_on',False,,False,2,3820,2772,6592,24187.71033314988
+news_dev_014,True,development,news,D3,0,1,,none,True,,False,,,,False,1,1780,1641,3421,12976.079541025683
+xd_dev_010,True,development,cross_domain,D5,1,3,,none,False,empty content,True,,,,False,2,3836,3849,7685,32257.88704189472
+fin_cf_016,True,development,financial,D2,1,2,,none,False,$.steps[1]: missing required property 'depends_on',True,,,,False,2,4356,1778,6134,14749.62087511085
+mkt_dev_012,True,development,market,D4,0,1,,none,True,,False,,,,False,1,1799,1832,3631,16977.694084169343
+news_ht_010,False,previously_reserved,news,D3,1,0,$.steps[0]: missing required property 'depends_on',missing_depends_on_first_step,False,empty content,True,,True,first_step_missing_depends_on_to_empty_array,False,2,3776,3390,7166,31326.936207944527
+xd_ht_015,True,previously_reserved,cross_domain,D5,0,3,,none,True,,False,,,,False,1,1800,1628,3428,11087.256042053923
+fin_ht_014,False,previously_reserved,financial,D2,1,0,$.steps[0]: missing required property 'depends_on',missing_depends_on_first_step,False,empty content,True,,True,first_step_missing_depends_on_to_empty_array,False,2,3796,2619,6415,23028.15687493421
+mkt_ht_015,False,previously_reserved,market,D4,1,0,$.steps[0]: missing required property 'depends_on',missing_depends_on_first_step,False,empty content,False,$.steps[1]: missing required property 'depends_on',False,,False,2,3796,3076,6872,26416.86537489295
+news_dev_006,True,development,news,D3,1,3,,none,False,empty content,True,,,,False,2,3806,3008,6814,23243.133459007367
+xd_dev_009,True,development,cross_domain,D5,1,3,,none,False,empty content,True,,,,False,2,3950,3106,7056,26079.798249993473
+fin_cf_029,False,development,financial,D2,1,0,"$.steps[1].scope_constraints.adjustment: string length 41 exceeds maxLength 40 (allowed=40, actual=41)",maxLength_violation,False,empty content,False,"$.steps[1].scope_constraints.adjustment: string length 41 exceeds maxLength 40 (allowed=40, actual=41)",False,,False,2,3758,3217,6975,28568.80583311431
+mkt_ht_016,False,previously_reserved,market,D4,1,0,empty content,empty_or_null_content,False,empty content,False,empty content,False,,False,2,3830,4096,7926,32821.635332889855
+news_ht_007,True,previously_reserved,news,D3,1,1,,none,False,"invalid JSON: Expecting ',' delimiter: line 1 column 722 (char 721)",True,,,,False,2,4072,2438,6510,20179.308084072545
+xd_ht_013,True,previously_reserved,cross_domain,D5,1,3,,none,False,empty content,True,,,,False,2,3842,2896,6738,24850.40241596289
+fin_cf_003,True,development,financial,D2,1,2,,none,False,"$.steps[0].scope_constraints.adjustment: string length 55 exceeds maxLength 40 (allowed=40, actual=55)",True,,,,False,2,4285,1305,5590,11056.693624937907
+mkt_ht_013,False,previously_reserved,market,D4,1,0,"invalid JSON: Expecting ',' delimiter: line 1 column 471 (char 470)",invalid_json,False,empty content,False,"invalid JSON: Expecting ',' delimiter: line 1 column 471 (char 470)",False,,False,2,3796,4096,7892,33858.15704194829
+news_ht_017,True,previously_reserved,news,D4,1,2,,none,False,empty content,True,,,,False,2,3764,3225,6989,28417.01720887795
+fin_ht_004,True,previously_reserved,financial,D2,1,1,,none,False,no JSON object found (truncated or non-JSON content),True,,,,False,2,3794,2829,6623,25747.162415878847
+mkt_ht_014,True,previously_reserved,market,D4,1,1,,none,False,no JSON object found (truncated or non-JSON content),True,,,,False,2,3799,3489,7288,32344.565166858956
+news_dev_012,True,development,news,D4,1,1,,none,False,empty content,True,,,,False,2,3752,2711,6463,24930.783458054066
+fin_ht_003,True,previously_reserved,financial,D2,1,3,,none,False,$.steps[3].domain: value 'reason' not in enum,True,,,,False,2,4581,2259,6840,17146.92095806822
+mkt_dev_013,False,development,market,D4,1,0,empty content,empty_or_null_content,False,empty content,False,empty content,False,,False,2,3838,4096,7934,34411.26516717486
+news_ht_016,True,previously_reserved,news,D4,1,0,,none,False,empty content,True,,,,False,2,3778,2885,6663,26013.898249948397
+fin_ht_025,True,previously_reserved,financial,D3,0,1,,none,True,,False,,,,False,1,1805,1627,3432,13169.76199997589
+mkt_dev_011,False,development,market,D4,1,0,empty content,empty_or_null_content,False,empty content,False,empty content,False,,False,2,3816,4096,7912,31612.094667041674
+news_dev_013,True,development,news,D4,0,1,,none,True,,False,,,,False,1,1774,1139,2913,8917.097958968952
+fin_cf_023,True,development,financial,D3,0,1,,none,True,,False,,,,False,1,1770,1953,3723,14463.130958145484
+mkt_ht_020,True,previously_reserved,market,D5,1,1,,none,True,,True,,,,False,2,4088,1152,5240,12012.334208004177
+news_ht_015,True,previously_reserved,news,D4,0,0,,none,True,,False,,,,False,1,1770,1135,2905,9959.342417074367
+fin_ht_026,True,previously_reserved,financial,D3,1,2,,none,False,empty content,True,,,,False,2,3766,2942,6708,25613.08200005442
+mkt_dev_015,True,development,market,D5,1,0,,none,False,"$.steps[0].objective: string length 702 exceeds maxLength 480 (allowed=480, actual=702)",True,,,,False,2,4044,2517,6561,20685.17216690816
+news_ht_012,True,previously_reserved,news,D5,0,1,,none,True,,False,,,,False,1,1785,907,2692,8407.718291971833
+fin_ht_016,False,previously_reserved,financial,D3,1,0,$.steps[0]: missing required property 'depends_on',missing_depends_on_first_step,False,"invalid JSON: Expecting ',' delimiter: line 1 column 663 (char 662)",False,$.steps[1]: missing required property 'depends_on',False,,False,2,4003,3586,7589,29887.955459067598
+mkt_ht_017,True,previously_reserved,market,D5,1,1,,none,True,,True,,,,False,2,3951,1603,5554,13860.266250092536
+news_ht_014,True,previously_reserved,news,D5,0,1,,none,True,,False,,,,False,1,1778,1955,3733,14903.821875108406
+fin_cf_015,False,development,financial,D3,1,0,no JSON object found (truncated or non-JSON content),truncated_or_non_json,False,empty content,False,no JSON object found (truncated or non-JSON content),False,,False,2,3778,4096,7874,37668.78129215911
+mkt_ht_018,True,previously_reserved,market,D5,0,1,,none,True,,False,,,,False,1,1762,1121,2883,9847.141874954104
+news_dev_011,True,development,news,D5,1,1,,none,False,"invalid JSON: Expecting ',' delimiter: line 1 column 573 (char 572)",True,,,,False,2,4060,2391,6451,28584.5909579657
+fin_cf_014,True,development,financial,D3,1,2,,none,False,"$.steps[1].scope_constraints.adjustment: string length 42 exceeds maxLength 40 (allowed=40, actual=42)",True,,,,False,2,4526,2058,6584,17076.734999893233
+mkt_dev_014,True,development,market,D5,0,1,,none,True,,False,,,,False,1,1749,528,2277,5322.341041872278
+news_dev_010,False,development,news,D5,1,0,$.steps[0]: missing required property 'depends_on',missing_depends_on_first_step,False,empty content,True,,True,first_step_missing_depends_on_to_empty_array,False,2,3794,2679,6473,26974.591749953106
+fin_ht_015,False,previously_reserved,financial,D3,1,0,no JSON object found (truncated or non-JSON content),truncated_or_non_json,False,empty content,False,no JSON object found (truncated or non-JSON content),False,,False,2,3778,4096,7874,35336.7560422048
+mkt_ht_019,True,previously_reserved,market,D5,0,1,,none,True,,False,,,,False,1,1763,773,2536,6657.5877498835325
+news_ht_013,True,previously_reserved,news,D5,1,1,,none,False,empty content,True,,,,False,2,3764,2525,6289,23802.747040987015
+fin_cf_007,False,development,financial,D3,1,0,$.steps[0]: missing required property 'depends_on',missing_depends_on_first_step,False,no JSON object found (truncated or non-JSON content),True,,True,first_step_missing_depends_on_to_empty_array,False,2,3854,2980,6834,29496.86299986206
+fin_ht_005,True,previously_reserved,financial,D3,1,1,,none,False,"invalid JSON: Expecting ',' delimiter: line 29 column 6 (char 899)",True,,,,False,2,4055,2540,6595,20391.74274983816
+fin_ht_006,True,previously_reserved,financial,D3,0,2,,none,True,,False,,,,False,1,1791,1506,3297,10941.949333064258
+fin_ht_028,True,previously_reserved,financial,D4,1,2,,none,False,empty content,True,,,,False,2,3800,3689,7489,30731.44895886071
+fin_ht_027,True,previously_reserved,financial,D4,1,2,,none,False,empty content,True,,,,False,2,3824,2855,6679,22089.453333988786
+fin_cf_030,False,development,financial,D4,1,0,$.steps[0]: missing required property 'depends_on',missing_depends_on_first_step,False,empty content,False,$.steps[1]: missing required property 'depends_on',False,,False,2,3820,2978,6798,25822.075999807566
+fin_cf_021,True,development,financial,D4,1,2,,none,False,empty content,True,,,,False,2,3756,3534,7290,31009.122624993324
+fin_ht_017,True,previously_reserved,financial,D4,1,2,,none,False,empty content,True,,,,False,2,3782,2849,6631,26523.06445897557
+fin_ht_018,True,previously_reserved,financial,D4,1,2,,none,True,,True,,,,False,2,4188,2722,6910,21502.979584038258
+fin_cf_005,True,development,financial,D4,1,2,,none,False,empty content,True,,,,False,2,3776,3668,7444,30833.86716688983
+fin_ht_007,False,previously_reserved,financial,D4,1,0,$.steps[0]: missing required property 'depends_on',missing_depends_on_first_step,False,empty content,False,$.steps[1]: missing required property 'depends_on',False,,False,2,3772,3594,7366,27794.187374878675
+fin_cf_027,True,development,financial,D4,1,2,,none,False,compute step step1 must depend on prior evidence steps,True,,,,False,2,4363,2557,6920,19908.02141604945
+fin_ht_008,False,previously_reserved,financial,D4,1,0,$.steps[3].domain: value 'reasoning' not in enum,invalid_domain_enum,False,empty content,True,,True,reason_domain_reasoning_to_general,False,2,3784,3914,7698,37680.54491607472
+fin_cf_006,True,development,financial,D4,1,2,,none,False,"invalid JSON: Expecting ',' delimiter: line 1 column 1257 (char 1256)",True,,,,False,2,4181,2644,6825,21299.768083030358
+fin_cf_024,True,development,financial,D5,1,4,,none,False,empty content,True,,,,False,2,3754,3308,7062,27089.10416602157
+fin_ht_029,True,previously_reserved,financial,D5,1,2,,none,False,empty content,True,,,,False,2,3738,2643,6381,23496.23579182662
+fin_ht_030,True,previously_reserved,financial,D5,0,1,,none,True,,False,,,,False,1,1773,1856,3629,14536.607207963243
+fin_cf_025,True,development,financial,D5,1,3,,none,False,$.steps[4].domain: value 'reason' not in enum,True,,,,False,2,4580,3098,7678,23346.216417150572
+fin_ht_019,True,previously_reserved,financial,D5,0,1,,none,True,,False,,,,False,1,1761,1738,3499,13424.838584149256
+fin_ht_020,False,previously_reserved,financial,D5,1,0,"invalid JSON: Expecting ',' delimiter: line 1 column 1230 (char 1229)",invalid_json,False,empty content,False,"invalid JSON: Expecting ',' delimiter: line 1 column 1230 (char 1229)",False,,False,2,3748,4096,7844,33574.21875
+fin_cf_017,False,development,financial,D5,1,0,$.steps[0]: missing required property 'depends_on',missing_depends_on_first_step,False,empty content,True,,True,first_step_missing_depends_on_to_empty_array,False,2,3758,3306,7064,26623.740000184625
+fin_cf_008,True,development,financial,D5,0,3,,none,True,,False,,,,False,1,1768,1173,2941,9927.26220889017
+fin_ht_009,True,previously_reserved,financial,D5,1,1,,none,True,,True,,,,False,2,4188,1635,5823,16215.2703339234
+fin_ht_010,True,previously_reserved,financial,D5,1,2,,none,False,empty content,True,,,,False,2,3774,3617,7391,29765.388417057693
+fin_cf_009,True,development,financial,D5,1,1,,none,True,,True,,,,False,2,3839,2370,6209,22213.75633403659

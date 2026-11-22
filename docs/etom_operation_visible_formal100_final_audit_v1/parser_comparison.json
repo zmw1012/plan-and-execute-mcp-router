@@ -1,0 +1,73 @@
+{
+  "parser_v1": "hk_equity_mcp.etom.agent._parse_agent_json",
+  "parser_v11_rules": [
+    "strip BOM",
+    "map smart quotes to ASCII",
+    "strip one surrounding markdown fence",
+    "parse the first balanced JSON object if the whole string is not JSON",
+    "remove trailing commas outside strings",
+    "require a JSON object"
+  ],
+  "task_id_special_cases": 0,
+  "raw_responses_modified": false,
+  "raw_assistant_string_count": 0,
+  "v11_recovered_string_count": 0,
+  "routes_changed": 0,
+  "metric_deltas": [
+    {
+      "metric": "strict exact-route",
+      "v1": 0.66,
+      "v11": 0.66,
+      "delta": 0.0
+    },
+    {
+      "metric": "strict mean F1",
+      "v1": 0.733679,
+      "v11": 0.733679,
+      "delta": 0.0
+    },
+    {
+      "metric": "L1 exact-route",
+      "v1": 0.85,
+      "v11": 0.85,
+      "delta": 0.0
+    },
+    {
+      "metric": "L2 exact-route",
+      "v1": 0.6,
+      "v11": 0.6,
+      "delta": 0.0
+    },
+    {
+      "metric": "L3 exact-route",
+      "v1": 0.65,
+      "v11": 0.65,
+      "delta": 0.0
+    },
+    {
+      "metric": "L4 exact-route",
+      "v1": 0.25,
+      "v11": 0.25,
+      "delta": 0.0
+    },
+    {
+      "metric": "L5 exact-route",
+      "v1": 0.95,
+      "v11": 0.95,
+      "delta": 0.0
+    }
+  ],
+  "per_task_score_changes": [],
+  "parse_error_ids_still_failed": [
+    "L1-q591",
+    "L2-q518",
+    "L3-q195",
+    "L4-q48",
+    "L4-q71"
+  ],
+  "max_llm_turns_kept_failed": [
+    "L2-q766",
+    "L2-q720",
+    "L4-q75"
+  ]
+}

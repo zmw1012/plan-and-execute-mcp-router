@@ -1,0 +1,21 @@
+{
+  "planner_cache_sha256": "372e78041796cb12c38c4968c39ac285b6c9e2efb8a6ccbe9d49ab8d51e697ff",
+  "engineering_pass": true,
+  "identity": {
+    "planner_prompt_hash": "98817b913fcaff9d3fc402d6a1ce912b061a9459ec2d6cac64bf1a9bb68bda85",
+    "planner_schema_hash": "fdf728361fd74c3d9e6c5807b35a51ac8f87123cc0e3b3e8ea6139627da42d68",
+    "plan_canonicalizer_hash": "1c0cf80e1a3940a14983b93fb8938fab74e13f48917f0141d18e86531ba949cd",
+    "scope_contract_hash": "f282016dc2ffd94ed09c53927dab960a5fd68c2595953ced1aeeca383d5715d8",
+    "capability_profile_hash": "4cefb249bad15010519ff6f9d3b2fdab206781ef9d767aca6f3d902a184ae8e9",
+    "planner_only_protocol_version": "pe_fin_lite_planner_only_v3",
+    "planner_max_tokens": 4096,
+    "generation_provider": "openai_compatible",
+    "generation_host": "api.zhizengzeng.com",
+    "generation_model": "deepseek-v4.1-flash",
+    "manifest_sha256": "4d474fbfd170f2cfc8e53748dd6ee7fea77082d488ccb3ca70a5886721e8305e",
+    "ordered_task_ids_hash": "764cbdb12cbdae1a8b925379f19959bff23d75939bf428c46374bcb2cb4bb4d3"
+  },
+  "residual": {
+    "news_ht_011": "initial finish_reason=length; repair recovered"
+  }
+}

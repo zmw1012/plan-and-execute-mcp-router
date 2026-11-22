@@ -1,0 +1,142 @@
+{
+  "after": {
+    "aggregate_sha256": "41827cff3ad70a783dbc3e13b72f76b4acee2006ddaad5455a61de2f4ab351ee",
+    "files": {
+      "cost_summary.json": {
+        "bytes": 3242,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/cost_summary.json",
+        "sha256": "77ef80312e99926c96db927ce282d05cd7c1f17003278ac2a6b0bee5b93abae3"
+      },
+      "error_summary.json": {
+        "bytes": 233,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/error_summary.json",
+        "sha256": "fef745ffe3a0823282da2e2058c980ad7a9657804e56505c995edebffa365922"
+      },
+      "grouped_results.json": {
+        "bytes": 5133,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/grouped_results.json",
+        "sha256": "e0277deb51c1207606f43c9cd98b6c6c8c296966fc53cfddfcb7559dc4fd2e27"
+      },
+      "index_build.json": {
+        "bytes": 792,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/index_build.json",
+        "sha256": "06f51d0b9b36aa3a7316e90e3399f5c52318609101f420210115f4a926b8a0dd"
+      },
+      "index_status.json": {
+        "bytes": 2322,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/index_status.json",
+        "sha256": "634579efcfb39ca9a1192870c8ef27b9c2be980d6edf080e8c46d0e89e58dd50"
+      },
+      "per_task_metrics.csv": {
+        "bytes": 10542,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/per_task_metrics.csv",
+        "sha256": "e208413be4e68195de32a8ad2c378b63039ca6b9e274f56d094652dbe8fc60d6"
+      },
+      "predictions.jsonl": {
+        "bytes": 3007571,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/predictions.jsonl",
+        "sha256": "04e7af6b67022ad277b039f9c2559788210dfbe81d79928f2eeb789834902e14"
+      },
+      "preflight_report.json": {
+        "bytes": 3344,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/preflight_report.json",
+        "sha256": "7068b227227adf57078cf8ce065a3721a454c81d8232460475d3855a2c9f155b"
+      },
+      "protocol_summary.json": {
+        "bytes": 264,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/protocol_summary.json",
+        "sha256": "38e99cad5fca3c120c1132758f7c7a12949c5a6003398ca5c8fa4c8332244995"
+      },
+      "retrieval_analysis.json": {
+        "bytes": 482,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/retrieval_analysis.json",
+        "sha256": "f08b9faff9d4f76e8e36f2503ade779e3ec52d8759a41598c7f6f21506d1b4b5"
+      },
+      "run_metadata.json": {
+        "bytes": 10412,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/run_metadata.json",
+        "sha256": "0ea9360a798ac2bb1d27a22ddae20d2e4f2b5e97a9ad813748db547bce19863a"
+      },
+      "source_manifest.json": {
+        "bytes": 4401,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/source_manifest.json",
+        "sha256": "c6e6aab4e4aaf8f6ca16804ac40cdd71e3e469ea74b1504a049984bb1d68fa89"
+      }
+    },
+    "missing": [],
+    "run_dir": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1"
+  },
+  "before": {
+    "aggregate_sha256": "41827cff3ad70a783dbc3e13b72f76b4acee2006ddaad5455a61de2f4ab351ee",
+    "files": {
+      "cost_summary.json": {
+        "bytes": 3242,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/cost_summary.json",
+        "sha256": "77ef80312e99926c96db927ce282d05cd7c1f17003278ac2a6b0bee5b93abae3"
+      },
+      "error_summary.json": {
+        "bytes": 233,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/error_summary.json",
+        "sha256": "fef745ffe3a0823282da2e2058c980ad7a9657804e56505c995edebffa365922"
+      },
+      "grouped_results.json": {
+        "bytes": 5133,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/grouped_results.json",
+        "sha256": "e0277deb51c1207606f43c9cd98b6c6c8c296966fc53cfddfcb7559dc4fd2e27"
+      },
+      "index_build.json": {
+        "bytes": 792,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/index_build.json",
+        "sha256": "06f51d0b9b36aa3a7316e90e3399f5c52318609101f420210115f4a926b8a0dd"
+      },
+      "index_status.json": {
+        "bytes": 2322,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/index_status.json",
+        "sha256": "634579efcfb39ca9a1192870c8ef27b9c2be980d6edf080e8c46d0e89e58dd50"
+      },
+      "per_task_metrics.csv": {
+        "bytes": 10542,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/per_task_metrics.csv",
+        "sha256": "e208413be4e68195de32a8ad2c378b63039ca6b9e274f56d094652dbe8fc60d6"
+      },
+      "predictions.jsonl": {
+        "bytes": 3007571,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/predictions.jsonl",
+        "sha256": "04e7af6b67022ad277b039f9c2559788210dfbe81d79928f2eeb789834902e14"
+      },
+      "preflight_report.json": {
+        "bytes": 3344,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/preflight_report.json",
+        "sha256": "7068b227227adf57078cf8ce065a3721a454c81d8232460475d3855a2c9f155b"
+      },
+      "protocol_summary.json": {
+        "bytes": 264,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/protocol_summary.json",
+        "sha256": "38e99cad5fca3c120c1132758f7c7a12949c5a6003398ca5c8fa4c8332244995"
+      },
+      "retrieval_analysis.json": {
+        "bytes": 482,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/retrieval_analysis.json",
+        "sha256": "f08b9faff9d4f76e8e36f2503ade779e3ec52d8759a41598c7f6f21506d1b4b5"
+      },
+      "run_metadata.json": {
+        "bytes": 10412,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/run_metadata.json",
+        "sha256": "0ea9360a798ac2bb1d27a22ddae20d2e4f2b5e97a9ad813748db547bce19863a"
+      },
+      "source_manifest.json": {
+        "bytes": 4401,
+        "path": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1/source_manifest.json",
+        "sha256": "c6e6aab4e4aaf8f6ca16804ac40cdd71e3e469ea74b1504a049984bb1d68fa89"
+      }
+    },
+    "missing": [],
+    "run_dir": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-mcp-zero-etom/outputs/etom_external_formal100_mcp_zero_v1"
+  },
+  "integrity": {
+    "after_aggregate_sha256": "41827cff3ad70a783dbc3e13b72f76b4acee2006ddaad5455a61de2f4ab351ee",
+    "before_aggregate_sha256": "41827cff3ad70a783dbc3e13b72f76b4acee2006ddaad5455a61de2f4ab351ee",
+    "mismatches": [],
+    "ok": true
+  }
+}

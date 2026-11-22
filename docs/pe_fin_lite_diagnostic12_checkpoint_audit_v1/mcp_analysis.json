@@ -1,0 +1,537 @@
+{
+  "checkpoint": "C07_mcp",
+  "counts": {
+    "pass": 9,
+    "fail": 3
+  },
+  "tasks": [
+    {
+      "task_id": "fin_cf_003",
+      "status": "pass",
+      "detail": {
+        "invoked": [
+          "aktools.stock_financial_hk_report_em",
+          "aktools.stock_financial_hk_analysis_indicator_em",
+          "hkexnews.list_hkexnews_announcements",
+          "hkexnews.download_hkexnews_announcement",
+          "hkexnews.parse_hkexnews_announcement",
+          "hkexnews.keyword_search",
+          "hkexnews.get_announcement_pages"
+        ],
+        "records": [
+          {
+            "operation_id": "aktools.stock_financial_hk_report_em",
+            "step_id": "s1",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": true,
+            "required_outputs_satisfied": true,
+            "scope_match": true,
+            "normalization_success": true
+          },
+          {
+            "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+            "step_id": "s1",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": true,
+            "required_outputs_satisfied": true,
+            "scope_match": true,
+            "normalization_success": true
+          },
+          {
+            "operation_id": "hkexnews.list_hkexnews_announcements",
+            "step_id": "s2",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": false,
+            "required_outputs_satisfied": false,
+            "scope_match": true,
+            "normalization_success": true
+          },
+          {
+            "operation_id": "hkexnews.download_hkexnews_announcement",
+            "step_id": "s2",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": false,
+            "required_outputs_satisfied": false,
+            "scope_match": true,
+            "normalization_success": true
+          },
+          {
+            "operation_id": "hkexnews.parse_hkexnews_announcement",
+            "step_id": "s2",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": false,
+            "required_outputs_satisfied": false,
+            "scope_match": true,
+            "normalization_success": true
+          },
+          {
+            "operation_id": "hkexnews.keyword_search",
+            "step_id": "s2",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": false,
+            "required_outputs_satisfied": false,
+            "scope_match": true,
+            "normalization_success": true
+          },
+          {
+            "operation_id": "hkexnews.get_announcement_pages",
+            "step_id": "s2",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": false,
+            "required_outputs_satisfied": false,
+            "scope_match": true,
+            "normalization_success": true
+          }
+        ],
+        "successful_invoked": [
+          "aktools.stock_financial_hk_report_em",
+          "aktools.stock_financial_hk_analysis_indicator_em",
+          "hkexnews.list_hkexnews_announcements",
+          "hkexnews.download_hkexnews_announcement",
+          "hkexnews.parse_hkexnews_announcement",
+          "hkexnews.keyword_search",
+          "hkexnews.get_announcement_pages"
+        ],
+        "real_mcp_execution_count": 7
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_011",
+      "status": "pass",
+      "detail": {
+        "invoked": [
+          "aktools.stock_financial_hk_report_em",
+          "aktools.stock_financial_hk_analysis_indicator_em"
+        ],
+        "records": [
+          {
+            "operation_id": "aktools.stock_financial_hk_report_em",
+            "step_id": "s1",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": false,
+            "required_outputs_satisfied": false,
+            "scope_match": true,
+            "normalization_success": true
+          },
+          {
+            "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+            "step_id": "s1",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": false,
+            "required_outputs_satisfied": false,
+            "scope_match": true,
+            "normalization_success": true
+          }
+        ],
+        "successful_invoked": [
+          "aktools.stock_financial_hk_report_em",
+          "aktools.stock_financial_hk_analysis_indicator_em"
+        ],
+        "real_mcp_execution_count": 2
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_020",
+      "status": "fail",
+      "detail": {
+        "invoked": [
+          "aktools.stock_financial_hk_report_em",
+          "aktools.stock_financial_hk_analysis_indicator_em",
+          "hkexnews.list_hkexnews_announcements",
+          "hkexnews.download_hkexnews_announcement"
+        ],
+        "records": [
+          {
+            "operation_id": "aktools.stock_financial_hk_report_em",
+            "step_id": "s1",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": true,
+            "required_outputs_satisfied": true,
+            "scope_match": true,
+            "normalization_success": true
+          },
+          {
+            "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+            "step_id": "s1",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": true,
+            "required_outputs_satisfied": true,
+            "scope_match": true,
+            "normalization_success": true
+          },
+          {
+            "operation_id": "hkexnews.list_hkexnews_announcements",
+            "step_id": "s2",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": false,
+            "required_outputs_satisfied": false,
+            "scope_match": true,
+            "normalization_success": true
+          },
+          {
+            "operation_id": "hkexnews.download_hkexnews_announcement",
+            "step_id": "s2",
+            "source": "gateway",
+            "gateway_success": false,
+            "success": false,
+            "step_completed": false,
+            "required_outputs_satisfied": false,
+            "scope_match": true,
+            "normalization_success": true
+          }
+        ],
+        "successful_invoked": [
+          "aktools.stock_financial_hk_report_em",
+          "aktools.stock_financial_hk_analysis_indicator_em",
+          "hkexnews.list_hkexnews_announcements"
+        ],
+        "real_mcp_execution_count": 4
+      },
+      "primary_blocking": true
+    },
+    {
+      "task_id": "fin_cf_023",
+      "status": "pass",
+      "detail": {
+        "invoked": [
+          "aktools.stock_financial_hk_report_em",
+          "aktools.stock_financial_hk_analysis_indicator_em"
+        ],
+        "records": [
+          {
+            "operation_id": "aktools.stock_financial_hk_report_em",
+            "step_id": "s1",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": false,
+            "required_outputs_satisfied": false,
+            "scope_match": true,
+            "normalization_success": true
+          },
+          {
+            "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+            "step_id": "s1",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": false,
+            "required_outputs_satisfied": false,
+            "scope_match": true,
+            "normalization_success": true
+          }
+        ],
+        "successful_invoked": [
+          "aktools.stock_financial_hk_report_em",
+          "aktools.stock_financial_hk_analysis_indicator_em"
+        ],
+        "real_mcp_execution_count": 2
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_ht_016",
+      "status": "fail",
+      "detail": {
+        "invoked": [
+          "hkexnews.list_hkexnews_announcements"
+        ],
+        "records": [
+          {
+            "operation_id": "hkexnews.list_hkexnews_announcements",
+            "step_id": "s1",
+            "source": "gateway",
+            "gateway_success": false,
+            "success": false,
+            "step_completed": false,
+            "required_outputs_satisfied": false,
+            "scope_match": true,
+            "normalization_success": true
+          }
+        ],
+        "successful_invoked": [],
+        "real_mcp_execution_count": 1
+      },
+      "primary_blocking": true
+    },
+    {
+      "task_id": "xd_dev_002",
+      "status": "pass",
+      "detail": {
+        "invoked": [
+          "aktools.stock_financial_hk_analysis_indicator_em",
+          "aktools.stock_hk_hist"
+        ],
+        "records": [
+          {
+            "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+            "step_id": "s1",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": true,
+            "required_outputs_satisfied": true,
+            "scope_match": true,
+            "normalization_success": true
+          },
+          {
+            "operation_id": "aktools.stock_hk_hist",
+            "step_id": "s2",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": true,
+            "required_outputs_satisfied": true,
+            "scope_match": true,
+            "normalization_success": true
+          }
+        ],
+        "successful_invoked": [
+          "aktools.stock_financial_hk_analysis_indicator_em",
+          "aktools.stock_hk_hist"
+        ],
+        "real_mcp_execution_count": 2
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_ht_007",
+      "status": "pass",
+      "detail": {
+        "invoked": [
+          "aktools.stock_financial_hk_analysis_indicator_em",
+          "ah_disclosure.search_annual_report",
+          "ah_disclosure.resolve_company"
+        ],
+        "records": [
+          {
+            "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+            "step_id": "s1",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": true,
+            "required_outputs_satisfied": true,
+            "scope_match": true,
+            "normalization_success": true
+          },
+          {
+            "operation_id": "ah_disclosure.search_annual_report",
+            "step_id": "s2",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": false,
+            "required_outputs_satisfied": false,
+            "scope_match": true,
+            "normalization_success": true
+          },
+          {
+            "operation_id": "ah_disclosure.resolve_company",
+            "step_id": "s2",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": false,
+            "required_outputs_satisfied": false,
+            "scope_match": true,
+            "normalization_success": true
+          }
+        ],
+        "successful_invoked": [
+          "aktools.stock_financial_hk_analysis_indicator_em",
+          "ah_disclosure.search_annual_report",
+          "ah_disclosure.resolve_company"
+        ],
+        "real_mcp_execution_count": 3
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_ht_014",
+      "status": "pass",
+      "detail": {
+        "invoked": [
+          "aktools.stock_financial_hk_report_em",
+          "aktools.stock_financial_hk_analysis_indicator_em"
+        ],
+        "records": [
+          {
+            "operation_id": "aktools.stock_financial_hk_report_em",
+            "step_id": "s1",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": false,
+            "required_outputs_satisfied": false,
+            "scope_match": true,
+            "normalization_success": true
+          },
+          {
+            "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+            "step_id": "s1",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": false,
+            "required_outputs_satisfied": false,
+            "scope_match": true,
+            "normalization_success": true
+          }
+        ],
+        "successful_invoked": [
+          "aktools.stock_financial_hk_report_em",
+          "aktools.stock_financial_hk_analysis_indicator_em"
+        ],
+        "real_mcp_execution_count": 2
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "mkt_dev_014",
+      "status": "pass",
+      "detail": {
+        "invoked": [
+          "aktools.stock_hk_hist"
+        ],
+        "records": [
+          {
+            "operation_id": "aktools.stock_hk_hist",
+            "step_id": "s1",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": true,
+            "required_outputs_satisfied": true,
+            "scope_match": true,
+            "normalization_success": true
+          }
+        ],
+        "successful_invoked": [
+          "aktools.stock_hk_hist"
+        ],
+        "real_mcp_execution_count": 1
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_024",
+      "status": "fail",
+      "detail": {
+        "invoked": [
+          "aktools.stock_financial_hk_analysis_indicator_em",
+          "hkexnews.list_hkexnews_announcements"
+        ],
+        "records": [
+          {
+            "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+            "step_id": "s1",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": true,
+            "required_outputs_satisfied": true,
+            "scope_match": true,
+            "normalization_success": true
+          },
+          {
+            "operation_id": "hkexnews.list_hkexnews_announcements",
+            "step_id": "s2",
+            "source": "gateway",
+            "gateway_success": false,
+            "success": false,
+            "step_completed": false,
+            "required_outputs_satisfied": false,
+            "scope_match": true,
+            "normalization_success": true
+          }
+        ],
+        "successful_invoked": [
+          "aktools.stock_financial_hk_analysis_indicator_em"
+        ],
+        "real_mcp_execution_count": 2
+      },
+      "primary_blocking": true
+    },
+    {
+      "task_id": "mkt_dev_001",
+      "status": "pass",
+      "detail": {
+        "invoked": [
+          "aktools.stock_hk_hist"
+        ],
+        "records": [
+          {
+            "operation_id": "aktools.stock_hk_hist",
+            "step_id": "s1",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": true,
+            "required_outputs_satisfied": true,
+            "scope_match": true,
+            "normalization_success": true
+          }
+        ],
+        "successful_invoked": [
+          "aktools.stock_hk_hist"
+        ],
+        "real_mcp_execution_count": 1
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "news_ht_004",
+      "status": "pass",
+      "detail": {
+        "invoked": [
+          "hkexnews.list_hkexnews_announcements"
+        ],
+        "records": [
+          {
+            "operation_id": "hkexnews.list_hkexnews_announcements",
+            "step_id": "s1",
+            "source": "gateway",
+            "gateway_success": true,
+            "success": true,
+            "step_completed": true,
+            "required_outputs_satisfied": true,
+            "scope_match": true,
+            "normalization_success": true
+          }
+        ],
+        "successful_invoked": [
+          "hkexnews.list_hkexnews_announcements"
+        ],
+        "real_mcp_execution_count": 1
+      },
+      "primary_blocking": false
+    }
+  ]
+}

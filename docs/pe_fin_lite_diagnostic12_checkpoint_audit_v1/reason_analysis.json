@@ -1,0 +1,151 @@
+{
+  "checkpoint": "C12_reason",
+  "counts": {
+    "pass": 7,
+    "fail": 2,
+    "N/A": 3
+  },
+  "tasks": [
+    {
+      "task_id": "fin_cf_003",
+      "status": "pass",
+      "detail": {
+        "artifacts": [],
+        "reason_parse_failed": false,
+        "runtime_recovered": false,
+        "note": "runtime_recovered_not_equal_reason_stage_pass"
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_011",
+      "status": "pass",
+      "detail": {
+        "artifacts": [],
+        "reason_parse_failed": false,
+        "runtime_recovered": false,
+        "note": "runtime_recovered_not_equal_reason_stage_pass"
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_020",
+      "status": "pass",
+      "detail": {
+        "artifacts": [],
+        "reason_parse_failed": false,
+        "runtime_recovered": false,
+        "note": "runtime_recovered_not_equal_reason_stage_pass"
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_023",
+      "status": "pass",
+      "detail": {
+        "artifacts": [],
+        "reason_parse_failed": false,
+        "runtime_recovered": false,
+        "note": "runtime_recovered_not_equal_reason_stage_pass"
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_ht_016",
+      "status": "pass",
+      "detail": {
+        "artifacts": [],
+        "reason_parse_failed": false,
+        "runtime_recovered": false,
+        "note": "runtime_recovered_not_equal_reason_stage_pass"
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_dev_002",
+      "status": "fail",
+      "detail": {
+        "artifacts": [
+          {
+            "step_id": "s3",
+            "summary": "Reason step could not parse model output; relying on verified evidence only.",
+            "claims": [],
+            "gaps": [
+              "reason_parse_failed"
+            ]
+          }
+        ],
+        "reason_parse_failed": true,
+        "runtime_recovered": false,
+        "note": "runtime_recovered_not_equal_reason_stage_pass"
+      },
+      "primary_blocking": true
+    },
+    {
+      "task_id": "xd_ht_007",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_ht_014",
+      "status": "pass",
+      "detail": {
+        "artifacts": [],
+        "reason_parse_failed": false,
+        "runtime_recovered": false,
+        "note": "runtime_recovered_not_equal_reason_stage_pass"
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "mkt_dev_014",
+      "status": "fail",
+      "detail": {
+        "artifacts": [
+          {
+            "step_id": "s2",
+            "summary": "Reason step could not parse model output; relying on verified evidence only.",
+            "claims": [],
+            "gaps": [
+              "reason_parse_failed"
+            ]
+          }
+        ],
+        "reason_parse_failed": true,
+        "runtime_recovered": false,
+        "note": "runtime_recovered_not_equal_reason_stage_pass"
+      },
+      "primary_blocking": true
+    },
+    {
+      "task_id": "fin_cf_024",
+      "status": "pass",
+      "detail": {
+        "artifacts": [],
+        "reason_parse_failed": false,
+        "runtime_recovered": false,
+        "note": "runtime_recovered_not_equal_reason_stage_pass"
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "mkt_dev_001",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "news_ht_004",
+      "status": "N/A",
+      "detail": {
+        "applicable": false
+      },
+      "primary_blocking": false
+    }
+  ]
+}

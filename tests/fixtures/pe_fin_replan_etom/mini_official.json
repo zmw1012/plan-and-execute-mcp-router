@@ -1,0 +1,41 @@
+{
+  "Demo Server::echo": {
+    "server_name": "Demo Server",
+    "tool_name": "echo",
+    "description": "Echo a query string back as text for testing.",
+    "input_schema": {
+      "type": "object",
+      "required": ["query"],
+      "properties": {
+        "query": {"type": "string", "description": "Text to echo"}
+      }
+    },
+    "categories": ["search"]
+  },
+  "Demo Server::list_items": {
+    "server_name": "Demo Server",
+    "tool_name": "list_items",
+    "description": "List available item identifiers.",
+    "input_schema": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "limit": {"type": "integer"}
+      }
+    },
+    "categories": ["list"]
+  },
+  "Blocked Server::secret": {
+    "server_name": "Blocked Server",
+    "tool_name": "secret",
+    "description": "Blocked tool for safety filter tests.",
+    "input_schema": {
+      "type": "object",
+      "required": ["token"],
+      "properties": {
+        "token": {"type": "string"}
+      }
+    },
+    "categories": ["general"]
+  }
+}

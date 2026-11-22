@@ -1,0 +1,29 @@
+{
+  "total_input_tokens": 9231332,
+  "total_output_tokens": 232792,
+  "total_tokens": 9464124,
+  "total_llm_calls": 460,
+  "total_real_mcp_executions": 572,
+  "total_embedding_calls": 0,
+  "total_retrieval_calls": 0,
+  "total_find_operations": 0,
+  "total_describe_operation": 0,
+  "mean_latency_ms": 25185.31666451613,
+  "schema_bundle_char_count": 33874,
+  "schema_bundle_token_estimate": 8469,
+  "estimated_usd": null,
+  "estimated_usd_note": "No frozen provider price table for openai_compatible/api.zhizengzeng.com; USD cost not estimated.",
+  "max_invocations_failures": 34,
+  "max_llm_turns_failures": 2,
+  "max_invocations_by_domain": {
+    "financial": 30,
+    "cross_domain": 3,
+    "news": 1
+  },
+  "limits": {
+    "max_llm_turns": 8,
+    "max_invocations": 6,
+    "timeout_sec": 120,
+    "bounded_retry": 1
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "n_tasks_with_repair_count_1": 119,
+  "first_valid_under_v2": 48,
+  "repair_valid_under_v2": 92,
+  "repair_recovered_under_v2": 80,
+  "note": "Validity under v2 structural canonicalizer is offline replay only; does not mutate the frozen v1 planner_outputs.jsonl."
+}

@@ -1,0 +1,859 @@
+{
+  "timestamp": "2026-11-04T06:05:50.011792+00:00",
+  "server": "aktools",
+  "cutoff": "2026-08-12",
+  "probes": {
+    "search_news": {
+      "success": true,
+      "error": null,
+      "n": 50,
+      "sample": [
+        {
+          "name": "futures_news_shmet",
+          "title": "上海金属网-快讯",
+          "category": "futures"
+        },
+        {
+          "name": "index_news_sentiment_scope",
+          "title": "数库-A股新闻情绪指数",
+          "category": "index"
+        },
+        {
+          "name": "news_cctv",
+          "title": "新闻联播文字稿",
+          "category": "alternative"
+        },
+        {
+          "name": "news_economic_baidu",
+          "title": "百度股市通-经济数据",
+          "category": "macro"
+        },
+        {
+          "name": "news_report_time_baidu",
+          "title": "百度股市通-财报发行",
+          "category": "stock"
+        },
+        {
+          "name": "news_trade_notify_dividend_baidu",
+          "title": "百度股市通-交易提醒-分红派息",
+          "category": "stock"
+        },
+        {
+          "name": "news_trade_notify_suspend_baidu",
+          "title": "百度股市通-交易提醒-停复牌",
+          "category": "stock"
+        },
+        {
+          "name": "stock_news_em",
+          "title": "东方财富-个股新闻-最近 100 条新闻",
+          "category": "stock"
+        },
+        {
+          "name": "stock_news_main_cx",
+          "title": "财新网-财新数据通",
+          "category": "stock"
+        },
+        {
+          "name": "stock_financial_benefit_new_ths",
+          "title": "同花顺-财务指标-利润表",
+          "category": "stock"
+        },
+        {
+          "name": "bond_new_composite_index_cbond",
+          "title": "中国债券信息网-中债指数-中债指数族系-总指数-综合类指数-中债-新综合指数",
+          "category": "bond"
+        },
+        {
+          "name": "fund_new_found_em",
+          "title": "基金数据-新发基金-新成立基金",
+          "category": "fund"
+        },
+        {
+          "name": "fund_new_found_ths",
+          "title": "同花顺-基金数据-新发基金",
+          "category": "fund"
+        },
+        {
+          "name": "macro_bank_newzealand_interest_rate",
+          "title": "新西兰联储决议报告，数据区间从 19990401-至今",
+          "category": "interest_rate"
+        },
+        {
+          "name": "macro_canada_new_house_rate",
+          "title": "东方财富-经济数据-加拿大-新屋开工",
+          "category": "macro"
+        }
+      ]
+    },
+    "search_公告": {
+      "success": true,
+      "error": null,
+      "n": 50,
+      "sample": [
+        {
+          "name": "fund_announcement_dividend_em",
+          "title": "东方财富网站-天天基金网-基金档案-基金公告-分红配送",
+          "category": "fund"
+        },
+        {
+          "name": "fund_announcement_personnel_em",
+          "title": "东方财富网站-天天基金网-基金档案-基金公告-人事调整",
+          "category": "fund"
+        },
+        {
+          "name": "fund_announcement_report_em",
+          "title": "东方财富网站-天天基金网-基金档案-基金公告-定期报告",
+          "category": "fund"
+        },
+        {
+          "name": "stock_individual_notice_report",
+          "title": "东方财富网-数据中心-公告大全-个股",
+          "category": "stock"
+        },
+        {
+          "name": "stock_notice_report",
+          "title": "东方财富网-数据中心-公告大全-沪深京 A 股公告",
+          "category": "stock"
+        },
+        {
+          "name": "stock_zh_a_disclosure_relation_cninfo",
+          "title": "巨潮资讯-首页-数据-预约披露调研",
+          "category": "stock"
+        },
+        {
+          "name": "stock_zh_a_disclosure_report_cninfo",
+          "title": "巨潮资讯-首页-公告查询-信息披露公告",
+          "category": "stock"
+        },
+        {
+          "name": "bond_corporate_issue_cninfo",
+          "title": "巨潮资讯-数据中心-专题统计-债券报表-债券发行-企业债发行",
+          "category": "bond"
+        },
+        {
+          "name": "bond_cov_issue_cninfo",
+          "title": "巨潮资讯-数据中心-专题统计-债券报表-债券发行-可转债发行",
+          "category": "bond"
+        },
+        {
+          "name": "bond_cov_stock_issue_cninfo",
+          "title": "巨潮资讯-数据中心-专题统计-债券报表-债券发行-可转债转股",
+          "category": "bond"
+        },
+        {
+          "name": "bond_local_government_issue_cninfo",
+          "title": "巨潮资讯-数据中心-专题统计-债券报表-债券发行-地方债发行",
+          "category": "bond"
+        },
+        {
+          "name": "bond_treasure_issue_cninfo",
+          "title": "巨潮资讯-数据中心-专题统计-债券报表-债券发行-国债发行",
+          "category": "bond"
+        },
+        {
+          "name": "crypto_bitcoin_hold_report",
+          "title": "金十数据-比特币持仓报告",
+          "category": "crypto"
+        },
+        {
+          "name": "stock_add_stock",
+          "title": "新浪财经-发行与分配-增发",
+          "category": "stock"
+        },
+        {
+          "name": "stock_allotment_cninfo",
+          "title": "巨潮资讯-个股-配股实施方案",
+          "category": "stock"
+        }
+      ]
+    },
+    "search_资讯": {
+      "success": true,
+      "error": null,
+      "n": 34,
+      "sample": [
+        {
+          "name": "bond_corporate_issue_cninfo",
+          "title": "巨潮资讯-数据中心-专题统计-债券报表-债券发行-企业债发行",
+          "category": "bond"
+        },
+        {
+          "name": "bond_cov_issue_cninfo",
+          "title": "巨潮资讯-数据中心-专题统计-债券报表-债券发行-可转债发行",
+          "category": "bond"
+        },
+        {
+          "name": "bond_cov_stock_issue_cninfo",
+          "title": "巨潮资讯-数据中心-专题统计-债券报表-债券发行-可转债转股",
+          "category": "bond"
+        },
+        {
+          "name": "bond_local_government_issue_cninfo",
+          "title": "巨潮资讯-数据中心-专题统计-债券报表-债券发行-地方债发行",
+          "category": "bond"
+        },
+        {
+          "name": "bond_treasure_issue_cninfo",
+          "title": "巨潮资讯-数据中心-专题统计-债券报表-债券发行-国债发行",
+          "category": "bond"
+        },
+        {
+          "name": "fund_report_asset_allocation_cninfo",
+          "title": "巨潮资讯-数据中心-专题统计-基金报表-基金资产配置",
+          "category": "fund"
+        },
+        {
+          "name": "fund_report_industry_allocation_cninfo",
+          "title": "巨潮资讯-数据中心-专题统计-基金报表-基金行业配置",
+          "category": "fund"
+        },
+        {
+          "name": "fund_report_stock_cninfo",
+          "title": "巨潮资讯-数据中心-专题统计-基金报表-基金重仓股",
+          "category": "fund"
+        },
+        {
+          "name": "spot_golden_benchmark_sge",
+          "title": "上海黄金交易所-数据资讯-上海金基准价-历史数据",
+          "category": "spot"
+        },
+        {
+          "name": "spot_hist_sge",
+          "title": "上海黄金交易所-数据资讯-行情走势-历史数据",
+          "category": "spot"
+        },
+        {
+          "name": "spot_quotations_sge",
+          "title": "上海黄金交易所-实时行情数据",
+          "category": "spot"
+        },
+        {
+          "name": "spot_silver_benchmark_sge",
+          "title": "上海黄金交易所-数据资讯-上海银基准价-历史数据",
+          "category": "spot"
+        },
+        {
+          "name": "stock_allotment_cninfo",
+          "title": "巨潮资讯-个股-配股实施方案",
+          "category": "stock"
+        },
+        {
+          "name": "stock_cg_equity_mortgage_cninfo",
+          "title": "巨潮资讯-数据中心-专题统计-公司治理-股权质押",
+          "category": "stock"
+        },
+        {
+          "name": "stock_cg_guarantee_cninfo",
+          "title": "巨潮资讯-数据中心-专题统计-公司治理-对外担保",
+          "category": "stock"
+        }
+      ]
+    },
+    "search_notice": {
+      "success": true,
+      "error": null,
+      "n": 50,
+      "sample": [
+        {
+          "name": "stock_individual_notice_report",
+          "title": "东方财富网-数据中心-公告大全-个股",
+          "category": "stock"
+        },
+        {
+          "name": "stock_notice_report",
+          "title": "东方财富网-数据中心-公告大全-沪深京 A 股公告",
+          "category": "stock"
+        },
+        {
+          "name": "option_sse_spot_price_sina",
+          "title": "新浪财经-期权-期权实时数据",
+          "category": "option"
+        },
+        {
+          "name": "option_sse_underlying_spot_price_sina",
+          "title": "期权标的物的实时数据",
+          "category": "option"
+        },
+        {
+          "name": "movie_boxoffice_realtime",
+          "title": "电影票房-实时票房",
+          "category": "alternative"
+        },
+        {
+          "name": "spot_corn_price_soozhu",
+          "title": "搜猪-生猪大数据-全国玉米价格走势",
+          "category": "spot"
+        },
+        {
+          "name": "spot_hog_lean_price_soozhu",
+          "title": "搜猪-生猪大数据-全国瘦肉型肉猪",
+          "category": "spot"
+        },
+        {
+          "name": "spot_price_qh",
+          "title": "99 期货-数据-期现-现货走势",
+          "category": "spot"
+        },
+        {
+          "name": "spot_soybean_price_soozhu",
+          "title": "搜猪-生猪大数据-全国豆粕价格走势",
+          "category": "spot"
+        },
+        {
+          "name": "index_hog_spot_price",
+          "title": "行情宝-生猪市场价格指数",
+          "category": "futures"
+        },
+        {
+          "name": "macro_china_construction_price_index",
+          "title": "建材价格指数",
+          "category": "macro"
+        },
+        {
+          "name": "macro_euro_zew_economic_sentiment",
+          "title": "欧元区ZEW经济景气指数报告，数据区间从20080212-至今",
+          "category": "macro"
+        },
+        {
+          "name": "news_trade_notify_dividend_baidu",
+          "title": "百度股市通-交易提醒-分红派息",
+          "category": "stock"
+        },
+        {
+          "name": "news_trade_notify_suspend_baidu",
+          "title": "百度股市通-交易提醒-停复牌",
+          "category": "stock"
+        },
+        {
+          "name": "option_finance_minute_sina",
+          "title": "指定期权的分钟频率数据",
+          "category": "option"
+        }
+      ]
+    },
+    "search_disclosure": {
+      "success": true,
+      "error": null,
+      "n": 50,
+      "sample": [
+        {
+          "name": "stock_report_disclosure",
+          "title": "巨潮资讯-首页-数据-预约披露",
+          "category": "stock"
+        },
+        {
+          "name": "stock_zh_a_disclosure_relation_cninfo",
+          "title": "巨潮资讯-首页-数据-预约披露调研",
+          "category": "stock"
+        },
+        {
+          "name": "stock_zh_a_disclosure_report_cninfo",
+          "title": "巨潮资讯-首页-公告查询-信息披露公告",
+          "category": "stock"
+        },
+        {
+          "name": "bond_china_close_return",
+          "title": "收盘收益率曲线历史数据",
+          "category": "bond"
+        },
+        {
+          "name": "futures_global_hist_em",
+          "title": "东方财富网-行情中心-期货市场-国际期货-历史行情数据",
+          "category": "futures"
+        },
+        {
+          "name": "futures_hq_subscribe_exchange_symbol",
+          "title": "将品种字典转化为 pandas.DataFrame",
+          "category": "futures"
+        },
+        {
+          "name": "futures_foreign_hist",
+          "title": "外盘期货-历史行情数据-日频率",
+          "category": "futures"
+        },
+        {
+          "name": "futures_dce_position_rank",
+          "title": "大连商品交易所-每日持仓排名-具体合约",
+          "category": "futures"
+        },
+        {
+          "name": "get_futures_daily",
+          "title": "交易所日交易数据",
+          "category": "futures"
+        },
+        {
+          "name": "bond_treasure_issue_cninfo",
+          "title": "巨潮资讯-数据中心-专题统计-债券报表-债券发行-国债发行",
+          "category": "bond"
+        },
+        {
+          "name": "currency_history",
+          "title": "Latest data from currencyscoop.com",
+          "category": "currency"
+        },
+        {
+          "name": "fund_scale_close_sina",
+          "title": "新浪财经-基金数据中心-基金规模-封闭式基金",
+          "category": "fund"
+        },
+        {
+          "name": "futures_foreign_commodity_realtime",
+          "title": "新浪-外盘期货-行情数据",
+          "category": "futures"
+        },
+        {
+          "name": "futures_gfex_position_rank",
+          "title": "广州期货交易所-日成交持仓排名",
+          "category": "futures"
+        },
+        {
+          "name": "futures_global_spot_em",
+          "title": "东方财富网-行情中心-期货市场-国际期货",
+          "category": "futures"
+        }
+      ]
+    },
+    "search_gsrl": {
+      "success": true,
+      "error": null,
+      "n": 49,
+      "sample": [
+        {
+          "name": "stock_gsrl_gsdt_em",
+          "title": "东方财富网-数据中心-股市日历-公司动态",
+          "category": "stock"
+        },
+        {
+          "name": "stock_xgsr_ths",
+          "title": "同花顺-数据中心-新股数据-新股上市首日",
+          "category": "stock"
+        },
+        {
+          "name": "article_rlab_rv",
+          "title": "修大成主页-Risk Lab-Realized Volatility",
+          "category": "research"
+        },
+        {
+          "name": "bond_cb_adj_logs_jsl",
+          "title": "集思录-可转债转股价-调整记录",
+          "category": "bond"
+        },
+        {
+          "name": "fund_etf_holdings_tx",
+          "title": "交易所 ETF 申赎篮子证券市值占比，使用腾讯最新价和人民币汇率估算",
+          "category": "fund"
+        },
+        {
+          "name": "macro_australia_cpi_quarterly",
+          "title": "东方财富-经济数据-澳大利亚-消费者物价指数季率",
+          "category": "macro"
+        },
+        {
+          "name": "macro_australia_cpi_yearly",
+          "title": "东方财富-经济数据-澳大利亚-消费者物价指数年率",
+          "category": "macro"
+        },
+        {
+          "name": "macro_australia_ppi_quarterly",
+          "title": "东方财富-经济数据-澳大利亚-生产者物价指数季率",
+          "category": "macro"
+        },
+        {
+          "name": "macro_bank_switzerland_interest_rate",
+          "title": "瑞士央行利率决议报告，数据区间从 20080313-至今",
+          "category": "interest_rate"
+        },
+        {
+          "name": "macro_canada_core_cpi_yearly",
+          "title": "东方财富-经济数据-加拿大-核心消费者物价指数年率",
+          "category": "macro"
+        },
+        {
+          "name": "macro_canada_cpi_yearly",
+          "title": "东方财富-经济数据-加拿大-消费者物价指数年率",
+          "category": "macro"
+        },
+        {
+          "name": "macro_china_cpi_yearly",
+          "title": "中国年度 CPI 数据，数据区间从 19860201-至今",
+          "category": "macro"
+        },
+        {
+          "name": "macro_china_cx_pmi_yearly",
+          "title": "中国年度财新 PMI 数据，数据区间从 20120120-至今",
+          "category": "macro"
+        },
+        {
+          "name": "macro_china_cx_services_pmi_yearly",
+          "title": "中国财新服务业PMI报告，数据区间从 20120405-至今",
+          "category": "macro"
+        },
+        {
+          "name": "macro_china_czsr",
+          "title": "东方财富-财政收入",
+          "category": "macro"
+        }
+      ]
+    },
+    "describe_stock_news_em": {
+      "success": true,
+      "error": null,
+      "data": {
+        "name": "stock_news_em",
+        "title": "东方财富-个股新闻-最近 100 条新闻",
+        "source_url": "https://so.eastmoney.com/news/s?keyword=603777",
+        "url": "/api/public/stock_news_em",
+        "params": [
+          {
+            "name": "symbol",
+            "default": "603777",
+            "required": false,
+            "type": "str",
+            "description": "股票代码"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "关键词",
+            "type": "str",
+            "desc": "-"
+          },
+          {
+            "name": "新闻标题",
+            "type": "str",
+            "desc": "-"
+          },
+          {
+            "name": "新闻内容",
+            "type": "str",
+            "desc": "-"
+          },
+          {
+            "name": "发布时间",
+            "type": "str",
+            "desc": "-"
+          },
+          {
+            "name": "文章来源",
+            "type": "str",
+            "desc": "-"
+          },
+          {
+            "name": "新闻链接",
+            "type": "str",
+            "desc": "-"
+          }
+        ],
+        "limit_desc": "指定 symbol 当日最近 100 条新闻资讯数据",
+        "example": "import akshare as ak\n\nstock_news_em_df = ak.stock_news_em(symbol=\"603777\")\nprint(stock_news_em_df)",
+        "doc": "东方财富-个股新闻-最近 100 条新闻\nhttps://so.eastmoney.com/news/s?keyword=603777\n:param symbol: 股票代码\n:type symbol: str\n:return: 个股新闻\n:rtype: pandas.DataFrame"
+      }
+    },
+    "stock_news_em_Tencent": {
+      "success": true,
+      "error": null,
+      "latency_ms": 1151,
+      "n_rows": 10,
+      "n_before_cutoff": 0,
+      "columns": [
+        "关键词",
+        "新闻标题",
+        "新闻内容",
+        "发布时间",
+        "文章来源",
+        "新闻链接"
+      ],
+      "sample": [
+        {
+          "关键词": "00700",
+          "新闻标题": "腾讯控股00700.HK)10月15日回购24.00万股，耗资1.00亿港元",
+          "新闻内容": "证券时报·数据宝统计，腾讯控股在港交所公告显示，10月15日以每股414.200港元至422.400港元的价格回购24.00万股，回购金额达1.00亿港元。该股当日收盘价417.800港元，下跌1.32%，全天成交额86.52亿港元。 自8月17日以来公司已连续43日进行回购，",
+          "发布时间": "2026-10-15 22:05:00",
+          "文章来源": "证券时报网",
+          "新闻链接": "http://finance.eastmoney.com/a/202610153897222895.html"
+        },
+        {
+          "关键词": "00700",
+          "新闻标题": "腾讯控股00700.HK)连续42日回购，累计回购1415.30万股",
+          "新闻内容": "证券时报·数据宝统计，腾讯控股在港交所公告显示，10月14日以每股416.600港元至430.200港元的价格回购23.70万股，回购金额达1.00亿港元。该股当日收盘价423.400港元，下跌0.42%，全天成交额84.43亿港元。 自8月17日以来公司已连续42日进行回购，",
+          "发布时间": "2026-10-14 22:56:00",
+          "文章来源": "证券时报网",
+          "新闻链接": "http://finance.eastmoney.com/a/202610143895804396.html"
+        }
+      ],
+      "latest_before_cutoff": null,
+      "note": "East Money keyword search; pageSize hardcoded ~10; no start/end date params — floating recent feed"
+    },
+    "stock_news_em_HSBC": {
+      "success": true,
+      "error": null,
+      "latency_ms": 2034,
+      "n_rows": 10,
+      "n_before_cutoff": 0,
+      "columns": [
+        "关键词",
+        "新闻标题",
+        "新闻内容",
+        "发布时间",
+        "文章来源",
+        "新闻链接"
+      ],
+      "sample": [
+        {
+          "关键词": "00005",
+          "新闻标题": "港股公告精选｜百胜中国三季度盈利同比增约一成 秦港股份拟发行股份收购码头资产",
+          "新闻内容": "东鹏饮料(09980.HK)：以9805万元拿下郑州工业用地，推进华中生产基地建设 2）回购动态 汇丰控股00005.HK)：斥资7994.33万港元回购60万股，回购价131.2-135港元。",
+          "发布时间": "2026-11-03 21:17:00",
+          "文章来源": "财联社",
+          "新闻链接": "http://finance.eastmoney.com/a/202611033920509237.html"
+        },
+        {
+          "关键词": "00005",
+          "新闻标题": "汇丰控股近一个月首次上榜港股通成交活跃榜",
+          "新闻内容": "06166 剑桥科技 9.01 -0.11 5 65.100 3.33 03690 美团-W 4.28 0.62 4 73.050 2.03 01398 工商银行 4.24 -1.37 2 7.775 -1.52 00939 建设银行 8.54 -0.36 2 10.140 -1.17 00005",
+          "发布时间": "2026-11-02 21:32:00",
+          "文章来源": "证券时报网",
+          "新闻链接": "http://finance.eastmoney.com/a/202611023919049649.html"
+        }
+      ],
+      "latest_before_cutoff": null,
+      "note": "East Money keyword search; pageSize hardcoded ~10; no start/end date params — floating recent feed"
+    },
+    "stock_news_em_Alibaba": {
+      "success": true,
+      "error": null,
+      "latency_ms": 2612,
+      "n_rows": 10,
+      "n_before_cutoff": 0,
+      "columns": [
+        "关键词",
+        "新闻标题",
+        "新闻内容",
+        "发布时间",
+        "文章来源",
+        "新闻链接"
+      ],
+      "sample": [
+        {
+          "关键词": "09988",
+          "新闻标题": "11月2日港股通净卖出44.69亿港元",
+          "新闻内容": "阿里巴巴-W 港股通(沪) 87433.08 -13243.75 2.47 00939 建设银行 港股通(沪) 85407.60 -3598.99 -1.17 09988 阿里巴巴-W 港股通(深) 67793.00 -2018.50 2.47 00005 汇丰控股 港股通(深)",
+          "发布时间": "2026-11-02 21:32:00",
+          "文章来源": "证券时报网",
+          "新闻链接": "http://finance.eastmoney.com/a/202611023919049531.html"
+        },
+        {
+          "关键词": "09988",
+          "新闻标题": "港股通成交活跃股追踪 恒生中国企业近一个月首次上榜",
+          "新闻内容": "0.31 18 397.200 1.27 00883 中国海洋石油 23.62 0.41 18 24.040 -1.96 00981 中芯国际 26.05 -3.80 18 42.620 -2.29 06869 长飞光纤光缆 12.31 0.43 18 100.500 -6.25 09988",
+          "发布时间": "2026-11-03 20:45:00",
+          "文章来源": "证券时报网",
+          "新闻链接": "http://finance.eastmoney.com/a/202611033920474366.html"
+        }
+      ],
+      "latest_before_cutoff": null,
+      "note": "East Money keyword search; pageSize hardcoded ~10; no start/end date params — floating recent feed"
+    },
+    "stock_news_em_name_Tencent": {
+      "success": true,
+      "error": null,
+      "latency_ms": 1103,
+      "n_rows": 10,
+      "n_before_cutoff": 0,
+      "sample": [
+        {
+          "关键词": "腾讯控股",
+          "新闻标题": "晨星：腾讯控股及阿里巴巴-W为长期AI投资首选",
+          "新闻内容": "该机构将腾讯控股及阿里巴巴-W列为长期AI投资首选，认为两家公司现有业务能够提供盈利支持，即使AI采用或商业化变现进度不及预期，经营状况仍具较强韧性，同时AI亦有助于互联网、广告及游戏业务发展。",
+          "发布时间": "2026-11-03 16:36:20",
+          "文章来源": "财联社",
+          "新闻链接": "http://finance.eastmoney.com/a/202611033920286090.html"
+        }
+      ]
+    },
+    "stock_news_em_name_HSBC": {
+      "success": true,
+      "error": null,
+      "latency_ms": 809,
+      "n_rows": 10,
+      "n_before_cutoff": 0,
+      "sample": [
+        {
+          "关键词": "汇丰控股",
+          "新闻标题": "汇丰控股近一个月首次上榜港股通成交活跃榜",
+          "新闻内容": "汇丰控股为近一个月首次上榜，当日港股通成交额为5.26亿港元，成交净卖出3.94亿港元，该股当日收盘下跌1.47%。",
+          "发布时间": "2026-11-02 21:32:00",
+          "文章来源": "证券时报网",
+          "新闻链接": "http://finance.eastmoney.com/a/202611023919049649.html"
+        }
+      ]
+    },
+    "stock_news_em_name_Alibaba": {
+      "success": true,
+      "error": null,
+      "latency_ms": 1054,
+      "n_rows": 10,
+      "n_before_cutoff": 0,
+      "sample": [
+        {
+          "关键词": "阿里巴巴",
+          "新闻标题": "瑞穗上调阿里巴巴目标价",
+          "新闻内容": "瑞穗将阿里巴巴目标价从195美元上调至200美元。",
+          "发布时间": "2026-11-03 19:37:37",
+          "文章来源": "财联社",
+          "新闻链接": "http://finance.eastmoney.com/a/202611033920411834.html"
+        }
+      ]
+    },
+    "stock_gsrl_gsdt_em": {
+      "success": true,
+      "error": null,
+      "latency_ms": 2413,
+      "n_rows": 15,
+      "columns": [
+        "序号",
+        "代码",
+        "简称",
+        "事件类型",
+        "具体事项",
+        "交易日"
+      ],
+      "sample": [
+        {
+          "序号": 1,
+          "代码": "000027",
+          "简称": "深圳能源",
+          "事件类型": "资产重组",
+          "具体事项": "公司全资公司西部能源公司所属全资子公司册亨公司拟投资建设册亨县秧坝者木汤风电场项目(以下简称:秧坝者木汤风电场项目),秧坝者木汤风电场项目总投资为人民币58,759.39万元,其中自有资金为人民币11,781.88万元,其余投资款拟通过融资解决。西部能源公司拟为秧坝者木汤风电场项目向册亨公司增资人民币11,781.88万元,增资后册亨公司注册资本由人民币24,360.32万元(为西部能源公司因弼佑洛江风电场项目、双江朗达风电场项目向册亨公司增资后注册资本)增至人民币36,142.20万元。",
+          "交易日": "2026-08-12T00:00:00.000"
+        },
+        {
+          "序号": 2,
+          "代码": "000027",
+          "简称": "深圳能源",
+          "事件类型": "资产重组",
+          "具体事项": "公司全资公司西部能源公司所属全资子公司册亨公司拟投资建设册亨县双江朗达风电场项目(以下简称:双江朗达风电场项目),双江朗达风电场项目总投资为人民币60,922.47万元,其中自有资金为人民币12,214.49万元,其余投资款拟通过融资解决。西部能源公司拟为双江朗达风电场项目向册亨公司增资人民币12,214.49万元,增资后册亨公司注册资本由人民币12,145.83万元(为西部能源公司因弼佑洛江风电场项目向册亨公司增资后注册资本)增至人民币24,360.32万元。",
+          "交易日": "2026-08-12T00:00:00.000"
+        }
+      ]
+    },
+    "stock_individual_notice_report": {
+      "success": false,
+      "error": "Error executing tool get_data: 调用接口出错 '代码'，请升级 AKShare 到最新版本并在文档中确认该接口的使用方式：https://akshare.akfamily.xyz",
+      "latency_ms": 403,
+      "n_rows": 0,
+      "columns": [],
+      "sample": []
+    },
+    "stock_notice_report": {
+      "success": true,
+      "error": null,
+      "latency_ms": 22411,
+      "n_rows": 15,
+      "columns": [
+        "代码",
+        "名称",
+        "公告标题",
+        "公告类型",
+        "公告日期",
+        "网址"
+      ],
+      "sample": [
+        {
+          "代码": "301510",
+          "名称": "固高科技",
+          "公告标题": "固高科技:中信建投证券股份有限公司关于固高科技股份有限公司首次公开发行前已发行的部分限售股解禁上市流通的核查意见",
+          "公告类型": "保荐/核查意见",
+          "公告日期": "2026-08-12T00:00:00.000",
+          "网址": "https://data.eastmoney.com/notices/detail/301510/AN202608171828043120.html"
+        },
+        {
+          "代码": "002344",
+          "名称": "海宁皮城",
+          "公告标题": "海宁皮城:海宁中国皮革城股份有限公司2026年面向专业投资者公开发行绿色公司债券(第一期)票面利率公告",
+          "公告类型": "其他",
+          "公告日期": "2026-08-12T00:00:00.000",
+          "网址": "https://data.eastmoney.com/notices/detail/002344/AN202608121827912548.html"
+        }
+      ]
+    },
+    "stock_news_main_cx": {
+      "success": true,
+      "error": null,
+      "latency_ms": 1143,
+      "n_rows": 15,
+      "columns": [
+        "tag",
+        "summary",
+        "url"
+      ],
+      "sample": [
+        {
+          "tag": "华尔街原声",
+          "summary": "Richard Teng称，公司已重建受影响的钱包系统，更换相关设备及访问凭证，并加强AI安全监测",
+          "url": "https://database.caixin.com/2026-11-04/102500635.html?cxapp_link=true"
+        },
+        {
+          "tag": "华尔街原声",
+          "summary": "潘兴广场创始人认为，美股估值有盈利增长支撑，私人风险投资市场的泡沫迹象更明显",
+          "url": "https://database.caixin.com/2026-11-04/102500632.html?cxapp_link=true"
+        }
+      ]
+    },
+    "stock_info_global_em": {
+      "success": true,
+      "error": null,
+      "latency_ms": 746,
+      "n_rows": 15,
+      "columns": [
+        "标题",
+        "摘要",
+        "发布时间",
+        "链接"
+      ],
+      "sample": [
+        {
+          "标题": "美国中期选举现场投票已基本结束",
+          "摘要": "【美国中期选举现场投票已基本结束】美东时间11月4日凌晨1时，随着阿拉斯加州阿留申群岛地区投票站到达法定关闭时间，美国今年中期选举选举日现场投票基本结束，各州将继续统计并公布计票结果。",
+          "发布时间": "2026-11-04 14:04:13",
+          "链接": "https://finance.eastmoney.com/a/202611043921747720.html"
+        },
+        {
+          "标题": "科创50指数涨逾8% 创业板指涨逾5% 科技股暴力反弹",
+          "摘要": "科创50指数涨逾8%，创业板指涨逾5%，全市场近4700股飘红，科技股暴力反弹。盘面上，贵金属、高带宽内存、半导体、存储芯片、先进封装、电子化学品、光刻机、CPO概念涨幅居前。",
+          "发布时间": "2026-11-04 14:00:22",
+          "链接": "https://finance.eastmoney.com/a/202611043921727776.html"
+        }
+      ]
+    },
+    "news_cctv": {
+      "success": true,
+      "error": null,
+      "latency_ms": 5194,
+      "n_rows": 10,
+      "columns": [
+        "date",
+        "title",
+        "content"
+      ],
+      "sample": [
+        {
+          "date": "20260812",
+          "title": "【新思想引领新征程】综合立体交通网建设加快向西部纵深推进",
+          "content": "习近平总书记强调，要坚持以大开放促进大开发，提高西部地区对内对外开放水平。“十五五”开局之年，我国综合立体交通网建设加快向西部纵深推进，通道、枢纽、网络建设统筹推进，交通运输服务不断优化，为西部地区经济社会高质量发展提供有力支撑。今天（8月12日），平陆运河启动全线实船试验，这是通航前最后一次“大考”。作为西部陆海新通道骨干工程，9月，平陆运河通航后将成为我国西南地区通往东盟地区运距最短、最经济、最便捷的水运通道。推进西部大开发形成新格局，是以习近平同志为核心的党中央统筹国内国际两个大局作出的重大决策部署。党的十八大以来，总书记的考察足迹遍布西部地区，为西部地区高质量发展把脉定向。针对西部交通网络“留白”多、开放通道不畅、枢纽建设不协同等短板，总书记明确要求，加快建设内外通道和区域性枢纽，完善基础设施网络，提高对外开放和外向型经济发展水平。大力推进西部陆海新通道建设。按照总书记战略指引，国家相继出台《交通强国建设纲要》《国家综合立体交通网规划纲要》等政策文件，持续强化西部补短板，推动网络覆盖更广、通道衔接更畅、枢纽功能更强，为新时代西部大开发提供坚强交通保障。“十五五”开局之年，西部公路投资稳步走高。眼下，连接四川凉山与云南昭通的西昭高速正在大凉山腹地加紧施工。年内通车后，两地无直达高速的历史将彻底终结。在交通运输部，记者看到一张西部地区高速公路路网图。城区常住人口超10万的市县高速公路通达率，已从五年前的95%提升到现在的99%以上。跨区域铁路建设提速奔跑，一条条钢铁动脉串联山海。青藏、拉林、拉日铁路构筑起高原铁路骨架，路网加密、枢纽扩容，新线不断延展，雪域天路持续拉近边疆与内地距离。国铁集团数据显示，西部铁路营业里程五年间从5.91万公里增至6.73万公里，占全国铁路总里程四成有余。不仅陆地路网在加密完善，空中航线建设也在提速，枢纽功能持续增强。昆明长水机场改扩建加速，建成后将成为全球第二座高原多跑道国际航空枢纽，实现高铁、地铁与航空同场换乘，辐射南亚东南亚的“1小时航空圈”加速成形。西部交通基建正加速向“内联外畅”的开放型枢纽网络升级。“十五五”期间，我国将持续推进出疆入藏、沿边沿海沿江等跨区域大通道建设。到2030年，“八纵八横”高铁主骨架将覆盖西部主要城市，铁路路网不断向更广袤的腹地延伸；高等级公路基本覆盖西部县级及以上行政区和重点乡镇；支线运输机场服务基本覆盖地级行政区。西部交通正从“基本联通”迈向“高效覆盖”，为打造优势互补、高质量发展的区域经济布局注入持久动力。"
+        },
+        {
+          "date": "20260812",
+          "title": "文献纪录片《江泽民》今晚继续播出",
+          "content": "为纪念江泽民同志诞辰100周年，十二集文献纪录片《江泽民》将于今晚（8月12日）在总台央视综合频道八点档播出第三集《临危受命》、第四集《重大突破》，科教频道晚十点档重播。"
+        }
+      ]
+    }
+  },
+  "raw_mcp_tools": [
+    "search_interfaces",
+    "describe_interface",
+    "get_data"
+  ],
+  "server_version": "0.1.4"
+}

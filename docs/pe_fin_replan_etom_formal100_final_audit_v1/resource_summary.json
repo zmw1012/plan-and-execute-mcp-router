@@ -1,0 +1,45 @@
+{
+  "llm_calls_total": 745,
+  "llm_calls_mean": 7.45,
+  "llm_calls_median": 6.0,
+  "llm_calls_p95": 16.0,
+  "llm_calls_by_stage": {
+    "planner": 100,
+    "tool_binding": 232,
+    "replanner": 256,
+    "tool_binding_repair": 108,
+    "reason": 29,
+    "reason_repair": 12,
+    "replanner_semantic_repair": 3,
+    "planner_repair": 4,
+    "replanner_repair": 1
+  },
+  "tokens_total": 1669390,
+  "tokens_mean": 16693.9,
+  "input_tokens_total": 1298776,
+  "output_tokens_total": 370614,
+  "latency_ms_total": 4562710.108661791,
+  "latency_s_total": 4562.710108661791,
+  "latency_ms_mean": 45627.10108661791,
+  "latency_ms_median": 32703.38979153894,
+  "latency_ms_p95": 109337.12391695008,
+  "embedding_calls_total": 232,
+  "routing_records_total": 208,
+  "mcp_invocations_total": 208,
+  "execution_rounds_mean": 2.55,
+  "execution_rounds_max": 6,
+  "parse_repairs_total": 4,
+  "http_retries_total": 0,
+  "unique_predicted_servers": 121,
+  "real_tool_executions_total": 0,
+  "budget_hits": {
+    "max_total_llm_calls": 7,
+    "resource_limit_failure": 1
+  },
+  "estimated_cost_usd": null,
+  "compact_crosscheck": {
+    "llm_calls": 745,
+    "embedding_calls": 232,
+    "routing_records": 208
+  }
+}

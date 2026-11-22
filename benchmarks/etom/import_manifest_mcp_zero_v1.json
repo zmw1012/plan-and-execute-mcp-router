@@ -1,0 +1,154 @@
+{
+  "manifest_version": "mcp_zero_etom_import_v1",
+  "purpose": "Frozen ETOM source pin/locks/metrics imported for MCP-Zero routing-only baseline. No Operation-Visible predictions or scores.",
+  "etom_audit_source_commit": "d1934e052a32c0677a43f3b46ceaab2609e16cbe",
+  "etom_freeze_commit": "f4bfefec49eb28ed749bf600679819cb54d0e1a6",
+  "etom_source_commit": "790f28727f567b88918420d163c524d46644a694",
+  "forbidden_imports": [
+    "docs/etom_operation_visible_formal100_final_audit_v1/",
+    "scripts/audit_etom_operation_visible_formal100_final_v1.py",
+    "scripts/run_etom_operation_visible_*",
+    "outputs/",
+    "Operation-Visible predictions/scores/per-task errors"
+  ],
+  "identity": {
+    "source_pin_sha256": "5f1ae09e7a8fbb7b554ed1302433feacaffb8645ccc560c7bb87ff64893f2692",
+    "cost_pilot_lock_sha256": "bb0dff91fe999b86b21162617c8a62b3b067c0a18b86227d4308068a94abf065",
+    "formal_100_lock_sha256": "2bda1a2f16dd1b36b5a73b4057b7305b4901ed83eba0b537db2f187a56ed309b",
+    "sample_sha256": "99cb671ea3528c1c69ab6fc2a3d622c4d6f6bb07058728071aae5eae8720cbb1",
+    "ordered_task_ids_sha256": "3be67c36e4eec58920864a401bbaa73db55136930b0f406e2da56c4988734479",
+    "seed": 20261106,
+    "tools": 2375,
+    "queries": {
+      "1": 781,
+      "2": 773,
+      "3": 327,
+      "4": 103,
+      "5": 91
+    },
+    "formal_quotas": {
+      "L1": 20,
+      "L2": 20,
+      "L3": 20,
+      "L4": 20,
+      "L5": 20
+    },
+    "pilot_task_ids": [
+      "L1-q185",
+      "L1-q233",
+      "L2-q522",
+      "L2-q732",
+      "L3-q37",
+      "L3-q105",
+      "L4-q91",
+      "L4-q13",
+      "L5-q31",
+      "L5-q66"
+    ],
+    "pilot_overlap": []
+  },
+  "files": {
+    "benchmarks/etom/etom_source_pin_v1.json": {
+      "sha256": "5f1ae09e7a8fbb7b554ed1302433feacaffb8645ccc560c7bb87ff64893f2692",
+      "bytes": 1834,
+      "git_blob_sha": "64f5a00819e3c2f3d4ce758eec4dc4fb609a0477",
+      "imported_from_commit": "f4bfefec49eb28ed749bf600679819cb54d0e1a6"
+    },
+    "benchmarks/etom/cost_pilot_10_v1.lock.json": {
+      "sha256": "bb0dff91fe999b86b21162617c8a62b3b067c0a18b86227d4308068a94abf065",
+      "bytes": 7349,
+      "git_blob_sha": "a337b825827e4f3e56fcf5a741069be9a7500459",
+      "imported_from_commit": "f4bfefec49eb28ed749bf600679819cb54d0e1a6"
+    },
+    "benchmarks/etom/formal_100_v1.lock.json": {
+      "sha256": "2bda1a2f16dd1b36b5a73b4057b7305b4901ed83eba0b537db2f187a56ed309b",
+      "bytes": 102625,
+      "git_blob_sha": "d482a05b2f047849f172e592099e8a467c475c21",
+      "imported_from_commit": "f4bfefec49eb28ed749bf600679819cb54d0e1a6"
+    },
+    "docs/etom_formal_100_v1_sampling_report.md": {
+      "sha256": "2ef9f8dfd1259a2ce06d6a735b54170f9d1b9cdb32c210730c4c06b92a0a3c2f",
+      "bytes": 6152,
+      "git_blob_sha": "3eeee591681948c031c2419eaa36dba826837c1c",
+      "imported_from_commit": "f4bfefec49eb28ed749bf600679819cb54d0e1a6"
+    },
+    "scripts/fetch_etom_source.sh": {
+      "sha256": "b3268f64f5022ed747151c26f50cde7f12b6afb80972f26244131412482ac7d1",
+      "bytes": 548,
+      "git_blob_sha": "160194c99181205e3917e1c3c2cc7022353c74ce",
+      "imported_from_commit": "f4bfefec49eb28ed749bf600679819cb54d0e1a6"
+    },
+    "scripts/convert_etom_registry.py": {
+      "sha256": "70b313be999e3c8d99b955ff5c6e1d7260e16c83c67d26fd7d2b748fd76ff25a",
+      "bytes": 1648,
+      "git_blob_sha": "08bb4b46cb1368df6cd5cc795b7ae7c69ee5239d",
+      "imported_from_commit": "f4bfefec49eb28ed749bf600679819cb54d0e1a6"
+    },
+    "scripts/sample_etom_cost_pilot.py": {
+      "sha256": "fa6c07dfa040ececc79145d8adf55bae3f93947b5fec8cb5c9c88fe54337b53c",
+      "bytes": 1627,
+      "git_blob_sha": "9d83efadb6c84fd1239d61bfae8e8aaf2b3a1da5",
+      "imported_from_commit": "f4bfefec49eb28ed749bf600679819cb54d0e1a6"
+    },
+    "scripts/sample_etom_formal_100.py": {
+      "sha256": "71cbf3206685e9bb58f8620c1eb3ecb388f449c1ff2989dc62401703884a09b3",
+      "bytes": 2108,
+      "git_blob_sha": "817bcef2e4e0952c0182a812d77155fbfffb7244",
+      "imported_from_commit": "f4bfefec49eb28ed749bf600679819cb54d0e1a6"
+    },
+    "src/hk_equity_mcp/etom/__init__.py": {
+      "sha256": "63813d0844f676396c183fd3e808ae5a8038cbb2fab133b4545487c92d0afae9",
+      "bytes": 647,
+      "git_blob_sha": "8b5a6aab3c20386345b0a877e96289a14686e30f",
+      "imported_from_commit": "f4bfefec49eb28ed749bf600679819cb54d0e1a6"
+    },
+    "src/hk_equity_mcp/etom/source.py": {
+      "sha256": "8fdc512c315961ac8a54914307bbb836a28acac26aa8ead13592c654e9478133",
+      "bytes": 3138,
+      "git_blob_sha": "da5ee175282421c8f3159e14da2a002385bcc4be",
+      "imported_from_commit": "f4bfefec49eb28ed749bf600679819cb54d0e1a6"
+    },
+    "src/hk_equity_mcp/etom/loader.py": {
+      "sha256": "850e3542d7e0fea485a4e24162f9a214c201affd9e92a0a441b2f135cdd684be",
+      "bytes": 6674,
+      "git_blob_sha": "bd243a00fc9cc17cf5ce5c0bd5845da1ba882302",
+      "imported_from_commit": "f4bfefec49eb28ed749bf600679819cb54d0e1a6"
+    },
+    "src/hk_equity_mcp/etom/convert.py": {
+      "sha256": "43f35f1503a8ac534998b67b5ea9eae1cc218aa3df94f0348babd7d94f73747e",
+      "bytes": 6043,
+      "git_blob_sha": "a96cba0761a93cdfd12b0bc647ce2b42174c3229",
+      "imported_from_commit": "f4bfefec49eb28ed749bf600679819cb54d0e1a6"
+    },
+    "src/hk_equity_mcp/etom/sampler.py": {
+      "sha256": "ff69bd4e42dc0fd47bfbbfe4420a601f388582125fa9cd2f470de36d26843d45",
+      "bytes": 5780,
+      "git_blob_sha": "fa7a05fbedc943923383ed67a703a2ca10fd5363",
+      "imported_from_commit": "f4bfefec49eb28ed749bf600679819cb54d0e1a6"
+    },
+    "src/hk_equity_mcp/etom/formal_sampler.py": {
+      "sha256": "98642d5d1feddff58eba8d5649cbfa1baa4da5ca128c9fbd79c3756ecd223f84",
+      "bytes": 12800,
+      "git_blob_sha": "9882a8bca141967246d00467c83cd2a6f5429c06",
+      "imported_from_commit": "f4bfefec49eb28ed749bf600679819cb54d0e1a6"
+    },
+    "src/hk_equity_mcp/etom/formal_metrics.py": {
+      "sha256": "556a2086e6a17f3247064ffa36c47d223dee671eed177888a7f18dd98a0438dd",
+      "bytes": 9188,
+      "git_blob_sha": "faa5f04b3e2f5e9b55487a9c660927c4152a9c10",
+      "imported_from_commit": "f4bfefec49eb28ed749bf600679819cb54d0e1a6"
+    },
+    "src/hk_equity_mcp/etom/evaluator.py": {
+      "sha256": "1f2d45e01db2879a59298a001473f15b9dddb2e643d1276a7dc92ab9116dd482",
+      "bytes": 13328,
+      "git_blob_sha": "8575e52b977f2f765fbdf5deaa5884fc71c32737",
+      "imported_from_commit": "f4bfefec49eb28ed749bf600679819cb54d0e1a6"
+    },
+    "src/hk_equity_mcp/etom/cost.py": {
+      "sha256": "bfb4adb7ccdae5d4b4d2c3b9df40d32b9fc8f166ad75e2fa4612278750aeee25",
+      "bytes": 8074,
+      "git_blob_sha": "a6af1318868416788e105d20d4b8b8084ab6c698",
+      "imported_from_commit": "f4bfefec49eb28ed749bf600679819cb54d0e1a6"
+    }
+  }
+}

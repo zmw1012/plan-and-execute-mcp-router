@@ -1,0 +1,530 @@
+{
+  "category": "financial_report_truncated_page0",
+  "operation_id": "aktools.stock_financial_hk_report_em",
+  "invoke": {
+    "success": true,
+    "operation_id": "aktools.stock_financial_hk_report_em",
+    "arguments": {
+      "stock": "09988",
+      "symbol": "利润表",
+      "indicator": "年度",
+      "offset": 0,
+      "max_rows": 10
+    },
+    "result": {
+      "success": true,
+      "server_id": "aktools",
+      "operation_id": "aktools.stock_financial_hk_report_em",
+      "arguments": {
+        "name": "stock_financial_hk_report_em",
+        "params": {
+          "stock": "09988",
+          "symbol": "利润表",
+          "indicator": "年度"
+        },
+        "offset": 0,
+        "max_rows": 10
+      },
+      "raw": {
+        "is_error": false,
+        "content": [
+          {
+            "json": {
+              "name": "stock_financial_hk_report_em",
+              "total_rows": 261,
+              "offset": 0,
+              "returned_rows": 10,
+              "truncated": true,
+              "columns": [
+                "SECUCODE",
+                "SECURITY_CODE",
+                "SECURITY_NAME_ABBR",
+                "ORG_CODE",
+                "REPORT_DATE",
+                "DATE_TYPE_CODE",
+                "FISCAL_YEAR",
+                "START_DATE",
+                "STD_ITEM_CODE",
+                "STD_ITEM_NAME",
+                "AMOUNT"
+              ],
+              "rows": [
+                {
+                  "SECUCODE": "09988.HK",
+                  "SECURITY_CODE": "09988",
+                  "SECURITY_NAME_ABBR": "阿里巴巴-W",
+                  "ORG_CODE": "10139711",
+                  "REPORT_DATE": "2026-03-31 00:00:00",
+                  "DATE_TYPE_CODE": "001",
+                  "FISCAL_YEAR": "3-31",
+                  "START_DATE": "2025-04-01 00:00:00",
+                  "STD_ITEM_CODE": "004001001",
+                  "STD_ITEM_NAME": "营业额",
+                  "AMOUNT": 1023670000000.0
+                },
+                {
+                  "SECUCODE": "09988.HK",
+                  "SECURITY_CODE": "09988",
+                  "SECURITY_NAME_ABBR": "阿里巴巴-W",
+                  "ORG_CODE": "10139711",
+                  "REPORT_DATE": "2026-03-31 00:00:00",
+                  "DATE_TYPE_CODE": "001",
+                  "FISCAL_YEAR": "3-31",
+                  "START_DATE": "2025-04-01 00:00:00",
+                  "STD_ITEM_CODE": "004001999",
+                  "STD_ITEM_NAME": "营运收入",
+                  "AMOUNT": 1023670000000.0
+                },
+                {
+                  "SECUCODE": "09988.HK",
+                  "SECURITY_CODE": "09988",
+                  "SECURITY_NAME_ABBR": "阿里巴巴-W",
+                  "ORG_CODE": "10139711",
+                  "REPORT_DATE": "2026-03-31 00:00:00",
+                  "DATE_TYPE_CODE": "001",
+                  "FISCAL_YEAR": "3-31",
+                  "START_DATE": "2025-04-01 00:00:00",
+                  "STD_ITEM_CODE": "004005001",
+                  "STD_ITEM_NAME": "营运支出",
+                  "AMOUNT": 616136000000.0
+                },
+                {
+                  "SECUCODE": "09988.HK",
+                  "SECURITY_CODE": "09988",
+                  "SECURITY_NAME_ABBR": "阿里巴巴-W",
+                  "ORG_CODE": "10139711",
+                  "REPORT_DATE": "2026-03-31 00:00:00",
+                  "DATE_TYPE_CODE": "001",
+                  "FISCAL_YEAR": "3-31",
+                  "START_DATE": "2025-04-01 00:00:00",
+                  "STD_ITEM_CODE": "004007999",
+                  "STD_ITEM_NAME": "毛利",
+                  "AMOUNT": 407534000000.0
+                },
+                {
+                  "SECUCODE": "09988.HK",
+                  "SECURITY_CODE": "09988",
+                  "SECURITY_NAME_ABBR": "阿里巴巴-W",
+                  "ORG_CODE": "10139711",
+                  "REPORT_DATE": "2026-03-31 00:00:00",
+                  "DATE_TYPE_CODE": "001",
+                  "FISCAL_YEAR": "3-31",
+                  "START_DATE": "2025-04-01 00:00:00",
+                  "STD_ITEM_CODE": "004010002",
+                  "STD_ITEM_NAME": "其他收益",
+                  "AMOUNT": 1848000000.0
+                },
+                {
+                  "SECUCODE": "09988.HK",
+                  "SECURITY_CODE": "09988",
+                  "SECURITY_NAME_ABBR": "阿里巴巴-W",
+                  "ORG_CODE": "10139711",
+                  "REPORT_DATE": "2026-03-31 00:00:00",
+                  "DATE_TYPE_CODE": "001",
+                  "FISCAL_YEAR": "3-31",
+                  "START_DATE": "2025-04-01 00:00:00",
+                  "STD_ITEM_CODE": "004010003",
+                  "STD_ITEM_NAME": "销售及分销费用",
+                  "AMOUNT": 245023000000.0
+                },
+                {
+                  "SECUCODE": "09988.HK",
+                  "SECURITY_CODE": "09988",
+                  "SECURITY_NAME_ABBR": "阿里巴巴-W",
+                  "ORG_CODE": "10139711",
+                  "REPORT_DATE": "2026-03-31 00:00:00",
+                  "DATE_TYPE_CODE": "001",
+                  "FISCAL_YEAR": "3-31",
+                  "START_DATE": "2025-04-01 00:00:00",
+                  "STD_ITEM_CODE": "004010004",
+                  "STD_ITEM_NAME": "行政开支",
+                  "AMOUNT": 33082000000.0
+                },
+                {
+                  "SECUCODE": "09988.HK",
+                  "SECURITY_CODE": "09988",
+                  "SECURITY_NAME_ABBR": "阿里巴巴-W",
+                  "ORG_CODE": "10139711",
+                  "REPORT_DATE": "2026-03-31 00:00:00",
+                  "DATE_TYPE_CODE": "001",
+                  "FISCAL_YEAR": "3-31",
+                  "START_DATE": "2025-04-01 00:00:00",
+                  "STD_ITEM_CODE": "004010005",
+                  "STD_ITEM_NAME": "减值及拨备",
+                  "AMOUNT": 14594000000.0
+                },
+                {
+                  "SECUCODE": "09988.HK",
+                  "SECURITY_CODE": "09988",
+                  "SECURITY_NAME_ABBR": "阿里巴巴-W",
+                  "ORG_CODE": "10139711",
+                  "REPORT_DATE": "2026-03-31 00:00:00",
+                  "DATE_TYPE_CODE": "001",
+                  "FISCAL_YEAR": "3-31",
+                  "START_DATE": "2025-04-01 00:00:00",
+                  "STD_ITEM_CODE": "004010010",
+                  "STD_ITEM_NAME": "研发费用",
+                  "AMOUNT": 66533000000.0
+                },
+                {
+                  "SECUCODE": "09988.HK",
+                  "SECURITY_CODE": "09988",
+                  "SECURITY_NAME_ABBR": "阿里巴巴-W",
+                  "ORG_CODE": "10139711",
+                  "REPORT_DATE": "2026-03-31 00:00:00",
+                  "DATE_TYPE_CODE": "001",
+                  "FISCAL_YEAR": "3-31",
+                  "START_DATE": "2025-04-01 00:00:00",
+                  "STD_ITEM_CODE": "004010999",
+                  "STD_ITEM_NAME": "经营溢利",
+                  "AMOUNT": 50150000000.0
+                }
+              ],
+              "csv_url": null
+            }
+          }
+        ],
+        "structured_content": {
+          "result": {
+            "name": "stock_financial_hk_report_em",
+            "total_rows": 261,
+            "offset": 0,
+            "returned_rows": 10,
+            "truncated": true,
+            "columns": [
+              "SECUCODE",
+              "SECURITY_CODE",
+              "SECURITY_NAME_ABBR",
+              "ORG_CODE",
+              "REPORT_DATE",
+              "DATE_TYPE_CODE",
+              "FISCAL_YEAR",
+              "START_DATE",
+              "STD_ITEM_CODE",
+              "STD_ITEM_NAME",
+              "AMOUNT"
+            ],
+            "rows": [
+              {
+                "SECUCODE": "09988.HK",
+                "SECURITY_CODE": "09988",
+                "SECURITY_NAME_ABBR": "阿里巴巴-W",
+                "ORG_CODE": "10139711",
+                "REPORT_DATE": "2026-03-31 00:00:00",
+                "DATE_TYPE_CODE": "001",
+                "FISCAL_YEAR": "3-31",
+                "START_DATE": "2025-04-01 00:00:00",
+                "STD_ITEM_CODE": "004001001",
+                "STD_ITEM_NAME": "营业额",
+                "AMOUNT": 1023670000000.0
+              },
+              {
+                "SECUCODE": "09988.HK",
+                "SECURITY_CODE": "09988",
+                "SECURITY_NAME_ABBR": "阿里巴巴-W",
+                "ORG_CODE": "10139711",
+                "REPORT_DATE": "2026-03-31 00:00:00",
+                "DATE_TYPE_CODE": "001",
+                "FISCAL_YEAR": "3-31",
+                "START_DATE": "2025-04-01 00:00:00",
+                "STD_ITEM_CODE": "004001999",
+                "STD_ITEM_NAME": "营运收入",
+                "AMOUNT": 1023670000000.0
+              },
+              {
+                "SECUCODE": "09988.HK",
+                "SECURITY_CODE": "09988",
+                "SECURITY_NAME_ABBR": "阿里巴巴-W",
+                "ORG_CODE": "10139711",
+                "REPORT_DATE": "2026-03-31 00:00:00",
+                "DATE_TYPE_CODE": "001",
+                "FISCAL_YEAR": "3-31",
+                "START_DATE": "2025-04-01 00:00:00",
+                "STD_ITEM_CODE": "004005001",
+                "STD_ITEM_NAME": "营运支出",
+                "AMOUNT": 616136000000.0
+              },
+              {
+                "SECUCODE": "09988.HK",
+                "SECURITY_CODE": "09988",
+                "SECURITY_NAME_ABBR": "阿里巴巴-W",
+                "ORG_CODE": "10139711",
+                "REPORT_DATE": "2026-03-31 00:00:00",
+                "DATE_TYPE_CODE": "001",
+                "FISCAL_YEAR": "3-31",
+                "START_DATE": "2025-04-01 00:00:00",
+                "STD_ITEM_CODE": "004007999",
+                "STD_ITEM_NAME": "毛利",
+                "AMOUNT": 407534000000.0
+              },
+              {
+                "SECUCODE": "09988.HK",
+                "SECURITY_CODE": "09988",
+                "SECURITY_NAME_ABBR": "阿里巴巴-W",
+                "ORG_CODE": "10139711",
+                "REPORT_DATE": "2026-03-31 00:00:00",
+                "DATE_TYPE_CODE": "001",
+                "FISCAL_YEAR": "3-31",
+                "START_DATE": "2025-04-01 00:00:00",
+                "STD_ITEM_CODE": "004010002",
+                "STD_ITEM_NAME": "其他收益",
+                "AMOUNT": 1848000000.0
+              },
+              {
+                "SECUCODE": "09988.HK",
+                "SECURITY_CODE": "09988",
+                "SECURITY_NAME_ABBR": "阿里巴巴-W",
+                "ORG_CODE": "10139711",
+                "REPORT_DATE": "2026-03-31 00:00:00",
+                "DATE_TYPE_CODE": "001",
+                "FISCAL_YEAR": "3-31",
+                "START_DATE": "2025-04-01 00:00:00",
+                "STD_ITEM_CODE": "004010003",
+                "STD_ITEM_NAME": "销售及分销费用",
+                "AMOUNT": 245023000000.0
+              },
+              {
+                "SECUCODE": "09988.HK",
+                "SECURITY_CODE": "09988",
+                "SECURITY_NAME_ABBR": "阿里巴巴-W",
+                "ORG_CODE": "10139711",
+                "REPORT_DATE": "2026-03-31 00:00:00",
+                "DATE_TYPE_CODE": "001",
+                "FISCAL_YEAR": "3-31",
+                "START_DATE": "2025-04-01 00:00:00",
+                "STD_ITEM_CODE": "004010004",
+                "STD_ITEM_NAME": "行政开支",
+                "AMOUNT": 33082000000.0
+              },
+              {
+                "SECUCODE": "09988.HK",
+                "SECURITY_CODE": "09988",
+                "SECURITY_NAME_ABBR": "阿里巴巴-W",
+                "ORG_CODE": "10139711",
+                "REPORT_DATE": "2026-03-31 00:00:00",
+                "DATE_TYPE_CODE": "001",
+                "FISCAL_YEAR": "3-31",
+                "START_DATE": "2025-04-01 00:00:00",
+                "STD_ITEM_CODE": "004010005",
+                "STD_ITEM_NAME": "减值及拨备",
+                "AMOUNT": 14594000000.0
+              },
+              {
+                "SECUCODE": "09988.HK",
+                "SECURITY_CODE": "09988",
+                "SECURITY_NAME_ABBR": "阿里巴巴-W",
+                "ORG_CODE": "10139711",
+                "REPORT_DATE": "2026-03-31 00:00:00",
+                "DATE_TYPE_CODE": "001",
+                "FISCAL_YEAR": "3-31",
+                "START_DATE": "2025-04-01 00:00:00",
+                "STD_ITEM_CODE": "004010010",
+                "STD_ITEM_NAME": "研发费用",
+                "AMOUNT": 66533000000.0
+              },
+              {
+                "SECUCODE": "09988.HK",
+                "SECURITY_CODE": "09988",
+                "SECURITY_NAME_ABBR": "阿里巴巴-W",
+                "ORG_CODE": "10139711",
+                "REPORT_DATE": "2026-03-31 00:00:00",
+                "DATE_TYPE_CODE": "001",
+                "FISCAL_YEAR": "3-31",
+                "START_DATE": "2025-04-01 00:00:00",
+                "STD_ITEM_CODE": "004010999",
+                "STD_ITEM_NAME": "经营溢利",
+                "AMOUNT": 50150000000.0
+              }
+            ],
+            "csv_url": null
+          }
+        },
+        "protocol_success": true,
+        "latency_ms": 395.48845891840756,
+        "server_id": "aktools",
+        "server_name": "AKTools",
+        "server_version": "0.1.4",
+        "tool": "get_data",
+        "arguments": {
+          "name": "stock_financial_hk_report_em",
+          "params": {
+            "stock": "09988",
+            "symbol": "利润表",
+            "indicator": "年度"
+          },
+          "offset": 0,
+          "max_rows": 10
+        }
+      },
+      "normalized": {
+        "name": "stock_financial_hk_report_em",
+        "total_rows": 261,
+        "offset": 0,
+        "returned_rows": 10,
+        "truncated": true,
+        "columns": [
+          "SECUCODE",
+          "SECURITY_CODE",
+          "SECURITY_NAME_ABBR",
+          "ORG_CODE",
+          "REPORT_DATE",
+          "DATE_TYPE_CODE",
+          "FISCAL_YEAR",
+          "START_DATE",
+          "STD_ITEM_CODE",
+          "STD_ITEM_NAME",
+          "AMOUNT"
+        ],
+        "rows": [
+          {
+            "SECUCODE": "09988.HK",
+            "SECURITY_CODE": "09988",
+            "SECURITY_NAME_ABBR": "阿里巴巴-W",
+            "ORG_CODE": "10139711",
+            "REPORT_DATE": "2026-03-31 00:00:00",
+            "DATE_TYPE_CODE": "001",
+            "FISCAL_YEAR": "3-31",
+            "START_DATE": "2025-04-01 00:00:00",
+            "STD_ITEM_CODE": "004001001",
+            "STD_ITEM_NAME": "营业额",
+            "AMOUNT": 1023670000000.0
+          },
+          {
+            "SECUCODE": "09988.HK",
+            "SECURITY_CODE": "09988",
+            "SECURITY_NAME_ABBR": "阿里巴巴-W",
+            "ORG_CODE": "10139711",
+            "REPORT_DATE": "2026-03-31 00:00:00",
+            "DATE_TYPE_CODE": "001",
+            "FISCAL_YEAR": "3-31",
+            "START_DATE": "2025-04-01 00:00:00",
+            "STD_ITEM_CODE": "004001999",
+            "STD_ITEM_NAME": "营运收入",
+            "AMOUNT": 1023670000000.0
+          },
+          {
+            "SECUCODE": "09988.HK",
+            "SECURITY_CODE": "09988",
+            "SECURITY_NAME_ABBR": "阿里巴巴-W",
+            "ORG_CODE": "10139711",
+            "REPORT_DATE": "2026-03-31 00:00:00",
+            "DATE_TYPE_CODE": "001",
+            "FISCAL_YEAR": "3-31",
+            "START_DATE": "2025-04-01 00:00:00",
+            "STD_ITEM_CODE": "004005001",
+            "STD_ITEM_NAME": "营运支出",
+            "AMOUNT": 616136000000.0
+          },
+          {
+            "SECUCODE": "09988.HK",
+            "SECURITY_CODE": "09988",
+            "SECURITY_NAME_ABBR": "阿里巴巴-W",
+            "ORG_CODE": "10139711",
+            "REPORT_DATE": "2026-03-31 00:00:00",
+            "DATE_TYPE_CODE": "001",
+            "FISCAL_YEAR": "3-31",
+            "START_DATE": "2025-04-01 00:00:00",
+            "STD_ITEM_CODE": "004007999",
+            "STD_ITEM_NAME": "毛利",
+            "AMOUNT": 407534000000.0
+          },
+          {
+            "SECUCODE": "09988.HK",
+            "SECURITY_CODE": "09988",
+            "SECURITY_NAME_ABBR": "阿里巴巴-W",
+            "ORG_CODE": "10139711",
+            "REPORT_DATE": "2026-03-31 00:00:00",
+            "DATE_TYPE_CODE": "001",
+            "FISCAL_YEAR": "3-31",
+            "START_DATE": "2025-04-01 00:00:00",
+            "STD_ITEM_CODE": "004010002",
+            "STD_ITEM_NAME": "其他收益",
+            "AMOUNT": 1848000000.0
+          },
+          {
+            "SECUCODE": "09988.HK",
+            "SECURITY_CODE": "09988",
+            "SECURITY_NAME_ABBR": "阿里巴巴-W",
+            "ORG_CODE": "10139711",
+            "REPORT_DATE": "2026-03-31 00:00:00",
+            "DATE_TYPE_CODE": "001",
+            "FISCAL_YEAR": "3-31",
+            "START_DATE": "2025-04-01 00:00:00",
+            "STD_ITEM_CODE": "004010003",
+            "STD_ITEM_NAME": "销售及分销费用",
+            "AMOUNT": 245023000000.0
+          },
+          {
+            "SECUCODE": "09988.HK",
+            "SECURITY_CODE": "09988",
+            "SECURITY_NAME_ABBR": "阿里巴巴-W",
+            "ORG_CODE": "10139711",
+            "REPORT_DATE": "2026-03-31 00:00:00",
+            "DATE_TYPE_CODE": "001",
+            "FISCAL_YEAR": "3-31",
+            "START_DATE": "2025-04-01 00:00:00",
+            "STD_ITEM_CODE": "004010004",
+            "STD_ITEM_NAME": "行政开支",
+            "AMOUNT": 33082000000.0
+          },
+          {
+            "SECUCODE": "09988.HK",
+            "SECURITY_CODE": "09988",
+            "SECURITY_NAME_ABBR": "阿里巴巴-W",
+            "ORG_CODE": "10139711",
+            "REPORT_DATE": "2026-03-31 00:00:00",
+            "DATE_TYPE_CODE": "001",
+            "FISCAL_YEAR": "3-31",
+            "START_DATE": "2025-04-01 00:00:00",
+            "STD_ITEM_CODE": "004010005",
+            "STD_ITEM_NAME": "减值及拨备",
+            "AMOUNT": 14594000000.0
+          },
+          {
+            "SECUCODE": "09988.HK",
+            "SECURITY_CODE": "09988",
+            "SECURITY_NAME_ABBR": "阿里巴巴-W",
+            "ORG_CODE": "10139711",
+            "REPORT_DATE": "2026-03-31 00:00:00",
+            "DATE_TYPE_CODE": "001",
+            "FISCAL_YEAR": "3-31",
+            "START_DATE": "2025-04-01 00:00:00",
+            "STD_ITEM_CODE": "004010010",
+            "STD_ITEM_NAME": "研发费用",
+            "AMOUNT": 66533000000.0
+          },
+          {
+            "SECUCODE": "09988.HK",
+            "SECURITY_CODE": "09988",
+            "SECURITY_NAME_ABBR": "阿里巴巴-W",
+            "ORG_CODE": "10139711",
+            "REPORT_DATE": "2026-03-31 00:00:00",
+            "DATE_TYPE_CODE": "001",
+            "FISCAL_YEAR": "3-31",
+            "START_DATE": "2025-04-01 00:00:00",
+            "STD_ITEM_CODE": "004010999",
+            "STD_ITEM_NAME": "经营溢利",
+            "AMOUNT": 50150000000.0
+          }
+        ],
+        "csv_url": null
+      },
+      "error": null,
+      "error_type": null,
+      "latency_ms": 395.48845891840756,
+      "real_mcp": true,
+      "transport": "stdio",
+      "server_version": "0.1.4",
+      "protocol_success": true,
+      "execution_success": true,
+      "reconciliation_success": null,
+      "reconciliation_note": null
+    },
+    "error_type": null,
+    "error": null
+  },
+  "required_outputs": [
+    "revenue",
+    "attributable_profit"
+  ]
+}

@@ -1,0 +1,593 @@
+{
+  "C05": {
+    "checkpoint": "C05_binder",
+    "counts": {
+      "pass": 12
+    },
+    "tasks": [
+      {
+        "task_id": "fin_cf_003",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "primary": "aktools.stock_financial_hk_report_em",
+              "fallback": "aktools.stock_financial_hk_analysis_indicator_em",
+              "described": [
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            },
+            {
+              "disclosure_composite": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_011",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "primary": "aktools.stock_financial_hk_report_em",
+              "fallback": "aktools.stock_financial_hk_analysis_indicator_em",
+              "described": [
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_hk_company_profile_em"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_020",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "primary": "aktools.stock_financial_hk_report_em",
+              "fallback": "aktools.stock_financial_hk_analysis_indicator_em",
+              "described": [
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            },
+            {
+              "disclosure_composite": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_023",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "primary": "aktools.stock_financial_hk_report_em",
+              "fallback": "aktools.stock_financial_hk_analysis_indicator_em",
+              "described": [
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_ht_016",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "disclosure_composite": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_dev_002",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "primary": "aktools.stock_financial_hk_analysis_indicator_em",
+              "fallback": "aktools.stock_financial_hk_report_em",
+              "described": [
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            },
+            {
+              "primary": "aktools.stock_hk_hist",
+              "fallback": null,
+              "described": [
+                "aktools.stock_hk_hist",
+                "aktools.stock_hk_index_daily_sina",
+                "aktools.stock_hk_index_daily_em"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_007",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "primary": "aktools.stock_financial_hk_analysis_indicator_em",
+              "fallback": "aktools.stock_financial_hk_report_em",
+              "described": [
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            },
+            {
+              "primary": "ah_disclosure.search_annual_report",
+              "fallback": "ah_disclosure.resolve_company",
+              "described": [
+                "ah_disclosure.search_annual_report",
+                "ah_disclosure.resolve_company"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_014",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "primary": "aktools.stock_financial_hk_report_em",
+              "fallback": "aktools.stock_financial_hk_analysis_indicator_em",
+              "described": [
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_hk_company_profile_em"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_014",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "primary": "aktools.stock_hk_hist",
+              "fallback": null,
+              "described": [
+                "aktools.stock_hk_hist",
+                "aktools.tool_trade_date_hist_sina"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_024",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "primary": "aktools.stock_financial_hk_analysis_indicator_em",
+              "fallback": "aktools.stock_financial_hk_report_em",
+              "described": [
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_hk_company_profile_em",
+                "aktools.stock_financial_hk_report_em"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            },
+            {
+              "disclosure_composite": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_001",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "primary": "aktools.stock_hk_hist",
+              "fallback": "aktools.stock_hk_daily",
+              "described": [
+                "aktools.stock_hk_hist",
+                "aktools.stock_hk_daily",
+                "aktools.stock_hk_index_daily_em"
+              ],
+              "selected_outside_described": false,
+              "binding_ok": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "news_ht_004",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "disclosure_composite": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      }
+    ]
+  },
+  "C06": {
+    "checkpoint": "C06_arguments",
+    "counts": {
+      "pass": 12
+    },
+    "tasks": [
+      {
+        "task_id": "fin_cf_003",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "operation_id": "aktools.stock_financial_hk_report_em",
+              "argument_keys": [
+                "indicator",
+                "max_rows",
+                "offset",
+                "stock",
+                "symbol"
+              ],
+              "grounding": {
+                "stock_code": "00700",
+                "from_date": null,
+                "to_date": null,
+                "title_keyword": "entity",
+                "code_available": true
+              }
+            },
+            {
+              "disclosure_composite": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_011",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "operation_id": "aktools.stock_financial_hk_report_em",
+              "argument_keys": [
+                "indicator",
+                "max_rows",
+                "offset",
+                "stock",
+                "symbol"
+              ],
+              "grounding": {
+                "stock_code": "00005",
+                "from_date": null,
+                "to_date": null,
+                "title_keyword": "entity",
+                "code_available": true
+              }
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_020",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "operation_id": "aktools.stock_financial_hk_report_em",
+              "argument_keys": [
+                "indicator",
+                "max_rows",
+                "offset",
+                "stock",
+                "symbol"
+              ],
+              "grounding": {
+                "stock_code": "09988",
+                "from_date": null,
+                "to_date": null,
+                "title_keyword": "entity",
+                "code_available": true
+              }
+            },
+            {
+              "disclosure_composite": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_023",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "operation_id": "aktools.stock_financial_hk_report_em",
+              "argument_keys": [
+                "indicator",
+                "max_rows",
+                "offset",
+                "stock",
+                "symbol"
+              ],
+              "grounding": {
+                "stock_code": "09988",
+                "from_date": null,
+                "to_date": null,
+                "title_keyword": "entity",
+                "code_available": true
+              }
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_ht_016",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "disclosure_composite": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_dev_002",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+              "argument_keys": [
+                "indicator",
+                "max_rows",
+                "offset",
+                "symbol"
+              ],
+              "grounding": {
+                "stock_code": "00005",
+                "from_date": "2026-06-30",
+                "to_date": "2026-06-30",
+                "title_keyword": "). Report both; do not claim EPS caused that day",
+                "code_available": true
+              }
+            },
+            {
+              "operation_id": "aktools.stock_hk_hist",
+              "argument_keys": [
+                "adjust",
+                "end_date",
+                "period",
+                "start_date",
+                "symbol"
+              ],
+              "grounding": {
+                "stock_code": "00005",
+                "from_date": "2026-06-30",
+                "to_date": "2026-06-30",
+                "title_keyword": "). Report both; do not claim EPS caused that day",
+                "code_available": true
+              }
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_007",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+              "argument_keys": [
+                "indicator",
+                "max_rows",
+                "offset",
+                "symbol"
+              ],
+              "grounding": {
+                "stock_code": "00005",
+                "from_date": null,
+                "to_date": null,
+                "title_keyword": "entity",
+                "code_available": true
+              }
+            },
+            {
+              "operation_id": "ah_disclosure.search_annual_report",
+              "argument_keys": [
+                "market",
+                "symbol",
+                "year"
+              ],
+              "grounding": {
+                "stock_code": "00005",
+                "from_date": null,
+                "to_date": null,
+                "title_keyword": "2025 Annual Report",
+                "code_available": true
+              }
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_014",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "operation_id": "aktools.stock_financial_hk_report_em",
+              "argument_keys": [
+                "indicator",
+                "max_rows",
+                "offset",
+                "stock",
+                "symbol"
+              ],
+              "grounding": {
+                "stock_code": "09988",
+                "from_date": "2026-07-01",
+                "to_date": "2026-08-12",
+                "title_keyword": "entity",
+                "code_available": true
+              }
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_014",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "operation_id": "aktools.stock_hk_hist",
+              "argument_keys": [
+                "adjust",
+                "end_date",
+                "period",
+                "start_date",
+                "symbol"
+              ],
+              "grounding": {
+                "stock_code": "00700",
+                "from_date": null,
+                "to_date": null,
+                "title_keyword": "s latest / current / today",
+                "code_available": true
+              }
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_024",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+              "argument_keys": [
+                "indicator",
+                "max_rows",
+                "offset",
+                "symbol"
+              ],
+              "grounding": {
+                "stock_code": "09988",
+                "from_date": null,
+                "to_date": null,
+                "title_keyword": "entity",
+                "code_available": true
+              }
+            },
+            {
+              "disclosure_composite": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_001",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "operation_id": "aktools.stock_hk_hist",
+              "argument_keys": [
+                "adjust",
+                "end_date",
+                "period",
+                "start_date",
+                "symbol"
+              ],
+              "grounding": {
+                "stock_code": "00700",
+                "from_date": "2026-07-31",
+                "to_date": "2026-07-31",
+                "title_keyword": "entity",
+                "code_available": true
+              }
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "news_ht_004",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "disclosure_composite": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      }
+    ]
+  }
+}

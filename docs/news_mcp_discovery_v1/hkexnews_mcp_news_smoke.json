@@ -1,0 +1,277 @@
+{
+  "timestamp": "2026-11-04T06:06:47.926308+00:00",
+  "server": "mcp_hkexnews",
+  "cutoff": "2026-08-12",
+  "window": [
+    "2026-07-01",
+    "2026-08-12"
+  ],
+  "probes": {
+    "list_Tencent": {
+      "success": true,
+      "error": null,
+      "latency_ms": 4447,
+      "n": 8,
+      "sample": [
+        {
+          "stock_code": "00700",
+          "sec_name": "TENCENT | TENCENT-R",
+          "title": "ANNOUNCEMENT OF THE RESULTS FOR THE THREE AND SIX MONTHS ENDED 30 JUNE 2026",
+          "release_date": "2026-08-12",
+          "release_datetime": "12/08/2026 16:31",
+          "category_t1": "10000",
+          "category_t2": "13400",
+          "category_label": "Interim Results",
+          "news_id": "12280990",
+          "local_key": "00700_13400_2026-08-12_29a8b6a3",
+          "file_link": "/listedco/listconews/sehk/2026/0812/2026081200296.pdf",
+          "file_type": "PDF"
+        },
+        {
+          "stock_code": "00700",
+          "sec_name": "TENCENT | TENCENT-R",
+          "title": "Monthly Return of Equity Issuer on Movements in Securities for the month ended 31 July 2026",
+          "release_date": "2026-08-06",
+          "release_datetime": "06/08/2026 16:57",
+          "category_t1": "51500",
+          "category_t2": "GEN",
+          "category_label": "Monthly Returns",
+          "news_id": "12275186",
+          "local_key": "00700_GEN_2026-08-06_f90abb86",
+          "file_link": "/listedco/listconews/sehk/2026/0806/2026080600836.pdf",
+          "file_type": "PDF"
+        },
+        {
+          "stock_code": "00700",
+          "sec_name": "TENCENT | TENCENT-R",
+          "title": "Next Day Disclosure Return",
+          "release_date": "2026-07-09",
+          "release_datetime": "09/07/2026 17:58",
+          "category_t1": "50000",
+          "category_t2": "50100",
+          "category_label": "Share Buyback",
+          "news_id": "12239449",
+          "local_key": "00700_50100_2026-07-09_d80c8407",
+          "file_link": "/listedco/listconews/sehk/2026/0709/2026070900827.pdf",
+          "file_type": "PDF"
+        }
+      ],
+      "title_sample": [
+        "ANNOUNCEMENT OF THE RESULTS FOR THE THREE AND SIX MONTHS ENDED 30 JUNE 2026",
+        "Monthly Return of Equity Issuer on Movements in Securities for the month ended 31 July 2026",
+        "Next Day Disclosure Return",
+        "Next Day Disclosure Return - Changes in issued shares and share buybacks",
+        "Monthly Return of Equity Issuer on Movements in Securities for the month ended 30 June 2026",
+        "Next Day Disclosure Return - Changes in issued shares and share buybacks",
+        "Next Day Disclosure Return",
+        "Next Day Disclosure Return"
+      ],
+      "fields": [
+        "stock_code",
+        "sec_name",
+        "title",
+        "release_date",
+        "release_datetime",
+        "category_t1",
+        "category_t2",
+        "category_label",
+        "news_id",
+        "local_key",
+        "file_link",
+        "file_type"
+      ]
+    },
+    "list_HSBC": {
+      "success": true,
+      "error": null,
+      "latency_ms": 1875,
+      "n": 32,
+      "sample": [
+        {
+          "stock_code": "00005",
+          "sec_name": "HSBC HOLDINGS",
+          "title": "Next Day Disclosure Return",
+          "release_date": "2026-08-12",
+          "release_datetime": "12/08/2026 16:30",
+          "category_t1": "50000",
+          "category_t2": "50100",
+          "category_label": "Share Buyback",
+          "news_id": "12280958",
+          "local_key": "00005_50100_2026-08-12_afaf4765",
+          "file_link": "/listedco/listconews/sehk/2026/0812/2026081200264.pdf",
+          "file_type": "PDF"
+        },
+        {
+          "stock_code": "00005",
+          "sec_name": "HSBC HOLDINGS",
+          "title": "Transaction in own shares",
+          "release_date": "2026-08-12",
+          "release_datetime": "12/08/2026 07:30",
+          "category_t1": "10000",
+          "category_t2": "19850",
+          "category_label": "Overseas Regulatory Announcement - Other",
+          "news_id": "12280698",
+          "local_key": "00005_19850_2026-08-12_8982ac4c",
+          "file_link": "/listedco/listconews/sehk/2026/0812/2026081200007.pdf",
+          "file_type": "PDF"
+        },
+        {
+          "stock_code": "00005",
+          "sec_name": "HSBC HOLDINGS",
+          "title": "Next Day Disclosure Return",
+          "release_date": "2026-08-11",
+          "release_datetime": "11/08/2026 16:30",
+          "category_t1": "50000",
+          "category_t2": "50100",
+          "category_label": "Share Buyback",
+          "news_id": "12279596",
+          "local_key": "00005_50100_2026-08-11_c46a190e",
+          "file_link": "/listedco/listconews/sehk/2026/0811/2026081100255.pdf",
+          "file_type": "PDF"
+        }
+      ],
+      "title_sample": [
+        "Next Day Disclosure Return",
+        "Transaction in own shares",
+        "Next Day Disclosure Return",
+        "Transaction in own shares",
+        "Next Day Disclosure Return",
+        "Transaction in own shares",
+        "Next Day Disclosure Return",
+        "Transaction in own shares"
+      ],
+      "fields": [
+        "stock_code",
+        "sec_name",
+        "title",
+        "release_date",
+        "release_datetime",
+        "category_t1",
+        "category_t2",
+        "category_label",
+        "news_id",
+        "local_key",
+        "file_link",
+        "file_type"
+      ]
+    },
+    "list_Alibaba": {
+      "success": true,
+      "error": null,
+      "latency_ms": 1914,
+      "n": 13,
+      "sample": [
+        {
+          "stock_code": "09988",
+          "sec_name": "BABA-W | BABA-WR",
+          "title": "DATE OF BOARD MEETING",
+          "release_date": "2026-08-07",
+          "release_datetime": "07/08/2026 17:13",
+          "category_t1": "10000",
+          "category_t2": "13150",
+          "category_label": "Date of Board Meeting",
+          "news_id": "12277073",
+          "local_key": "09988_13150_2026-08-07_df274199",
+          "file_link": "/listedco/listconews/sehk/2026/0807/2026080700604.pdf",
+          "file_type": "PDF"
+        },
+        {
+          "stock_code": "09988",
+          "sec_name": "BABA-W | BABA-WR",
+          "title": "PROXY FORM",
+          "release_date": "2026-08-06",
+          "release_datetime": "06/08/2026 20:52",
+          "category_t1": "52000",
+          "category_t2": "GEN",
+          "category_label": "Proxy Forms",
+          "news_id": "12276227",
+          "local_key": "09988_GEN_2026-08-06_fa85dfa9",
+          "file_link": "/listedco/listconews/sehk/2026/0806/2026080601949.pdf",
+          "file_type": "PDF"
+        },
+        {
+          "stock_code": "09988",
+          "sec_name": "BABA-W | BABA-WR",
+          "title": "PROXY STATEMENT",
+          "release_date": "2026-08-06",
+          "release_datetime": "06/08/2026 20:47",
+          "category_t1": "20000",
+          "category_t2": "GEN",
+          "category_label": "Circulars",
+          "news_id": "12276223",
+          "local_key": "09988_GEN_2026-08-06_6eb32778",
+          "file_link": "/listedco/listconews/sehk/2026/0806/2026080601945.pdf",
+          "file_type": "PDF"
+        }
+      ],
+      "title_sample": [
+        "DATE OF BOARD MEETING",
+        "PROXY FORM",
+        "PROXY STATEMENT",
+        "NOTICE OF ANNUAL GENERAL MEETING",
+        "Monthly Return for Equity Issuer on Movements in Securities for the Month Ended 31 July 2026",
+        "RECORD DATE",
+        "Next Day Disclosure Return",
+        "Next Day Disclosure Return"
+      ],
+      "fields": [
+        "stock_code",
+        "sec_name",
+        "title",
+        "release_date",
+        "release_datetime",
+        "category_t1",
+        "category_t2",
+        "category_label",
+        "news_id",
+        "local_key",
+        "file_link",
+        "file_type"
+      ]
+    },
+    "download_HSBC_sample": {
+      "success": true,
+      "error": null,
+      "latency_ms": 4693,
+      "normalized_keys": [
+        "status",
+        "data",
+        "hint"
+      ],
+      "title": "Next Day Disclosure Return"
+    },
+    "parse_HSBC_sample": {
+      "success": true,
+      "error": null
+    },
+    "keyword_HSBC_sample": {
+      "success": false,
+      "error": "Error executing tool keyword_search: 1 validation error for keyword_searchArguments\nkeywords\n  Field required [type=missing, input_value={'local_key': '00005_5010...: 'HSBC', 'max_hits': 5}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.14/v/missing",
+      "n_hits": 0,
+      "hit_sample": []
+    },
+    "list_Tencent_post_cutoff_window": {
+      "success": true,
+      "error": null,
+      "n": 7,
+      "note": "Post-cutoff window must not be used as gold; record for fail-closed policy"
+    },
+    "list_invalid_stock": {
+      "success": false,
+      "error": "Stock code not found: 99999",
+      "normalized": {
+        "status": "error",
+        "error": "Stock code not found: 99999",
+        "hint": "Use lookup_stock_code to diagnose code→stockId mapping."
+      }
+    }
+  },
+  "raw_mcp_tools": [
+    "lookup_stock_code",
+    "list_hkexnews_announcements",
+    "download_hkexnews_announcement",
+    "parse_hkexnews_announcement",
+    "keyword_search",
+    "get_announcement_pages"
+  ]
+}

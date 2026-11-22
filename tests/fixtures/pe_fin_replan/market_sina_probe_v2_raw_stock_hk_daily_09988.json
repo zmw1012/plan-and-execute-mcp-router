@@ -1,0 +1,80 @@
+{
+  "arguments_redacted": {
+    "adjust": "",
+    "symbol": "09988",
+    "target_date": "2026-05-15"
+  },
+  "error": null,
+  "error_type": null,
+  "normalized": {
+    "adjustment_mode": "",
+    "argument_transform_applied": true,
+    "currency_or_unit": "HKD",
+    "currency_provenance": "exchange_convention",
+    "data": {
+      "adjustment": "",
+      "close": 132.3,
+      "currency": "HKD",
+      "date": "2026-05-15",
+      "high": 138.0,
+      "issuer_code": "09988",
+      "low": 131.1,
+      "open": 138.0,
+      "raw": {
+        "amount": 12041180806.0,
+        "close": 132.3,
+        "date": "2026-05-15T00:00:00.000",
+        "high": 138.0,
+        "low": 131.1,
+        "open": 138.0,
+        "volume": 90144879.0
+      },
+      "trade_date": "2026-05-15",
+      "turnover": 12041180806.0,
+      "volume": 90144879.0
+    },
+    "effective_session_date": "2026-05-15",
+    "error": null,
+    "previous_valid_day_triggered": false,
+    "provenance": {
+      "argument_transform_applied": true,
+      "cutoff": "2026-08-12",
+      "exposed_mcp_tool": "get_data",
+      "mock_fallback": false,
+      "normalized_symbol": "09988",
+      "original_symbol": "09988",
+      "raw_invocation_arguments": {
+        "max_rows": 400,
+        "name": "stock_hk_daily",
+        "offset": -400,
+        "params": {
+          "symbol": "09988"
+        }
+      },
+      "real_mcp": true,
+      "row_count_after_filter": 337,
+      "server_version": "0.1.4",
+      "symbol_format_normalized": "09988",
+      "symbol_format_original": "09988",
+      "symbol_normalizer_hash": "81256f91a9c75e3a9ab15c5b9ce63c1908305de6a5d5b54c5092966c7da4503a",
+      "symbol_normalizer_version": "normalize_sina_hk_symbol_v1",
+      "tool_trade_date_hist_sina_is_hkex_official_calendar": false,
+      "underlying_aktools_interface": "stock_hk_daily"
+    },
+    "provider": "sina_via_akshare",
+    "requested_date_or_range": "2026-05-15",
+    "source_operation": "aktools.stock_hk_daily",
+    "source_server": "aktools",
+    "success": true,
+    "symbol": "09988",
+    "symbol_format_normalized": "09988",
+    "symbol_format_original": "09988",
+    "symbol_normalizer_hash": "81256f91a9c75e3a9ab15c5b9ce63c1908305de6a5d5b54c5092966c7da4503a",
+    "symbol_normalizer_version": "normalize_sina_hk_symbol_v1",
+    "timezone": "Asia/Hong_Kong"
+  },
+  "normalized_invoked_symbol": "09988",
+  "operation_id": "aktools.stock_hk_daily",
+  "original_requested_symbol": "09988",
+  "success": true
+}

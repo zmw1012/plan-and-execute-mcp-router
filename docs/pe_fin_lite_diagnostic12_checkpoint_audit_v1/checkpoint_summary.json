@@ -1,0 +1,259 @@
+{
+  "audit_version": "pe_fin_lite_checkpoint_audit_v1",
+  "result_role": "engineering_checkpoint_audit_only",
+  "explicitly_not_formal_accuracy": true,
+  "checkpoint_trace_contract_version": "pe_fin_lite_checkpoint_trace_v1",
+  "observability_hash": "70420a9974bf8122646a7a2c51ff0393da33e7b10ba9948527554aff31804f19",
+  "run_dir": "outputs/pe_fin_lite_diagnostic12_checkpoint_live_v1",
+  "n_predictions": 12,
+  "unique_task_ids": 12,
+  "ordered_task_ids": [
+    "fin_cf_003",
+    "fin_cf_011",
+    "fin_cf_020",
+    "fin_cf_023",
+    "fin_ht_016",
+    "xd_dev_002",
+    "xd_ht_007",
+    "xd_ht_014",
+    "mkt_dev_014",
+    "fin_cf_024",
+    "mkt_dev_001",
+    "news_ht_004"
+  ],
+  "engineering_pass": true,
+  "engineering": {
+    "engineering_pass": true,
+    "explicitly_not_formal_accuracy": true,
+    "not_accuracy_pass": true,
+    "checks": {
+      "predictions_complete": true,
+      "unique_ids": true,
+      "run_status_completed": true,
+      "no_runner_crash": true,
+      "raw_hashes_unchanged": true,
+      "primary_error_localizable": true,
+      "na_not_counted_as_pass": true,
+      "evaluator_separated": true,
+      "zero_invocation_not_tool_success": true,
+      "failed_partial_not_strict_success": true,
+      "no_silent_mock_fallback": true,
+      "trace_coverage_adequate": true
+    },
+    "n_rows": 12,
+    "unique_ids": 12,
+    "expected_n": 12,
+    "notes": [
+      "Answer may be incorrect while engineering_pass is true.",
+      "N/A is not counted as pass.",
+      "Evaluator errors are separated from agent/method errors."
+    ]
+  },
+  "funnel": {
+    "C01_planner": {
+      "pass": 12,
+      "fail": 0,
+      "N/A": 0,
+      "unknown": 0,
+      "not_evaluated": 0,
+      "pass_rate_excluding_na": 1.0,
+      "contract_status_counts": {
+        "pass": 12
+      },
+      "stage_outcome_status_counts": {
+        "pass": 12
+      }
+    },
+    "C02_filter": {
+      "pass": 12,
+      "fail": 0,
+      "N/A": 0,
+      "unknown": 0,
+      "not_evaluated": 0,
+      "pass_rate_excluding_na": 1.0,
+      "contract_status_counts": {
+        "pass": 12
+      },
+      "stage_outcome_status_counts": {
+        "not_evaluated": 12
+      }
+    },
+    "C03_embedding": {
+      "pass": 12,
+      "fail": 0,
+      "N/A": 0,
+      "unknown": 0,
+      "not_evaluated": 0,
+      "pass_rate_excluding_na": 1.0,
+      "contract_status_counts": {
+        "pass": 12
+      },
+      "stage_outcome_status_counts": {
+        "not_evaluated": 12
+      }
+    },
+    "C04_describe": {
+      "pass": 12,
+      "fail": 0,
+      "N/A": 0,
+      "unknown": 0,
+      "not_evaluated": 0,
+      "pass_rate_excluding_na": 1.0,
+      "contract_status_counts": {
+        "pass": 12
+      },
+      "stage_outcome_status_counts": {
+        "pass": 12
+      }
+    },
+    "C05_binder": {
+      "pass": 12,
+      "fail": 0,
+      "N/A": 0,
+      "unknown": 0,
+      "not_evaluated": 0,
+      "pass_rate_excluding_na": 1.0,
+      "contract_status_counts": {
+        "pass": 12
+      },
+      "stage_outcome_status_counts": {
+        "pass": 12
+      }
+    },
+    "C06_arguments": {
+      "pass": 12,
+      "fail": 0,
+      "N/A": 0,
+      "unknown": 0,
+      "not_evaluated": 0,
+      "pass_rate_excluding_na": 1.0,
+      "contract_status_counts": {
+        "pass": 12
+      },
+      "stage_outcome_status_counts": {
+        "pass": 12
+      }
+    },
+    "C07_mcp": {
+      "pass": 9,
+      "fail": 3,
+      "N/A": 0,
+      "unknown": 0,
+      "not_evaluated": 0,
+      "pass_rate_excluding_na": 0.75,
+      "contract_status_counts": {
+        "pass": 9,
+        "fail": 3
+      },
+      "stage_outcome_status_counts": {
+        "pass": 9,
+        "fail": 3
+      }
+    },
+    "C08_normalize": {
+      "pass": 12,
+      "fail": 0,
+      "N/A": 0,
+      "unknown": 0,
+      "not_evaluated": 0,
+      "pass_rate_excluding_na": 1.0,
+      "contract_status_counts": {
+        "pass": 12
+      },
+      "stage_outcome_status_counts": {
+        "pass": 12
+      }
+    },
+    "C09_evidence_acceptance": {
+      "pass": 4,
+      "fail": 8,
+      "N/A": 0,
+      "unknown": 0,
+      "not_evaluated": 0,
+      "pass_rate_excluding_na": 0.3333333333333333,
+      "contract_status_counts": {
+        "pass": 12
+      },
+      "stage_outcome_status_counts": {
+        "fail": 8,
+        "pass": 4
+      }
+    },
+    "C10_fallback_unavailable": {
+      "pass": 12,
+      "fail": 0,
+      "N/A": 0,
+      "unknown": 0,
+      "not_evaluated": 0,
+      "pass_rate_excluding_na": 1.0,
+      "contract_status_counts": {
+        "pass": 12
+      },
+      "stage_outcome_status_counts": {
+        "pass": 12
+      }
+    },
+    "C11_compute": {
+      "pass": 2,
+      "fail": 1,
+      "N/A": 9,
+      "unknown": 0,
+      "not_evaluated": 0,
+      "pass_rate_excluding_na": 0.6666666666666666,
+      "contract_status_counts": {
+        "N/A": 9,
+        "pass": 3
+      },
+      "stage_outcome_status_counts": {
+        "N/A": 11,
+        "fail": 1
+      }
+    },
+    "C12_reason": {
+      "pass": 7,
+      "fail": 2,
+      "N/A": 3,
+      "unknown": 0,
+      "not_evaluated": 0,
+      "pass_rate_excluding_na": 0.7777777777777778,
+      "contract_status_counts": {
+        "pass": 9,
+        "N/A": 3
+      },
+      "stage_outcome_status_counts": {
+        "pass": 7,
+        "fail": 2,
+        "N/A": 3
+      }
+    },
+    "C13_final": {
+      "pass": 12,
+      "fail": 0,
+      "N/A": 0,
+      "unknown": 0,
+      "not_evaluated": 0,
+      "pass_rate_excluding_na": 1.0,
+      "contract_status_counts": {
+        "pass": 12
+      },
+      "stage_outcome_status_counts": {
+        "pass": 12
+      }
+    },
+    "C14_evaluator": {
+      "pass": 12,
+      "fail": 0,
+      "N/A": 0,
+      "unknown": 0,
+      "not_evaluated": 0,
+      "pass_rate_excluding_na": 1.0,
+      "contract_status_counts": {
+        "pass": 12
+      },
+      "stage_outcome_status_counts": {
+        "pass": 12
+      }
+    }
+  },
+  "raw_hashes_unchanged": true
+}

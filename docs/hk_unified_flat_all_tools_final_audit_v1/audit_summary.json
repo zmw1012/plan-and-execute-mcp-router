@@ -1,0 +1,211 @@
+{
+  "audit_version": "flat_final_audit_v1",
+  "run_dir": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-flat-all-tools/outputs/hk_unified_flat_all_tools_155_v1",
+  "out_dir": "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-flat-all-tools/outputs/hk_unified_flat_all_tools_155_v1/final_audit_flat_v1",
+  "timestamp_utc": "2026-11-07T02:25:08.644301+00:00",
+  "identity": {
+    "condition": {
+      "expected": "flat",
+      "actual": "flat",
+      "ok": true
+    },
+    "architecture": {
+      "expected": "flat_all_tools",
+      "actual": "flat_all_tools",
+      "ok": true
+    },
+    "execution_backend": {
+      "expected": "real_mcp",
+      "actual": "real_mcp",
+      "ok": true
+    },
+    "generation_provider": {
+      "expected": "openai_compatible",
+      "actual": "openai_compatible",
+      "ok": true
+    },
+    "provider_host": {
+      "expected": "api.zhizengzeng.com",
+      "actual": "api.zhizengzeng.com",
+      "ok": true
+    },
+    "generation_model": {
+      "expected": "deepseek-v4.1-flash",
+      "actual": "deepseek-v4.1-flash",
+      "ok": true
+    },
+    "embedding_enabled": {
+      "expected": false,
+      "actual": false,
+      "ok": true
+    },
+    "retrieval_enabled": {
+      "expected": false,
+      "actual": false,
+      "ok": true
+    },
+    "system_prompt_hash": {
+      "expected": "fdecb85f16b506c6ed0e5e2c8b2c248929bd7342c68d11a2e6ac7f604ed1198c",
+      "actual": "fdecb85f16b506c6ed0e5e2c8b2c248929bd7342c68d11a2e6ac7f604ed1198c",
+      "ok": true
+    },
+    "git_commit": {
+      "expected": "9c4c904311d72c78ea169c1ac9e452966366ca66",
+      "actual": "9c4c904311d72c78ea169c1ac9e452966366ca66",
+      "ok": true
+    },
+    "git_dirty": {
+      "expected": false,
+      "actual": false,
+      "ok": true
+    },
+    "run_status": {
+      "expected": "completed",
+      "actual": "completed",
+      "ok": true
+    },
+    "question_count": {
+      "expected": 155,
+      "actual": 155,
+      "ok": true
+    },
+    "exploratory_manifest_hash": {
+      "expected": "f2257e3de89189c5d5784e3f58824c10928294d9454bcf68b3d061dca37f92c5",
+      "actual": "f2257e3de89189c5d5784e3f58824c10928294d9454bcf68b3d061dca37f92c5",
+      "ok": true
+    },
+    "run_order_hash": {
+      "expected": "14aa3c253eea155b038b70fe11b8a69ee51331b5599790bb2827e72d4e321254",
+      "actual": "14aa3c253eea155b038b70fe11b8a69ee51331b5599790bb2827e72d4e321254",
+      "ok": true
+    },
+    "schema_bundle_sha256": {
+      "expected": "1e2181d01c2a60e74f026dbeb249d96019a3a52e1e343bb3526e4f914555bc53",
+      "actual": "1e2181d01c2a60e74f026dbeb249d96019a3a52e1e343bb3526e4f914555bc53",
+      "ok": true
+    },
+    "action_mapping_fingerprint": {
+      "expected": "1381662c108561c7a24920e8dd07e063ebf15d092aa1f47adb2cd89d5b0d850a",
+      "actual": "1381662c108561c7a24920e8dd07e063ebf15d092aa1f47adb2cd89d5b0d850a",
+      "ok": true
+    },
+    "catalog_fingerprint": {
+      "actual": "unique=42|runtime=39|namespaced=54|cross_domain:a21a0cdf6c73|financial:18634ccfb733|market:2b201872c109|news:9121e9b7ca8d",
+      "ok": true
+    }
+  },
+  "final_metrics": {
+    "audit_version": "flat_final_audit_v1",
+    "evaluator_version": "hk_unified_evaluator_v1.2",
+    "grading_version": "hk_unified_grading_v1.2",
+    "grader_version": "deterministic_v1.2",
+    "condition": "flat",
+    "architecture": "flat_all_tools",
+    "generation_provider": "openai_compatible",
+    "provider_host": "api.zhizengzeng.com",
+    "generation_model": "deepseek-v4.1-flash",
+    "git_commit": "9c4c904311d72c78ea169c1ac9e452966366ca66",
+    "system_prompt_hash": "fdecb85f16b506c6ed0e5e2c8b2c248929bd7342c68d11a2e6ac7f604ed1198c",
+    "n_tasks": 155,
+    "status_counts": {
+      "full": 118,
+      "failed": 36,
+      "partial": 1
+    },
+    "error_counts": {
+      "max_invocations": 34,
+      "max_llm_turns": 2
+    },
+    "auto_gradable": 154,
+    "auto_correct": 87,
+    "auto_accuracy": 0.564935064935065,
+    "manual_required_count": 1,
+    "manual_task_ids": [
+      "fin_cf_022"
+    ],
+    "final_answer_correct_count": 88,
+    "final_answer_accuracy": 0.567741935483871,
+    "overall_accuracy": 0.567741935483871,
+    "conservative_lower_bound_accuracy": 0.5612903225806452,
+    "upper_bound_if_manual_correct": 0.567741935483871,
+    "strict_answer_correct_count": 85,
+    "strict_answer_accuracy": 0.5483870967741935,
+    "strict_overall_task_success_count": 85,
+    "strict_overall_task_success_rate": 0.5483870967741935,
+    "exact_tool_set_rate": 0.23225806451612904,
+    "mean_operation_precision": 0.5116897225806452,
+    "mean_operation_recall": 0.729032264516129,
+    "mean_operation_f1": 0.5731674645161287,
+    "mean_wrong_tool_rate": 0.45605221290322584,
+    "all_tool_invocations_successful_rate": 0.5870967741935483,
+    "recovered_after_tool_error_rate": 0.16129032258064516,
+    "retrieval_metrics": "N/A",
+    "total_input_tokens": 9231332,
+    "total_output_tokens": 232792,
+    "total_tokens": 9464124,
+    "total_llm_calls": 460,
+    "total_real_mcp_executions": 572,
+    "total_embedding_calls": 0,
+    "total_retrieval_calls": 0,
+    "mean_latency_ms": 25185.31666451613,
+    "estimated_usd": null,
+    "partial_task": {
+      "task_id": "xd_ht_002",
+      "status": "partial",
+      "error": null,
+      "predicted_status": "unavailable",
+      "final_answer": "No tool calls and no answer.",
+      "answer_correct": false,
+      "answer_correct_strict": false,
+      "primary_error_category": "protocol_or_parse_failure",
+      "selected_operations": [
+        "hkexnews.lookup_stock_code",
+        "hkexnews.list_hkexnews_announcements",
+        "aktools.stock_hk_hist",
+        "hkexnews.download_hkexnews_announcement"
+      ],
+      "invoked_operations": [
+        "hkexnews.lookup_stock_code",
+        "hkexnews.list_hkexnews_announcements",
+        "aktools.stock_hk_hist",
+        "hkexnews.download_hkexnews_announcement"
+      ],
+      "llm_calls": 3,
+      "real_mcp_execution_count": 6,
+      "treatment": "strict incorrect; remains in denominator; no rerun; classified as protocol_or_parse_failure"
+    },
+    "failed_remain_in_denominator": true,
+    "human_grades_applied": true,
+    "human_grades_paths": [
+      "/Users/wzm/Desktop/科大/课程/MSBD5018_NLP/group project/hk-equity-mcp-agent-flat-all-tools/docs/hk_unified_flat_all_tools_final_audit_v1/human_grades.json"
+    ],
+    "human_graded_task_ids": [
+      "fin_cf_022"
+    ]
+  },
+  "primary_error_counts": {
+    "success": 85,
+    "incomplete_tool_chain": 3,
+    "resource_limit_max_invocations": 34,
+    "redundant_tool_selection": 7,
+    "answer_synthesis": 3,
+    "protocol_or_parse_failure": 1,
+    "refusal_or_feasibility_error": 19,
+    "resource_limit_max_llm_turns": 2,
+    "wrong_tool_selection": 1
+  },
+  "manual_review_queue": [
+    "fin_cf_022"
+  ],
+  "guarantees": {
+    "no_task_rerun": true,
+    "no_llm": true,
+    "no_embedding": true,
+    "no_mcp_network": true,
+    "no_paid_api": true,
+    "raw_predictions_unchanged": true,
+    "prompt_catalog_gold_unchanged": true,
+    "human_grades_from_file_only": true,
+    "human_grades_applied": true
+  }
+}

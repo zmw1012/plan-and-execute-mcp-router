@@ -1,0 +1,107 @@
+{
+  "issuer": "Tencent",
+  "stock_code": "00700",
+  "success": true,
+  "chosen": {
+    "stock_code": "00700",
+    "sec_name": "TENCENT | TENCENT-R",
+    "title": "Next Day Disclosure Return",
+    "release_date": "2026-07-09",
+    "release_datetime": "09/07/2026 17:58",
+    "category_label": "Share Buyback",
+    "category_t1": "50000",
+    "category_t2": "50100",
+    "news_id": "12239449",
+    "local_key": "00700_50100_2026-07-09_d80c8407",
+    "file_link": "/listedco/listconews/sehk/2026/0709/2026070900827.pdf",
+    "file_type": "PDF"
+  },
+  "keywords": [
+    "Disclosure",
+    "Return",
+    "shares"
+  ],
+  "start_page": 1,
+  "matches_sample": [
+    {
+      "page_number": 1,
+      "score": 0.103586,
+      "keyword_hits": 3,
+      "snippet": "FF305 v Page 1 of 7 1.3.0 Next Day **Disclosure** **Return** (Equity issuer - changes in issued **shares** or treasury **shares**, share buybacks and/or on-market sales of treasury **shares**) Instrument:..."
+    },
+    {
+      "page_number": 5,
+      "score": 0.070833,
+      "keyword_hits": 1,
+      "snippet": "FF305 v Page 5 of 7 1.3.0 Section II must also be completed by a listed issuer where it has made a repurchase of **shares** which is discloseable under Main Board Rule 10.06(4)(a) / GEM Rule 13.13(1). Repurchase report Section II 1. Class of **shares** Ordinary **shares** Ty..."
+    }
+  ],
+  "dependency_graph": [
+    {
+      "producer_operation": "hkexnews.list_hkexnews_announcements",
+      "producer_output_field": "local_key",
+      "consumer_operation": "hkexnews.download_hkexnews_announcement",
+      "consumer_input_field": "local_key",
+      "live_verified_dependency": true,
+      "example_value": "00700_50100_2026-07-09_d80c8407"
+    },
+    {
+      "producer_operation": "hkexnews.list_hkexnews_announcements",
+      "producer_output_field": "news_id",
+      "consumer_operation": "hkexnews.download_hkexnews_announcement",
+      "consumer_input_field": "news_id",
+      "live_verified_dependency": true,
+      "example_value": "12239449"
+    },
+    {
+      "producer_operation": "hkexnews.list_hkexnews_announcements",
+      "producer_output_field": "release_date",
+      "consumer_operation": "hkexnews.download_hkexnews_announcement",
+      "consumer_input_field": "release_date",
+      "live_verified_dependency": true,
+      "example_value": "2026-07-09"
+    },
+    {
+      "producer_operation": "hkexnews.list_hkexnews_announcements",
+      "producer_output_field": "title",
+      "consumer_operation": "hkexnews.download_hkexnews_announcement",
+      "consumer_input_field": "title_keyword",
+      "live_verified_dependency": true,
+      "example_value": "Next Day"
+    },
+    {
+      "producer_operation": "hkexnews.download_hkexnews_announcement",
+      "producer_output_field": "local_key",
+      "consumer_operation": "hkexnews.parse_hkexnews_announcement",
+      "consumer_input_field": "local_key",
+      "live_verified_dependency": true,
+      "example_value": "00700_50100_2026-07-09_d80c8407"
+    },
+    {
+      "producer_operation": "hkexnews.parse_hkexnews_announcement",
+      "producer_output_field": "local_key",
+      "consumer_operation": "hkexnews.keyword_search",
+      "consumer_input_field": "local_key",
+      "live_verified_dependency": true,
+      "example_value": "00700_50100_2026-07-09_d80c8407"
+    },
+    {
+      "producer_operation": "hkexnews.keyword_search",
+      "producer_output_field": "page_number",
+      "consumer_operation": "hkexnews.get_announcement_pages",
+      "consumer_input_field": "start_page",
+      "live_verified_dependency": true,
+      "example_value": 1
+    },
+    {
+      "producer_operation": "hkexnews.parse_hkexnews_announcement",
+      "producer_output_field": "local_key",
+      "consumer_operation": "hkexnews.get_announcement_pages",
+      "consumer_input_field": "local_key",
+      "live_verified_dependency": true,
+      "example_value": "00700_50100_2026-07-09_d80c8407"
+    }
+  ],
+  "snippet": "FF305 v Page 1 of 7 1.3.0 Next Day **Disclosure** **Return** (Equity issuer - changes in issued **shares** or treasury **shares**, share buybacks and/or on-market sales of treasury **shares**) Instrument:...",
+  "live_evidence": "docs/news_mcp_discovery_v1/hkexnews_dependency_chain_extra_tencent.json"
+}

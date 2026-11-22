@@ -1,0 +1,67 @@
+{
+  "audit_kind": "pe_fin_lite_retrieval_all155_cache_readiness_v1",
+  "zero_network": true,
+  "method_commit": "baf572461dce670fddb71291128e82360dbef2f0",
+  "method_version": "pe_fin_lite_v1.2",
+  "current": {
+    "operation_documents_sha256": "5989196c1c2765cfe5ec6c094c80189cb9b3b18ed9cc2072ab057b29d3f0dd27",
+    "catalog_fingerprint": "unique=42|runtime=39|namespaced=54|cross_domain:a21a0cdf6c73|financial:5d5881b6e2b5|market:2b201872c109|news:9121e9b7ca8d",
+    "embedding_identity_sha256": "ac4c109bed0edb21fb2b837dfdbd745680b24f33efa62e13ad6bca53f174b0df",
+    "catalog_index_complete": true,
+    "planner_only_protocol_version": "pe_fin_lite_planner_only_v3",
+    "expected_planner_identity_sha256": "13a26b812b4565b9f969dc3eb78950d58d50789757a199384f0e9aa9a97b39c8",
+    "note_on_439b4c61": "requested prefix not found; current live digest is ac4c109b..."
+  },
+  "caches": {
+    "catalog_index_ac4c109b": {
+      "reusable": true,
+      "complete": true,
+      "n_vectors": 39
+    },
+    "question_query_live_v1": {
+      "path": "outputs/pe_fin_lite_retrieval_all155_live_v1/question_query_cache",
+      "complete": true,
+      "n": 155,
+      "conditionally_reusable": true,
+      "binds_to_operation_documents": false
+    },
+    "question_level_r0_live_v1": {
+      "path": "outputs/pe_fin_lite_retrieval_all155_live_v1/question_level",
+      "reusable": false,
+      "reason": "operation_documents_sha256 and catalog_fingerprint stale vs current"
+    },
+    "planner_only_all155_live_v1": {
+      "path": "outputs/pe_fin_lite_retrieval_all155_live_v1/planner_cache",
+      "reusable": false,
+      "protocol": "pe_fin_lite_planner_only_v1",
+      "n_tasks": 155,
+      "n_errors": 41,
+      "status": "invalid_for_formal_step_level_retrieval_due_to_planner_protocol_failure_rate"
+    },
+    "planner_only_all155_v3": {
+      "exists": false
+    },
+    "planner_only_all155_planner_v2_dir": {
+      "path": "outputs/pe_fin_lite_retrieval_all155_planner_v2",
+      "exists": false
+    },
+    "diagnostic10_planner_v3": {
+      "path": "outputs/pe_fin_lite_planner_protocol_diagnostic10_v3/planner_cache",
+      "n_tasks": 10,
+      "cannot_resume_all155": true,
+      "cannot_formal_lock": true,
+      "must_not_impersonate_all155": true
+    },
+    "step_query_embeddings": {
+      "exists": false
+    },
+    "r1_r2_r3_formal": {
+      "computed": false
+    },
+    "formula_lock_formal": {
+      "exists": false,
+      "schema_only_present": true
+    }
+  },
+  "recommended_new_output_dir": "outputs/pe_fin_lite_retrieval_all155_planner_v3"
+}

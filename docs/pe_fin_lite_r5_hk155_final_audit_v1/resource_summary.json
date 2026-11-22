@@ -1,0 +1,25 @@
+{
+  "llm_calls_total": 493,
+  "mcp_invocations_total": 374,
+  "embedding_query_calls_total": 131,
+  "tokens_total_sum_per_task": 1146716.0,
+  "tokens_total_from_cost_summary": 1146716,
+  "latency_ms_mean": 29302.984316879883,
+  "latency_ms_median": 26821.417500032112,
+  "latency_ms_p95": 53392.20945793204,
+  "estimated_usd": null,
+  "calls_by_stage_totals": {
+    "planner": 155,
+    "final": 151,
+    "tool_binding": 131,
+    "reason": 19,
+    "reason_repair": 12,
+    "final_repair": 6,
+    "tool_binding_repair": 8,
+    "planner_repair": 11
+  },
+  "fallback_total": 82,
+  "budget_violations": [],
+  "catalog_index_build_calls": 0,
+  "note": "index reused complete cache; no build during this run expected"
+}

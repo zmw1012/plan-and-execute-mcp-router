@@ -1,0 +1,43 @@
+{
+  "taxonomy": [
+    "exact_success",
+    "planner_parse_or_schema",
+    "capability_or_tool_selection",
+    "incomplete_disclosure_chain",
+    "required_output_not_satisfied",
+    "evidence_conflict_or_verification",
+    "calculation_not_reached",
+    "final_schema_or_synthesis",
+    "resource_limit_exception_replan",
+    "incorrect_refusal",
+    "tool_execution_failure"
+  ],
+  "primary_counts": {
+    "exact_success": 0,
+    "planner_parse_or_schema": 1,
+    "capability_or_tool_selection": 0,
+    "incomplete_disclosure_chain": 8,
+    "required_output_not_satisfied": 0,
+    "evidence_conflict_or_verification": 0,
+    "calculation_not_reached": 0,
+    "final_schema_or_synthesis": 2,
+    "resource_limit_exception_replan": 0,
+    "incorrect_refusal": 1,
+    "tool_execution_failure": 0
+  },
+  "per_task_primary": {
+    "fin_cf_003": "incomplete_disclosure_chain",
+    "fin_cf_011": "incomplete_disclosure_chain",
+    "fin_cf_020": "incomplete_disclosure_chain",
+    "fin_cf_023": "incomplete_disclosure_chain",
+    "fin_ht_016": "incomplete_disclosure_chain",
+    "xd_dev_002": "incomplete_disclosure_chain",
+    "xd_ht_007": "incomplete_disclosure_chain",
+    "xd_ht_014": "planner_parse_or_schema",
+    "mkt_dev_014": "final_schema_or_synthesis",
+    "fin_cf_024": "incorrect_refusal",
+    "mkt_dev_001": "final_schema_or_synthesis",
+    "news_ht_004": "incomplete_disclosure_chain"
+  },
+  "note": "Primary errors prefer upstream root causes; resource_limit is secondary when disclosure/required-output/capability failures precede the replan cap."
+}

@@ -1,0 +1,107 @@
+{
+  "issuer": "HSBC",
+  "stock_code": "00005",
+  "success": true,
+  "chosen": {
+    "stock_code": "00005",
+    "sec_name": "HSBC HOLDINGS",
+    "title": "Next Day Disclosure Return",
+    "release_date": "2026-08-12",
+    "release_datetime": "12/08/2026 16:30",
+    "category_label": "Share Buyback",
+    "category_t1": "50000",
+    "category_t2": "50100",
+    "news_id": "12280958",
+    "local_key": "00005_50100_2026-08-12_afaf4765",
+    "file_link": "/listedco/listconews/sehk/2026/0812/2026081200264.pdf",
+    "file_type": "PDF"
+  },
+  "keywords": [
+    "Disclosure",
+    "Return",
+    "HSBC"
+  ],
+  "start_page": 3,
+  "matches_sample": [
+    {
+      "page_number": 3,
+      "score": 0.025515,
+      "keyword_hits": 2,
+      "snippet": "FF305 v Page 3 of 7 1.3.0 Confirmation Not applicable Notes to Section I: 1. Please insert the closing balance date of the last Next Day **Disclosure** **Return** published pursuant to Main Board Rule 13.25A / GEM Rule 17.27A or Monthly **Return** pursuant to Main Board Rule 13.25B / GEM Rule 17.27..."
+    },
+    {
+      "page_number": 1,
+      "score": 0.016032,
+      "keyword_hits": 3,
+      "snippet": "FF305 v Page 1 of 7 1.3.0 Next Day **Disclosure** **Return** (Equity issuer - changes in issued shares or treasury shares, share buybacks and/or on-market sales of treasury shares) Instrument:..."
+    }
+  ],
+  "dependency_graph": [
+    {
+      "producer_operation": "hkexnews.list_hkexnews_announcements",
+      "producer_output_field": "local_key",
+      "consumer_operation": "hkexnews.download_hkexnews_announcement",
+      "consumer_input_field": "local_key",
+      "live_verified_dependency": true,
+      "example_value": "00005_50100_2026-08-12_afaf4765"
+    },
+    {
+      "producer_operation": "hkexnews.list_hkexnews_announcements",
+      "producer_output_field": "news_id",
+      "consumer_operation": "hkexnews.download_hkexnews_announcement",
+      "consumer_input_field": "news_id",
+      "live_verified_dependency": true,
+      "example_value": "12280958"
+    },
+    {
+      "producer_operation": "hkexnews.list_hkexnews_announcements",
+      "producer_output_field": "release_date",
+      "consumer_operation": "hkexnews.download_hkexnews_announcement",
+      "consumer_input_field": "release_date",
+      "live_verified_dependency": true,
+      "example_value": "2026-08-12"
+    },
+    {
+      "producer_operation": "hkexnews.list_hkexnews_announcements",
+      "producer_output_field": "title",
+      "consumer_operation": "hkexnews.download_hkexnews_announcement",
+      "consumer_input_field": "title_keyword",
+      "live_verified_dependency": true,
+      "example_value": "Next Day"
+    },
+    {
+      "producer_operation": "hkexnews.download_hkexnews_announcement",
+      "producer_output_field": "local_key",
+      "consumer_operation": "hkexnews.parse_hkexnews_announcement",
+      "consumer_input_field": "local_key",
+      "live_verified_dependency": true,
+      "example_value": "00005_50100_2026-08-12_afaf4765"
+    },
+    {
+      "producer_operation": "hkexnews.parse_hkexnews_announcement",
+      "producer_output_field": "local_key",
+      "consumer_operation": "hkexnews.keyword_search",
+      "consumer_input_field": "local_key",
+      "live_verified_dependency": true,
+      "example_value": "00005_50100_2026-08-12_afaf4765"
+    },
+    {
+      "producer_operation": "hkexnews.keyword_search",
+      "producer_output_field": "page_number",
+      "consumer_operation": "hkexnews.get_announcement_pages",
+      "consumer_input_field": "start_page",
+      "live_verified_dependency": true,
+      "example_value": 3
+    },
+    {
+      "producer_operation": "hkexnews.parse_hkexnews_announcement",
+      "producer_output_field": "local_key",
+      "consumer_operation": "hkexnews.get_announcement_pages",
+      "consumer_input_field": "local_key",
+      "live_verified_dependency": true,
+      "example_value": "00005_50100_2026-08-12_afaf4765"
+    }
+  ],
+  "snippet": "FF305 v Page 3 of 7 1.3.0 Confirmation Not applicable Notes to Section I: 1. Please insert the closing balance date of the last Next Day **Disclosure** **Return** published pursuant to Main Board Rule 13.25A / GEM Rule 17.27A or Monthly **Return** pursuant to Main Board Rule 13.25B / GEM Rule 17.27...",
+  "live_evidence": "docs/news_mcp_discovery_v1/hkexnews_dependency_chain_extra_hsbc.json"
+}

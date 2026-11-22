@@ -1,0 +1,25 @@
+{
+  "counts": {
+    "disclosure_local_key_not_passed_to_parse": 1,
+    "method_metric_semantics_mismatch": 1,
+    "method_data_semantics_eps_mismatch": 1,
+    "method_feasibility_temporal_policy": 1,
+    "disclosure_shortest_prefix_not_stopped": 1
+  },
+  "by_task": {
+    "fin_cf_003": "disclosure_local_key_not_passed_to_parse",
+    "fin_cf_023": "method_metric_semantics_mismatch",
+    "xd_dev_002": "method_data_semantics_eps_mismatch",
+    "mkt_dev_014": "method_feasibility_temporal_policy",
+    "news_ht_004": "disclosure_shortest_prefix_not_stopped"
+  },
+  "method_outcome_task_ids": [
+    "fin_cf_023",
+    "xd_dev_002",
+    "mkt_dev_014"
+  ],
+  "disclosure_engineering_failure_task_ids": [
+    "fin_cf_003",
+    "news_ht_004"
+  ]
+}

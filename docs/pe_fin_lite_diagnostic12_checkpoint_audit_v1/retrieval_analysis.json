@@ -1,0 +1,677 @@
+{
+  "C03": {
+    "checkpoint": "C03_embedding",
+    "counts": {
+      "pass": 12
+    },
+    "tasks": [
+      {
+        "task_id": "fin_cf_003",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "query": "financial | Retrieve Tencent FY2025 non-IFRS profit attributable to equity holders with currency and report date. | 00700 | required_outputs: issuer_code, company_name, fiscal_period, report_date, attributable_profit, currency",
+              "top_k_size": 3,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+                  "score": 0.575118
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "aktools.stock_financial_hk_report_em",
+                  "score": 0.518177
+                },
+                {
+                  "rank": 3,
+                  "operation_id": "aktools.stock_hk_company_profile_em",
+                  "score": 0.478634
+                }
+              ]
+            },
+            {
+              "disclosure_composite": true
+            }
+          ],
+          "structural_pass_means": "ranked_candidates_present_topk_le_5",
+          "note": "D12 cannot substitute all155 retrieval audit / Recall@K"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_011",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "query": "financial | Retrieve HSBC FY2025 reported profit after tax, currency, and report period from statement metrics. | 00005 | required_outputs: attributable_profit, currency, fiscal_period, report_date",
+              "top_k_size": 4,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "aktools.stock_financial_hk_report_em",
+                  "score": 0.60074
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+                  "score": 0.570639
+                },
+                {
+                  "rank": 3,
+                  "operation_id": "aktools.stock_hk_company_profile_em",
+                  "score": 0.504006
+                },
+                {
+                  "rank": 4,
+                  "operation_id": "aktools.stock_hk_financial_indicator_em",
+                  "score": 0.45016
+                }
+              ]
+            }
+          ],
+          "structural_pass_means": "ranked_candidates_present_topk_le_5",
+          "note": "D12 cannot substitute all155 retrieval audit / Recall@K"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_020",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "query": "financial | Retrieve Alibaba FY2026 non-GAAP net income, currency, unit basis, fiscal period, and report date. | 09988 | required_outputs: issuer_code, company_name, report_date, fiscal_period, currency, attributable_profit",
+              "top_k_size": 3,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+                  "score": 0.556021
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "aktools.stock_financial_hk_report_em",
+                  "score": 0.518636
+                },
+                {
+                  "rank": 3,
+                  "operation_id": "aktools.stock_hk_company_profile_em",
+                  "score": 0.490288
+                }
+              ]
+            },
+            {
+              "disclosure_composite": true
+            }
+          ],
+          "structural_pass_means": "ranked_candidates_present_topk_le_5",
+          "note": "D12 cannot substitute all155 retrieval audit / Recall@K"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_023",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "query": "financial | Retrieve Alibaba FY2026 reported revenue and net income attributable to ordinary shareholders. | 09988 | required_outputs: company_name, fiscal_period, report_date, currency, revenue, attributable_profit",
+              "top_k_size": 3,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+                  "score": 0.542813
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "aktools.stock_financial_hk_report_em",
+                  "score": 0.500145
+                },
+                {
+                  "rank": 3,
+                  "operation_id": "aktools.stock_hk_company_profile_em",
+                  "score": 0.473067
+                }
+              ]
+            }
+          ],
+          "structural_pass_means": "ranked_candidates_present_topk_le_5",
+          "note": "D12 cannot substitute all155 retrieval audit / Recall@K"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_ht_016",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "disclosure_composite": true
+            }
+          ],
+          "structural_pass_means": "ranked_candidates_present_topk_le_5",
+          "note": "D12 cannot substitute all155 retrieval audit / Recall@K"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_dev_002",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "query": "financial | Retrieve reported FY2025 basic EPS and reporting currency for HSBC. | 00005 | 2026-06-30 | required_outputs: issuer_code, company_name, report_date, fiscal_period, currency, basic_eps",
+              "top_k_size": 4,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+                  "score": 0.621998
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "aktools.stock_financial_hk_report_em",
+                  "score": 0.608765
+                },
+                {
+                  "rank": 3,
+                  "operation_id": "aktools.stock_hk_company_profile_em",
+                  "score": 0.532663
+                },
+                {
+                  "rank": 4,
+                  "operation_id": "aktools.stock_hk_dividend_payout_em",
+                  "score": 0.511704
+                }
+              ]
+            },
+            {
+              "query": "market | Retrieve unadjusted trading volume for HSBC on 2026-06-30 with empty adjustment. | 00005 | 2026-06-30 | required_outputs: issuer_code, volume, trade_date, adjustment",
+              "top_k_size": 3,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "aktools.stock_hk_hist",
+                  "score": 0.591651
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "aktools.stock_hk_index_daily_sina",
+                  "score": 0.499627
+                },
+                {
+                  "rank": 3,
+                  "operation_id": "aktools.stock_hk_index_daily_em",
+                  "score": 0.495617
+                }
+              ]
+            }
+          ],
+          "structural_pass_means": "ranked_candidates_present_topk_le_5",
+          "note": "D12 cannot substitute all155 retrieval audit / Recall@K"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_007",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "query": "financial | Retrieve HSBC FY2025 reported basic EPS in USD and period metadata. | 00005 | required_outputs: basic_eps, currency, fiscal_period, report_date",
+              "top_k_size": 4,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+                  "score": 0.606597
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "aktools.stock_financial_hk_report_em",
+                  "score": 0.593738
+                },
+                {
+                  "rank": 3,
+                  "operation_id": "aktools.stock_hk_company_profile_em",
+                  "score": 0.504556
+                },
+                {
+                  "rank": 4,
+                  "operation_id": "aktools.stock_hk_dividend_payout_em",
+                  "score": 0.498153
+                }
+              ]
+            },
+            {
+              "query": "disclosure | Use ah_disclosure.search_annual_report for market HK, symbol 00005, year 2025; return metadata title and publish date only, no PDF statement numerics. | 00005 | required_outputs: title, release_date",
+              "top_k_size": 2,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "ah_disclosure.search_annual_report",
+                  "score": 0.770789
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "ah_disclosure.resolve_company",
+                  "score": 0.572214
+                }
+              ]
+            }
+          ],
+          "structural_pass_means": "ranked_candidates_present_topk_le_5",
+          "note": "D12 cannot substitute all155 retrieval audit / Recall@K"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_014",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "query": "financial | Retrieve FY2026 net income attributable to ordinary shareholders with reported currency and unit. | 09988 | required_outputs: attributable_profit, currency, fiscal_period, report_date",
+              "top_k_size": 4,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "aktools.stock_financial_hk_report_em",
+                  "score": 0.491128
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+                  "score": 0.490432
+                },
+                {
+                  "rank": 3,
+                  "operation_id": "aktools.stock_hk_company_profile_em",
+                  "score": 0.432132
+                },
+                {
+                  "rank": 4,
+                  "operation_id": "aktools.stock_hk_dividend_payout_em",
+                  "score": 0.41949
+                }
+              ]
+            }
+          ],
+          "structural_pass_means": "ranked_candidates_present_topk_le_5",
+          "note": "D12 cannot substitute all155 retrieval audit / Recall@K"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_014",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "query": "market | Retrieve Tencent's latest available historical close, trade date, currency, and adjustment basis. | 00700 | required_outputs: issuer_code, company_name, close, trade_date, currency, adjustment",
+              "top_k_size": 2,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "aktools.stock_hk_hist",
+                  "score": 0.521615
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "aktools.tool_trade_date_hist_sina",
+                  "score": 0.492463
+                }
+              ]
+            }
+          ],
+          "structural_pass_means": "ranked_candidates_present_topk_le_5",
+          "note": "D12 cannot substitute all155 retrieval audit / Recall@K"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_024",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "query": "financial | Check whether Alibaba has a reported revenue figure for the full calendar year ended 31 Dec 2026, explicitly excluding FY2026 ended 31 Mar 2026. | 09988 | required_outputs: issuer_code, company_name, fiscal_period, report_date, currency, revenue",
+              "top_k_size": 3,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+                  "score": 0.539404
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "aktools.stock_hk_company_profile_em",
+                  "score": 0.495839
+                },
+                {
+                  "rank": 3,
+                  "operation_id": "aktools.stock_financial_hk_report_em",
+                  "score": 0.469371
+                }
+              ]
+            },
+            {
+              "disclosure_composite": true
+            }
+          ],
+          "structural_pass_means": "ranked_candidates_present_topk_le_5",
+          "note": "D12 cannot substitute all155 retrieval audit / Recall@K"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_001",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "query": "market | Retrieve the unadjusted daily close for the asked HK equity on the specified trade date. | 00700 | 2026-07-31 | required_outputs: close, trade_date, adjustment, currency, issuer_code",
+              "top_k_size": 5,
+              "scores": [
+                {
+                  "rank": 1,
+                  "operation_id": "aktools.stock_hk_hist",
+                  "score": 0.680019
+                },
+                {
+                  "rank": 2,
+                  "operation_id": "aktools.stock_hk_daily",
+                  "score": 0.581036
+                },
+                {
+                  "rank": 3,
+                  "operation_id": "aktools.stock_hk_index_daily_em",
+                  "score": 0.545177
+                },
+                {
+                  "rank": 4,
+                  "operation_id": "aktools.stock_hk_index_daily_sina",
+                  "score": 0.53162
+                },
+                {
+                  "rank": 5,
+                  "operation_id": "aktools.bond_zh_hk_rate",
+                  "score": 0.528378
+                }
+              ]
+            }
+          ],
+          "structural_pass_means": "ranked_candidates_present_topk_le_5",
+          "note": "D12 cannot substitute all155 retrieval audit / Recall@K"
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "news_ht_004",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "disclosure_composite": true
+            }
+          ],
+          "structural_pass_means": "ranked_candidates_present_topk_le_5",
+          "note": "D12 cannot substitute all155 retrieval audit / Recall@K"
+        },
+        "primary_blocking": false
+      }
+    ]
+  },
+  "C04": {
+    "checkpoint": "C04_describe",
+    "counts": {
+      "pass": 12
+    },
+    "tasks": [
+      {
+        "task_id": "fin_cf_003",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "described_ids": [
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em"
+              ],
+              "described_count": 3,
+              "rank4_5_not_described": []
+            },
+            {
+              "disclosure_composite": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_011",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "described_ids": [
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_hk_company_profile_em"
+              ],
+              "described_count": 3,
+              "rank4_5_not_described": [
+                "aktools.stock_hk_financial_indicator_em"
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_020",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "described_ids": [
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em"
+              ],
+              "described_count": 3,
+              "rank4_5_not_described": []
+            },
+            {
+              "disclosure_composite": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_023",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "described_ids": [
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em"
+              ],
+              "described_count": 3,
+              "rank4_5_not_described": []
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_ht_016",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "disclosure_composite": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_dev_002",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "described_ids": [
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em"
+              ],
+              "described_count": 3,
+              "rank4_5_not_described": [
+                "aktools.stock_hk_dividend_payout_em"
+              ]
+            },
+            {
+              "described_ids": [
+                "aktools.stock_hk_hist",
+                "aktools.stock_hk_index_daily_sina",
+                "aktools.stock_hk_index_daily_em"
+              ],
+              "described_count": 3,
+              "rank4_5_not_described": []
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_007",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "described_ids": [
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em"
+              ],
+              "described_count": 3,
+              "rank4_5_not_described": [
+                "aktools.stock_hk_dividend_payout_em"
+              ]
+            },
+            {
+              "described_ids": [
+                "ah_disclosure.search_annual_report",
+                "ah_disclosure.resolve_company"
+              ],
+              "described_count": 2,
+              "rank4_5_not_described": []
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "xd_ht_014",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "described_ids": [
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_hk_company_profile_em"
+              ],
+              "described_count": 3,
+              "rank4_5_not_described": [
+                "aktools.stock_hk_dividend_payout_em"
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_014",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "described_ids": [
+                "aktools.stock_hk_hist",
+                "aktools.tool_trade_date_hist_sina"
+              ],
+              "described_count": 2,
+              "rank4_5_not_described": []
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "fin_cf_024",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "described_ids": [
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_hk_company_profile_em",
+                "aktools.stock_financial_hk_report_em"
+              ],
+              "described_count": 3,
+              "rank4_5_not_described": []
+            },
+            {
+              "disclosure_composite": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "mkt_dev_001",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "described_ids": [
+                "aktools.stock_hk_hist",
+                "aktools.stock_hk_daily",
+                "aktools.stock_hk_index_daily_em"
+              ],
+              "described_count": 3,
+              "rank4_5_not_described": [
+                "aktools.stock_hk_index_daily_sina",
+                "aktools.bond_zh_hk_rate"
+              ]
+            }
+          ]
+        },
+        "primary_blocking": false
+      },
+      {
+        "task_id": "news_ht_004",
+        "status": "pass",
+        "detail": {
+          "funnels": [
+            {
+              "disclosure_composite": true
+            }
+          ]
+        },
+        "primary_blocking": false
+      }
+    ]
+  }
+}

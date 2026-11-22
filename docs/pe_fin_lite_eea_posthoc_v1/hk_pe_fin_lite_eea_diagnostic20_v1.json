@@ -1,0 +1,215 @@
+{
+  "manifest_id": "hk_pe_fin_lite_eea_diagnostic20_v1",
+  "version": "1.0",
+  "role": "posthoc_engineering_diagnostic_only",
+  "source_split": "development_origin_only",
+  "explicitly_not_formal_accuracy": true,
+  "cannot_replace_hk155": true,
+  "cannot_replace_reserved_evaluation": true,
+  "parent_dataset": "hk_unified_exploratory_all_v1",
+  "selection_rule": {
+    "quotas": {
+      "C07": 6,
+      "C09": 6,
+      "COMPUTE": 3,
+      "DISCLOSURE": 3,
+      "CONTROL": 2
+    },
+    "priority": [
+      "checkpoint_category",
+      "domain_diversity",
+      "difficulty",
+      "deterministic_exploratory_order"
+    ],
+    "no_gold_correctness_sort": true,
+    "no_hand_picked_task_ids": true,
+    "development_origin_only": true
+  },
+  "ordered_task_ids": [
+    "mkt_dev_003",
+    "xd_dev_008",
+    "news_dev_004",
+    "mkt_dev_002",
+    "xd_dev_003",
+    "news_dev_015",
+    "fin_cf_019",
+    "news_dev_002",
+    "xd_dev_005",
+    "mkt_dev_005",
+    "fin_cf_011",
+    "xd_dev_004",
+    "mkt_dev_001",
+    "xd_dev_001",
+    "news_dev_006",
+    "fin_cf_028",
+    "news_dev_009",
+    "xd_dev_007",
+    "news_dev_003",
+    "fin_cf_018"
+  ],
+  "ordered_task_ids_hash": "64e8f6fbc9245104e9ea90f183d10da04ab88d9aa16cccca3eaee472fc28ee9a",
+  "tasks": [
+    {
+      "task_id": "mkt_dev_003",
+      "selection_bucket": "C07",
+      "domain": "market",
+      "project_difficulty": "D1",
+      "answerability_class": "structured_answerable",
+      "primary_blocking_checkpoint": "C07_mcp"
+    },
+    {
+      "task_id": "xd_dev_008",
+      "selection_bucket": "C07",
+      "domain": "cross_domain",
+      "project_difficulty": "D3",
+      "answerability_class": "structured_answerable",
+      "primary_blocking_checkpoint": "C07_mcp"
+    },
+    {
+      "task_id": "news_dev_004",
+      "selection_bucket": "C07",
+      "domain": "news",
+      "project_difficulty": "D1",
+      "answerability_class": "structured_answerable",
+      "primary_blocking_checkpoint": "C07_mcp"
+    },
+    {
+      "task_id": "mkt_dev_002",
+      "selection_bucket": "C07",
+      "domain": "market",
+      "project_difficulty": "D1",
+      "answerability_class": "structured_answerable",
+      "primary_blocking_checkpoint": "C07_mcp"
+    },
+    {
+      "task_id": "xd_dev_003",
+      "selection_bucket": "C07",
+      "domain": "cross_domain",
+      "project_difficulty": "D3",
+      "answerability_class": "structured_answerable",
+      "primary_blocking_checkpoint": "C07_mcp"
+    },
+    {
+      "task_id": "news_dev_015",
+      "selection_bucket": "C07",
+      "domain": "news",
+      "project_difficulty": "D2",
+      "answerability_class": "structured_answerable",
+      "primary_blocking_checkpoint": "C07_mcp"
+    },
+    {
+      "task_id": "fin_cf_019",
+      "selection_bucket": "C09",
+      "domain": "financial",
+      "project_difficulty": "D1",
+      "answerability_class": "structured_answerable",
+      "primary_blocking_checkpoint": "C09_evidence_acceptance"
+    },
+    {
+      "task_id": "news_dev_002",
+      "selection_bucket": "C09",
+      "domain": "news",
+      "project_difficulty": "D1",
+      "answerability_class": "structured_answerable",
+      "primary_blocking_checkpoint": "C09_evidence_acceptance"
+    },
+    {
+      "task_id": "xd_dev_005",
+      "selection_bucket": "C09",
+      "domain": "cross_domain",
+      "project_difficulty": "D3",
+      "answerability_class": "structured_answerable",
+      "primary_blocking_checkpoint": "C09_evidence_acceptance"
+    },
+    {
+      "task_id": "mkt_dev_005",
+      "selection_bucket": "C09",
+      "domain": "market",
+      "project_difficulty": "D2",
+      "answerability_class": "structured_answerable",
+      "primary_blocking_checkpoint": "C09_evidence_acceptance"
+    },
+    {
+      "task_id": "fin_cf_011",
+      "selection_bucket": "C09",
+      "domain": "financial",
+      "project_difficulty": "D1",
+      "answerability_class": "evidence_answerable",
+      "primary_blocking_checkpoint": "C09_evidence_acceptance"
+    },
+    {
+      "task_id": "xd_dev_004",
+      "selection_bucket": "C09",
+      "domain": "cross_domain",
+      "project_difficulty": "D3",
+      "answerability_class": "structured_answerable",
+      "primary_blocking_checkpoint": "C09_evidence_acceptance"
+    },
+    {
+      "task_id": "mkt_dev_001",
+      "selection_bucket": "COMPUTE",
+      "domain": "market",
+      "project_difficulty": "D1",
+      "answerability_class": "structured_answerable",
+      "primary_blocking_checkpoint": "C07_mcp"
+    },
+    {
+      "task_id": "xd_dev_001",
+      "selection_bucket": "COMPUTE",
+      "domain": "cross_domain",
+      "project_difficulty": "D3",
+      "answerability_class": "structured_answerable",
+      "primary_blocking_checkpoint": "C07_mcp"
+    },
+    {
+      "task_id": "news_dev_006",
+      "selection_bucket": "COMPUTE",
+      "domain": "news",
+      "project_difficulty": "D3",
+      "answerability_class": "structured_answerable",
+      "primary_blocking_checkpoint": "C09_evidence_acceptance"
+    },
+    {
+      "task_id": "fin_cf_028",
+      "selection_bucket": "DISCLOSURE",
+      "domain": "financial",
+      "project_difficulty": "D1",
+      "answerability_class": "evidence_answerable",
+      "primary_blocking_checkpoint": "C09_evidence_acceptance"
+    },
+    {
+      "task_id": "news_dev_009",
+      "selection_bucket": "DISCLOSURE",
+      "domain": "news",
+      "project_difficulty": "D3",
+      "answerability_class": "structured_answerable",
+      "primary_blocking_checkpoint": "C07_mcp"
+    },
+    {
+      "task_id": "xd_dev_007",
+      "selection_bucket": "DISCLOSURE",
+      "domain": "cross_domain",
+      "project_difficulty": "D4",
+      "answerability_class": "structured_answerable",
+      "primary_blocking_checkpoint": "C07_mcp"
+    },
+    {
+      "task_id": "news_dev_003",
+      "selection_bucket": "CONTROL",
+      "domain": "news",
+      "project_difficulty": "D1",
+      "answerability_class": "structured_answerable",
+      "primary_blocking_checkpoint": ""
+    },
+    {
+      "task_id": "fin_cf_018",
+      "selection_bucket": "CONTROL",
+      "domain": "financial",
+      "project_difficulty": "D1",
+      "answerability_class": "structured_answerable",
+      "primary_blocking_checkpoint": "C12_reason"
+    }
+  ],
+  "n": 20,
+  "manifest_sha256": "c5ff01bbd77c132bcebcc00b3bcd7b2ac660ee9d02afa2ad112841495a8072fd"
+}

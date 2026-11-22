@@ -1,0 +1,20 @@
+{
+  "version": "pe_fin_lite_plan_structural_canonicalizer_v1",
+  "hash": "1c0cf80e1a3940a14983b93fb8938fab74e13f48917f0141d18e86531ba949cd",
+  "allowed_rules": [
+    "first_step_missing_depends_on → []",
+    "reason domain analysis|reasoning → general",
+    "compute domain calculation → compute",
+    "JSON text: whitespace / fence / unicode quotes / trailing commas",
+    "runtime-owned schema/version fields stripped/re-injected by runtime"
+  ],
+  "forbidden": [
+    "non-first step missing depends_on auto-fill",
+    "missing domain without unique type mapping",
+    "missing required_outputs invention",
+    "missing compute_spec invention",
+    "overlength semantic truncation",
+    "truncated JSON fragment splicing",
+    "gold/task-id driven inference"
+  ]
+}

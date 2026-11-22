@@ -1,0 +1,21 @@
+{
+  "applicable_tasks_with_gold_ops": 133,
+  "top_k_config": 20,
+  "recall_at_k": {
+    "R@1": 0.6992481203007519,
+    "R@5": 0.8195488721804511,
+    "R@10": 0.849624060150376,
+    "R@20": 0.9548872180451128
+  },
+  "hit_counts_at_k": {
+    "@1": 93,
+    "@5": 109,
+    "@10": 113,
+    "@20": 127
+  },
+  "agent_selection_given_retrieval_hit": {
+    "n": 127,
+    "exact_tool_set_rate": 0.4566929133858268,
+    "gold_subset_rate": 0.7007874015748031
+  }
+}

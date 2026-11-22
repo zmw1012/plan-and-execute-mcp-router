@@ -1,0 +1,406 @@
+{
+  "overall": {
+    "task_count": 155,
+    "n": 155,
+    "final_answer_correct_count": 95,
+    "final_answer_accuracy": 0.6129032258064516,
+    "final_answer_unresolved_count": 0,
+    "exact_tool_set_success_count": 64,
+    "exact_tool_set_success_rate": 0.4129032258064516,
+    "strict_task_success_count": 45,
+    "strict_task_success_rate": 0.2903225806451613,
+    "metric_definitions": {
+      "A_final_answer_accuracy": "Share of tasks with correct final answer (auto v1.2 or human decision). Independent of tool-set.",
+      "B_exact_tool_set_success": "Share of tasks where predicted invoke set exactly equals gold set.",
+      "C_strict_overall_task_success": "answer correct AND exact tool set AND all invocations successful AND dependency OK when applicable AND refusal OK when applicable AND evidence correct or N/A."
+    },
+    "note": "A, B, and C are separate metrics and must not be substituted for each other.",
+    "mean_operation_f1": 0.6693134580645159,
+    "mean_operation_precision": 0.6547311999999998,
+    "mean_operation_recall": 0.7274193677419354,
+    "all_tool_invocations_successful_rate": 0.7677419354838709,
+    "refusal_accuracy": 0.2727272727272727
+  },
+  "domain": {
+    "cross_domain": {
+      "task_count": 25,
+      "n": 25,
+      "final_answer_correct_count": 16,
+      "final_answer_accuracy": 0.64,
+      "final_answer_unresolved_count": 0,
+      "exact_tool_set_success_count": 7,
+      "exact_tool_set_success_rate": 0.28,
+      "strict_task_success_count": 5,
+      "strict_task_success_rate": 0.2,
+      "metric_definitions": {
+        "A_final_answer_accuracy": "Share of tasks with correct final answer (auto v1.2 or human decision). Independent of tool-set.",
+        "B_exact_tool_set_success": "Share of tasks where predicted invoke set exactly equals gold set.",
+        "C_strict_overall_task_success": "answer correct AND exact tool set AND all invocations successful AND dependency OK when applicable AND refusal OK when applicable AND evidence correct or N/A."
+      },
+      "note": "A, B, and C are separate metrics and must not be substituted for each other.",
+      "mean_operation_f1": 0.7400000800000001,
+      "mean_operation_precision": 0.6993334400000001,
+      "mean_operation_recall": 0.82000004,
+      "all_tool_invocations_successful_rate": 0.8,
+      "refusal_accuracy": 0.3333333333333333
+    },
+    "financial": {
+      "task_count": 60,
+      "n": 60,
+      "final_answer_correct_count": 28,
+      "final_answer_accuracy": 0.4666666666666667,
+      "final_answer_unresolved_count": 0,
+      "exact_tool_set_success_count": 8,
+      "exact_tool_set_success_rate": 0.13333333333333333,
+      "strict_task_success_count": 5,
+      "strict_task_success_rate": 0.08333333333333333,
+      "metric_definitions": {
+        "A_final_answer_accuracy": "Share of tasks with correct final answer (auto v1.2 or human decision). Independent of tool-set.",
+        "B_exact_tool_set_success": "Share of tasks where predicted invoke set exactly equals gold set.",
+        "C_strict_overall_task_success": "answer correct AND exact tool set AND all invocations successful AND dependency OK when applicable AND refusal OK when applicable AND evidence correct or N/A."
+      },
+      "note": "A, B, and C are separate metrics and must not be substituted for each other.",
+      "mean_operation_f1": 0.4490933666666668,
+      "mean_operation_precision": 0.43861111666666663,
+      "mean_operation_recall": 0.5275000166666667,
+      "all_tool_invocations_successful_rate": 0.7,
+      "refusal_accuracy": 0.21428571428571427
+    },
+    "market": {
+      "task_count": 35,
+      "n": 35,
+      "final_answer_correct_count": 26,
+      "final_answer_accuracy": 0.7428571428571429,
+      "final_answer_unresolved_count": 0,
+      "exact_tool_set_success_count": 30,
+      "exact_tool_set_success_rate": 0.8571428571428571,
+      "strict_task_success_count": 23,
+      "strict_task_success_rate": 0.6571428571428571,
+      "metric_definitions": {
+        "A_final_answer_accuracy": "Share of tasks with correct final answer (auto v1.2 or human decision). Independent of tool-set.",
+        "B_exact_tool_set_success": "Share of tasks where predicted invoke set exactly equals gold set.",
+        "C_strict_overall_task_success": "answer correct AND exact tool set AND all invocations successful AND dependency OK when applicable AND refusal OK when applicable AND evidence correct or N/A."
+      },
+      "note": "A, B, and C are separate metrics and must not be substituted for each other.",
+      "mean_operation_f1": 0.8876190571428572,
+      "mean_operation_precision": 0.8785714285714286,
+      "mean_operation_recall": 0.9142857142857143,
+      "all_tool_invocations_successful_rate": 0.9142857142857143,
+      "refusal_accuracy": 0.2222222222222222
+    },
+    "news": {
+      "task_count": 35,
+      "n": 35,
+      "final_answer_correct_count": 25,
+      "final_answer_accuracy": 0.7142857142857143,
+      "final_answer_unresolved_count": 0,
+      "exact_tool_set_success_count": 19,
+      "exact_tool_set_success_rate": 0.5428571428571428,
+      "strict_task_success_count": 12,
+      "strict_task_success_rate": 0.34285714285714286,
+      "metric_definitions": {
+        "A_final_answer_accuracy": "Share of tasks with correct final answer (auto v1.2 or human decision). Independent of tool-set.",
+        "B_exact_tool_set_success": "Share of tasks where predicted invoke set exactly equals gold set.",
+        "C_strict_overall_task_success": "answer correct AND exact tool set AND all invocations successful AND dependency OK when applicable AND refusal OK when applicable AND evidence correct or N/A."
+      },
+      "note": "A, B, and C are separate metrics and must not be substituted for each other.",
+      "mean_operation_f1": 0.7780375714285714,
+      "mean_operation_precision": 0.7695238,
+      "mean_operation_recall": 0.8171428571428573,
+      "all_tool_invocations_successful_rate": 0.7142857142857143,
+      "refusal_accuracy": 0.4166666666666667
+    }
+  },
+  "project_difficulty": {
+    "D1": {
+      "task_count": 35,
+      "n": 35,
+      "final_answer_correct_count": 27,
+      "final_answer_accuracy": 0.7714285714285715,
+      "final_answer_unresolved_count": 0,
+      "exact_tool_set_success_count": 19,
+      "exact_tool_set_success_rate": 0.5428571428571428,
+      "strict_task_success_count": 16,
+      "strict_task_success_rate": 0.45714285714285713,
+      "metric_definitions": {
+        "A_final_answer_accuracy": "Share of tasks with correct final answer (auto v1.2 or human decision). Independent of tool-set.",
+        "B_exact_tool_set_success": "Share of tasks where predicted invoke set exactly equals gold set.",
+        "C_strict_overall_task_success": "answer correct AND exact tool set AND all invocations successful AND dependency OK when applicable AND refusal OK when applicable AND evidence correct or N/A."
+      },
+      "note": "A, B, and C are separate metrics and must not be substituted for each other.",
+      "mean_operation_f1": 0.7534014285714287,
+      "mean_operation_precision": 0.72,
+      "mean_operation_recall": 0.8361904857142857,
+      "all_tool_invocations_successful_rate": 0.8571428571428571,
+      "refusal_accuracy": 0.0
+    },
+    "D2": {
+      "task_count": 24,
+      "n": 24,
+      "final_answer_correct_count": 18,
+      "final_answer_accuracy": 0.75,
+      "final_answer_unresolved_count": 0,
+      "exact_tool_set_success_count": 11,
+      "exact_tool_set_success_rate": 0.4583333333333333,
+      "strict_task_success_count": 11,
+      "strict_task_success_rate": 0.4583333333333333,
+      "metric_definitions": {
+        "A_final_answer_accuracy": "Share of tasks with correct final answer (auto v1.2 or human decision). Independent of tool-set.",
+        "B_exact_tool_set_success": "Share of tasks where predicted invoke set exactly equals gold set.",
+        "C_strict_overall_task_success": "answer correct AND exact tool set AND all invocations successful AND dependency OK when applicable AND refusal OK when applicable AND evidence correct or N/A."
+      },
+      "note": "A, B, and C are separate metrics and must not be substituted for each other.",
+      "mean_operation_f1": 0.7650132916666667,
+      "mean_operation_precision": 0.789583375,
+      "mean_operation_recall": 0.8131944583333334,
+      "all_tool_invocations_successful_rate": 0.7083333333333334,
+      "refusal_accuracy": 0.0
+    },
+    "D3": {
+      "task_count": 42,
+      "n": 42,
+      "final_answer_correct_count": 29,
+      "final_answer_accuracy": 0.6904761904761905,
+      "final_answer_unresolved_count": 0,
+      "exact_tool_set_success_count": 17,
+      "exact_tool_set_success_rate": 0.40476190476190477,
+      "strict_task_success_count": 11,
+      "strict_task_success_rate": 0.2619047619047619,
+      "metric_definitions": {
+        "A_final_answer_accuracy": "Share of tasks with correct final answer (auto v1.2 or human decision). Independent of tool-set.",
+        "B_exact_tool_set_success": "Share of tasks where predicted invoke set exactly equals gold set.",
+        "C_strict_overall_task_success": "answer correct AND exact tool set AND all invocations successful AND dependency OK when applicable AND refusal OK when applicable AND evidence correct or N/A."
+      },
+      "note": "A, B, and C are separate metrics and must not be substituted for each other.",
+      "mean_operation_f1": 0.7836150952380952,
+      "mean_operation_precision": 0.7698412857142858,
+      "mean_operation_recall": 0.8523809523809527,
+      "all_tool_invocations_successful_rate": 0.7142857142857143,
+      "refusal_accuracy": 0.0
+    },
+    "D4": {
+      "task_count": 28,
+      "n": 28,
+      "final_answer_correct_count": 14,
+      "final_answer_accuracy": 0.5,
+      "final_answer_unresolved_count": 0,
+      "exact_tool_set_success_count": 10,
+      "exact_tool_set_success_rate": 0.35714285714285715,
+      "strict_task_success_count": 5,
+      "strict_task_success_rate": 0.17857142857142858,
+      "metric_definitions": {
+        "A_final_answer_accuracy": "Share of tasks with correct final answer (auto v1.2 or human decision). Independent of tool-set.",
+        "B_exact_tool_set_success": "Share of tasks where predicted invoke set exactly equals gold set.",
+        "C_strict_overall_task_success": "answer correct AND exact tool set AND all invocations successful AND dependency OK when applicable AND refusal OK when applicable AND evidence correct or N/A."
+      },
+      "note": "A, B, and C are separate metrics and must not be substituted for each other.",
+      "mean_operation_f1": 0.6073980000000001,
+      "mean_operation_precision": 0.5744047857142858,
+      "mean_operation_recall": 0.6726190714285715,
+      "all_tool_invocations_successful_rate": 0.6785714285714286,
+      "refusal_accuracy": 0.2
+    },
+    "D5": {
+      "task_count": 26,
+      "n": 26,
+      "final_answer_correct_count": 7,
+      "final_answer_accuracy": 0.2692307692307692,
+      "final_answer_unresolved_count": 0,
+      "exact_tool_set_success_count": 7,
+      "exact_tool_set_success_rate": 0.2692307692307692,
+      "strict_task_success_count": 2,
+      "strict_task_success_rate": 0.07692307692307693,
+      "metric_definitions": {
+        "A_final_answer_accuracy": "Share of tasks with correct final answer (auto v1.2 or human decision). Independent of tool-set.",
+        "B_exact_tool_set_success": "Share of tasks where predicted invoke set exactly equals gold set.",
+        "C_strict_overall_task_success": "answer correct AND exact tool set AND all invocations successful AND dependency OK when applicable AND refusal OK when applicable AND evidence correct or N/A."
+      },
+      "note": "A, B, and C are separate metrics and must not be substituted for each other.",
+      "mean_operation_f1": 0.34981688461538457,
+      "mean_operation_precision": 0.34294873076923077,
+      "mean_operation_recall": 0.35897438461538467,
+      "all_tool_invocations_successful_rate": 0.8846153846153846,
+      "refusal_accuracy": 0.5
+    }
+  },
+  "answerability_class": {
+    "capability_gap": {
+      "task_count": 5,
+      "n": 5,
+      "final_answer_correct_count": 3,
+      "final_answer_accuracy": 0.6,
+      "final_answer_unresolved_count": 0,
+      "exact_tool_set_success_count": 3,
+      "exact_tool_set_success_rate": 0.6,
+      "strict_task_success_count": 2,
+      "strict_task_success_rate": 0.4,
+      "metric_definitions": {
+        "A_final_answer_accuracy": "Share of tasks with correct final answer (auto v1.2 or human decision). Independent of tool-set.",
+        "B_exact_tool_set_success": "Share of tasks where predicted invoke set exactly equals gold set.",
+        "C_strict_overall_task_success": "answer correct AND exact tool set AND all invocations successful AND dependency OK when applicable AND refusal OK when applicable AND evidence correct or N/A."
+      },
+      "note": "A, B, and C are separate metrics and must not be substituted for each other.",
+      "mean_operation_f1": 0.6,
+      "mean_operation_precision": 0.6,
+      "mean_operation_recall": 0.6,
+      "all_tool_invocations_successful_rate": 1.0,
+      "refusal_accuracy": 0.6
+    },
+    "evidence_answerable": {
+      "task_count": 29,
+      "n": 29,
+      "final_answer_correct_count": 8,
+      "final_answer_accuracy": 0.27586206896551724,
+      "final_answer_unresolved_count": 0,
+      "exact_tool_set_success_count": 1,
+      "exact_tool_set_success_rate": 0.034482758620689655,
+      "strict_task_success_count": 0,
+      "strict_task_success_rate": 0.0,
+      "metric_definitions": {
+        "A_final_answer_accuracy": "Share of tasks with correct final answer (auto v1.2 or human decision). Independent of tool-set.",
+        "B_exact_tool_set_success": "Share of tasks where predicted invoke set exactly equals gold set.",
+        "C_strict_overall_task_success": "answer correct AND exact tool set AND all invocations successful AND dependency OK when applicable AND refusal OK when applicable AND evidence correct or N/A."
+      },
+      "note": "A, B, and C are separate metrics and must not be substituted for each other.",
+      "mean_operation_f1": 0.4319500689655172,
+      "mean_operation_precision": 0.4522988620689655,
+      "mean_operation_recall": 0.4821839310344828,
+      "all_tool_invocations_successful_rate": 0.4827586206896552,
+      "refusal_accuracy": 0.0
+    },
+    "intentionally_infeasible": {
+      "task_count": 11,
+      "n": 11,
+      "final_answer_correct_count": 2,
+      "final_answer_accuracy": 0.18181818181818182,
+      "final_answer_unresolved_count": 0,
+      "exact_tool_set_success_count": 0,
+      "exact_tool_set_success_rate": 0.0,
+      "strict_task_success_count": 0,
+      "strict_task_success_rate": 0.0,
+      "metric_definitions": {
+        "A_final_answer_accuracy": "Share of tasks with correct final answer (auto v1.2 or human decision). Independent of tool-set.",
+        "B_exact_tool_set_success": "Share of tasks where predicted invoke set exactly equals gold set.",
+        "C_strict_overall_task_success": "answer correct AND exact tool set AND all invocations successful AND dependency OK when applicable AND refusal OK when applicable AND evidence correct or N/A."
+      },
+      "note": "A, B, and C are separate metrics and must not be substituted for each other.",
+      "mean_operation_f1": 0.0,
+      "mean_operation_precision": 0.0,
+      "mean_operation_recall": 0.0,
+      "all_tool_invocations_successful_rate": 0.9090909090909091,
+      "refusal_accuracy": 0.5454545454545454
+    },
+    "robustness": {
+      "task_count": 8,
+      "n": 8,
+      "final_answer_correct_count": 3,
+      "final_answer_accuracy": 0.375,
+      "final_answer_unresolved_count": 0,
+      "exact_tool_set_success_count": 0,
+      "exact_tool_set_success_rate": 0.0,
+      "strict_task_success_count": 0,
+      "strict_task_success_rate": 0.0,
+      "metric_definitions": {
+        "A_final_answer_accuracy": "Share of tasks with correct final answer (auto v1.2 or human decision). Independent of tool-set.",
+        "B_exact_tool_set_success": "Share of tasks where predicted invoke set exactly equals gold set.",
+        "C_strict_overall_task_success": "answer correct AND exact tool set AND all invocations successful AND dependency OK when applicable AND refusal OK when applicable AND evidence correct or N/A."
+      },
+      "note": "A, B, and C are separate metrics and must not be substituted for each other.",
+      "mean_operation_f1": 0.32142875,
+      "mean_operation_precision": 0.270833375,
+      "mean_operation_recall": 0.41666675,
+      "all_tool_invocations_successful_rate": 0.625,
+      "refusal_accuracy": 0.5
+    },
+    "should_refuse_or_clarify": {
+      "task_count": 6,
+      "n": 6,
+      "final_answer_correct_count": 0,
+      "final_answer_accuracy": 0.0,
+      "final_answer_unresolved_count": 0,
+      "exact_tool_set_success_count": 3,
+      "exact_tool_set_success_rate": 0.5,
+      "strict_task_success_count": 0,
+      "strict_task_success_rate": 0.0,
+      "metric_definitions": {
+        "A_final_answer_accuracy": "Share of tasks with correct final answer (auto v1.2 or human decision). Independent of tool-set.",
+        "B_exact_tool_set_success": "Share of tasks where predicted invoke set exactly equals gold set.",
+        "C_strict_overall_task_success": "answer correct AND exact tool set AND all invocations successful AND dependency OK when applicable AND refusal OK when applicable AND evidence correct or N/A."
+      },
+      "note": "A, B, and C are separate metrics and must not be substituted for each other.",
+      "mean_operation_f1": 0.5,
+      "mean_operation_precision": 0.5,
+      "mean_operation_recall": 0.5,
+      "all_tool_invocations_successful_rate": 1.0,
+      "refusal_accuracy": 0.3333333333333333
+    },
+    "structured_answerable": {
+      "task_count": 96,
+      "n": 96,
+      "final_answer_correct_count": 79,
+      "final_answer_accuracy": 0.8229166666666666,
+      "final_answer_unresolved_count": 0,
+      "exact_tool_set_success_count": 57,
+      "exact_tool_set_success_rate": 0.59375,
+      "strict_task_success_count": 43,
+      "strict_task_success_rate": 0.4479166666666667,
+      "metric_definitions": {
+        "A_final_answer_accuracy": "Share of tasks with correct final answer (auto v1.2 or human decision). Independent of tool-set.",
+        "B_exact_tool_set_success": "Share of tasks where predicted invoke set exactly equals gold set.",
+        "C_strict_overall_task_success": "answer correct AND exact tool set AND all invocations successful AND dependency OK when applicable AND refusal OK when applicable AND evidence correct or N/A."
+      },
+      "note": "A, B, and C are separate metrics and must not be substituted for each other.",
+      "mean_operation_f1": 0.8608917083333331,
+      "mean_operation_precision": 0.8354166874999996,
+      "mean_operation_recall": 0.9315972291666665,
+      "all_tool_invocations_successful_rate": 0.8229166666666666,
+      "refusal_accuracy": 0.0
+    }
+  },
+  "provider_segment": {
+    "aliyun_token_plan": {
+      "task_count": 65,
+      "n": 65,
+      "final_answer_correct_count": 50,
+      "final_answer_accuracy": 0.7692307692307693,
+      "final_answer_unresolved_count": 0,
+      "exact_tool_set_success_count": 35,
+      "exact_tool_set_success_rate": 0.5384615384615384,
+      "strict_task_success_count": 31,
+      "strict_task_success_rate": 0.47692307692307695,
+      "metric_definitions": {
+        "A_final_answer_accuracy": "Share of tasks with correct final answer (auto v1.2 or human decision). Independent of tool-set.",
+        "B_exact_tool_set_success": "Share of tasks where predicted invoke set exactly equals gold set.",
+        "C_strict_overall_task_success": "answer correct AND exact tool set AND all invocations successful AND dependency OK when applicable AND refusal OK when applicable AND evidence correct or N/A."
+      },
+      "note": "A, B, and C are separate metrics and must not be substituted for each other.",
+      "mean_operation_f1": 0.7924176307692306,
+      "mean_operation_precision": 0.7592308,
+      "mean_operation_recall": 0.8733333384615385,
+      "all_tool_invocations_successful_rate": 0.8769230769230769,
+      "refusal_accuracy": 0.0
+    },
+    "zhizengzeng_relay": {
+      "task_count": 90,
+      "n": 90,
+      "final_answer_correct_count": 45,
+      "final_answer_accuracy": 0.5,
+      "final_answer_unresolved_count": 0,
+      "exact_tool_set_success_count": 29,
+      "exact_tool_set_success_rate": 0.32222222222222224,
+      "strict_task_success_count": 14,
+      "strict_task_success_rate": 0.15555555555555556,
+      "metric_definitions": {
+        "A_final_answer_accuracy": "Share of tasks with correct final answer (auto v1.2 or human decision). Independent of tool-set.",
+        "B_exact_tool_set_success": "Share of tasks where predicted invoke set exactly equals gold set.",
+        "C_strict_overall_task_success": "answer correct AND exact tool set AND all invocations successful AND dependency OK when applicable AND refusal OK when applicable AND evidence correct or N/A."
+      },
+      "note": "A, B, and C are separate metrics and must not be substituted for each other.",
+      "mean_operation_f1": 0.5804048888888889,
+      "mean_operation_precision": 0.5792592666666667,
+      "mean_operation_recall": 0.6220370555555556,
+      "all_tool_invocations_successful_rate": 0.6888888888888889,
+      "refusal_accuracy": 0.3191489361702128
+    }
+  }
+}

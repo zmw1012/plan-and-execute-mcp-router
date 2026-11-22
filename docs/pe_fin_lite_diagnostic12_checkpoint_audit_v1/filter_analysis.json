@@ -1,0 +1,1624 @@
+{
+  "checkpoint": "C02_filter",
+  "counts": {
+    "pass": 12
+  },
+  "tasks": [
+    {
+      "task_id": "fin_cf_003",
+      "status": "pass",
+      "detail": {
+        "funnels": [
+          {
+            "filter": {
+              "operations_before_filter": 39,
+              "retained_operations": [
+                "aktools.get_data",
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em",
+                "aktools.stock_hk_dividend_payout_em",
+                "aktools.stock_hk_fhpx_detail_ths",
+                "aktools.stock_hk_financial_indicator_em",
+                "aktools.stock_hk_growth_comparison_em",
+                "aktools.stock_hk_indicator_eniu",
+                "aktools.stock_hk_scale_comparison_em",
+                "aktools.stock_hk_security_profile_em",
+                "aktools.stock_hk_valuation_baidu",
+                "aktools.stock_hk_valuation_comparison_em",
+                "hkexnews.download_hkexnews_announcement",
+                "hkexnews.get_announcement_pages",
+                "hkexnews.keyword_search",
+                "hkexnews.list_hkexnews_announcements",
+                "hkexnews.lookup_stock_code",
+                "hkexnews.parse_hkexnews_announcement"
+              ],
+              "retained_count": 19,
+              "rejected_operations": [
+                {
+                  "operation_id": "ah_disclosure.resolve_company",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "ah_disclosure.search_annual_report",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "ah_disclosure.search_filings",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.bond_zh_hk_rate",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.describe_interface",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.news_cctv",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.search_interfaces",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_gsrl_gsdt_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_daily",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_famous_spot_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_hist",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_hot_rank_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_daily_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_daily_sina",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_spot_sina",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_info_global_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_news_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_news_main_cx",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_notice_report",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.tool_trade_date_hist_sina",
+                  "reason": "domain_incompatible"
+                }
+              ],
+              "rejected_count": 20,
+              "blocked_or_excluded_leakage": false
+            },
+            "blocked_leakage": false
+          },
+          {
+            "disclosure_composite": true,
+            "filter": "N/A_composite"
+          }
+        ],
+        "structural_pass_means": "no_blocked_excluded_leakage_and_filter_trace_present",
+        "quality_status": "not_evaluated"
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_011",
+      "status": "pass",
+      "detail": {
+        "funnels": [
+          {
+            "filter": {
+              "operations_before_filter": 39,
+              "retained_operations": [
+                "aktools.get_data",
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em",
+                "aktools.stock_hk_dividend_payout_em",
+                "aktools.stock_hk_fhpx_detail_ths",
+                "aktools.stock_hk_financial_indicator_em",
+                "aktools.stock_hk_growth_comparison_em",
+                "aktools.stock_hk_indicator_eniu",
+                "aktools.stock_hk_scale_comparison_em",
+                "aktools.stock_hk_security_profile_em",
+                "aktools.stock_hk_valuation_baidu",
+                "aktools.stock_hk_valuation_comparison_em",
+                "hkexnews.download_hkexnews_announcement",
+                "hkexnews.get_announcement_pages",
+                "hkexnews.keyword_search",
+                "hkexnews.list_hkexnews_announcements",
+                "hkexnews.lookup_stock_code",
+                "hkexnews.parse_hkexnews_announcement"
+              ],
+              "retained_count": 19,
+              "rejected_operations": [
+                {
+                  "operation_id": "ah_disclosure.resolve_company",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "ah_disclosure.search_annual_report",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "ah_disclosure.search_filings",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.bond_zh_hk_rate",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.describe_interface",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.news_cctv",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.search_interfaces",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_gsrl_gsdt_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_daily",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_famous_spot_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_hist",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_hot_rank_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_daily_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_daily_sina",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_spot_sina",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_info_global_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_news_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_news_main_cx",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_notice_report",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.tool_trade_date_hist_sina",
+                  "reason": "domain_incompatible"
+                }
+              ],
+              "rejected_count": 20,
+              "blocked_or_excluded_leakage": false
+            },
+            "blocked_leakage": false
+          }
+        ],
+        "structural_pass_means": "no_blocked_excluded_leakage_and_filter_trace_present",
+        "quality_status": "not_evaluated"
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_020",
+      "status": "pass",
+      "detail": {
+        "funnels": [
+          {
+            "filter": {
+              "operations_before_filter": 39,
+              "retained_operations": [
+                "aktools.get_data",
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em",
+                "aktools.stock_hk_dividend_payout_em",
+                "aktools.stock_hk_fhpx_detail_ths",
+                "aktools.stock_hk_financial_indicator_em",
+                "aktools.stock_hk_growth_comparison_em",
+                "aktools.stock_hk_indicator_eniu",
+                "aktools.stock_hk_scale_comparison_em",
+                "aktools.stock_hk_security_profile_em",
+                "aktools.stock_hk_valuation_baidu",
+                "aktools.stock_hk_valuation_comparison_em",
+                "hkexnews.download_hkexnews_announcement",
+                "hkexnews.get_announcement_pages",
+                "hkexnews.keyword_search",
+                "hkexnews.list_hkexnews_announcements",
+                "hkexnews.lookup_stock_code",
+                "hkexnews.parse_hkexnews_announcement"
+              ],
+              "retained_count": 19,
+              "rejected_operations": [
+                {
+                  "operation_id": "ah_disclosure.resolve_company",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "ah_disclosure.search_annual_report",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "ah_disclosure.search_filings",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.bond_zh_hk_rate",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.describe_interface",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.news_cctv",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.search_interfaces",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_gsrl_gsdt_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_daily",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_famous_spot_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_hist",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_hot_rank_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_daily_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_daily_sina",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_spot_sina",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_info_global_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_news_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_news_main_cx",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_notice_report",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.tool_trade_date_hist_sina",
+                  "reason": "domain_incompatible"
+                }
+              ],
+              "rejected_count": 20,
+              "blocked_or_excluded_leakage": false
+            },
+            "blocked_leakage": false
+          },
+          {
+            "disclosure_composite": true,
+            "filter": "N/A_composite"
+          }
+        ],
+        "structural_pass_means": "no_blocked_excluded_leakage_and_filter_trace_present",
+        "quality_status": "not_evaluated"
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_023",
+      "status": "pass",
+      "detail": {
+        "funnels": [
+          {
+            "filter": {
+              "operations_before_filter": 39,
+              "retained_operations": [
+                "aktools.get_data",
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em",
+                "aktools.stock_hk_dividend_payout_em",
+                "aktools.stock_hk_fhpx_detail_ths",
+                "aktools.stock_hk_financial_indicator_em",
+                "aktools.stock_hk_growth_comparison_em",
+                "aktools.stock_hk_indicator_eniu",
+                "aktools.stock_hk_scale_comparison_em",
+                "aktools.stock_hk_security_profile_em",
+                "aktools.stock_hk_valuation_baidu",
+                "aktools.stock_hk_valuation_comparison_em",
+                "hkexnews.download_hkexnews_announcement",
+                "hkexnews.get_announcement_pages",
+                "hkexnews.keyword_search",
+                "hkexnews.list_hkexnews_announcements",
+                "hkexnews.lookup_stock_code",
+                "hkexnews.parse_hkexnews_announcement"
+              ],
+              "retained_count": 19,
+              "rejected_operations": [
+                {
+                  "operation_id": "ah_disclosure.resolve_company",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "ah_disclosure.search_annual_report",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "ah_disclosure.search_filings",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.bond_zh_hk_rate",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.describe_interface",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.news_cctv",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.search_interfaces",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_gsrl_gsdt_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_daily",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_famous_spot_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_hist",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_hot_rank_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_daily_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_daily_sina",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_spot_sina",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_info_global_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_news_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_news_main_cx",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_notice_report",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.tool_trade_date_hist_sina",
+                  "reason": "domain_incompatible"
+                }
+              ],
+              "rejected_count": 20,
+              "blocked_or_excluded_leakage": false
+            },
+            "blocked_leakage": false
+          }
+        ],
+        "structural_pass_means": "no_blocked_excluded_leakage_and_filter_trace_present",
+        "quality_status": "not_evaluated"
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_ht_016",
+      "status": "pass",
+      "detail": {
+        "funnels": [
+          {
+            "disclosure_composite": true,
+            "filter": "N/A_composite"
+          }
+        ],
+        "structural_pass_means": "no_blocked_excluded_leakage_and_filter_trace_present",
+        "quality_status": "not_evaluated"
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_dev_002",
+      "status": "pass",
+      "detail": {
+        "funnels": [
+          {
+            "filter": {
+              "operations_before_filter": 39,
+              "retained_operations": [
+                "aktools.get_data",
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em",
+                "aktools.stock_hk_dividend_payout_em",
+                "aktools.stock_hk_fhpx_detail_ths",
+                "aktools.stock_hk_financial_indicator_em",
+                "aktools.stock_hk_growth_comparison_em",
+                "aktools.stock_hk_indicator_eniu",
+                "aktools.stock_hk_scale_comparison_em",
+                "aktools.stock_hk_security_profile_em",
+                "aktools.stock_hk_valuation_baidu",
+                "aktools.stock_hk_valuation_comparison_em",
+                "hkexnews.download_hkexnews_announcement",
+                "hkexnews.get_announcement_pages",
+                "hkexnews.keyword_search",
+                "hkexnews.list_hkexnews_announcements",
+                "hkexnews.lookup_stock_code",
+                "hkexnews.parse_hkexnews_announcement"
+              ],
+              "retained_count": 19,
+              "rejected_operations": [
+                {
+                  "operation_id": "ah_disclosure.resolve_company",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "ah_disclosure.search_annual_report",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "ah_disclosure.search_filings",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.bond_zh_hk_rate",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.describe_interface",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.news_cctv",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.search_interfaces",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_gsrl_gsdt_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_daily",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_famous_spot_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_hist",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_hot_rank_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_daily_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_daily_sina",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_spot_sina",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_info_global_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_news_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_news_main_cx",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_notice_report",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.tool_trade_date_hist_sina",
+                  "reason": "domain_incompatible"
+                }
+              ],
+              "rejected_count": 20,
+              "blocked_or_excluded_leakage": false
+            },
+            "blocked_leakage": false
+          },
+          {
+            "filter": {
+              "operations_before_filter": 39,
+              "retained_operations": [
+                "aktools.bond_zh_hk_rate",
+                "aktools.stock_hk_daily",
+                "aktools.stock_hk_famous_spot_em",
+                "aktools.stock_hk_hist",
+                "aktools.stock_hk_hot_rank_em",
+                "aktools.stock_hk_index_daily_em",
+                "aktools.stock_hk_index_daily_sina",
+                "aktools.stock_hk_index_spot_sina",
+                "aktools.tool_trade_date_hist_sina"
+              ],
+              "retained_count": 9,
+              "rejected_operations": [
+                {
+                  "operation_id": "ah_disclosure.resolve_company",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "ah_disclosure.search_annual_report",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "ah_disclosure.search_filings",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.describe_interface",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.get_data",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.news_cctv",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.search_interfaces",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_financial_hk_report_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_gsrl_gsdt_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_company_profile_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_dividend_payout_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_fhpx_detail_ths",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_financial_indicator_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_growth_comparison_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_indicator_eniu",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_scale_comparison_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_security_profile_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_valuation_baidu",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_valuation_comparison_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_info_global_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_news_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_news_main_cx",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_notice_report",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.download_hkexnews_announcement",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.get_announcement_pages",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.keyword_search",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.list_hkexnews_announcements",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.lookup_stock_code",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.parse_hkexnews_announcement",
+                  "reason": "domain_incompatible"
+                }
+              ],
+              "rejected_count": 30,
+              "blocked_or_excluded_leakage": false
+            },
+            "blocked_leakage": false
+          }
+        ],
+        "structural_pass_means": "no_blocked_excluded_leakage_and_filter_trace_present",
+        "quality_status": "not_evaluated"
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_ht_007",
+      "status": "pass",
+      "detail": {
+        "funnels": [
+          {
+            "filter": {
+              "operations_before_filter": 39,
+              "retained_operations": [
+                "aktools.get_data",
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em",
+                "aktools.stock_hk_dividend_payout_em",
+                "aktools.stock_hk_fhpx_detail_ths",
+                "aktools.stock_hk_financial_indicator_em",
+                "aktools.stock_hk_growth_comparison_em",
+                "aktools.stock_hk_indicator_eniu",
+                "aktools.stock_hk_scale_comparison_em",
+                "aktools.stock_hk_security_profile_em",
+                "aktools.stock_hk_valuation_baidu",
+                "aktools.stock_hk_valuation_comparison_em",
+                "hkexnews.download_hkexnews_announcement",
+                "hkexnews.get_announcement_pages",
+                "hkexnews.keyword_search",
+                "hkexnews.list_hkexnews_announcements",
+                "hkexnews.lookup_stock_code",
+                "hkexnews.parse_hkexnews_announcement"
+              ],
+              "retained_count": 19,
+              "rejected_operations": [
+                {
+                  "operation_id": "ah_disclosure.resolve_company",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "ah_disclosure.search_annual_report",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "ah_disclosure.search_filings",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.bond_zh_hk_rate",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.describe_interface",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.news_cctv",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.search_interfaces",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_gsrl_gsdt_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_daily",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_famous_spot_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_hist",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_hot_rank_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_daily_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_daily_sina",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_spot_sina",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_info_global_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_news_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_news_main_cx",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_notice_report",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.tool_trade_date_hist_sina",
+                  "reason": "domain_incompatible"
+                }
+              ],
+              "rejected_count": 20,
+              "blocked_or_excluded_leakage": false
+            },
+            "blocked_leakage": false
+          },
+          {
+            "filter": {
+              "operations_before_filter": 39,
+              "retained_operations": [
+                "ah_disclosure.resolve_company",
+                "ah_disclosure.search_annual_report",
+                "ah_disclosure.search_filings",
+                "aktools.news_cctv",
+                "aktools.stock_gsrl_gsdt_em",
+                "aktools.stock_info_global_em",
+                "aktools.stock_news_em",
+                "aktools.stock_news_main_cx",
+                "aktools.stock_notice_report"
+              ],
+              "retained_count": 9,
+              "rejected_operations": [
+                {
+                  "operation_id": "aktools.bond_zh_hk_rate",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.describe_interface",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.get_data",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.search_interfaces",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_financial_hk_report_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_company_profile_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_daily",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_dividend_payout_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_famous_spot_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_fhpx_detail_ths",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_financial_indicator_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_growth_comparison_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_hist",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_hot_rank_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_daily_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_daily_sina",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_spot_sina",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_indicator_eniu",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_scale_comparison_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_security_profile_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_valuation_baidu",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_valuation_comparison_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.tool_trade_date_hist_sina",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.download_hkexnews_announcement",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.get_announcement_pages",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.keyword_search",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.list_hkexnews_announcements",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.lookup_stock_code",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.parse_hkexnews_announcement",
+                  "reason": "domain_incompatible"
+                }
+              ],
+              "rejected_count": 30,
+              "blocked_or_excluded_leakage": false
+            },
+            "blocked_leakage": false
+          }
+        ],
+        "structural_pass_means": "no_blocked_excluded_leakage_and_filter_trace_present",
+        "quality_status": "not_evaluated"
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "xd_ht_014",
+      "status": "pass",
+      "detail": {
+        "funnels": [
+          {
+            "filter": {
+              "operations_before_filter": 39,
+              "retained_operations": [
+                "aktools.get_data",
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em",
+                "aktools.stock_hk_dividend_payout_em",
+                "aktools.stock_hk_fhpx_detail_ths",
+                "aktools.stock_hk_financial_indicator_em",
+                "aktools.stock_hk_growth_comparison_em",
+                "aktools.stock_hk_indicator_eniu",
+                "aktools.stock_hk_scale_comparison_em",
+                "aktools.stock_hk_security_profile_em",
+                "aktools.stock_hk_valuation_baidu",
+                "aktools.stock_hk_valuation_comparison_em",
+                "hkexnews.download_hkexnews_announcement",
+                "hkexnews.get_announcement_pages",
+                "hkexnews.keyword_search",
+                "hkexnews.list_hkexnews_announcements",
+                "hkexnews.lookup_stock_code",
+                "hkexnews.parse_hkexnews_announcement"
+              ],
+              "retained_count": 19,
+              "rejected_operations": [
+                {
+                  "operation_id": "ah_disclosure.resolve_company",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "ah_disclosure.search_annual_report",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "ah_disclosure.search_filings",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.bond_zh_hk_rate",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.describe_interface",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.news_cctv",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.search_interfaces",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_gsrl_gsdt_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_daily",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_famous_spot_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_hist",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_hot_rank_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_daily_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_daily_sina",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_spot_sina",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_info_global_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_news_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_news_main_cx",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_notice_report",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.tool_trade_date_hist_sina",
+                  "reason": "domain_incompatible"
+                }
+              ],
+              "rejected_count": 20,
+              "blocked_or_excluded_leakage": false
+            },
+            "blocked_leakage": false
+          }
+        ],
+        "structural_pass_means": "no_blocked_excluded_leakage_and_filter_trace_present",
+        "quality_status": "not_evaluated"
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "mkt_dev_014",
+      "status": "pass",
+      "detail": {
+        "funnels": [
+          {
+            "filter": {
+              "operations_before_filter": 39,
+              "retained_operations": [
+                "aktools.bond_zh_hk_rate",
+                "aktools.stock_hk_daily",
+                "aktools.stock_hk_famous_spot_em",
+                "aktools.stock_hk_hist",
+                "aktools.stock_hk_hot_rank_em",
+                "aktools.stock_hk_index_daily_em",
+                "aktools.stock_hk_index_daily_sina",
+                "aktools.stock_hk_index_spot_sina",
+                "aktools.tool_trade_date_hist_sina"
+              ],
+              "retained_count": 9,
+              "rejected_operations": [
+                {
+                  "operation_id": "ah_disclosure.resolve_company",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "ah_disclosure.search_annual_report",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "ah_disclosure.search_filings",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.describe_interface",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.get_data",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.news_cctv",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.search_interfaces",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_financial_hk_report_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_gsrl_gsdt_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_company_profile_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_dividend_payout_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_fhpx_detail_ths",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_financial_indicator_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_growth_comparison_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_indicator_eniu",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_scale_comparison_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_security_profile_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_valuation_baidu",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_valuation_comparison_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_info_global_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_news_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_news_main_cx",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_notice_report",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.download_hkexnews_announcement",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.get_announcement_pages",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.keyword_search",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.list_hkexnews_announcements",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.lookup_stock_code",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.parse_hkexnews_announcement",
+                  "reason": "domain_incompatible"
+                }
+              ],
+              "rejected_count": 30,
+              "blocked_or_excluded_leakage": false
+            },
+            "blocked_leakage": false
+          }
+        ],
+        "structural_pass_means": "no_blocked_excluded_leakage_and_filter_trace_present",
+        "quality_status": "not_evaluated"
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "fin_cf_024",
+      "status": "pass",
+      "detail": {
+        "funnels": [
+          {
+            "filter": {
+              "operations_before_filter": 39,
+              "retained_operations": [
+                "aktools.get_data",
+                "aktools.stock_financial_hk_analysis_indicator_em",
+                "aktools.stock_financial_hk_report_em",
+                "aktools.stock_hk_company_profile_em",
+                "aktools.stock_hk_dividend_payout_em",
+                "aktools.stock_hk_fhpx_detail_ths",
+                "aktools.stock_hk_financial_indicator_em",
+                "aktools.stock_hk_growth_comparison_em",
+                "aktools.stock_hk_indicator_eniu",
+                "aktools.stock_hk_scale_comparison_em",
+                "aktools.stock_hk_security_profile_em",
+                "aktools.stock_hk_valuation_baidu",
+                "aktools.stock_hk_valuation_comparison_em",
+                "hkexnews.download_hkexnews_announcement",
+                "hkexnews.get_announcement_pages",
+                "hkexnews.keyword_search",
+                "hkexnews.list_hkexnews_announcements",
+                "hkexnews.lookup_stock_code",
+                "hkexnews.parse_hkexnews_announcement"
+              ],
+              "retained_count": 19,
+              "rejected_operations": [
+                {
+                  "operation_id": "ah_disclosure.resolve_company",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "ah_disclosure.search_annual_report",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "ah_disclosure.search_filings",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.bond_zh_hk_rate",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.describe_interface",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.news_cctv",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.search_interfaces",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_gsrl_gsdt_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_daily",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_famous_spot_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_hist",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_hot_rank_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_daily_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_daily_sina",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_index_spot_sina",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_info_global_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_news_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_news_main_cx",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_notice_report",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.tool_trade_date_hist_sina",
+                  "reason": "domain_incompatible"
+                }
+              ],
+              "rejected_count": 20,
+              "blocked_or_excluded_leakage": false
+            },
+            "blocked_leakage": false
+          },
+          {
+            "disclosure_composite": true,
+            "filter": "N/A_composite"
+          }
+        ],
+        "structural_pass_means": "no_blocked_excluded_leakage_and_filter_trace_present",
+        "quality_status": "not_evaluated"
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "mkt_dev_001",
+      "status": "pass",
+      "detail": {
+        "funnels": [
+          {
+            "filter": {
+              "operations_before_filter": 39,
+              "retained_operations": [
+                "aktools.bond_zh_hk_rate",
+                "aktools.stock_hk_daily",
+                "aktools.stock_hk_famous_spot_em",
+                "aktools.stock_hk_hist",
+                "aktools.stock_hk_hot_rank_em",
+                "aktools.stock_hk_index_daily_em",
+                "aktools.stock_hk_index_daily_sina",
+                "aktools.stock_hk_index_spot_sina",
+                "aktools.tool_trade_date_hist_sina"
+              ],
+              "retained_count": 9,
+              "rejected_operations": [
+                {
+                  "operation_id": "ah_disclosure.resolve_company",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "ah_disclosure.search_annual_report",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "ah_disclosure.search_filings",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.describe_interface",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.get_data",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.news_cctv",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.search_interfaces",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_financial_hk_analysis_indicator_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_financial_hk_report_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_gsrl_gsdt_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_company_profile_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_dividend_payout_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_fhpx_detail_ths",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_financial_indicator_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_growth_comparison_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_indicator_eniu",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_scale_comparison_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_security_profile_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_valuation_baidu",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_hk_valuation_comparison_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_info_global_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_news_em",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_news_main_cx",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "aktools.stock_notice_report",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.download_hkexnews_announcement",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.get_announcement_pages",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.keyword_search",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.list_hkexnews_announcements",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.lookup_stock_code",
+                  "reason": "domain_incompatible"
+                },
+                {
+                  "operation_id": "hkexnews.parse_hkexnews_announcement",
+                  "reason": "domain_incompatible"
+                }
+              ],
+              "rejected_count": 30,
+              "blocked_or_excluded_leakage": false
+            },
+            "blocked_leakage": false
+          }
+        ],
+        "structural_pass_means": "no_blocked_excluded_leakage_and_filter_trace_present",
+        "quality_status": "not_evaluated"
+      },
+      "primary_blocking": false
+    },
+    {
+      "task_id": "news_ht_004",
+      "status": "pass",
+      "detail": {
+        "funnels": [
+          {
+            "disclosure_composite": true,
+            "filter": "N/A_composite"
+          }
+        ],
+        "structural_pass_means": "no_blocked_excluded_leakage_and_filter_trace_present",
+        "quality_status": "not_evaluated"
+      },
+      "primary_blocking": false
+    }
+  ]
+}

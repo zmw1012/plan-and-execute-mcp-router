@@ -1,0 +1,63 @@
+# PE-Fin Lite proposed method v1 — plan_first_step_level_retrieval
+condition: pe_fin_lite
+method_version: pe_fin_lite_v1.2
+architecture: plan_first_step_level_retrieval_v1
+execution_backend: real_mcp
+capability_profile: configs/capabilities/hk155_capability_profile_v1.yaml
+
+# Formal live identity (fail-closed; no Aliyun silent fallback)
+generation_provider: openai_compatible
+generation_host: api.zhizengzeng.com
+generation_model: deepseek-v4.1-flash
+embedding_provider: openai_compatible
+embedding_model: text-embedding-3-small
+# Formal env files live in the sibling main checkout (never commit keys):
+#   GEN_ENV:  ../hk-equity-mcp-agent/.env.relay-v41
+#   EMB_ENV:  ../hk-equity-mcp-agent/.env.embedding-relay
+# Formal python:
+#   ../hk-equity-mcp-agent/.venv-aktools-discovery/bin/python
+
+temperature: 0.0
+# Default LLM max_tokens for Binder / Reason / Final (unchanged).
+max_tokens: 2048
+# Planner + planner_repair only (protocol v3). Does not expand other stages.
+planner_max_tokens: 4096
+json_mode: true
+dataset_split: development
+dataset_manifest: benchmarks/manifests/hk_unified_dataset_v1.json
+diagnostic_manifest: benchmarks/manifests/hk_pe_fin_lite_diagnostic12_v1.json
+smoke5_manifest: benchmarks/manifests/hk_pe_fin_lite_smoke5_v1.json
+operation_metadata: configs/operations/hk_unified_operation_metadata_v1.yaml
+
+retrieval:
+  top_k: 5
+  describe_top_n: 3
+
+embedding_cache_namespace: pe_fin_lite_operation_embeddings_v1
+embedding_batch_size: 16
+embedding_request_timeout_sec: 120
+embedding_max_retries: 3
+embedding_retry_backoff_seconds: [1, 2, 4]
+
+limits:
+  max_plan_steps: 6
+  max_total_mcp_invocations: 8
+  max_total_llm_calls_per_task: 8
+  max_local_fallback_per_retrieve: 1
+  max_final_repair_rounds: 1
+  retrieval_top_k: 5
+  describe_top_n: 3
+  timeout_sec: 180
+
+catalogs:
+  financial: configs/operations/financial_real_mcp.yaml
+  market: configs/operations/market_real_mcp_v1_1.yaml
+  news: configs/operations/news_real_mcp_v1.yaml
+  cross_domain: configs/operations/cross_domain_real_mcp_v1.yaml
+
+notes:
+  - Must execute real MCP via UnifiedRealMcpGateway (not ETOM routing-only).
+  - No Monitor Agent, no global Replan, no capability compiler.
+  - Plans never hard-code operation_id; retrieve uses step-level embedding Top-K.
+  - Binder returns primary + fallback in one LLM call.
+  - Live mode must not enable mock binder hooks.

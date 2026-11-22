@@ -1,0 +1,409 @@
+[
+  {
+    "task_id": "fin_cf_003",
+    "domain": "financial",
+    "status": "failed",
+    "answer_correct": false,
+    "validity_label": "disclosure_engineering_failure",
+    "error_taxonomy": "disclosure_local_key_not_passed_to_parse",
+    "notes": "list/download gateway success; selected row local_key not extracted from real list envelope (announcements/normalized.data) so parse lacked local_key.",
+    "auto_grade_status": "graded",
+    "auto_grade_reason": "refused_answerable_item",
+    "llm_calls": 3,
+    "total_tokens": 6100,
+    "underlying_operation_calls": 2,
+    "latency_ms": 26575.75500011444,
+    "invoke_operations": [
+      "hkexnews.list_hkexnews_announcements",
+      "hkexnews.download_hkexnews_announcement"
+    ],
+    "invoke_gateway_success": [
+      true,
+      true
+    ],
+    "exact_tool_set": false,
+    "gold_operations": [
+      "hkexnews.list_hkexnews_announcements",
+      "hkexnews.download_hkexnews_announcement",
+      "hkexnews.parse_hkexnews_announcement",
+      "hkexnews.keyword_search"
+    ],
+    "disclosure": {
+      "present": true,
+      "error": "missing_stage_args:parse:['local_key']",
+      "stopped_after_list": false,
+      "needed_document_text": true,
+      "values_keys": [
+        "issuer_code"
+      ],
+      "missing_outputs": [
+        "company_name",
+        "report_date",
+        "fiscal_period",
+        "currency",
+        "attributable_profit",
+        "snippet",
+        "page_number",
+        "source_url"
+      ],
+      "stages": [
+        "list",
+        "download",
+        "parse"
+      ],
+      "gateway_success": true
+    },
+    "plan_steps_summary": [
+      {
+        "step_id": "step1",
+        "domain": "disclosure",
+        "required_outputs": [
+          "issuer_code",
+          "company_name",
+          "report_date",
+          "fiscal_period",
+          "currency",
+          "attributable_profit",
+          "snippet",
+          "page_number",
+          "source_url"
+        ],
+        "workflow": "retrieve_official_disclosure_evidence"
+      },
+      {
+        "step_id": "step2",
+        "domain": "disclosure",
+        "required_outputs": [
+          "company_name",
+          "attributable_profit",
+          "currency",
+          "fiscal_period",
+          "report_date"
+        ],
+        "workflow": null
+      }
+    ],
+    "stage_results": {
+      "retrieval": "ok",
+      "selection": "ok",
+      "invocation": "ok",
+      "output": "fail",
+      "final": "incorrect"
+    },
+    "final_answer_preview": "Unavailable: I cannot reliably verify Tencent's FY2025 non-IFRS profit attributable to equity holders because the required retrieval step failed; currency and unit are therefore not confirmed."
+  },
+  {
+    "task_id": "fin_cf_023",
+    "domain": "financial",
+    "status": "partial",
+    "answer_correct": false,
+    "validity_label": "method_outcome",
+    "error_taxonomy": "method_metric_semantics_mismatch",
+    "notes": "Financial retrieval completed; planner added Disclosure corroboration; final value != gold. Do not retune ranking/tool selection from gold.",
+    "auto_grade_status": "graded",
+    "auto_grade_reason": "numeric_mismatch",
+    "llm_calls": 4,
+    "total_tokens": 10047,
+    "underlying_operation_calls": 4,
+    "latency_ms": 47111.738374922425,
+    "invoke_operations": [
+      "aktools.stock_financial_hk_report_em",
+      "aktools.stock_financial_hk_analysis_indicator_em",
+      "hkexnews.list_hkexnews_announcements",
+      "hkexnews.download_hkexnews_announcement"
+    ],
+    "invoke_gateway_success": [
+      true,
+      true,
+      true,
+      false
+    ],
+    "exact_tool_set": false,
+    "gold_operations": [
+      "aktools.stock_financial_hk_analysis_indicator_em",
+      "aktools.stock_financial_hk_report_em"
+    ],
+    "disclosure": {
+      "present": true,
+      "error": "stage_failed:download",
+      "stopped_after_list": false,
+      "needed_document_text": true,
+      "values_keys": [
+        "issuer_code"
+      ],
+      "missing_outputs": [
+        "fiscal_period",
+        "report_date",
+        "currency",
+        "revenue",
+        "attributable_profit",
+        "local_key",
+        "page_number",
+        "source_url"
+      ],
+      "stages": [
+        "list",
+        "download"
+      ],
+      "gateway_success": true
+    },
+    "plan_steps_summary": [
+      {
+        "step_id": "step1",
+        "domain": "financial",
+        "required_outputs": [
+          "issuer_code",
+          "company_name",
+          "fiscal_period",
+          "report_date",
+          "currency",
+          "revenue",
+          "attributable_profit"
+        ],
+        "workflow": null
+      },
+      {
+        "step_id": "step2",
+        "domain": "disclosure",
+        "required_outputs": [
+          "issuer_code",
+          "fiscal_period",
+          "report_date",
+          "currency",
+          "revenue",
+          "attributable_profit",
+          "local_key",
+          "page_number",
+          "source_url"
+        ],
+        "workflow": "retrieve_official_disclosure_evidence"
+      },
+      {
+        "step_id": "step3",
+        "domain": "compute",
+        "required_outputs": [
+          "revenue",
+          "attributable_profit",
+          "fiscal_period",
+          "currency"
+        ],
+        "workflow": null
+      },
+      {
+        "step_id": "step4",
+        "domain": "compute",
+        "required_outputs": [
+          "attributable_profit",
+          "revenue"
+        ],
+        "workflow": null
+      }
+    ],
+    "stage_results": {
+      "retrieval": "ok",
+      "selection": "ok",
+      "invocation": "ok",
+      "output": "ok",
+      "final": "incorrect"
+    },
+    "final_answer_preview": "FY2026 (year ended 2026-03-31), reported basis, RMB: attributable net margin = net income attributable to ordinary shareholders ÷ revenue × 100% = RMB 103,592,000,000 ÷ RMB 1,023,670,000,000 × 100% = 10.12%."
+  },
+  {
+    "task_id": "xd_dev_002",
+    "domain": "cross_domain",
+    "status": "full",
+    "answer_correct": false,
+    "validity_label": "method_outcome",
+    "error_taxonomy": "method_data_semantics_eps_mismatch",
+    "notes": "Financial + Market branches completed; reasonable tools entered Top-3 and invoked; EPS numeric mismatch is method/data semantics.",
+    "auto_grade_status": "graded",
+    "auto_grade_reason": "numeric_mismatch;numeric_match_labeled",
+    "llm_calls": 4,
+    "total_tokens": 9546,
+    "underlying_operation_calls": 2,
+    "latency_ms": 50120.22099993192,
+    "invoke_operations": [
+      "aktools.stock_financial_hk_analysis_indicator_em",
+      "aktools.stock_hk_hist"
+    ],
+    "invoke_gateway_success": [
+      true,
+      true
+    ],
+    "exact_tool_set": false,
+    "gold_operations": [
+      "hkexnews.keyword_search",
+      "aktools.stock_hk_hist"
+    ],
+    "disclosure": null,
+    "plan_steps_summary": [
+      {
+        "step_id": "step1",
+        "domain": "financial",
+        "required_outputs": [
+          "issuer_code",
+          "company_name",
+          "report_date",
+          "fiscal_period",
+          "currency",
+          "basic_eps"
+        ],
+        "workflow": null
+      },
+      {
+        "step_id": "step2",
+        "domain": "market",
+        "required_outputs": [
+          "issuer_code",
+          "trade_date",
+          "volume",
+          "adjustment"
+        ],
+        "workflow": null
+      }
+    ],
+    "stage_results": {
+      "retrieval": "ok",
+      "selection": "ok",
+      "invocation": "ok",
+      "output": "ok",
+      "final": "incorrect"
+    },
+    "final_answer_preview": "(a) FY2025 reported basic EPS: USD 8.504848 per share (currency: USD/美元; period ended 2025-12-31; reported/basic basis). (b) Unadjusted trading volume on 2026-06-30 with adjust=\"\": 13,123,569 shares. These are separate d"
+  },
+  {
+    "task_id": "mkt_dev_014",
+    "domain": "market",
+    "status": "full",
+    "answer_correct": false,
+    "validity_label": "method_outcome",
+    "error_taxonomy": "method_feasibility_temporal_policy",
+    "notes": "stock_hk_hist Rank-1 and invoked; answered historical price on temporal-policy/refusal question. Method feasibility failure; do not retune embedding.",
+    "auto_grade_status": "graded",
+    "auto_grade_reason": "refusal_required_but_answered_with_numeric_substitute",
+    "llm_calls": 5,
+    "total_tokens": 10441,
+    "underlying_operation_calls": 1,
+    "latency_ms": 46447.47837493196,
+    "invoke_operations": [
+      "aktools.stock_hk_hist"
+    ],
+    "invoke_gateway_success": [
+      true
+    ],
+    "exact_tool_set": true,
+    "gold_operations": [],
+    "disclosure": null,
+    "plan_steps_summary": [
+      {
+        "step_id": "step1",
+        "domain": "market",
+        "required_outputs": [
+          "issuer_code",
+          "company_name",
+          "close",
+          "trade_date",
+          "adjustment"
+        ],
+        "workflow": null
+      },
+      {
+        "step_id": "step2",
+        "domain": "market",
+        "required_outputs": [
+          "close",
+          "trade_date"
+        ],
+        "workflow": null
+      }
+    ],
+    "stage_results": {
+      "retrieval": "ok",
+      "selection": "ok",
+      "invocation": "ok",
+      "output": "ok",
+      "final": "incorrect"
+    },
+    "final_answer_preview": "Tencent Holdings Limited (00700.HK) latest retrieved closing price was HK$623.00 per share on 2 January 2026 (unadjusted close)."
+  },
+  {
+    "task_id": "news_ht_004",
+    "domain": "news",
+    "status": "failed",
+    "answer_correct": false,
+    "validity_label": "disclosure_engineering_failure",
+    "error_taxonomy": "disclosure_shortest_prefix_not_stopped",
+    "notes": "list gateway success and required outputs were list-level; list fields not normalized so workflow continued to download and failed; not a pure method failure.",
+    "auto_grade_status": "graded",
+    "auto_grade_reason": "refused_answerable_item",
+    "llm_calls": 3,
+    "total_tokens": 5331,
+    "underlying_operation_calls": 2,
+    "latency_ms": 18931.06579198502,
+    "invoke_operations": [
+      "hkexnews.list_hkexnews_announcements",
+      "hkexnews.download_hkexnews_announcement"
+    ],
+    "invoke_gateway_success": [
+      true,
+      false
+    ],
+    "exact_tool_set": false,
+    "gold_operations": [
+      "hkexnews.list_hkexnews_announcements"
+    ],
+    "disclosure": {
+      "present": true,
+      "error": "stage_failed:download",
+      "stopped_after_list": false,
+      "needed_document_text": false,
+      "values_keys": [
+        "issuer_code"
+      ],
+      "missing_outputs": [
+        "news_id",
+        "title",
+        "release_date",
+        "local_key",
+        "source_url"
+      ],
+      "stages": [
+        "list",
+        "download"
+      ],
+      "gateway_success": true
+    },
+    "plan_steps_summary": [
+      {
+        "step_id": "step1",
+        "domain": "disclosure",
+        "required_outputs": [
+          "news_id",
+          "title",
+          "release_date",
+          "local_key",
+          "source_url"
+        ],
+        "workflow": "retrieve_official_disclosure_evidence"
+      },
+      {
+        "step_id": "step2",
+        "domain": "disclosure",
+        "required_outputs": [
+          "news_id",
+          "title",
+          "release_date"
+        ],
+        "workflow": null
+      }
+    ],
+    "stage_results": {
+      "retrieval": "ok",
+      "selection": "ok",
+      "invocation": "ok",
+      "output": "fail",
+      "final": "incorrect"
+    },
+    "final_answer_preview": "The news_id for the Next Day Disclosure Return released on 2026-07-09 could not be retrieved because the source download step failed; no reliable news_id or supporting evidence is available."
+  }
+]

@@ -1,0 +1,78 @@
+# PE-Fin RePlan-only runtime provider availability overlay.
+# Does NOT delete frozen catalog operations. Does NOT change Operation-Visible /
+# PE-Fin Lite formal / EEA / MCP-Zero / Flat All Tools catalogs.
+# Applies only when condition=pe_fin_replan.
+
+profile_id: hk_runtime_sina_market_v1
+profile_version: "1.0"
+status: frozen
+condition_scope:
+  - pe_fin_replan
+  - pe_fin_replan_r4
+
+disable_rule:
+  domain: market
+  provider: eastmoney_via_akshare
+  notes: >
+    Disable market-domain Eastmoney-via-AkShare operations at runtime for
+    RePlan only. Match on metadata/catalog domain+provider fields — never
+    on `_em` name heuristics. Financial-domain Eastmoney ops stay available.
+
+preferred_operations:
+  single_equity_unadjusted_daily_ohlcv:
+    operation_id: aktools.stock_hk_daily
+    provider: sina_via_akshare
+    supports_adjustment: [""]
+    unsupported_adjustment: ["qfq", "hfq"]
+    # AKShare stock_hk_daily (Sina) invoke format is five-digit numeric, NOT XXXXX.HK.
+    symbol_format: "XXXXX"
+    single_equity_symbol_format:
+      input_aliases:
+        - "09988.HK"
+        - "hk09988"
+        - "09988"
+      invoke_format: five_digit_numeric
+      example: "09988"
+      normalizer_version: normalize_sina_hk_symbol_v1
+    notes: >
+      Unadjusted daily OHLCV only. adjust="" allowed. qfq/hfq must NOT be
+      claimed or served by this operation; return unsupported_provider_capability.
+      Binder may emit 09988.HK; runtime must transform to 09988 before Sina invoke.
+  index_daily_ohlc:
+    operation_id: aktools.stock_hk_index_daily_sina
+    provider: sina_via_akshare
+    entity_scope: hk_index
+    notes: >
+      Index history only. Must not be used for single-equity names.
+
+capability_boundary:
+  stock_hk_daily_unadjusted_only: true
+  no_unadjusted_as_qfq_hfq: true
+  no_index_tool_for_single_equity: true
+  no_single_equity_tool_for_index_when_index_op_required: false
+  cutoff: "2026-08-12"
+  forward_fill_forbidden: true
+  previous_valid_day_only_when_benchmark_allows: true
+
+retained_providers:
+  - sina_via_akshare
+  - hkexnews
+  - aktools_catalog
+
+observability_fields:
+  - provider_profile_id
+  - provider_profile_hash
+  - operations_before_provider_filter
+  - disabled_operation_ids
+  - disabled_provider_groups
+  - operations_after_provider_filter
+  - selected_operation_provider
+  - provider_substitution
+  - provider_substitution_reason
+  - requested_adjustment
+  - provider_capability_match
+  - symbol_format_original
+  - symbol_format_normalized
+  - symbol_normalizer_version
+  - symbol_normalizer_hash
+  - argument_transform_applied

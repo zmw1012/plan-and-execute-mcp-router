@@ -1,0 +1,12 @@
+{
+  "flat_final_answer_accuracy": 0.567742,
+  "flat_final_answer_accuracy_fraction": "88/155",
+  "flat_reported_strict_answer_or_overall": 0.5483870967741935,
+  "flat_reported_strict_answer_or_overall_fraction": "85/155",
+  "flat_note": "Flat audit reported identical strict-answer and strict-overall rates (85/155), i.e. an answer-centric closure — not the MCP-Zero tool_selection∧execution conjunction.",
+  "mcp_zero_strict_overall_formula": "status == 'full' AND answer_correct IS True AND tool_selection_correct IS True AND all_tool_invocations_successful IS True; denominator = 155; failed/partial forced incorrect; does NOT require evidence_correct or terminal_contract_valid; human overall_task_success does NOT override this conjunction",
+  "strict_overall_comparability_label": "condition-specific",
+  "strict_overall_reason": "MCP-Zero strict_overall_task_success additionally requires tool_selection_correct and all_tool_invocations_successful; Flat's published 85/155 matches an answer-level rate, so the two must not share a comparison column.",
+  "common_metric_for_cross_baseline": "common_strict_answer_success",
+  "common_strict_answer_success_formula": "status == 'full' AND answer_correct IS True; failed/partial forced incorrect; denominator = 155; cross-baseline comparable answer+completion metric"
+}

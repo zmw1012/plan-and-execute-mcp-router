@@ -1,0 +1,903 @@
+metadata_version: hk_unified_operation_metadata_v1
+description: Structured metadata sidecar for the frozen unified HK operation catalog.
+  Does not modify operation_id or catalog semantics. Entity scopes are company-generic
+  (hk_listed_issuer / hk_equity / index).
+cutoff_date_default: '2026-08-12'
+timezone: Asia/Hong_Kong
+operations:
+- operation_id: ah_disclosure.resolve_company
+  domain: news
+  capabilities:
+  - identity_resolve
+  market_scope: hk
+  entity_scope: hk_listed_issuer
+  accepted_identifier_types:
+  - company_name
+  - hk_code_5digit
+  temporal_granularity: none
+  source_type: official_disclosure
+  metric_basis: not_applicable
+  requires: []
+  provides:
+  - issuer_identity
+  - market_symbol
+  availability: runtime
+  formal_gold_eligible: true
+  runtime_role: relevant
+  provenance: sidecar_v1_from_frozen_catalog:news
+  confidence: 0.85
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: ah_disclosure.search_annual_report
+  domain: news
+  capabilities:
+  - disclosure_search
+  market_scope: hk
+  entity_scope: hk_listed_issuer
+  accepted_identifier_types:
+  - hk_code_5digit
+  temporal_granularity: fiscal_period
+  source_type: official_disclosure
+  metric_basis: not_applicable
+  requires:
+  - issuer_identity
+  provides:
+  - annual_report_meta
+  - publish_time
+  - title
+  availability: runtime
+  formal_gold_eligible: true
+  runtime_role: relevant
+  provenance: sidecar_v1_from_frozen_catalog:news
+  confidence: 0.85
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: ah_disclosure.search_filings
+  domain: news
+  capabilities:
+  - disclosure_search
+  market_scope: hk
+  entity_scope: hk_listed_issuer
+  accepted_identifier_types:
+  - hk_code_5digit
+  temporal_granularity: date_range
+  source_type: official_disclosure
+  metric_basis: not_applicable
+  requires:
+  - issuer_identity
+  provides:
+  - filing_hits
+  availability: runtime
+  formal_gold_eligible: false
+  runtime_role: distractor
+  provenance: sidecar_v1_from_frozen_catalog:news
+  confidence: 0.55
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.bond_zh_hk_rate
+  domain: market
+  capabilities:
+  - rate_yield
+  market_scope: hk
+  entity_scope: bond_rate
+  accepted_identifier_types:
+  - none
+  temporal_granularity: as_of
+  source_type: structured_vendor
+  metric_basis: not_applicable
+  requires: []
+  provides:
+  - hk_rate
+  availability: runtime
+  formal_gold_eligible: false
+  runtime_role: distractor
+  provenance: sidecar_v1_from_frozen_catalog:market
+  confidence: 0.55
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.describe_interface
+  domain: meta
+  capabilities:
+  - meta_discovery
+  market_scope: unknown
+  entity_scope: meta
+  accepted_identifier_types:
+  - interface_name
+  temporal_granularity: none
+  source_type: meta
+  metric_basis: not_applicable
+  requires: []
+  provides:
+  - interface_schema
+  availability: runtime
+  formal_gold_eligible: false
+  runtime_role: distractor
+  provenance: sidecar_v1_from_frozen_catalog:financial
+  confidence: 0.55
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.get_data
+  domain: financial
+  capabilities:
+  - meta_discovery
+  - other
+  market_scope: hk_and_global
+  entity_scope: meta
+  accepted_identifier_types:
+  - interface_name
+  temporal_granularity: unknown
+  source_type: structured_vendor
+  metric_basis: unknown
+  requires:
+  - interface_name
+  provides:
+  - raw_table
+  availability: runtime
+  formal_gold_eligible: true
+  runtime_role: relevant
+  provenance: sidecar_v1_from_frozen_catalog:financial
+  confidence: 0.85
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.news_cctv
+  domain: news
+  capabilities:
+  - news_media
+  market_scope: cn_mainland
+  entity_scope: macro_news
+  accepted_identifier_types:
+  - none
+  temporal_granularity: point_in_time
+  source_type: media
+  metric_basis: not_applicable
+  requires: []
+  provides:
+  - media_headline
+  availability: runtime
+  formal_gold_eligible: false
+  runtime_role: distractor
+  provenance: sidecar_v1_from_frozen_catalog:news
+  confidence: 0.55
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.search_interfaces
+  domain: meta
+  capabilities:
+  - meta_discovery
+  market_scope: unknown
+  entity_scope: meta
+  accepted_identifier_types:
+  - none
+  temporal_granularity: none
+  source_type: meta
+  metric_basis: not_applicable
+  requires: []
+  provides:
+  - interface_candidates
+  availability: runtime
+  formal_gold_eligible: false
+  runtime_role: distractor
+  provenance: sidecar_v1_from_frozen_catalog:financial
+  confidence: 0.55
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_financial_hk_analysis_indicator_em
+  domain: financial
+  capabilities:
+  - financial_ratio
+  - financial_statement
+  market_scope: hk
+  entity_scope: hk_listed_issuer
+  accepted_identifier_types:
+  - hk_code_5digit
+  - hk_code_4digit
+  temporal_granularity: fiscal_period
+  source_type: structured_vendor
+  metric_basis: mixed_or_unspecified
+  requires:
+  - issuer_identity
+  provides:
+  - financial_indicators
+  - eps
+  - revenue
+  - net_income
+  availability: runtime
+  formal_gold_eligible: true
+  runtime_role: relevant
+  provenance: sidecar_v1_from_frozen_catalog:financial
+  confidence: 0.85
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_financial_hk_report_em
+  domain: financial
+  capabilities:
+  - financial_statement
+  market_scope: hk
+  entity_scope: hk_listed_issuer
+  accepted_identifier_types:
+  - hk_code_5digit
+  - hk_code_4digit
+  temporal_granularity: fiscal_period
+  source_type: structured_vendor
+  metric_basis: reported_ifrs
+  requires:
+  - issuer_identity
+  provides:
+  - financial_report_rows
+  availability: runtime
+  formal_gold_eligible: true
+  runtime_role: relevant
+  provenance: sidecar_v1_from_frozen_catalog:financial
+  confidence: 0.85
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_gsrl_gsdt_em
+  domain: news
+  capabilities:
+  - news_media
+  market_scope: cn_mainland
+  entity_scope: macro_news
+  accepted_identifier_types:
+  - none
+  temporal_granularity: spot_latest
+  source_type: media
+  metric_basis: not_applicable
+  requires: []
+  provides:
+  - event_headline
+  availability: runtime
+  formal_gold_eligible: false
+  runtime_role: distractor
+  provenance: sidecar_v1_from_frozen_catalog:news
+  confidence: 0.55
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_hk_company_profile_em
+  domain: financial
+  capabilities:
+  - issuer_profile
+  - identity_resolve
+  market_scope: hk
+  entity_scope: hk_listed_issuer
+  accepted_identifier_types:
+  - hk_code_5digit
+  - hk_code_4digit
+  temporal_granularity: as_of
+  source_type: structured_vendor
+  metric_basis: not_applicable
+  requires: []
+  provides:
+  - issuer_profile
+  - issuer_identity
+  availability: runtime
+  formal_gold_eligible: true
+  runtime_role: relevant
+  provenance: sidecar_v1_from_frozen_catalog:financial
+  confidence: 0.85
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_hk_daily
+  domain: market
+  capabilities:
+  - price_history
+  market_scope: hk
+  entity_scope: hk_equity
+  accepted_identifier_types:
+  - hk_code_5digit
+  - hk_ticker_dot
+  temporal_granularity: date_range
+  source_type: exchange_feed
+  metric_basis: price_unadjusted
+  requires:
+  - issuer_identity
+  provides:
+  - ohlcv
+  - close
+  - volume
+  availability: runtime
+  formal_gold_eligible: true
+  runtime_role: relevant
+  provenance: sidecar_v1_from_frozen_catalog:market
+  confidence: 0.85
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_hk_dividend_payout_em
+  domain: financial
+  capabilities:
+  - dividend
+  market_scope: hk
+  entity_scope: hk_listed_issuer
+  accepted_identifier_types:
+  - hk_code_5digit
+  temporal_granularity: fiscal_period
+  source_type: structured_vendor
+  metric_basis: not_applicable
+  requires:
+  - issuer_identity
+  provides:
+  - dividend_rows
+  availability: runtime
+  formal_gold_eligible: false
+  runtime_role: distractor
+  provenance: sidecar_v1_from_frozen_catalog:financial
+  confidence: 0.55
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_hk_famous_spot_em
+  domain: market
+  capabilities:
+  - spot_quote
+  market_scope: hk
+  entity_scope: hk_equity
+  accepted_identifier_types:
+  - none
+  temporal_granularity: spot_latest
+  source_type: structured_vendor
+  metric_basis: price_unadjusted
+  requires: []
+  provides:
+  - spot_board
+  availability: runtime
+  formal_gold_eligible: false
+  runtime_role: distractor
+  provenance: sidecar_v1_from_frozen_catalog:market
+  confidence: 0.55
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_hk_fhpx_detail_ths
+  domain: financial
+  capabilities:
+  - dividend
+  market_scope: hk
+  entity_scope: hk_listed_issuer
+  accepted_identifier_types:
+  - hk_code_5digit
+  temporal_granularity: date_range
+  source_type: structured_vendor
+  metric_basis: not_applicable
+  requires:
+  - issuer_identity
+  provides:
+  - dividend_detail
+  availability: runtime
+  formal_gold_eligible: false
+  runtime_role: distractor
+  provenance: sidecar_v1_from_frozen_catalog:financial
+  confidence: 0.55
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_hk_financial_indicator_em
+  domain: financial
+  capabilities:
+  - financial_ratio
+  market_scope: hk
+  entity_scope: hk_listed_issuer
+  accepted_identifier_types:
+  - hk_code_5digit
+  temporal_granularity: fiscal_period
+  source_type: structured_vendor
+  metric_basis: mixed_or_unspecified
+  requires:
+  - issuer_identity
+  provides:
+  - indicator_rows
+  availability: runtime
+  formal_gold_eligible: false
+  runtime_role: distractor
+  provenance: sidecar_v1_from_frozen_catalog:financial
+  confidence: 0.55
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_hk_growth_comparison_em
+  domain: financial
+  capabilities:
+  - comparison
+  - financial_ratio
+  market_scope: hk
+  entity_scope: hk_listed_issuer
+  accepted_identifier_types:
+  - hk_code_5digit
+  temporal_granularity: fiscal_period
+  source_type: structured_vendor
+  metric_basis: mixed_or_unspecified
+  requires:
+  - issuer_identity
+  provides:
+  - growth_comparison
+  availability: runtime
+  formal_gold_eligible: false
+  runtime_role: distractor
+  provenance: sidecar_v1_from_frozen_catalog:financial
+  confidence: 0.55
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_hk_hist
+  domain: market
+  capabilities:
+  - price_history
+  market_scope: hk
+  entity_scope: hk_equity
+  accepted_identifier_types:
+  - hk_code_5digit
+  - hk_ticker_dot
+  temporal_granularity: date_range
+  source_type: exchange_feed
+  metric_basis: price_unadjusted
+  requires:
+  - issuer_identity
+  provides:
+  - ohlcv
+  - close
+  - volume
+  - turnover
+  availability: runtime
+  formal_gold_eligible: true
+  runtime_role: relevant
+  provenance: sidecar_v1_from_frozen_catalog:market
+  confidence: 0.85
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_hk_hot_rank_em
+  domain: market
+  capabilities:
+  - spot_quote
+  market_scope: hk
+  entity_scope: hk_equity
+  accepted_identifier_types:
+  - none
+  temporal_granularity: spot_latest
+  source_type: structured_vendor
+  metric_basis: not_applicable
+  requires: []
+  provides:
+  - hot_rank
+  availability: runtime
+  formal_gold_eligible: false
+  runtime_role: distractor
+  provenance: sidecar_v1_from_frozen_catalog:market
+  confidence: 0.55
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_hk_index_daily_em
+  domain: market
+  capabilities:
+  - index_history
+  market_scope: hk
+  entity_scope: index
+  accepted_identifier_types:
+  - index_symbol
+  temporal_granularity: date_range
+  source_type: exchange_feed
+  metric_basis: index_points
+  requires: []
+  provides:
+  - index_ohlc
+  availability: runtime
+  formal_gold_eligible: true
+  runtime_role: relevant
+  provenance: sidecar_v1_from_frozen_catalog:market
+  confidence: 0.85
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_hk_index_daily_sina
+  domain: market
+  capabilities:
+  - index_history
+  market_scope: hk
+  entity_scope: index
+  accepted_identifier_types:
+  - index_symbol
+  temporal_granularity: date_range
+  source_type: exchange_feed
+  metric_basis: index_points
+  requires: []
+  provides:
+  - index_ohlc
+  availability: runtime
+  formal_gold_eligible: true
+  runtime_role: relevant
+  provenance: sidecar_v1_from_frozen_catalog:market
+  confidence: 0.85
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_hk_index_spot_sina
+  domain: market
+  capabilities:
+  - spot_quote
+  - index_history
+  market_scope: hk
+  entity_scope: index
+  accepted_identifier_types:
+  - index_symbol
+  temporal_granularity: spot_latest
+  source_type: exchange_feed
+  metric_basis: index_points
+  requires: []
+  provides:
+  - index_spot
+  availability: runtime
+  formal_gold_eligible: true
+  runtime_role: relevant
+  provenance: sidecar_v1_from_frozen_catalog:market
+  confidence: 0.85
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_hk_indicator_eniu
+  domain: financial
+  capabilities:
+  - valuation
+  market_scope: hk
+  entity_scope: hk_equity
+  accepted_identifier_types:
+  - hk_ticker_dot
+  temporal_granularity: as_of
+  source_type: structured_vendor
+  metric_basis: mixed_or_unspecified
+  requires:
+  - issuer_identity
+  provides:
+  - valuation_series
+  availability: runtime
+  formal_gold_eligible: false
+  runtime_role: distractor
+  provenance: sidecar_v1_from_frozen_catalog:financial
+  confidence: 0.55
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_hk_scale_comparison_em
+  domain: financial
+  capabilities:
+  - comparison
+  market_scope: hk
+  entity_scope: hk_listed_issuer
+  accepted_identifier_types:
+  - hk_code_5digit
+  temporal_granularity: fiscal_period
+  source_type: structured_vendor
+  metric_basis: mixed_or_unspecified
+  requires:
+  - issuer_identity
+  provides:
+  - scale_comparison
+  availability: runtime
+  formal_gold_eligible: false
+  runtime_role: distractor
+  provenance: sidecar_v1_from_frozen_catalog:financial
+  confidence: 0.55
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_hk_security_profile_em
+  domain: financial
+  capabilities:
+  - issuer_profile
+  - identity_resolve
+  market_scope: hk
+  entity_scope: hk_equity
+  accepted_identifier_types:
+  - hk_code_5digit
+  - hk_code_4digit
+  temporal_granularity: as_of
+  source_type: structured_vendor
+  metric_basis: not_applicable
+  requires: []
+  provides:
+  - security_profile
+  - issuer_identity
+  availability: runtime
+  formal_gold_eligible: true
+  runtime_role: relevant
+  provenance: sidecar_v1_from_frozen_catalog:financial
+  confidence: 0.85
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_hk_valuation_baidu
+  domain: financial
+  capabilities:
+  - valuation
+  market_scope: hk
+  entity_scope: hk_equity
+  accepted_identifier_types:
+  - hk_code_5digit
+  temporal_granularity: as_of
+  source_type: structured_vendor
+  metric_basis: mixed_or_unspecified
+  requires:
+  - issuer_identity
+  provides:
+  - valuation_snapshot
+  availability: runtime
+  formal_gold_eligible: false
+  runtime_role: distractor
+  provenance: sidecar_v1_from_frozen_catalog:financial
+  confidence: 0.55
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_hk_valuation_comparison_em
+  domain: financial
+  capabilities:
+  - valuation
+  - comparison
+  market_scope: hk
+  entity_scope: hk_listed_issuer
+  accepted_identifier_types:
+  - hk_code_5digit
+  temporal_granularity: as_of
+  source_type: structured_vendor
+  metric_basis: mixed_or_unspecified
+  requires:
+  - issuer_identity
+  provides:
+  - valuation_comparison
+  availability: runtime
+  formal_gold_eligible: false
+  runtime_role: distractor
+  provenance: sidecar_v1_from_frozen_catalog:financial
+  confidence: 0.55
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_info_global_em
+  domain: news
+  capabilities:
+  - news_media
+  market_scope: global
+  entity_scope: macro_news
+  accepted_identifier_types:
+  - none
+  temporal_granularity: spot_latest
+  source_type: media
+  metric_basis: not_applicable
+  requires: []
+  provides:
+  - global_headline
+  availability: runtime
+  formal_gold_eligible: false
+  runtime_role: distractor
+  provenance: sidecar_v1_from_frozen_catalog:news
+  confidence: 0.55
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_news_em
+  domain: news
+  capabilities:
+  - news_media
+  market_scope: hk_and_global
+  entity_scope: hk_listed_issuer
+  accepted_identifier_types:
+  - hk_code_5digit
+  - company_name
+  temporal_granularity: date_range
+  source_type: media
+  metric_basis: not_applicable
+  requires:
+  - issuer_identity
+  provides:
+  - media_snippets
+  availability: runtime
+  formal_gold_eligible: false
+  runtime_role: distractor
+  provenance: sidecar_v1_from_frozen_catalog:news
+  confidence: 0.55
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_news_main_cx
+  domain: news
+  capabilities:
+  - news_media
+  market_scope: cn_mainland
+  entity_scope: macro_news
+  accepted_identifier_types:
+  - none
+  temporal_granularity: spot_latest
+  source_type: media
+  metric_basis: not_applicable
+  requires: []
+  provides:
+  - media_main
+  availability: runtime
+  formal_gold_eligible: false
+  runtime_role: distractor
+  provenance: sidecar_v1_from_frozen_catalog:news
+  confidence: 0.55
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.stock_notice_report
+  domain: news
+  capabilities:
+  - disclosure_search
+  market_scope: cn_mainland
+  entity_scope: unknown
+  accepted_identifier_types:
+  - unknown
+  temporal_granularity: date_range
+  source_type: structured_vendor
+  metric_basis: not_applicable
+  requires: []
+  provides:
+  - notice_rows
+  availability: runtime
+  formal_gold_eligible: false
+  runtime_role: distractor
+  provenance: sidecar_v1_from_frozen_catalog:news
+  confidence: 0.55
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: aktools.tool_trade_date_hist_sina
+  domain: market
+  capabilities:
+  - calendar
+  market_scope: cn_mainland
+  entity_scope: unknown
+  accepted_identifier_types:
+  - none
+  temporal_granularity: calendar
+  source_type: structured_vendor
+  metric_basis: not_applicable
+  requires: []
+  provides:
+  - trade_calendar
+  availability: runtime
+  formal_gold_eligible: false
+  runtime_role: distractor
+  provenance: sidecar_v1_from_frozen_catalog:market
+  confidence: 0.55
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: hkexnews.download_hkexnews_announcement
+  domain: financial
+  capabilities:
+  - disclosure_download
+  market_scope: hk
+  entity_scope: hk_listed_issuer
+  accepted_identifier_types:
+  - hk_code_5digit
+  temporal_granularity: point_in_time
+  source_type: official_disclosure
+  metric_basis: not_applicable
+  requires:
+  - announcement_id
+  provides:
+  - announcement_pdf
+  availability: runtime
+  formal_gold_eligible: true
+  runtime_role: relevant
+  provenance: sidecar_v1_from_frozen_catalog:financial
+  confidence: 0.85
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: hkexnews.get_announcement_pages
+  domain: financial
+  capabilities:
+  - disclosure_parse
+  market_scope: hk
+  entity_scope: hk_listed_issuer
+  accepted_identifier_types:
+  - none
+  temporal_granularity: none
+  source_type: official_disclosure
+  metric_basis: not_applicable
+  requires:
+  - announcement_pdf
+  provides:
+  - page_text
+  availability: runtime
+  formal_gold_eligible: true
+  runtime_role: relevant
+  provenance: sidecar_v1_from_frozen_catalog:financial
+  confidence: 0.85
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: hkexnews.keyword_search
+  domain: financial
+  capabilities:
+  - disclosure_search
+  - disclosure_parse
+  market_scope: hk
+  entity_scope: hk_listed_issuer
+  accepted_identifier_types:
+  - none
+  temporal_granularity: none
+  source_type: official_disclosure
+  metric_basis: mixed_or_unspecified
+  requires:
+  - page_text
+  provides:
+  - keyword_hits
+  - extracted_metrics
+  availability: runtime
+  formal_gold_eligible: true
+  runtime_role: relevant
+  provenance: sidecar_v1_from_frozen_catalog:financial
+  confidence: 0.85
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: hkexnews.list_hkexnews_announcements
+  domain: financial
+  capabilities:
+  - disclosure_search
+  market_scope: hk
+  entity_scope: hk_listed_issuer
+  accepted_identifier_types:
+  - hk_code_5digit
+  - hk_code_4digit
+  temporal_granularity: date_range
+  source_type: official_disclosure
+  metric_basis: not_applicable
+  requires:
+  - issuer_identity
+  provides:
+  - announcement_list
+  - announcement_id
+  - title
+  - publish_time
+  availability: runtime
+  formal_gold_eligible: true
+  runtime_role: relevant
+  provenance: sidecar_v1_from_frozen_catalog:financial
+  confidence: 0.85
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: hkexnews.lookup_stock_code
+  domain: financial
+  capabilities:
+  - identity_resolve
+  market_scope: hk
+  entity_scope: hk_listed_issuer
+  accepted_identifier_types:
+  - company_name
+  - hk_code_5digit
+  temporal_granularity: none
+  source_type: official_disclosure
+  metric_basis: not_applicable
+  requires: []
+  provides:
+  - issuer_identity
+  - hk_code
+  availability: runtime
+  formal_gold_eligible: true
+  runtime_role: relevant
+  provenance: sidecar_v1_from_frozen_catalog:financial
+  confidence: 0.85
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+- operation_id: hkexnews.parse_hkexnews_announcement
+  domain: financial
+  capabilities:
+  - disclosure_parse
+  market_scope: hk
+  entity_scope: hk_listed_issuer
+  accepted_identifier_types:
+  - none
+  temporal_granularity: none
+  source_type: official_disclosure
+  metric_basis: mixed_or_unspecified
+  requires:
+  - announcement_pdf
+  provides:
+  - parsed_text
+  - tables
+  availability: runtime
+  formal_gold_eligible: true
+  runtime_role: relevant
+  provenance: sidecar_v1_from_frozen_catalog:financial
+  confidence: 0.85
+  notes: Company-generic metadata for any HK listed issuer / index; not issuer-whitelisted.
+blocked_or_unavailable:
+- operation_id: aktools.stock_individual_notice_report
+  domain: news
+  capabilities:
+  - other
+  market_scope: unknown
+  entity_scope: unknown
+  accepted_identifier_types:
+  - unknown
+  temporal_granularity: unknown
+  source_type: synthetic_blocked
+  metric_basis: not_applicable
+  availability: blocked
+  requires: []
+  provides: []
+  formal_gold_eligible: false
+  runtime_role: blocked
+  provenance: frozen_catalog_blocked
+  confidence: 1.0
+  notes: Blocked/unavailable; must never enter runtime registry.
+- operation_id: ftshare.ft_v1_report_announcements_list
+  domain: market
+  capabilities:
+  - other
+  market_scope: unknown
+  entity_scope: unknown
+  accepted_identifier_types:
+  - unknown
+  temporal_granularity: unknown
+  source_type: synthetic_blocked
+  metric_basis: not_applicable
+  availability: blocked
+  requires: []
+  provides: []
+  formal_gold_eligible: false
+  runtime_role: blocked
+  provenance: frozen_catalog_blocked
+  confidence: 1.0
+  notes: Blocked/unavailable; must never enter runtime registry.
+- operation_id: mock.news_server
+  domain: news
+  capabilities:
+  - other
+  market_scope: unknown
+  entity_scope: unknown
+  accepted_identifier_types:
+  - unknown
+  temporal_granularity: unknown
+  source_type: synthetic_blocked
+  metric_basis: not_applicable
+  availability: blocked
+  requires: []
+  provides: []
+  formal_gold_eligible: false
+  runtime_role: blocked
+  provenance: frozen_catalog_blocked
+  confidence: 1.0
+  notes: Blocked/unavailable; must never enter runtime registry.

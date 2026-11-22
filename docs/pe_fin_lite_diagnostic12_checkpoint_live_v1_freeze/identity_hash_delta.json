@@ -1,0 +1,31 @@
+{
+  "method_version_before": "pe_fin_lite_v1",
+  "method_version_after": "pe_fin_lite_v1.1",
+  "prompt_hash_before": "98817b913fcaff9d3fc402d6a1ce912b061a9459ec2d6cac64bf1a9bb68bda85",
+  "prompt_hash_after": "b347eed8c28d75d27ba92c1500da3b5393cee68ce5d24f36954b3fcabf4d1380",
+  "schema_hash_unchanged": "fdf728361fd74c3d9e6c5807b35a51ac8f87123cc0e3b3e8ea6139627da42d68",
+  "raw_predictions_sha256": "a84762f8d5123db68eaf0445794adfb1c8bced90cbc4b61e2bdddd3b39683131",
+  "raw_run_metadata_sha256": "14a2f5531a1a04e211c3e4fa4b2ef127eae2d1ec5a967c7b39cd5407e2238e61",
+  "changed": [
+    "method_version",
+    "config_method_version",
+    "prompt_hash",
+    "runtime_issuer_code",
+    "runtime_calculator",
+    "runtime_reason_parse",
+    "runtime_temporal_policy",
+    "checkpoint_audit_dual_layer"
+  ],
+  "unchanged": [
+    "schema_hash",
+    "diagnostic12_ids_order_gold",
+    "topk",
+    "describe_budget",
+    "fallback_budget",
+    "llm_budget",
+    "mcp_budget",
+    "monitor",
+    "global_replan",
+    "raw_artifacts"
+  ]
+}
